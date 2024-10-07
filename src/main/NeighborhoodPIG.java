@@ -59,7 +59,10 @@ public class NeighborhoodPIG {
         return new double[]{rgb[0][row][col], rgb[1][row][col], rgb[2][row][col]};
     }
     
-    
+    /**
+     * Writes a heat map orientation picture to the given file.
+     * @param writeTo The new orientation image.
+     */
     public void orientationColored(String writeTo){
         
         double[][][] rgb = stm.getRGB();
@@ -82,21 +85,10 @@ public class NeighborhoodPIG {
     }
 
     public static void main(String[] args) throws IOException {
-        NeighborhoodPIG np = new NeighborhoodPIG("NematicFiles/images/source/orientation.jpeg", 5);
+        NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 5);
+        np.orientationColored("images/output/test.png");
         
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     
     
@@ -137,16 +129,11 @@ public class NeighborhoodPIG {
         double[] imageData = new double[width * height];
 
         Arrays.setAll(imageData, i -> raster.getSample(i / height, i % height, 0) / 255.0);
-
-        
         
         try (Handle handle = new Handle()) {
-            
-            DArray data = new DArray(handle, imageData);
-            
             return new Matrix(
                     handle, 
-                    data,
+                    new DArray(handle, imageData),
                     height,
                     width);
         }
