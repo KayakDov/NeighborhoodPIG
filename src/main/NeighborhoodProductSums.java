@@ -28,17 +28,16 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param handle A resource handle for creating internal matrices.
      * @param nRad Neighborhood radius; the distance from the center of a
      * neighborhood to its edge.
+     * @param height The height of expected matrices.  That is, matrices that will be passed to the set method.
+     * @param width The width of expected matrices.
      * @param result A matrix that is one long row of n x n tensors. The height
      * of the matrix is the height of one tensor and the length of the matrix is
      * the size*tensor.length.
      */
-    public NeighborhoodProductSums(Handle handle, int nRad, Matrix result) {
+    public NeighborhoodProductSums(Handle handle, int nRad, int height, int width, Matrix result) {
         this.nRad = nRad;
-
-        int numPixels = result.getWidth() / result.getHeight();
-
-        this.height = numPixels;
-        this.width = numPixels;
+        this.height = height;
+        this.width = width;
         inRowSum = new Matrix(handle, height, width);
         ebeStorage = new Matrix(handle, height, width);
         halfNOnes = new Vector(handle, nRad + 1).fill(1);
@@ -91,11 +90,11 @@ public class NeighborhoodProductSums implements AutoCloseable {
     private void inRowSumsEdge() {
         inRowSum.getColumnMatrix(0).multiplyAndSet(
                 ebeStorage.getSubMatrix(0, height, 0, nRad + 1),
-                halfNOnes.horizontal()
+                halfNOnes.vertical()
         );
         inRowSum.getColumnMatrix(width - 1).multiplyAndSet(
                 ebeStorage.getSubMatrix(0, height, width - nRad - 1, width),
-                halfNOnes.horizontal()
+                halfNOnes.vertical()
         );
     }
 
@@ -151,11 +150,11 @@ public class NeighborhoodProductSums implements AutoCloseable {
      */
     private void nSumEdge(MatrixOnVector nSums) {
         nSums.getRow(0).multiplyAndSet(
-                halfNOnes.vertical(),
+                halfNOnes.horizontal(),
                 inRowSum.getSubMatrix(0, nRad + 1, 0, width)
         );
         nSums.getRow(nSums.height - 1).multiplyAndSet(
-                halfNOnes.vertical(),
+                halfNOnes.horizontal(),
                 inRowSum.getSubMatrix(nSums.height - nRad - 1, nSums.height, 0, width)
         );
     }

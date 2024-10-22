@@ -89,7 +89,7 @@ public class Gradient {
                 1.0 / 12
         )) {
             // Interior x gradients (third column to second-to-last)
-            DArray2d.multMatMatBatched(hand, false, false,
+            DArray2d.multMatMatStridedBatched(hand, false, false,
                     height, diff.getDimension(), 1,
                     1,
                     pic.dArray(), height, height,
@@ -99,7 +99,7 @@ public class Gradient {
             );
 
             // Interior y gradients (third row to second-to-last)
-            DArray2d.multMatMatBatched(hand, false, false,
+            DArray2d.multMatMatStridedBatched(hand, false, false,
                     1, diff.getDimension(), width,
                     1,
                     diff.dArray(), diff.getDimension(), 0,

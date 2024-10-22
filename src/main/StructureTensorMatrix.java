@@ -34,7 +34,7 @@ public class StructureTensorMatrix implements AutoCloseable {
 
         strctTensors = new Matrix(handle, 2, 2 * dX.size());//reset to 3 for dZ.
 
-        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(dX.getHandle(), neighborhoodRad, strctTensors)) {
+        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(dX.getHandle(), neighborhoodRad, height, width, strctTensors)) {
             nps.set(dX, dX, 0);
             nps.set(dX, dY, 1);
             nps.set(dY, dY, 3);//Reset these when working with dZ.
@@ -163,7 +163,7 @@ public class StructureTensorMatrix implements AutoCloseable {
     private Vector cosOf(double alpha, Matrix eachColIsVec2d, Matrix rotate) {
         Matrix rotated = rotate.multiply(eachColIsVec2d);
         Vector cosDenominator = new Vector(eachColIsVec2d.getHandle(), eachColIsVec2d.getWidth());
-        DArray2d.multMatMatBatched(eachColIsVec2d.getHandle(),
+        DArray2d.multMatMatStridedBatched(eachColIsVec2d.getHandle(),
                 true, false,
                 2, 1, 1,
                 alpha,
@@ -181,25 +181,29 @@ public class StructureTensorMatrix implements AutoCloseable {
 //    (R, G, B) = (256*cos(x), 256*cos(x + 60), 256*cos(x + 120))
     /**
      * Three matrices for red green blue color values.
-     * @return 
+     *
+     * @return
      */
     public double[][][] getRGB() {
 
         double RGB[][][] = new double[3][][];
 
         try (Matrix red = cosOf(256, strTenEVals, Rotation.id).asMatrix(orientation.getHeight())) {
-            RGB[0]= red.getData();
+            RGB[0] = red.getData();
         }
         try (Matrix green = cosOf(256, strTenEVals, Rotation.r60).asMatrix(orientation.getHeight())) {
-            RGB[1]= green.getData();
+            RGB[1] = green.getData();
         }
         try (Matrix blue = cosOf(256, strTenEVals, Rotation.r60).asMatrix(orientation.getHeight())) {
-            RGB[2]= blue.getData();
+            RGB[2] = blue.getData();
         }
-        
+
         return RGB;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void close() {
         strctTensors.close();
