@@ -3,7 +3,6 @@ package main;
 
 
 import algebra.Matrix;
-import algebra.Vector;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
@@ -13,7 +12,6 @@ import java.util.Arrays;
 import javax.imageio.ImageIO;
 import resourceManagement.Handle;
 import array.DArray;
-import array.DArray2d;
 import java.awt.Color;
 import java.awt.image.WritableRaster;
 

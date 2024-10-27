@@ -2,10 +2,13 @@ package main;
 
 
 
+import algebra.MatricesStride;
 import algebra.Matrix;
 import algebra.Vector;
+import algebra.VectorsStride;
+import array.DArray;
 import resourceManagement.Handle;
-import array.DArray2d;
+
 
 /**
  * The gradient for each pixel.
@@ -81,32 +84,29 @@ public class Gradient {
      * @param height The height of the image (number of rows).
      */
     private void computeInteriorGradients(Handle hand, Matrix pic, Matrix dX, Matrix dY, int width, int height) {
-        try (Vector diff = new Vector(hand,
-                -1.0 / 12,
-                2.0 / 3,
-                0,
-                -2.0 / 3,
-                1.0 / 12
-        )) {
+        try (VectorsStride diff = new VectorsStride(hand, new DArray(hand, -1.0 / 12, 2.0 / 3, 0, -2.0 / 3, 1.0 / 12).getStrided(0, dX.getWidth() - 4, 5),1)) {
             // Interior x gradients (third column to second-to-last)
-            DArray2d.multMatMatStridedBatched(hand, false, false,
-                    height, diff.getDimension(), 1,
-                    1,
-                    pic.dArray(), height, height,
-                    diff.dArray(), diff.getDimension(), 0,
-                    0, dX.dArray().subArray(3 * height), height, height,
-                    width - 4
+            VectorsStride dXColumns = dX.columns();
+            MatricesStride columnBlocks = new MatricesStride(
+                    hand, 
+                    pic.dArray().getStrided(height, width - 4, height*diff.getSubVecDim()), 
+                    height, 
+                    diff.getSubVecDim(),
+                    height
             );
+            
+            dXColumns.setMatVecMult(columnBlocks, diff);
 
             // Interior y gradients (third row to second-to-last)
-            DArray2d.multMatMatStridedBatched(hand, false, false,
-                    1, diff.getDimension(), width,
-                    1,
-                    diff.dArray(), diff.getDimension(), 0,
-                    pic.dArray(), height, 1,
-                    0, dY.dArray().subArray(3), height, 1,
-                    height - 4
+            VectorsStride dYRows = dY.rows();
+            MatricesStride rowBlocks = new MatricesStride(
+                    hand, 
+                    pic.dArray().getStrided(1, height - 4, height*(width-1)), 
+                    diff.getSubVecDim(), 
+                    width,
+                    height
             );
+            dYRows.setVecMatMult(diff, rowBlocks);
         }
     }
 

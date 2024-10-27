@@ -1,11 +1,12 @@
 package main;
 
 import MathSupport.Rotation;
+import algebra.Eigen;
+import algebra.MatricesStride;
 import algebra.Matrix;
 import algebra.Vector;
-import array.DArray2d;
-import static java.lang.Math.*;
-import javax.print.attribute.standard.OrientationRequested;
+import algebra.VectorsStride;
+import array.KernelManager;
 import resourceManagement.Handle;
 
 /**
@@ -21,34 +22,34 @@ public class StructureTensorMatrix implements AutoCloseable {
      * is, the first tensor corresponds to the pixel at column 0 row 0, the
      * second tensor corresponds to the pixel at column 0 row 1, etc...
      */
-    private Matrix strctTensors;
+    private MatricesStride strctTensors;
 
-    private Matrix strTenEVecs;
-    private Matrix strTenEVals;
+    private Eigen eigen;
     private Matrix orientation;
+    private Handle handle;
 
     public StructureTensorMatrix(Matrix dX, Matrix dY, int neighborhoodRad) {
 
-        Handle handle = dX.getHandle();
+        handle = dX.getHandle();
         int height = dX.getHeight(), width = dX.getWidth();
 
-        strctTensors = new Matrix(handle, 2, 2 * dX.size());//reset to 3 for dZ.
+        strctTensors = new MatricesStride(handle, 2, dX.size());//reset to 3x3 for dZ.
 
         try (NeighborhoodProductSums nps = new NeighborhoodProductSums(dX.getHandle(), neighborhoodRad, height, width, strctTensors)) {
             nps.set(dX, dX, 0);
             nps.set(dX, dY, 1);
-            nps.set(dY, dY, 3);//Reset these when working with dZ.
+            nps.set(dY, dY, 3);
+//            nps.set(dX, dZ, 3);
+//            nps.set(dY, dZ, 3);
+//            nps.set(dZ, dZ, 3);//Add these when working with dZ.
         }
+        
+        strctTensors.get(1, 0).set(strctTensors.get(0, 1));
+//        strctTensors.get(2, 0).set(strctTensors.get(0, 2)); //engage for 3x3.
+//        strctTensors.get(2, 1).set(strctTensors.get(1, 2));
 
-        int numElementsPerTensor = strctTensors.getHeight() * strctTensors.getHeight();
-
-        Vector copyTo = strctTensors.asVector().getSubVector(2, dX.size(), numElementsPerTensor);
-        Vector copyFrom = strctTensors.asVector().getSubVector(1, dX.size(), numElementsPerTensor);
-
-        copyTo.set(copyFrom);
-
-        orientation = new Matrix(dX.getHandle(), dX.getHeight(), dX.getWidth());
-        setEigans();
+        orientation = new Matrix(handle, height, width);
+        eigen = new Eigen(strctTensors, false);//set to true for 3x3.
 
     }
 
@@ -87,61 +88,12 @@ public class StructureTensorMatrix implements AutoCloseable {
         return strctTensors.getSubMatrix(0, height, startCol, startCol + height);
     }
 
-    /**
-     * Retrieves an eigenvector.
-     *
-     * @param row The row of the pixel for which the eigenvector is desired.
-     * @param col The column of the pixel for which the eigenvector is desired.
-     * @param eiganIndex If there is more than one eigenvector, the index of the
-     * one you want.
-     * @return The requested eigenvector.
-     */
-    public Vector getEiganVec(int row, int col, int eiganIndex) {
-        return strTenEVecs.getColumnVector(tensorFirstColIndex(row, col) + eiganIndex);
-    }
-
-    /**
-     * Retrieves an eigenvalue.
-     *
-     *
-     * @param row The row of the pixel for which the eigenvalue is desired.
-     * @param col The column of the pixel for which the eigenvalue is desired.
-     * @param eiganIndex If there is more than one eigenvalue, the index of the
-     * one you want.
-     * @return The requested eigenvalue.
-     */
-    public Vector getEiganVal(int row, int col, int eiganIndex, int tensorSize) {
-        return strTenEVals.getColumnVector(tensorFirstColIndex(row, col) + eiganIndex);
-    }
-
-    /**
-     * sets the orientations.
-     */
-    private void setEigans() {
-        Handle handle = strctTensors.getHandle();
-
-        int numTensors = strctTensors.getWidth() / strctTensors.getHeight();
-
-        strTenEVecs = new Matrix(handle, strctTensors.getHeight(), strctTensors.getWidth());
-        strTenEVals = new Matrix(handle, 1, strctTensors.getWidth());
-
-        DArray2d.computeEigen(
-                strctTensors.getHeight(),
-                strctTensors.dArray(), strctTensors.getHeight(),
-                strTenEVals.dArray(),
-                strTenEVecs.dArray(), strctTensors.getHeight(),
-                numTensors,
-                DArray2d.Fill.FULL
-        );
-
-        strctTensors.getHandle().synch();
-    }
 
     /**
      * Sets the orientations from the eigenvectors.
      */
     public void setOrientations() {
-        orientation.dArray().atan2(strTenEVecs.dArray());
+        KernelManager.get("atan2").map(handle, eigen.vectors.dArray(), 4, orientation.dArray(), 1, orientation.size());
     }
 
     /**
@@ -157,24 +109,31 @@ public class StructureTensorMatrix implements AutoCloseable {
      * Gives the cos of the angle each 2d column vector in the matrix forms with
      * the x axis.
      *
-     * @param eachColIsVec2d A matrix where each column is a 2d vector.
+     * @param vecs2d A matrix where each column is a 2d vector.
      * @return A vector where each index the cos of each column in m.
      */
-    private Vector cosOf(double alpha, Matrix eachColIsVec2d, Matrix rotate) {
-        Matrix rotated = rotate.multiply(eachColIsVec2d);
-        Vector cosDenominator = new Vector(eachColIsVec2d.getHandle(), eachColIsVec2d.getWidth());
-        DArray2d.multMatMatStridedBatched(eachColIsVec2d.getHandle(),
-                true, false,
-                2, 1, 1,
-                alpha,
-                eachColIsVec2d.dArray(), 2, 2,
-                eachColIsVec2d.dArray(), 2, 2,
-                0, cosDenominator.dArray(), 1, 1,
-                cosDenominator.getDimension());
+    private Vector cosOf(double alpha, VectorsStride vecs2d, Matrix rotate) {
+        
+        
+        VectorsStride rotated = new VectorsStride(handle, 2, vecs2d.data.batchSize, vecs2d.getSubVecDim(), 1);
+        rotated.setMatVecMult(
+                new MatricesStride(
+                        handle, 
+                        rotate.dArray().getStrided(0, vecs2d.data.batchCount(), rotate.size()), 
+                        2
+                ), 
+                vecs2d
+        );
+        
+        Vector xVals = vecs2d.get(0);
+        
+        Vector cosDenominator = new Vector(handle, vecs2d.data.batchSize);
+        
+        cosDenominator.setBatchVecVecMult(vecs2d, vecs2d);
+        
+        cosDenominator.mapEBEDivide(xVals);
 
-        Vector xVals = new Vector(eachColIsVec2d.getHandle(), eachColIsVec2d.dArray(), eachColIsVec2d.getColDist());
-
-        return xVals.ebeDivide(cosDenominator);
+        return xVals;
     }
 
 //        (R, G, B) = (256*cos(x), 256*cos(x + 120), 256*cos(x - 120))  <- this is for 360.  For 180 maybe:
@@ -188,13 +147,15 @@ public class StructureTensorMatrix implements AutoCloseable {
 
         double RGB[][][] = new double[3][][];
 
-        try (Matrix red = cosOf(256, strTenEVals, Rotation.id).asMatrix(orientation.getHeight())) {
+        VectorsStride primaryAxis = eigen.vectors.column(0);
+        
+        try (Matrix red = cosOf(256, primaryAxis, Rotation.id).asMatrix(orientation.getHeight())) {
             RGB[0] = red.getData();
         }
-        try (Matrix green = cosOf(256, strTenEVals, Rotation.r60).asMatrix(orientation.getHeight())) {
+        try (Matrix green = cosOf(256, primaryAxis, Rotation.r60).asMatrix(orientation.getHeight())) {
             RGB[1] = green.getData();
         }
-        try (Matrix blue = cosOf(256, strTenEVals, Rotation.r60).asMatrix(orientation.getHeight())) {
+        try (Matrix blue = cosOf(256, primaryAxis, Rotation.r60).asMatrix(orientation.getHeight())) {
             RGB[2] = blue.getData();
         }
 
@@ -207,8 +168,7 @@ public class StructureTensorMatrix implements AutoCloseable {
     @Override
     public void close() {
         strctTensors.close();
-        strTenEVecs.close();
-        strTenEVals.close();
+        eigen.close();
         orientation.close();
     }
 
