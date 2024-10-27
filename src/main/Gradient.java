@@ -84,8 +84,10 @@ public class Gradient {
      * @param height The height of the image (number of rows).
      */
     private void computeInteriorGradients(Handle hand, Matrix pic, Matrix dX, Matrix dY, int width, int height) {
-        try (VectorsStride diff = new VectorsStride(hand, new DArray(hand, -1.0 / 12, 2.0 / 3, 0, -2.0 / 3, 1.0 / 12).getStrided(0, dX.getWidth() - 4, 5),1)) {
+        try (DArray diffArray = new DArray(hand, -1.0 / 12, 2.0 / 3, 0, -2.0 / 3, 1.0 / 12)) {
+            
             // Interior x gradients (third column to second-to-last)
+            VectorsStride diff = new VectorsStride(hand, diffArray.getStrided(0, width - 4, 5),1);
             VectorsStride dXColumns = dX.columns();
             MatricesStride columnBlocks = new MatricesStride(
                     hand, 
@@ -98,6 +100,7 @@ public class Gradient {
             dXColumns.setMatVecMult(columnBlocks, diff);
 
             // Interior y gradients (third row to second-to-last)
+            diff = new VectorsStride(hand, diff.data.getStrided(0, height - 4, 5), 1);
             VectorsStride dYRows = dY.rows();
             MatricesStride rowBlocks = new MatricesStride(
                     hand, 
