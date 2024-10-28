@@ -2,6 +2,7 @@ package main;
 
 import algebra.Matrix;
 import algebra.Vector;
+import algebra.VectorsStride;
 import resourceManagement.Handle;
 
 /**
@@ -53,10 +54,11 @@ public class NeighborhoodProductSums implements AutoCloseable {
      *
      * @param a The first matrix.
      * @param b The second matrix.
-     * @param firstResult The index in the result vector to store the first
-     * result.
+     * @param result Store the result here in column major order.  Note that the
+     * increment of this vector is probably not one.  Be sure this is set to 0's before passing it.
+     *
      */
-    public void set(Matrix a, Matrix b, int firstResult) {
+    public void set(Matrix a, Matrix b, Vector result) {
 
         ebeStorage.asVector().mapEbeMultiplyToSelf(a.asVector(), b.asVector());
 
@@ -64,16 +66,11 @@ public class NeighborhoodProductSums implements AutoCloseable {
         inRowSumNearEdge();
         inRowSumCenter();
 
-        MatrixOnVector nSums = new MatrixOnVector(
-                result.newDimensions(result.getHeight()*result.getHeight())
-                        .getRowVector(firstResult), 
-                height, 
-                width
-        );
-
-        nSumEdge(nSums);
-        nSumNearEdge(nSums);
-        nSumCenter(nSums);
+        VectorsStride resultRows = new VectorsStride(a.getHandle(), result, 1, a.getWidth(), a.getHeight(), a.colDist);
+        
+        nSumEdge(resultRows);
+        nSumNearEdge(resultRows);
+        nSumCenter(resultRows);
     }
 
     /**
@@ -88,13 +85,13 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * columns.
      */
     private void inRowSumsEdge() {
-        inRowSum.getColumnMatrix(0).multiplyAndSet(
-                ebeStorage.getSubMatrix(0, height, 0, nRad + 1),
-                halfNOnes.vertical()
+        inRowSum.getColumnVector(0).multiplyAndSet(
+                ebeStorage.getSubMatrixCols(0, nRad + 1),
+                halfNOnes
         );
-        inRowSum.getColumnMatrix(width - 1).multiplyAndSet(
-                ebeStorage.getSubMatrix(0, height, width - nRad - 1, width),
-                halfNOnes.vertical()
+        inRowSum.getColumnVector(width - 1).multiplyAndSet(
+                ebeStorage.getSubMatrixCols(width - nRad - 1, width),
+                halfNOnes
         );
     }
 
@@ -148,14 +145,14 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param width Width of the matrix.
      * @param halfNOnes Vector of ones used for summing the first and last rows.
      */
-    private void nSumEdge(MatrixOnVector nSums) {
-        nSums.getRow(0).multiplyAndSet(
-                halfNOnes.horizontal(),
-                inRowSum.getSubMatrix(0, nRad + 1, 0, width)
+    private void nSumEdge(VectorsStride resultRows) {
+        resultRows.getVector(0).multiplyAndSet(
+                halfNOnes,
+                inRowSum.getSubMatrixRows(0, nRad + 1)
         );
-        nSums.getRow(nSums.height - 1).multiplyAndSet(
-                halfNOnes.horizontal(),
-                inRowSum.getSubMatrix(nSums.height - nRad - 1, nSums.height, 0, width)
+        resultRows.getVector(result.getHeight() - 1).multiplyAndSet(
+                halfNOnes,
+                inRowSum.getSubMatrixRows(result.getHeight() - nRad - 1, result.getHeight())
         );
     }
 
@@ -167,18 +164,16 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param nRad Neighborhood radius.
      * @param height Height of the matrix.
      */
-    private void nSumNearEdge(MatrixOnVector nSums) {
+    private void nSumNearEdge(VectorsStride resultRows) {
         for (int i = 1; i < nRad + 1; i++) {
             int rowInd = i;
-            nSums.getRow(rowInd).addAndSet(
-                    1, inRowSum.getRowMatrix(rowInd + nRad),
-                    1, nSums.getRow(rowInd - 1)
-            );
+            resultRows.getVector(rowInd).addToMe(1, inRowSum.getRowVector(rowInd + nRad));
+            resultRows.getVector(rowInd).addToMe(1, result.getRowVector(rowInd - 1));
+            
             rowInd = height - 1 - i;
-            nSums.getRow(rowInd).addAndSet(
-                    1, inRowSum.getRowMatrix(rowInd - nRad),
-                    1, nSums.getRow(rowInd + 1)
-            );
+            resultRows.getVector(rowInd).addToMe(1, inRowSum.getRowVector(rowInd - nRad));
+            resultRows.getVector(rowInd).addToMe(1, result.getRowVector(rowInd + 1));
+            
         }
     }
 
@@ -190,69 +185,13 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param nRad Neighborhood radius.
      * @param height Height of the matrix.
      */
-    private void nSumCenter(MatrixOnVector nSums) {
+    private void nSumCenter(VectorsStride resultRows) {
         for (int rowIndex = nRad + 1; rowIndex < height - nRad; rowIndex++) {
-            Matrix nSumsRow = nSums.getRow(rowIndex);
-            nSumsRow.addAndSet(
-                    -1, inRowSum.getRowMatrix(rowIndex - nRad - 1),
-                    1, inRowSum.getRowMatrix(rowIndex + nRad)
-            );
-            nSumsRow.addAndSet(1, nSumsRow, 1, nSums.getRow(rowIndex - 1));
-        }
-    }
-
-    /**
-     * This class provides a wrapper around a {@link Vector} to access its data
-     * as a matrix-like structure. It allows retrieving rows of the vector as
-     * submatrices, facilitating matrix-like operations on a linear structure.
-     * The vector is interpreted as a 2D matrix with specified dimensions.
-     *
-     * This is useful when working with element-wise matrix operations and the
-     * results of those operations are stored in a {@link Vector} but need to be
-     * accessed as a matrix.
-     *
-     * @author E. Dov Neimand
-     */
-    private static class MatrixOnVector {
-
-        /**
-         * The underlying vector storing the matrix data.
-         */
-        private final Vector vec;
-
-        /**
-         * The height (number of rows) of the matrix.
-         */
-        private final int height;
-
-        /**
-         * The width (number of columns) of the matrix.
-         */
-        private final int width;
-
-        /**
-         * Constructs a {@code MatrixOnVector} instance to interpret a vector as
-         * a matrix with the given dimensions.
-         *
-         * @param vec The vector storing the matrix elements.
-         * @param height The number of rows in the matrix.
-         * @param width The number of columns in the matrix.
-         */
-        public MatrixOnVector(Vector vec, int height, int width) {
-            this.vec = vec;
-            this.height = height;
-            this.width = width;
-        }
-
-        /**
-         * Retrieves the specified row from the vector, interpreting the data as
-         * a matrix. The row is returned as a submatrix (horizontal).
-         *
-         * @param rowIndex The index of the row to retrieve.
-         * @return A {@link Matrix} representing the row at the specified index.
-         */
-        public Matrix getRow(int rowIndex) {
-            return vec.getSubVector(rowIndex, width, height).horizontal();
+            Vector nSumsRow = resultRows.getVector(rowIndex);
+            nSumsRow.addToMe(-1, inRowSum.getRowVector(rowIndex - nRad - 1));
+            nSumsRow.addToMe(1, inRowSum.getRowVector(rowIndex + nRad));
+            
+            nSumsRow.addToMe(1, result.getRowVector(rowIndex - 1));
         }
     }
 

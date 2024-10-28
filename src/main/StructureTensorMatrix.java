@@ -36,9 +36,9 @@ public class StructureTensorMatrix implements AutoCloseable {
         strctTensors = new MatricesStride(handle, 2, dX.size());//reset to 3x3 for dZ.
 
         try (NeighborhoodProductSums nps = new NeighborhoodProductSums(dX.getHandle(), neighborhoodRad, height, width, strctTensors)) {
-            nps.set(dX, dX, 0);
-            nps.set(dX, dY, 1);
-            nps.set(dY, dY, 3);
+            nps.set(dX, dX, strctTensors.get(0, 0));
+            nps.set(dX, dY, strctTensors.get(0, 1));
+            nps.set(dY, dY, strctTensors.get(1, 1));
 //            nps.set(dX, dZ, 3);
 //            nps.set(dY, dZ, 3);
 //            nps.set(dZ, dZ, 3);//Add these when working with dZ.
@@ -119,13 +119,13 @@ public class StructureTensorMatrix implements AutoCloseable {
         rotated.setMatVecMult(
                 new MatricesStride(
                         handle, 
-                        rotate.dArray().getStrided(0, vecs2d.data.batchCount(), rotate.size()), 
+                        rotate.dArray().getAsBatch(0, vecs2d.data.batchCount(), rotate.size()), 
                         2
                 ), 
                 vecs2d
         );
         
-        Vector xVals = vecs2d.get(0);
+        Vector xVals = vecs2d.getElement(0);
         
         Vector cosDenominator = new Vector(handle, vecs2d.data.batchSize);
         
