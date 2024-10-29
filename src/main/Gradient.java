@@ -1,11 +1,14 @@
 package main;
 
-import algebra.MatricesStride;
-import algebra.Matrix;
-import algebra.Vector;
-import algebra.VectorsStride;
-import array.DArray;
-import resourceManagement.Handle;
+import JCudaWrapper.algebra.MatricesStride;
+import JCudaWrapper.algebra.Matrix;
+import JCudaWrapper.algebra.Vector;
+import JCudaWrapper.algebra.VectorsStride;
+import JCudaWrapper.array.DArray;
+import JCudaWrapper.resourceManagement.Handle;
+import java.util.Arrays;
+import java.util.function.BiFunction;
+import java.util.function.IntFunction;
 
 /**
  * The gradient for each pixel.
@@ -31,39 +34,35 @@ public class Gradient {
         dX = new Matrix(hand, height, width);
         dY = new Matrix(hand, height, width);
 
-        computeBoundaryGradients(pic, dX, dY, height, width);
-        computeInteriorGradients(hand, pic, dX, dY, height, width);
+        computeBoundaryGradients(i -> pic.getColumnMatrix(i), i -> dX.getColumnMatrix(i), width);
+        computeBoundaryGradients(i -> pic.getRowMatrix(i), i -> dY.getRowMatrix(i), height);
+
+        computeInteriorGradients(hand, pic, width, height, height * diff.length, height, diff.length, dX.columns());
+        computeInteriorGradients(hand, pic, height, 1, height * (width - 1) + diff.length, diff.length, width, dY.rows());
     }
 
     /**
+     * Sets the border rows (columns) of the gradient matrices.
+     *
      * Computes the gradients at the boundary of the image using forward and
      * backward differences. This method handles the first and last rows and
      * columns of the image, where gradients are calculated with one-sided
      * differences.
      *
-     * @param pic The input matrix containing pixel intensity values.
-     * @param dX The matrix to store gradients along the x-axis.
-     * @param dY The matrix to store gradients along the y-axis.
-     * @param hand The handle object for managing resources and operations.
-     * @param height The height of the image (number of rows).
-     * @param width The width of the image (number of columns).
+     * The matrices from which pic and dM are taken should be pixel intensities.
+     *
+     * @param pic The picture the gradient is being taken from. The output of
+     * this method should be the rows (columns) that the gradient is taken over.
+     * @param dM Where the gradient is to be stored. The output should be the
+     * rows (columns) where the gradient is stored. Use rows (columns) for dY
+     * (dX).
+     * @param length The max row (column) index exclusive.
      */
-    private void computeBoundaryGradients(Matrix pic, Matrix dX, Matrix dY, int height, int width) {
-
-        Matrix col0 = pic.getColumnMatrix(0);
-        Matrix colLast = pic.getColumnMatrix(width - 1);
-
-        dX.getColumnMatrix(0).addAndSet(-1, col0, 1, pic.getColumnMatrix(1));
-        dX.getColumnMatrix(width - 1).addAndSet(-1, pic.getColumnMatrix(width - 2), 1, colLast);
-        dX.getColumnMatrix(1).addAndSet(-0.5, col0, 0.5, pic.getColumnMatrix(2));
-        dX.getColumnMatrix(width - 2).addAndSet(-0.5, pic.getColumnMatrix(width - 3), 0.5, colLast);
-
-        Matrix row0 = pic.getRowMatrix(0), rowLast = pic.getRowMatrix(height - 1);
-
-        dY.getRowMatrix(0).addAndSet(-1, row0, 1, pic.getRowMatrix(1));
-        dY.getRowMatrix(height - 1).addAndSet(-1, pic.getRowMatrix(height - 2), 1, rowLast);
-        dY.getRowMatrix(1).addAndSet(-0.5, row0, 0.5, pic.getRowMatrix(2));
-        dX.getRowMatrix(height - 2).addAndSet(-0.5, pic.getRowMatrix(height - 3), 0.5, rowLast);
+    private void computeBoundaryGradients(IntFunction<Matrix> pic, IntFunction<Matrix> dM, int length) {
+        dM.apply(0).addAndSet(-1, pic.apply(0), 1, pic.apply(1));
+        dM.apply(length - 1).addAndSet(-1, pic.apply(length - 2), 1, pic.apply(length - 1));
+        dM.apply(1).addAndSet(-0.5, pic.apply(0), 0.5, pic.apply(2));
+        dM.apply(length - 2).addAndSet(-0.5, pic.apply(length - 3), 0.5, pic.apply(length - 1));
     }
 
     /**
@@ -83,44 +82,38 @@ public class Gradient {
      * near the boundary, using a higher-order finite difference scheme for
      * increased accuracy.
      *
-     * @param pic The input matrix containing pixel intensity values.
-     * @param dX The matrix to store gradients along the x-axis.
-     * @param dY The matrix to store gradients along the y-axis.
-     * @param hand The handle object for managing resources and operations.
-     * @param width The width of the image (number of columns).
-     * @param height The height of the image (number of rows).
+     * The blocks are sub matrices of rows or columns that are added/subtracted
+     * according to diff to find the gradient.
+     *
+     * @param hand The handle.
+     * @param pic The picture over which the gradient is taken.
+     * @param length Either the height or the width as appropriate.
+     * @param blockStride This should be one if the blocks are made of rows
+     * @param blockDataLength For column blocks this should be the number of columns, for row blocks this should be most of the matrix.
+     * @param blockHeight The height of each block.  For row blocks this should be diff.length and for col blocks this should be height.
+     * @param blockWidth see block height but opposite.
+     * @param target Where the results are stored.  This should either be dX.columns() or dY.rows()
      */
-    private void computeInteriorGradients(Handle hand, Matrix pic, Matrix dX, Matrix dY, int height, int width) {
+    private void computeInteriorGradients(Handle hand, Matrix pic, int length, int blockStride, int blockDataLength, int blockHeight, int blockWidth, VectorsStride target) {
 
         // Interior x gradients (third column to second-to-last)
-        
-        int numCols = width - diff.length + 1;       
-        
-        VectorsStride diffVec = new VectorsStride(hand, diff.getAsBatch(0, numCols, diff.length), 1);
-        
-        MatricesStride columnBlocks = new MatricesStride(
-                hand,
-                pic.dArray().getAsBatch(height, numCols, height * diff.length),
-                height,                
-                diff.length,
-                height
-        );
-        dX.columns().subBatch(2, numCols).setMatVecMult(columnBlocks, diffVec);
+        int numBlocks = length - diff.length + 1;
 
-        // Interior y gradients (third row to second-to-last)
-        
-        int numRows = height - diff.length + 1;
-        
-        diffVec = new VectorsStride(hand, diff.getAsBatch(0, numRows, diff.length), 1);
-        
-        MatricesStride rowBlocks = new MatricesStride(
+        VectorsStride diffVec = new VectorsStride(hand, diff.getAsBatch(0, numBlocks, diff.length), 1);
+
+        MatricesStride blocks = new MatricesStride(
                 hand,
-                pic.dArray().getAsBatch(1, numRows, height * (width - 1)),
-                diff.length,
-                width,
-                height
+                pic.dArray().getAsBatch(blockStride, numBlocks, blockDataLength),
+                blockHeight,
+                blockWidth,
+                dX.getHeight()
         );
-        dY.rows().subBatch(2, numRows).setVecMatMult(diffVec, rowBlocks);
+
+        target = target.subBatch(2, numBlocks);
+
+        if (blocks.getSubHeight() == diff.length)
+            target.setVecMatMult(diffVec, blocks);
+        else target.setMatVecMult(blocks, diffVec);
     }
 
     /**
@@ -129,7 +122,7 @@ public class Gradient {
      * @return An unmodifiable x gradient matrix.
      */
     public Matrix getdX() {
-        return dX.unmodifable();
+        return dX;
     }
 
     /**
@@ -138,7 +131,7 @@ public class Gradient {
      * @return An unmodifiable y gradient matrix.
      */
     public Matrix getdY() {
-        return dY.unmodifable();
+        return dY;
     }
 
 }

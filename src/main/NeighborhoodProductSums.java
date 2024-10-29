@@ -1,9 +1,9 @@
 package main;
 
-import algebra.Matrix;
-import algebra.Vector;
-import algebra.VectorsStride;
-import resourceManagement.Handle;
+import JCudaWrapper.algebra.Matrix;
+import JCudaWrapper.algebra.Vector;
+import JCudaWrapper.algebra.VectorsStride;
+import JCudaWrapper.resourceManagement.Handle;
 
 /**
  * This class implements element-by-element multiplication (EBEM) for
@@ -29,7 +29,8 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param handle A resource handle for creating internal matrices.
      * @param nRad Neighborhood radius; the distance from the center of a
      * neighborhood to its edge.
-     * @param height The height of expected matrices.  That is, matrices that will be passed to the set method.
+     * @param height The height of expected matrices. That is, matrices that
+     * will be passed to the set method.
      * @param width The width of expected matrices.
      * @param result A matrix that is one long row of n x n tensors. The height
      * of the matrix is the height of one tensor and the length of the matrix is
@@ -54,8 +55,9 @@ public class NeighborhoodProductSums implements AutoCloseable {
      *
      * @param a The first matrix.
      * @param b The second matrix.
-     * @param result Store the result here in column major order.  Note that the
-     * increment of this vector is probably not one.  Be sure this is set to 0's before passing it.
+     * @param result Store the result here in column major order. Note that the
+     * increment of this vector is probably not one. Be sure this is set to 0's
+     * before passing it.
      *
      */
     public void set(Matrix a, Matrix b, Vector result) {
@@ -66,8 +68,8 @@ public class NeighborhoodProductSums implements AutoCloseable {
         inRowSumNearEdge();
         inRowSumCenter();
 
-        VectorsStride resultRows = new VectorsStride(a.getHandle(), result, 1, a.getWidth(), a.getHeight(), a.colDist);
-        
+        VectorsStride resultRows = result.subVectors(1, height, width, a.colDist);
+
         nSumEdge(resultRows);
         nSumNearEdge(resultRows);
         nSumCenter(resultRows);
@@ -150,9 +152,9 @@ public class NeighborhoodProductSums implements AutoCloseable {
                 halfNOnes,
                 inRowSum.getSubMatrixRows(0, nRad + 1)
         );
-        resultRows.getVector(result.getHeight() - 1).multiplyAndSet(
+        resultRows.getVector(height - 1).multiplyAndSet(
                 halfNOnes,
-                inRowSum.getSubMatrixRows(result.getHeight() - nRad - 1, result.getHeight())
+                inRowSum.getSubMatrixRows(height - nRad - 1, height)
         );
     }
 
@@ -167,13 +169,14 @@ public class NeighborhoodProductSums implements AutoCloseable {
     private void nSumNearEdge(VectorsStride resultRows) {
         for (int i = 1; i < nRad + 1; i++) {
             int rowInd = i;
-            resultRows.getVector(rowInd).addToMe(1, inRowSum.getRowVector(rowInd + nRad));
-            resultRows.getVector(rowInd).addToMe(1, result.getRowVector(rowInd - 1));
-            
+            Vector nSumRow = resultRows.getVector(rowInd);
+            nSumRow.addToMe(1, inRowSum.getRowVector(rowInd + nRad));
+            nSumRow.addToMe(1, resultRows.getVector(rowInd - 1));
+
             rowInd = height - 1 - i;
-            resultRows.getVector(rowInd).addToMe(1, inRowSum.getRowVector(rowInd - nRad));
-            resultRows.getVector(rowInd).addToMe(1, result.getRowVector(rowInd + 1));
-            
+            nSumRow.addToMe(1, inRowSum.getRowVector(rowInd - nRad));
+            nSumRow.addToMe(1, resultRows.getVector(rowInd + 1));
+
         }
     }
 
@@ -190,8 +193,8 @@ public class NeighborhoodProductSums implements AutoCloseable {
             Vector nSumsRow = resultRows.getVector(rowIndex);
             nSumsRow.addToMe(-1, inRowSum.getRowVector(rowIndex - nRad - 1));
             nSumsRow.addToMe(1, inRowSum.getRowVector(rowIndex + nRad));
-            
-            nSumsRow.addToMe(1, result.getRowVector(rowIndex - 1));
+
+            nSumsRow.addToMe(1, resultRows.getVector(rowIndex - 1));
         }
     }
 

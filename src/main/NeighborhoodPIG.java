@@ -2,7 +2,7 @@ package main;
 
 
 
-import algebra.Matrix;
+import JCudaWrapper.algebra.Matrix;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
@@ -10,8 +10,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import javax.imageio.ImageIO;
-import resourceManagement.Handle;
-import array.DArray;
+import JCudaWrapper.resourceManagement.Handle;
+import JCudaWrapper.array.DArray;
 import java.awt.Color;
 import java.awt.image.WritableRaster;
 
@@ -31,13 +31,9 @@ public class NeighborhoodPIG {
      * @throws java.io.IOException If there's trouble loading the image.
      */
     public NeighborhoodPIG(String imagePath, int neighborhoodSize) throws IOException {
-
-        Matrix imageMat = processImage(imagePath);
-
-        height = imageMat.getHeight(); 
-        width = imageMat.getWidth();
-        
         try (Handle handle = new Handle()) {
+        
+            Matrix imageMat = processImage(imagePath, handle);
             
             Gradient grad = new Gradient(imageMat, handle);
             
@@ -111,10 +107,11 @@ public class NeighborhoodPIG {
      * array in column-major format.
      *
      * @param imagePath The path to the .tif image file
+     * @param handle
      * @return A matrix of the image data.
      * @throws IOException if the image cannot be loaded
      */
-    public final Matrix processImage(String imagePath) throws IOException {
+    public final Matrix processImage(String imagePath, Handle handle) throws IOException {
 
         BufferedImage image = ImageIO.read(new File(imagePath));
 
@@ -122,19 +119,19 @@ public class NeighborhoodPIG {
             image = convertToGrayscale(image);
 
         Raster raster = image.getRaster();
-        int width = image.getWidth(), height = image.getHeight();
+        width = image.getWidth();
+        height = image.getHeight();
 
         double[] imageData = new double[width * height];
 
         Arrays.setAll(imageData, i -> raster.getSample(i / height, i % height, 0) / 255.0);
         
-        try (Handle handle = new Handle()) {
             return new Matrix(
                     handle, 
                     new DArray(handle, imageData),
                     height,
                     width);
-        }
+                
     }
 
     /**

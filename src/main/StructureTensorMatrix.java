@@ -1,13 +1,13 @@
 package main;
 
 import MathSupport.Rotation;
-import algebra.Eigen;
-import algebra.MatricesStride;
-import algebra.Matrix;
-import algebra.Vector;
-import algebra.VectorsStride;
-import array.KernelManager;
-import resourceManagement.Handle;
+import JCudaWrapper.algebra.Eigen;
+import JCudaWrapper.algebra.MatricesStride;
+import JCudaWrapper.algebra.Matrix;
+import JCudaWrapper.algebra.Vector;
+import JCudaWrapper.algebra.VectorsStride;
+import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.resourceManagement.Handle;
 
 /**
  *
@@ -33,7 +33,7 @@ public class StructureTensorMatrix implements AutoCloseable {
         handle = dX.getHandle();
         int height = dX.getHeight(), width = dX.getWidth();
 
-        strctTensors = new MatricesStride(handle, 2, dX.size());//reset to 3x3 for dZ.
+        strctTensors = new MatricesStride(handle, 2, dX.size()).fill(0);//reset to 3x3 for dZ.
 
         try (NeighborhoodProductSums nps = new NeighborhoodProductSums(dX.getHandle(), neighborhoodRad, height, width, strctTensors)) {
             nps.set(dX, dX, strctTensors.get(0, 0));
@@ -102,7 +102,7 @@ public class StructureTensorMatrix implements AutoCloseable {
      * @return Thew matrix of orientations.
      */
     public Matrix getOrientations() {
-        return orientation.unmodifable();
+        return orientation;
     }
 
     /**

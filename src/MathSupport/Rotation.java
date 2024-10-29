@@ -1,10 +1,10 @@
 package MathSupport;
 
-import algebra.Matrix;
+import JCudaWrapper.algebra.Matrix;
 import static java.lang.Math.PI;
 import static java.lang.Math.cos;
 import static java.lang.Math.sin;
-import resourceManagement.Handle;
+import JCudaWrapper.resourceManagement.Handle;
 
 
 /**
