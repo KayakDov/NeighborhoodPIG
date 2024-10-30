@@ -35,8 +35,6 @@ public class NeighborhoodPIG {
         
             Matrix imageMat = processImage(imagePath, handle);
             
-            System.out.println("main.NeighborhoodPIG.<init>()\n" + Arrays.toString(imageMat.colMajor()));
-            
             Gradient grad = new Gradient(imageMat, handle);
             
             stm = new StructureTensorMatrix(grad.x(), grad.y(), neighborhoodSize);

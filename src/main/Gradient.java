@@ -2,12 +2,9 @@ package main;
 
 import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
-import JCudaWrapper.algebra.Vector;
 import JCudaWrapper.algebra.VectorsStride;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.resourceManagement.Handle;
-import java.util.Arrays;
-import java.util.function.BiFunction;
 import java.util.function.IntFunction;
 
 /**
@@ -72,7 +69,7 @@ public class Gradient {
 
     static {
         try (Handle hand = new Handle()) {
-            diff = new DArray(hand, -1.0 / 12, 2.0 / 3, 0, -2.0 / 3, 1.0 / 12);
+            diff = new DArray(hand, 1.0 / 12, -2.0 / 3, 0, 2.0 / 3, -1.0 / 12);
         }
     }
 
@@ -108,8 +105,6 @@ public class Gradient {
                 blockWidth,
                 dX.getHeight()
         );
-        
-        System.out.println("main.Gradient.computeInteriorGradients() \n" + blocks.getSubMatrix(1).toString());
         
         target = target.subBatch(2, numBlocks);
 

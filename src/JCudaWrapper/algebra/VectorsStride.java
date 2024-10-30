@@ -80,13 +80,7 @@ public class VectorsStride extends Vector {
      * here.
      */
     public void addMatVecMult(boolean transposeMats, MatricesStride mats, VectorsStride vecs, double timesAB, double timesThis) {
-        data.multMatMatStridedBatched(getHandle(), transposeMats, true,
-                transposeMats?mats.width:mats.height, getSubVecDim(), 1,
-                timesAB,
-                mats.getBatchArray(), mats.getColDist(),
-                vecs.data, vecs.inc,
-                timesThis, inc
-        );
+        addVecMatMult(!transposeMats, vecs, mats, timesAB, timesThis);
     }
 
     /**
