@@ -20,8 +20,7 @@ import JCudaWrapper.resourceManagement.Handle;
 public class NeighborhoodProductSums implements AutoCloseable {
 
     private final Vector halfNOnes;
-    private final Matrix ebeStorage, inRowSum;
-    private final MatricesStride result;
+    private final Matrix ebeStorage, inRowSum;    
     private final int nRad, height, width;
 
     /**
@@ -34,18 +33,15 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param height The height of expected matrices. That is, matrices that
      * will be passed to the set method.
      * @param width The width of expected matrices.
-     * @param result A matrix that is one long row of n x n tensors. The height
-     * of the matrix is the height of one tensor and the length of the matrix is
-     * the size*tensor.length.
+     
      */
-    public NeighborhoodProductSums(Handle handle, int nRad, int height, int width, MatricesStride result) {
+    public NeighborhoodProductSums(Handle handle, int nRad, int height, int width) {
         this.nRad = nRad;
         this.height = height;
         this.width = width;
         inRowSum = new Matrix(handle, height, width);
         ebeStorage = new Matrix(handle, height, width);
         halfNOnes = new Vector(handle, nRad + 1).fill(1);
-        this.result = result;
     }
 
     /**
@@ -71,6 +67,9 @@ public class NeighborhoodProductSums implements AutoCloseable {
 
         VectorsStride resultRows = result.subVectors(1, height, width, a.colDist);
 
+        resultRows.getVector(2).fill(1);
+        System.out.println("main.NeighborhoodProductSums.set()\n" + result);
+        
         nSumEdge(resultRows);
         nSumNearEdge(resultRows);
         nSumCenter(resultRows);

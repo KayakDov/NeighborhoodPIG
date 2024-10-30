@@ -79,7 +79,7 @@ public class NeighborhoodPIG {
     }
 
     public static void main(String[] args) throws IOException {
-        NeighborhoodPIG np = new NeighborhoodPIG("images/input/debug.jpeg", 3);
+        NeighborhoodPIG np = new NeighborhoodPIG("images/input/debug.jpeg", 1);
         np.orientationColored("images/output/test.png");
         
     }

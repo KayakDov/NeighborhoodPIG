@@ -37,7 +37,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
         strctTensors = new MatricesStride(handle, 2, dX.size()).fill(0);//reset to 3x3 for dZ.
 
-        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(dX.getHandle(), neighborhoodRad, height, width, strctTensors)) {
+        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(dX.getHandle(), neighborhoodRad, height, width)) {
             nps.set(dX, dX, strctTensors.get(0, 0));
             nps.set(dX, dY, strctTensors.get(0, 1));
             nps.set(dY, dY, strctTensors.get(1, 1));

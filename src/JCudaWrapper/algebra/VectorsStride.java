@@ -56,7 +56,8 @@ public class VectorsStride extends Vector {
      * @return The subvector at the desired index.
      */
     public Vector getVector(int i){
-        return getSubVector(data.stride*i/inc, getSubVecDim());
+        return new Vector(getHandle(), data.getBatchArray(i), inc);
+//        return getSubVector(data.stride*i)/inc, getSubVecDim());
     }
 
     /**
