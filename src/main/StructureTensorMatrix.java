@@ -1,5 +1,6 @@
 package main;
 
+import JCudaWrapper.algebra.ColumnMajor;
 import MathSupport.Rotation;
 import JCudaWrapper.algebra.Eigen;
 import JCudaWrapper.algebra.MatricesStride;
@@ -8,12 +9,13 @@ import JCudaWrapper.algebra.Vector;
 import JCudaWrapper.algebra.VectorsStride;
 import JCudaWrapper.array.KernelManager;
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.Arrays;
 
 /**
  *
  * @author E. Dov Neimand
  */
-public class StructureTensorMatrix implements AutoCloseable {
+public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
     /**
      * This matrix is a row of tensors. The height of this matrix is the height
@@ -43,6 +45,7 @@ public class StructureTensorMatrix implements AutoCloseable {
 //            nps.set(dY, dZ, 3);
 //            nps.set(dZ, dZ, 3);//Add these when working with dZ.
         }
+                
         
         strctTensors.get(1, 0).set(strctTensors.get(0, 1));
 //        strctTensors.get(2, 0).set(strctTensors.get(0, 2)); //engage for 3x3.
@@ -66,7 +69,7 @@ public class StructureTensorMatrix implements AutoCloseable {
      */
     private int tensorFirstColIndex(int picRow, int picCol) {
 
-        int tensorSize = strctTensors.getHeight() * strctTensors.getHeight();
+        int tensorSize = strctTensors.height * strctTensors.height;
 
         return (picCol * orientation.getHeight() + picRow) * tensorSize;
     }
@@ -81,11 +84,7 @@ public class StructureTensorMatrix implements AutoCloseable {
      */
     public Matrix getTensor(int row, int col) {
 
-        int height = strctTensors.getHeight(), size = height * height;
-
-        int startCol = col * orientation.getHeight() * strctTensors.getHeight();
-
-        return strctTensors.getSubMatrix(0, height, startCol, startCol + height);
+        return strctTensors.getSubMatrix(index(row, col));
     }
 
 
@@ -170,6 +169,11 @@ public class StructureTensorMatrix implements AutoCloseable {
         strctTensors.close();
         eigen.close();
         orientation.close();
+    }
+
+    @Override
+    public int getColDist() {
+        return orientation.getHeight();
     }
 
 }

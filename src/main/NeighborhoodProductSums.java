@@ -1,5 +1,6 @@
 package main;
 
+import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.Vector;
 import JCudaWrapper.algebra.VectorsStride;
@@ -19,8 +20,9 @@ import JCudaWrapper.resourceManagement.Handle;
 public class NeighborhoodProductSums implements AutoCloseable {
 
     private final Vector halfNOnes;
-    private final Matrix ebeStorage, inRowSum, result;
-    private final int nRad, height, width, resultInc;
+    private final Matrix ebeStorage, inRowSum;
+    private final MatricesStride result;
+    private final int nRad, height, width;
 
     /**
      * Constructs a {@code NeighborhoodProductSums} instance to compute the sum
@@ -36,7 +38,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * of the matrix is the height of one tensor and the length of the matrix is
      * the size*tensor.length.
      */
-    public NeighborhoodProductSums(Handle handle, int nRad, int height, int width, Matrix result) {
+    public NeighborhoodProductSums(Handle handle, int nRad, int height, int width, MatricesStride result) {
         this.nRad = nRad;
         this.height = height;
         this.width = width;
@@ -44,7 +46,6 @@ public class NeighborhoodProductSums implements AutoCloseable {
         ebeStorage = new Matrix(handle, height, width);
         halfNOnes = new Vector(handle, nRad + 1).fill(1);
         this.result = result;
-        this.resultInc = result.getHeight() * result.getHeight();
     }
 
     /**

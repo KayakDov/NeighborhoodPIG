@@ -24,7 +24,7 @@ public class Eigen implements AutoCloseable {
 
             if (!is3x3) 
                 values = mats.computeVals2x2(new Vector(mats.getHandle(), workSpace.subArray(0, mats.getBatchSize()), 1));
-            else values = mats.computeVals3x3(new Vector(mats.getHandle(), workSpace.subArray(0, mats.getWidth()), 1));
+            else values = mats.computeVals3x3(new Vector(mats.getHandle(), workSpace.subArray(0, mats.width), 1));
             
             vectors =  mats.computeVecs(values, workSpace);
 

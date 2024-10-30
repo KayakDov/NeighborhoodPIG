@@ -22,10 +22,12 @@ import JCudaWrapper.resourceManagement.Handle;
  *
  * @author E. Dov Neimand
  */
-public class MatricesStride extends Matrix {
+public class MatricesStride implements ColumnMajor, AutoCloseable {
 
-    private int subWidth;
     private DStrideArray batchArray;
+    private final Handle handle;
+    public final int height, width, colDist;
+    private final DStrideArray data;
 
     /**
      * Constructor for creating a batch of strided matrices. Each matrix is
@@ -34,16 +36,14 @@ public class MatricesStride extends Matrix {
      *
      * @param handle The handle for resource management and creating this
      * matrix. It will stay with this matrix instance.
-     * @param subHeight The number of rows (height) in each submatrix.
-     * @param subWidth The number of columns (width) in each submatrix.
+     * @param height The number of rows (height) in each submatrix.
+     * @param width The number of columns (width) in each submatrix.
      * @param stride The number of elements between the first elements of
      * consecutive submatrices in the batch.
      * @param batchSize The number of matrices in this batch.
      */
-    public MatricesStride(Handle handle, int subHeight, int subWidth, int stride, int batchSize) {
-        super(handle, subHeight, subWidth * batchSize);
-        batchArray = data.getAsBatch(stride, batchSize, subHeight * subWidth);
-        this.subWidth = subWidth;
+    public MatricesStride(Handle handle, int height, int width, int stride, int batchSize) {
+        this(handle, DStrideArray.empty(batchSize, stride, width * height), height, width, height);
     }
 
     /**
@@ -63,14 +63,17 @@ public class MatricesStride extends Matrix {
      *
      * @param handle
      * @param data The length of this data should be width*height.
-     * @param height The height of this matrix.
-     * @param subWidth The width of each sub matrix.
+     * @param height The height of this matrix and the sub matrices.
+     * @param width The width of each sub matrix.
      * @param colDist The distance between the first element of each column.
      */
-    public MatricesStride(Handle handle, DStrideArray data, int height, int subWidth, int colDist) {
-        super(handle, data, height, subWidth * data.batchSize, colDist);
+    public MatricesStride(Handle handle, DStrideArray data, int height, int width, int colDist) {
+        this.handle = handle;
+        this.data = data;
+        this.height = height;
+        this.width = width;
+        this.colDist = colDist;
         this.batchArray = data;
-        this.subWidth = subWidth;
     }
 
     /**
@@ -105,12 +108,12 @@ public class MatricesStride extends Matrix {
      *
      * @param handle The handle for resource management and creating this
      * matrix. It will stay with this matrix instance.
-     * @param subHeight The number of rows (height) in each submatrix.
-     * @param subWidth The number of columns (width) in each submatrix.
+     * @param height The number of rows (height) in each submatrix.
+     * @param width The number of columns (width) in each submatrix.
      * @param batchSize The number of matrices in this batch.
      */
-    public MatricesStride(Handle handle, int subHeight, int subWidth, int batchSize) {
-        this(handle, subHeight, subWidth, subHeight * subWidth, batchSize);
+    public MatricesStride(Handle handle, int height, int width, int batchSize) {
+        this(handle, height, width, height * width, batchSize);
     }
 
     /**
@@ -124,7 +127,7 @@ public class MatricesStride extends Matrix {
      * the batch.
      */
     public Vector get(int i, int j) {
-        return asVector().getSubVector(index(i, j), batchArray.batchCount(), batchArray.stride);
+        return new Vector(handle, data.subArray(index(i, j)), data.stride);
     }
 
     /**
@@ -140,30 +143,12 @@ public class MatricesStride extends Matrix {
      * submatrices in the batch.
      */
     public Vector[][] parition() {
-        Vector[][] all = new Vector[getSubHeight()][getSubHeight()];
-        for (int i = 0; i < getSubHeight(); i++) {
+        Vector[][] all = new Vector[height][width];
+        for (int i = 0; i < height; i++) {
             int row = i;
             Arrays.setAll(all[row], col -> get(row, col));
         }
         return all;
-    }
-
-    /**
-     * Returns the number of columns (width) in each submatrix.
-     *
-     * @return The width of each submatrix in the batch.
-     */
-    public int getSubWidth() {
-        return subWidth;
-    }
-
-    /**
-     * Returns the number of rows (height) in each submatrix.
-     *
-     * @return The height of each submatrix in the batch.
-     */
-    public int getSubHeight() {
-        return getHeight();
     }
 
     /**
@@ -185,16 +170,14 @@ public class MatricesStride extends Matrix {
      * {@code a} and {@code b} are incompatible for multiplication.
      */
     public MatricesStride multAndAdd(boolean transposeA, boolean transposeB, MatricesStride a, MatricesStride b, double timesAB, double timesResult) {
-        if (a.getSubWidth() != b.getSubHeight()) {
-            throw new DimensionMismatchException(a.getSubWidth(),
-                    b.getSubHeight());
+        if (a.width != b.height) {
+            throw new DimensionMismatchException(a.width, b.height);
         }
 
-        // Perform batched matrix multiplication and addition
-        batchArray.multMatMatStridedBatched(getHandle(), transposeA, transposeB,
-                transposeA?a.getSubWidth():a.getSubHeight(), 
-                transposeA?a.getSubHeight():a.getSubWidth(), 
-                transposeB?b.getSubHeight():b.getSubWidth(),
+        batchArray.multMatMatStridedBatched(handle, transposeA, transposeB,
+                transposeA ? a.width : a.height,
+                transposeA ? a.height : a.width,
+                transposeB ? b.height : b.width,
                 timesAB,
                 a.batchArray, a.colDist,
                 b.batchArray, b.colDist,
@@ -213,8 +196,8 @@ public class MatricesStride extends Matrix {
      */
     public VectorsStride computeVals2x2(Vector workSpace) {
 
-        if (getHeight() != 2)
-            throw new IllegalArgumentException("compute vals 2x2 can only be called on a 2x2 matrix.  These matrices are " + getHeight() + "x" + getSubWidth());
+        if (height != 2)
+            throw new IllegalArgumentException("compute vals 2x2 can only be called on a 2x2 matrix.  These matrices are " + height + "x" + width);
 
         VectorsStride vals = new VectorsStride(handle, 2, getBatchSize(), 2, 1);
         Vector[] val = vals.parition();
@@ -232,7 +215,7 @@ public class MatricesStride extends Matrix {
         val[1].mapAddEbeMultiplyToSelf(m[0][0], m[1][1], -1);// = ad - c^2
 
         val[0].addToMe(-4, val[1]);//=(d + a)^2 - 4(ad - c^2)
-        KernelManager.get("sqrt").mapToSelf(getHandle(), val[0]);//sqrt((d + a)^2 - 4(ad - c^2))
+        KernelManager.get("sqrt").mapToSelf(handle, val[0]);//sqrt((d + a)^2 - 4(ad - c^2))
 
         val[1].set(trace);
         val[1].addToMe(-1, val[0]);
@@ -257,10 +240,10 @@ public class MatricesStride extends Matrix {
     // solve: lambda^3 - p lambda^2 + q lambda - det m        
     public VectorsStride computeVals3x3(Vector workSpace) {
 
-        if (getHeight() != 3)
-            throw new IllegalArgumentException("computeVals3x3 can only be called on a 3x3 matrix.  These matrices are " + getHeight() + "x" + getSubWidth());
+        if (height != 3)
+            throw new IllegalArgumentException("computeVals3x3 can only be called on a 3x3 matrix.  These matrices are " + height + "x" + width);
 
-        VectorsStride vals = new VectorsStride(handle, getHeight(), getBatchSize(), getHeight(), 1);
+        VectorsStride vals = new VectorsStride(handle, height, getBatchSize(), height, 1);
         Vector[] work = workSpace.parition(3);
 
         Vector[][] m = parition();
@@ -312,7 +295,7 @@ public class MatricesStride extends Matrix {
 
         VectorsStride diagnols = new VectorsStride(
                 handle,
-                dArray().getAsBatch(9, traceStorage.getDimension(), 9),
+                data.getAsBatch(9, traceStorage.getDimension(), 9),
                 4
         );
 
@@ -355,7 +338,7 @@ public class MatricesStride extends Matrix {
      * @param minorStorage A space where the minors can be stored.
      */
     private void setRow0Minors(Vector[][] minor, Vector[][] m, Vector minorStorage) {
-        minor[0] = minorStorage.parition(getSubWidth());
+        minor[0] = minorStorage.parition(width);
 
         minor[0][1].mapEbeMultiplyToSelf(m[1][1], m[2][2]);
         minor[0][1].addEbeMultiplyToSelf(-1, m[1][2], m[1][2], 1);
@@ -430,14 +413,14 @@ public class MatricesStride extends Matrix {
                 data.subArray(i * colDist).getAsBatch(
                         batchArray.stride,
                         batchArray.batchSize,
-                        getHeight()
+                        height
                 ),
                 getColDist()
         );
     }
 
     /**
-     * The ith column of each submatrix.
+     * The ith row of each submatrix.
      *
      * @param i The index of the desired column.
      * @return The ith column of each submatrix.
@@ -448,7 +431,7 @@ public class MatricesStride extends Matrix {
                 data.subArray(i).getAsBatch(
                         batchArray.stride,
                         batchArray.batchSize,
-                        colDist * (getSubWidth() - 1)
+                        colDist * (width - 1) + 1
                 ),
                 colDist
         );
@@ -460,7 +443,7 @@ public class MatricesStride extends Matrix {
      * @return This partitioned by columns.
      */
     public VectorsStride[] columnPartition() {
-        VectorsStride[] patritioned = new VectorsStride[subWidth];
+        VectorsStride[] patritioned = new VectorsStride[width];
         Arrays.setAll(patritioned, i -> column(i));
         return patritioned;
 
@@ -478,16 +461,16 @@ public class MatricesStride extends Matrix {
      */
     public MatricesStride computeVecs(VectorsStride eValues, DArray workSpaceArray) {
 
-        MatricesStride eVectors = new MatricesStride(getHandle(), getSubHeight(), getBatchSize());
+        MatricesStride eVectors = new MatricesStride(handle, height, getBatchSize());
 
         try (
                 IArray info = IArray.empty(batchArray.batchSize);
-                IArray pivot = IArray.empty(getWidth())) {
+                IArray pivot = IArray.empty(width)) {
 
-            MatricesStride workSpace = new MatricesStride(handle, workSpaceArray.getAsBatch(batchArray.stride, batchArray.batchSize, batchArray.subArrayLength), getSubHeight());
-            eVectors.getRowVector(getHeight() - 1).fill(1);
+            MatricesStride workSpace = new MatricesStride(handle, workSpaceArray.getAsBatch(batchArray.stride, batchArray.batchSize, batchArray.subArrayLength), height);
+            eVectors.row(height - 1).fill(1);
 
-            for (int i = 0; i < getHeight(); i++) {
+            for (int i = 0; i < height; i++) {
                 workSpace.batchArray.set(handle, batchArray, 0, 0, batchArray.length);
                 workSpace.computeVec(eValues.getElement(i), eVectors.column(i), info, pivot);
             }
@@ -505,7 +488,7 @@ public class MatricesStride extends Matrix {
      */
     private void computeVec(Vector eValue, VectorsStride eVector, IArray info, IArray pivot) {
 
-        for (int i = 0; i < getHeight(); i++) get(i, i).addToMe(-1, eValue);
+        for (int i = 0; i < height; i++) get(i, i).addToMe(-1, eValue);
 
         getPointers().LUFactor(handle, pivot, info);
 
@@ -533,7 +516,7 @@ public class MatricesStride extends Matrix {
                         "ComputeVec only works for 2x2 and 3x3 matrices.  This is a " + eVector.getSubVecDim() + " dimensional eigen vector."
                 );
         }
-        KernelManager.get("unPivot").map(handle, pivot, getHeight(), eVector.dArray(), eVector.getSubVecDim(), batchArray.batchCount());
+        KernelManager.get("unPivot").map(handle, pivot, height, eVector.dArray(), eVector.getSubVecDim(), batchArray.batchCount());
 
     }
 
@@ -545,7 +528,7 @@ public class MatricesStride extends Matrix {
     public MatricesPntrs getPointers() {
         if (pointers == null) {
             pointers = new MatricesPntrs(
-                    getSubHeight(), getSubWidth(), colDist, batchArray.getPointerArray(handle)
+                    height, width, colDist, batchArray.getPointerArray(handle)
             );
         }
         return pointers;
@@ -561,17 +544,13 @@ public class MatricesStride extends Matrix {
      */
     public MatricesPntrs getPointers(DPointerArray putPointersHere) {
 
-        return new MatricesPntrs(getSubHeight(), getSubWidth(), colDist, putPointersHere.fill(handle, batchArray));
+        return new MatricesPntrs(height, width, colDist, putPointersHere.fill(handle, batchArray));
 
     }
 
     @Override
     public void close() {
-        if (pointers != null) pointers.close();
-        if (negOnes3 != null) negOnes3.close();
-
-        super.close();
-
+        data.close();
     }
 
     /**
@@ -581,8 +560,7 @@ public class MatricesStride extends Matrix {
      * @return The matrix at the requested index.
      */
     public Matrix getSubMatrix(int i) {
-        return getSubMatrix(0, getHeight(), i * getSubWidth(),
-                (i + 1) * getSubWidth());
+        return new Matrix(handle, batchArray.getBatchArray(i), height, width, colDist);
     }
 
     @Override
@@ -594,11 +572,8 @@ public class MatricesStride extends Matrix {
         return sb.toString();
     }
 
-    @Override
     public MatricesStride copy() {
-        MatricesStride copy = new MatricesStride(handle, getSubHeight(),
-                subWidth, batchArray.stride, batchArray.batchCount());
-        return copy(copy);
+        return new MatricesStride(handle, data.copy(handle), height, width, colDist);
     }
 
     /**
@@ -608,10 +583,10 @@ public class MatricesStride extends Matrix {
      * @return the copy.
      */
     public MatricesStride copy(MatricesStride copyTo) {
-        if (colDist == getHeight()) {
-            copyTo.dArray().set(handle, dArray(), 0, 0, getHeight() * getWidth());
+        if (colDist == height) {
+            copyTo.data.set(handle, data, 0, 0, height * width);
         } else {
-            copyTo.addAndSet(1, this, 0, this);
+            copyTo.data.addAndSet(handle, false, false, height, totalWidth(), 1, data, colDist, 0, data, colDist, colDist);
         }
         return copyTo;
     }
@@ -621,7 +596,7 @@ public class MatricesStride extends Matrix {
                 Handle handle = new Handle();
                 MatricesStride mbs = new MatricesStride(handle, 3, 1);) {
 
-            mbs.dArray().set(handle, new double[]{9, 6, 3, 6, 5, 2, 3, 2, 2});
+            mbs.data.set(handle, new double[]{9, 6, 3, 6, 5, 2, 3, 2, 2});
             Eigen eigen = new Eigen(mbs, true);
 
             System.out.println("vals = \n" + eigen.values);
@@ -658,10 +633,10 @@ public class MatricesStride extends Matrix {
      * matrices in this.
      */
     public MatricesStride subMatrixRows(int startRow, int endRowExclsve) {
-        DStrideArray subMData = data.subArray(startRow, (getWidth() - 1) * colDist).getAsBatch(batchArray.stride, getBatchSize(), batchArray.subArrayLength);
-        return new MatricesStride(handle, subMData, endRowExclsve - startRow, subWidth, colDist);
+        DStrideArray subMData = data.subArray(startRow, (width - 1) * colDist).getAsBatch(batchArray.stride, getBatchSize(), batchArray.subArrayLength);
+        return new MatricesStride(handle, subMData, endRowExclsve - startRow, width, colDist);
     }
-    
+
     /**
      * Returns a matrices stride where each matrix is a sub matrix of one of the
      * matrices in this.
@@ -672,35 +647,102 @@ public class MatricesStride extends Matrix {
      * matrices in this.
      */
     public MatricesStride subMatrixCols(int startCol, int endColExclsve) {
-        DStrideArray subMData = data.subArray(startCol*colDist)
+        DStrideArray subMData = data.subArray(startCol * colDist)
                 .getAsBatch(batchArray.stride, getBatchSize(), batchArray.subArrayLength);
-        
-        return new MatricesStride(handle, subMData, getSubHeight(), endColExclsve - startCol, colDist);
+
+        return new MatricesStride(handle, subMData, height, endColExclsve - startCol, colDist);
     }
-    
-    
+
     /**
      * A sub batch of this batch.
+     *
      * @param start The index of the first subMatrix.
      * @param length One after the index of the last submatrix.
      * @return A subbatch.
      */
-    public MatricesStride subBatch(int start, int length){
+    public MatricesStride subBatch(int start, int length) {
         return new MatricesStride(
-                handle, 
-                batchArray.subBatch(start, length), 
-                getSubHeight(), 
-                getSubWidth(), 
+                handle,
+                batchArray.subBatch(start, length),
+                height,
+                width,
                 colDist
         );
+
+    }
+
+    /**
+     * If this matrices stride were to be represented as a single matrix, then
+     * this would be its width.
+     *
+     * @return The width of a suggested representing all inclusive matrix.
+     */
+    private int totalWidth() {
+        return data.stride * data.batchSize + width;
+    }
+
+    /**
+     * Fills all elements of these matrices with the given values. This method
+     * alocated two gpu arrays, so it probably should not be called for many
+     * batches.
+     *
+     * @param scalar To fill these matrices.
+     * @return This.
+     */
+    public MatricesStride fill(double scalar) {
+        if (data.stride <= colDist * width) {
+            if (colDist == height) data.fill(handle, scalar, 1);
+            else if (height == 1) data.fill(handle, scalar, colDist);
+            else data.fillMatrix(handle, height, totalWidth(), colDist, scalar);
+        } else {
+            try (DArray workSpace = DArray.empty(width*width)) {                
+                
+                MatricesStride empty = new Matrix(handle, workSpace, height, width).repeating(data.batchSize);
+                
+                addToMe(false, scalar, empty, 0, workSpace);
+            }
+        }
+        return this;
+    }
+
+    /**
+     * The underlying data.
+     * @return The underlying data.
+     */
+    public DArray dArray(){
+        return data;
+    }
+
+    /**
+     * The handle used for this's operations.
+     * @return The handle used for this's operations.
+     */
+    public Handle getHandle() {
+        return handle;
+    }
+    
+    
+    
+    /**
+     * Adds matrices to these matrices.
+     * @param transpose Should toAdd be transposed.
+     * @param timesToAdd Multiply toAdd before adding.
+     * @param toAdd The matrices to add to these.
+     * @param timesThis multiply this before adding.
+     * @param workSpace workspace should be width^2 length.
+     * @return 
+     */
+    public MatricesStride addToMe(boolean transpose, double timesToAdd, MatricesStride toAdd, double timesThis, DArray workSpace) {
+
+        Matrix id = Matrix.identity(handle, width, workSpace);
         
+        multAndAdd(transpose, false, toAdd, id.repeating(data.batchSize), timesToAdd, timesThis);
+        return this;
     }
 
     @Override
-    public MatricesStride fill(double scalar) {
-        super.fill(scalar); 
-        return this;
+    public int getColDist() {
+        return colDist;
     }
-    
-    
+
 }

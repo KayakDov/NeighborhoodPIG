@@ -19,7 +19,7 @@ import JCudaWrapper.array.IArray;
  *
  * http://www.jcuda.org/jcuda/jcublas/JCublas.html
  */
-public class Matrix extends AbstractRealMatrix implements AutoCloseable {
+public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnMajor {
 
     /**
      * The number of rows in the matrix.
@@ -231,17 +231,6 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable {
      */
     public Matrix multiplyAndSet(boolean transposeA, boolean transposeB, double timesAB, Matrix a, Matrix b, double timesThis) {
         return multiplyAndSet(handle, transposeA, transposeB, timesAB, a, b, timesThis);
-    }
-
-    /**
-     * Returns the column-major vector index of the given row and column.
-     *
-     * @param row The row index.
-     * @param col The column index.
-     * @return The vector index: {@code col * colDist + row}.
-     */
-    protected int index(int row, int col) {
-        return col * colDist + row;
     }
 
     /**
@@ -940,16 +929,29 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable {
      *
      * @param n the height and width of the matrix.
      * @param hand
+     * @param holdIdentity The underlying array that will hold the identity
+     * matrix.
      * @return The identity matrix.
      */
-    public static Matrix identity(int n, Handle hand) {
+    public static Matrix identity(Handle hand, int n, DArray holdIdentity) {
 
-        Matrix ident = new Matrix(hand, n, n);
+        Matrix ident = new Matrix(hand, holdIdentity, n, n);
         ident.data.fill0(hand);
         try (DSingleton one = new DSingleton(hand, 1)) {
             ident.data.addToMe(hand, 1, one, 0, n + 1);
         }
         return ident;
+    }
+
+    /**
+     * The identity Matrix.
+     *
+     * @param n the height and width of the matrix.
+     * @param hand
+     * @return The identity matrix.
+     */
+    public static Matrix identity(Handle hand, int n) {
+        return identity(hand, n, DArray.empty(n * n));
     }
 
     /**
@@ -965,7 +967,7 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable {
         }
 
         if (p == 0) {
-            return identity(width, handle);
+            return identity(handle, width);
         }
 
         if (p % 2 == 0) {
@@ -1248,7 +1250,7 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable {
 
         return new MatricesStride(handle, 1, width)
                 .multAndAdd(true, false, columns, columns, 1, 0)
-                .asVector();
+                .get(0, 0);
     }
 
     /**
@@ -1401,8 +1403,8 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable {
      * A single array containing a copy of the data in this matrix in column
      * major order.
      *
-     * @return A single array containing a copy of the data in this matrix in column
-     * major order.
+     * @return A single array containing a copy of the data in this matrix in
+     * column major order.
      */
     public double[] colMajor() {
         return dArray().get(handle);
@@ -1418,5 +1420,14 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable {
             System.out.println(mat.getSubMatrixRows(1, 3));
 
         }
+    }
+    
+    /**
+     * This matrix repeating itself in a batch.
+     * @param batchSize The size of the batch.
+     * @return This matrix repeating itself in a batch.
+     */
+    public MatricesStride repeating(int batchSize){
+        return new MatricesStride(handle, data.getAsBatch(0, batchSize, size()), height, width, colDist);
     }
 }

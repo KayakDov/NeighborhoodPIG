@@ -332,5 +332,20 @@ public class DStrideArray extends DArray {
     public DStrideArray subBatch(int start, int length) {
         return subArray(start * stride, minLength(length, stride, subArrayLength)).getAsBatch(stride, length, subArrayLength);
     }
+    
+    /**
+     * Gets the sub array at the given batch index (not to be confused with indices in the underlying array.)
+     * @param i The batch index of the desired array: batch index = stride * i     
+     * @return The member of the batch at the given batch index.
+     */
+    public DArray getBatchArray(int i){
+        return super.subArray(stride*i, subArrayLength);
+    }
 
+    @Override
+    public DStrideArray copy(Handle handle) {
+        return super.copy(handle).getAsBatch(stride, batchSize, subArrayLength);
+    }
+
+    
 }

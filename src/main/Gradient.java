@@ -108,10 +108,12 @@ public class Gradient {
                 blockWidth,
                 dX.getHeight()
         );
-
+        
+        System.out.println("main.Gradient.computeInteriorGradients() \n" + blocks.getSubMatrix(1).toString());
+        
         target = target.subBatch(2, numBlocks);
 
-        if (blocks.getSubHeight() == diff.length)
+        if (blocks.height == diff.length)
             target.setVecMatMult(diffVec, blocks);
         else target.setMatVecMult(blocks, diffVec);
     }
@@ -121,7 +123,7 @@ public class Gradient {
      *
      * @return An unmodifiable x gradient matrix.
      */
-    public Matrix getdX() {
+    public Matrix x() {
         return dX;
     }
 
@@ -130,7 +132,7 @@ public class Gradient {
      *
      * @return An unmodifiable y gradient matrix.
      */
-    public Matrix getdY() {
+    public Matrix y() {
         return dY;
     }
 

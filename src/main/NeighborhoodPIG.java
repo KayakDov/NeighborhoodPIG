@@ -35,9 +35,11 @@ public class NeighborhoodPIG {
         
             Matrix imageMat = processImage(imagePath, handle);
             
+            System.out.println("main.NeighborhoodPIG.<init>()\n" + Arrays.toString(imageMat.colMajor()));
+            
             Gradient grad = new Gradient(imageMat, handle);
             
-            stm = new StructureTensorMatrix(grad.getdX(), grad.getdY(), neighborhoodSize);
+            stm = new StructureTensorMatrix(grad.x(), grad.y(), neighborhoodSize);
             
         }
     }
@@ -79,7 +81,7 @@ public class NeighborhoodPIG {
     }
 
     public static void main(String[] args) throws IOException {
-        NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 5);
+        NeighborhoodPIG np = new NeighborhoodPIG("images/input/debug.jpeg", 3);
         np.orientationColored("images/output/test.png");
         
     }
