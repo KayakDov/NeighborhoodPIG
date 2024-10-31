@@ -12,7 +12,7 @@ import java.util.function.IntFunction;
  *
  * @author E. Dov Neimand
  */
-public class Gradient {
+public class Gradient implements AutoCloseable{
 
     private Matrix dX, dY;
 
@@ -95,14 +95,14 @@ public class Gradient {
         // Interior x gradients (third column to second-to-last)
         int numBlocks = length - diff.length + 1;
 
-        VectorsStride diffVec = new VectorsStride(hand, diff, 1, diff.length, 0, numBlocks);
+        VectorsStride diffVecs = new VectorsStride(hand, diff, 1, diff.length, 0, numBlocks);
 
         MatricesStride blocks = new MatricesStride(hand, pic.dArray(), blockHeight, blockWidth, pic.colDist, blockStride, numBlocks);
         
         target = target.subBatch(2, numBlocks);
 
-        if (blocks.height == diff.length) target.setVecMatMult(diffVec, blocks);
-        else target.setMatVecMult(blocks, diffVec);
+        if (blocks.height == diff.length) target.setVecMatMult(diffVecs, blocks);
+        else target.setMatVecMult(blocks, diffVecs);
     }
 
     /**
@@ -121,6 +121,12 @@ public class Gradient {
      */
     public Matrix y() {
         return dY;
+    }
+
+    @Override
+    public void close() {
+        dX.close();
+        dY.close();
     }
 
 }

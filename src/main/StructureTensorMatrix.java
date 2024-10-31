@@ -24,11 +24,11 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * is, the first tensor corresponds to the pixel at column 0 row 0, the
      * second tensor corresponds to the pixel at column 0 row 1, etc...
      */
-    private MatricesStride strctTensors;
+    private final MatricesStride strctTensors;
 
-    private Eigen eigen;
-    private Matrix orientation;
-    private Handle handle;
+    private final Eigen eigen;
+    private final Matrix orientation;
+    private final Handle handle;
 
     public StructureTensorMatrix(Matrix dX, Matrix dY, int neighborhoodRad) {
 

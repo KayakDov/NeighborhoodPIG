@@ -1,5 +1,6 @@
 package JCudaWrapper.algebra;
 
+import JCudaWrapper.algebra.Eigen;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.DStrideArray;
 import JCudaWrapper.array.DPointerArray;
@@ -44,7 +45,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
     public MatricesStride(Handle handle, int height, int width, int stride, int batchSize) {
         this(
                 handle, 
-                DArray.empty(DStrideArray.minLength(batchSize, stride, width * height)), 
+                DArray.empty(DStrideArray.minLength(stride, width * height, batchSize)), 
                 height, 
                 width, 
                 height, 
@@ -67,7 +68,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      */
     public MatricesStride(Handle handle, DArray data, int height, int width, int colDist, int strideSize, int batchSize) {
         this.handle = handle;
-        this.data = data.getAsBatch(strideSize, batchSize, colDist*(width - 1) + height);
+        this.data = data.getAsBatch(strideSize, colDist*(width - 1) + height, batchSize);
         this.height = height;
         this.width = width;
         this.colDist = colDist;
@@ -116,6 +117,8 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
         return new Vector(handle, data.subArray(index(i, j)), data.stride);
     }
 
+    
+    
     /**
      * Retrieves all elements from each submatrix in the batch as a 2D array of
      * {@code Vector} objects. Each vector contains elements corresponding to
@@ -552,7 +555,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < data.batchCount(); i++) {
-            sb.append(getSubMatrix(i)).append("\n");
+            sb.append(getSubMatrix(i)).append("\n\n");
         }
         return sb.toString();
     }
@@ -580,17 +583,18 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
         return copyTo;
     }
 
+    
+    
+    
+    
     public static void main(String[] args) {
         try (
                 Handle handle = new Handle();
-                MatricesStride mbs = new MatricesStride(handle, 3, 1);) {
+                MatricesStride mbs = new MatricesStride(handle, 2, 2)) {
 
-            mbs.data.set(handle, new double[]{9, 6, 3, 6, 5, 2, 3, 2, 2});
-            Eigen eigen = new Eigen(mbs, true);
-
-            System.out.println("vals = \n" + eigen.values);
-            System.out.println("vecs = \n" + eigen.vectors);
-
+            mbs.data.set(handle, new double[]{1, 2, 3, 4,   5, 6, 7, 8});
+            
+            System.out.println(mbs.get(1, 1).toString());
         }
     }
 
@@ -725,3 +729,20 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
     }
 
 }
+
+
+
+
+//Test eigen code
+//
+//try (
+//                Handle handle = new Handle();
+//                MatricesStride mbs = new MatricesStride(handle, 3, 1);) {
+//
+//            mbs.data.set(handle, new double[]{9, 6, 3, 6, 5, 2, 3, 2, 2});
+//            Eigen eigen = new Eigen(mbs, true);
+//
+//            System.out.println("vals = \n" + eigen.values);
+//            System.out.println("vecs = \n" + eigen.vectors);
+//
+//        }

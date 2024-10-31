@@ -1106,7 +1106,7 @@ public class DArray extends Array {
      * @param subArrayLength The number of elements in each subArray.
      * @return A representation of this array as a set of sub arrays.
      */
-    public DStrideArray getAsBatch(int strideSize, int batchSize, int subArrayLength) {
+    public DStrideArray getAsBatch(int strideSize, int subArrayLength, int batchSize) {
         return new DStrideArray(pointer, strideSize, batchSize, subArrayLength);
     }
 

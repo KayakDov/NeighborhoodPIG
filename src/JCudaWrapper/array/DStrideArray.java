@@ -29,7 +29,7 @@ public class DStrideArray extends DArray {
      * @param subArrayLength The length of each sub arrau/
      */
     protected DStrideArray(CUdeviceptr p, int strideSize, int batchSize, int subArrayLength) {
-        super(p, minLength(batchSize, strideSize, subArrayLength));
+        super(p, minLength(strideSize, subArrayLength, batchSize));
         this.stride = strideSize;
         this.subArrayLength = subArrayLength;
         this.batchSize = batchSize;
@@ -234,7 +234,7 @@ public class DStrideArray extends DArray {
      * @param subArrayLength The length of each subArray.
      * @return The minimum length to hold a batch described by these paramters.
      */
-    public static int minLength(int batchSize, int strideSize, int subArrayLength) {
+    public static int minLength(int strideSize, int subArrayLength, int batchSize) {
         return strideSize * (batchSize - 1) + subArrayLength;
     }
 
@@ -249,7 +249,7 @@ public class DStrideArray extends DArray {
     public static DStrideArray empty(int batchSize, int strideSize, int subArrayLength) {
 
         return new DStrideArray(
-                Array.empty(minLength(batchSize, strideSize, subArrayLength), PrimitiveType.DOUBLE),
+                Array.empty(minLength(strideSize, subArrayLength, batchSize), PrimitiveType.DOUBLE),
                 strideSize,
                 batchSize,
                 subArrayLength
@@ -330,7 +330,7 @@ public class DStrideArray extends DArray {
      * @return A subbatch.
      */
     public DStrideArray subBatch(int start, int length) {
-        return subArray(start * stride, minLength(length, stride, subArrayLength)).getAsBatch(stride, length, subArrayLength);
+        return subArray(start * stride, minLength(stride, subArrayLength, length)).getAsBatch(stride, subArrayLength, length);
     }
     
     /**
@@ -344,7 +344,7 @@ public class DStrideArray extends DArray {
 
     @Override
     public DStrideArray copy(Handle handle) {
-        return super.copy(handle).getAsBatch(stride, batchSize, subArrayLength);
+        return super.copy(handle).getAsBatch(stride, subArrayLength, batchSize);
     }
 
     

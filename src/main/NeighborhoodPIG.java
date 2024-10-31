@@ -31,11 +31,11 @@ public class NeighborhoodPIG {
      * @throws java.io.IOException If there's trouble loading the image.
      */
     public NeighborhoodPIG(String imagePath, int neighborhoodSize) throws IOException {
-        try (Handle handle = new Handle()) {
-        
-            Matrix imageMat = processImage(imagePath, handle);
-            
-            Gradient grad = new Gradient(imageMat, handle);
+        try (
+                Handle handle = new Handle();
+                Matrix imageMat = processImage(imagePath, handle);
+                Gradient grad = new Gradient(imageMat, handle)
+                ) {
             
             stm = new StructureTensorMatrix(grad.x(), grad.y(), neighborhoodSize);
             

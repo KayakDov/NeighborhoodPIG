@@ -126,12 +126,12 @@ public class NeighborhoodProductSums implements AutoCloseable {
      */
     private void inRowSumCenter() {
         for (int colIndex = nRad + 1; colIndex < width - nRad; colIndex++) {
-            Matrix inRowNSumsCol = inRowSum.getColumn(colIndex);
-            inRowNSumsCol.addAndSet(
+            Vector column = inRowSum.getColumn(colIndex);
+            column.addAndSet(
                     -1, ebeStorage.getColumn(colIndex - nRad - 1),
                     1, ebeStorage.getColumn(colIndex + nRad)
             );
-            inRowNSumsCol.addAndSet(1, inRowNSumsCol, 1, inRowSum.getColumn(colIndex - 1));
+            column.addToMe(1, inRowSum.getColumn(colIndex - 1));
         }
     }
 
@@ -171,6 +171,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
             nSumRow.addToMe(1, resultRows.getVector(rowInd - 1));
 
             rowInd = height - 1 - i;
+            nSumRow = resultRows.getVector(rowInd);
             nSumRow.addToMe(1, inRowSum.getRow(rowInd - nRad));
             nSumRow.addToMe(1, resultRows.getVector(rowInd + 1));
 

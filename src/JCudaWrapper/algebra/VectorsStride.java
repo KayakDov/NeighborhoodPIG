@@ -40,7 +40,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
     public VectorsStride(Handle handle, int strideSize, int batchSize, int subVecDim, int inc) {
         this(
                 handle,
-                DArray.empty(DStrideArray.minLength(batchSize, strideSize, inc * subVecDim)),
+                DArray.empty(DStrideArray.minLength(strideSize, inc * subVecDim, batchSize)),
                 inc,
                 subVecDim,
                 strideSize,
@@ -204,10 +204,11 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
     public VectorsStride subBatch(int start, int length) {
         return new VectorsStride(
                 handle, 
-                data.subBatch(start, length), inc(), 
-                width, 
+                data.subBatch(start, length), 
+                inc(), 
+                dim(), 
                 data.stride, 
-                length - start
+                length
         );
     }
 
