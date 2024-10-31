@@ -234,7 +234,7 @@ public class DStrideArray extends DArray {
      * @param subArrayLength The length of each subArray.
      * @return The minimum length to hold a batch described by these paramters.
      */
-    private static int minLength(int batchSize, int strideSize, int subArrayLength) {
+    public static int minLength(int batchSize, int strideSize, int subArrayLength) {
         return strideSize * (batchSize - 1) + subArrayLength;
     }
 
@@ -255,7 +255,7 @@ public class DStrideArray extends DArray {
                 subArrayLength
         );
     }
-
+    
     /**
      *
      * @param handle

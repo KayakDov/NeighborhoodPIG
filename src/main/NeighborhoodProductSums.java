@@ -59,16 +59,13 @@ public class NeighborhoodProductSums implements AutoCloseable {
      */
     public void set(Matrix a, Matrix b, Vector result) {
 
-        ebeStorage.asVector().mapEbeMultiplyToSelf(a.asVector(), b.asVector());
+        ebeStorage.asVector().ebeMultiplyAndSet(a.asVector(), b.asVector());
 
         inRowSumsEdge();
         inRowSumNearEdge();
         inRowSumCenter();
 
         VectorsStride resultRows = result.subVectors(1, height, width, a.colDist);
-
-        resultRows.getVector(2).fill(1);
-        System.out.println("main.NeighborhoodProductSums.set()\n" + result);
         
         nSumEdge(resultRows);
         nSumNearEdge(resultRows);
@@ -87,11 +84,11 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * columns.
      */
     private void inRowSumsEdge() {
-        inRowSum.getColumnVector(0).multiplyAndSet(
+        inRowSum.getColumn(0).multiplyAndSet(
                 ebeStorage.getSubMatrixCols(0, nRad + 1),
                 halfNOnes
         );
-        inRowSum.getColumnVector(width - 1).multiplyAndSet(
+        inRowSum.getColumn(width - 1).multiplyAndSet(
                 ebeStorage.getSubMatrixCols(width - nRad - 1, width),
                 halfNOnes
         );
@@ -107,14 +104,14 @@ public class NeighborhoodProductSums implements AutoCloseable {
      */
     private void inRowSumNearEdge() {
         for (int i = 1; i < nRad + 1; i++) {
-            inRowSum.getColumnMatrix(i).addAndSet(
-                    1, ebeStorage.getColumnMatrix(i + nRad),
-                    1, inRowSum.getColumnMatrix(i - 1)
+            inRowSum.getColumn(i).addAndSet(
+                    1, ebeStorage.getColumn(i + nRad),
+                    1, inRowSum.getColumn(i - 1)
             );
             int colInd = width - 1 - i;
-            inRowSum.getColumnMatrix(colInd).addAndSet(
-                    1, ebeStorage.getColumnMatrix(colInd - nRad),
-                    1, inRowSum.getColumnMatrix(colInd + 1)
+            inRowSum.getColumn(colInd).addAndSet(
+                    1, ebeStorage.getColumn(colInd - nRad),
+                    1, inRowSum.getColumn(colInd + 1)
             );
         }
     }
@@ -129,12 +126,12 @@ public class NeighborhoodProductSums implements AutoCloseable {
      */
     private void inRowSumCenter() {
         for (int colIndex = nRad + 1; colIndex < width - nRad; colIndex++) {
-            Matrix inRowNSumsCol = inRowSum.getColumnMatrix(colIndex);
+            Matrix inRowNSumsCol = inRowSum.getColumn(colIndex);
             inRowNSumsCol.addAndSet(
-                    -1, ebeStorage.getColumnMatrix(colIndex - nRad - 1),
-                    1, ebeStorage.getColumnMatrix(colIndex + nRad)
+                    -1, ebeStorage.getColumn(colIndex - nRad - 1),
+                    1, ebeStorage.getColumn(colIndex + nRad)
             );
-            inRowNSumsCol.addAndSet(1, inRowNSumsCol, 1, inRowSum.getColumnMatrix(colIndex - 1));
+            inRowNSumsCol.addAndSet(1, inRowNSumsCol, 1, inRowSum.getColumn(colIndex - 1));
         }
     }
 
@@ -170,11 +167,11 @@ public class NeighborhoodProductSums implements AutoCloseable {
         for (int i = 1; i < nRad + 1; i++) {
             int rowInd = i;
             Vector nSumRow = resultRows.getVector(rowInd);
-            nSumRow.addToMe(1, inRowSum.getRowVector(rowInd + nRad));
+            nSumRow.addToMe(1, inRowSum.getRow(rowInd + nRad));
             nSumRow.addToMe(1, resultRows.getVector(rowInd - 1));
 
             rowInd = height - 1 - i;
-            nSumRow.addToMe(1, inRowSum.getRowVector(rowInd - nRad));
+            nSumRow.addToMe(1, inRowSum.getRow(rowInd - nRad));
             nSumRow.addToMe(1, resultRows.getVector(rowInd + 1));
 
         }
@@ -191,8 +188,8 @@ public class NeighborhoodProductSums implements AutoCloseable {
     private void nSumCenter(VectorsStride resultRows) {
         for (int rowIndex = nRad + 1; rowIndex < height - nRad; rowIndex++) {
             Vector nSumsRow = resultRows.getVector(rowIndex);
-            nSumsRow.addToMe(-1, inRowSum.getRowVector(rowIndex - nRad - 1));
-            nSumsRow.addToMe(1, inRowSum.getRowVector(rowIndex + nRad));
+            nSumsRow.addToMe(-1, inRowSum.getRow(rowIndex - nRad - 1));
+            nSumsRow.addToMe(1, inRowSum.getRow(rowIndex + nRad));
 
             nSumsRow.addToMe(1, resultRows.getVector(rowIndex - 1));
         }

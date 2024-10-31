@@ -379,10 +379,9 @@ public class DArray extends Array {
      * @return The Euclidean norm of this vector.
      */
     public double norm(Handle handle, int length, int inc) {
-        double[] result = new double[1];
-        norm(handle, length, inc, result, 0);
-        handle.synch();
-        return result[0];
+        DSingleton result = new DSingleton();
+        norm(handle, length, inc, result);
+        return result.getVal(handle);
     }
 
     /**
@@ -396,14 +395,11 @@ public class DArray extends Array {
      * @param length The number of scalars that will be squared.
      * @param inc The stride step over this array.
      * @param result where the result is to be stored.
-     * @param toIndex The index in the result array to store the result;
      */
-    public void norm(Handle handle, int length, int inc, double[] result, int toIndex) {
-        //Warning, the cuda documentation says that the return pointer can 
-        //either device or host, but there seems to be a core dump whenever
-        //I try to put the result on the host.
+    public void norm(Handle handle, int length, int inc, DSingleton result) {
+        
         checkNull(handle, result);
-        JCublas2.cublasDnrm2(handle.get(), length, pointer, inc, Pointer.to(result).withByteOffset(toIndex * Sizeof.DOUBLE));
+        JCublas2.cublasDnrm2(handle.get(), length, pointer, inc, result.pointer);
     }
 
     /**
@@ -848,7 +844,7 @@ public class DArray extends Array {
             return subArray(0, width * height).fill(handle, fill, 1);
         }
 
-        try (DArray filler = new DArray(handle, fill)) {
+        try (DArray filler = new DSingleton(handle, fill)) {
             int size = height * width;
             KernelManager kern = KernelManager.get("fillMatrix");
             kern.map(handle, filler, lda, this, height, size);

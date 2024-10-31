@@ -31,11 +31,11 @@ public class Gradient {
         dX = new Matrix(hand, height, width);
         dY = new Matrix(hand, height, width);
 
-        computeBoundaryGradients(i -> pic.getColumnMatrix(i), i -> dX.getColumnMatrix(i), width);
-        computeBoundaryGradients(i -> pic.getRowMatrix(i), i -> dY.getRowMatrix(i), height);
+        computeBoundaryGradients(i -> pic.getColumn(i), i -> dX.getColumn(i), width);
+        computeBoundaryGradients(i -> pic.getRow(i), i -> dY.getRow(i), height);
 
-        computeInteriorGradients(hand, pic, width, height, height * diff.length, height, diff.length, dX.columns());
-        computeInteriorGradients(hand, pic, height, 1, height * (width - 1) + diff.length, diff.length, width, dY.rows());
+        computeInteriorGradients(hand, pic, width, height, height, diff.length, dX.columns());
+        computeInteriorGradients(hand, pic, height, 1, diff.length, width, dY.rows());
     }
 
     /**
@@ -86,30 +86,22 @@ public class Gradient {
      * @param pic The picture over which the gradient is taken.
      * @param length Either the height or the width as appropriate.
      * @param blockStride This should be one if the blocks are made of rows
-     * @param blockDataLength For column blocks this should be the number of columns, for row blocks this should be most of the matrix.
      * @param blockHeight The height of each block.  For row blocks this should be diff.length and for col blocks this should be height.
      * @param blockWidth see block height but opposite.
      * @param target Where the results are stored.  This should either be dX.columns() or dY.rows()
      */
-    private void computeInteriorGradients(Handle hand, Matrix pic, int length, int blockStride, int blockDataLength, int blockHeight, int blockWidth, VectorsStride target) {
+    private void computeInteriorGradients(Handle hand, Matrix pic, int length, int blockStride, int blockHeight, int blockWidth, VectorsStride target) {
 
         // Interior x gradients (third column to second-to-last)
         int numBlocks = length - diff.length + 1;
 
-        VectorsStride diffVec = new VectorsStride(hand, diff.getAsBatch(0, numBlocks, diff.length), 1);
+        VectorsStride diffVec = new VectorsStride(hand, diff, 1, diff.length, 0, numBlocks);
 
-        MatricesStride blocks = new MatricesStride(
-                hand,
-                pic.dArray().getAsBatch(blockStride, numBlocks, blockDataLength),
-                blockHeight,
-                blockWidth,
-                dX.getHeight()
-        );
+        MatricesStride blocks = new MatricesStride(hand, pic.dArray(), blockHeight, blockWidth, pic.colDist, blockStride, numBlocks);
         
         target = target.subBatch(2, numBlocks);
 
-        if (blocks.height == diff.length)
-            target.setVecMatMult(diffVec, blocks);
+        if (blocks.height == diff.length) target.setVecMatMult(diffVec, blocks);
         else target.setMatVecMult(blocks, diffVec);
     }
 

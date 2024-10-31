@@ -114,19 +114,15 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     private Vector cosOf(double alpha, VectorsStride vecs2d, Matrix rotate) {
         
         
-        VectorsStride rotated = new VectorsStride(handle, 2, vecs2d.data.batchSize, vecs2d.getSubVecDim(), 1);
+        VectorsStride rotated = new VectorsStride(handle, 2, vecs2d.dArray().batchSize, vecs2d.getSubVecDim(), 1);
         rotated.setMatVecMult(
-                new MatricesStride(
-                        handle, 
-                        rotate.dArray().getAsBatch(0, vecs2d.data.batchCount(), rotate.size()), 
-                        2
-                ), 
+                rotate.repeating(vecs2d.dArray().batchCount()), 
                 vecs2d
         );
         
         Vector xVals = vecs2d.getElement(0);
         
-        Vector cosDenominator = new Vector(handle, vecs2d.data.batchSize);
+        Vector cosDenominator = new Vector(handle, vecs2d.dArray().batchSize);
         
         cosDenominator.setBatchVecVecMult(vecs2d, vecs2d);
         
@@ -149,13 +145,13 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         VectorsStride primaryAxis = eigen.vectors.column(0);
         
         try (Matrix red = cosOf(256, primaryAxis, Rotation.id).asMatrix(orientation.getHeight())) {
-            RGB[0] = red.getData();
+            RGB[0] = red.get();
         }
         try (Matrix green = cosOf(256, primaryAxis, Rotation.r60).asMatrix(orientation.getHeight())) {
-            RGB[1] = green.getData();
+            RGB[1] = green.get();
         }
         try (Matrix blue = cosOf(256, primaryAxis, Rotation.r60).asMatrix(orientation.getHeight())) {
-            RGB[2] = blue.getData();
+            RGB[2] = blue.get();
         }
 
         return RGB;

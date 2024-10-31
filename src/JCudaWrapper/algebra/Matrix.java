@@ -10,6 +10,7 @@ import org.apache.commons.math3.exception.*;
 import org.apache.commons.math3.linear.*;
 import JCudaWrapper.array.DSingleton;
 import JCudaWrapper.array.IArray;
+import JCudaWrapper.array.KernelManager;
 
 /**
  * Represents a matrix stored on the GPU. For more information on jcuda
@@ -19,7 +20,7 @@ import JCudaWrapper.array.IArray;
  *
  * http://www.jcuda.org/jcuda/jcublas/JCublas.html
  */
-public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnMajor {
+public class Matrix implements AutoCloseable, ColumnMajor {
 
     /**
      * The number of rows in the matrix.
@@ -61,7 +62,7 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
      */
     public Matrix(Handle handle, double[][] matrix) {
         this(handle, matrix[0].length, matrix.length);
-        set(0, 0, matrix);
+        Matrix.this.set(0, 0, matrix);
     }
 
     /**
@@ -148,34 +149,6 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
      */
     public int getWidth() {
         return width;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Matrix multiply(RealMatrix m) throws DimensionMismatchException {
-
-        try (Matrix mat = new Matrix(handle, m)) {
-            Matrix result = multiply(mat);
-            return result;
-        }
-    }
-
-    /**
-     * Performs matrix multiplication using JCublas.
-     *
-     * @see Matrix#multiply(org.apache.commons.math3.linear.RealMatrix)
-     * @param other The matrix to multiply with.
-     * @return A new matrix that is the product of this matrix and the other.
-     */
-    public Matrix multiply(Matrix other) {
-        if (getWidth() != other.getHeight()) {
-            throw new DimensionMismatchException(other.height, width);
-        }
-
-        return new Matrix(handle, getHeight(), other.getWidth())
-                .multiplyAndSet(false, false, 1, this, other, 0);
     }
 
     /**
@@ -270,30 +243,6 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Matrix add(RealMatrix m) throws MatrixDimensionMismatchException {
-        try (Matrix mat = new Matrix(handle, m)) {
-            return add(mat);
-        }
-
-    }
-
-    /**
-     * @see Matrix#add(org.apache.commons.math3.linear.RealMatrix)
-     * @param other The other matrix to add.
-     * @return A new matrix, the result of element-wise addition.
-     */
-    public Matrix add(Matrix other) {
-        if (other.height != height || other.width != width) {
-            throw new MatrixDimensionMismatchException(other.height, other.width, height, width);
-        }
-
-        return new Matrix(handle, height, width).addAndSet(1, other, 1, this);
-    }
-
-    /**
      * Performs matrix addition or subtraction.
      *
      * <p>
@@ -362,50 +311,13 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Matrix subtract(RealMatrix m) throws MatrixDimensionMismatchException {
-        if (m.getRowDimension() != getRowDimension() || m.getColumnDimension() != getColumnDimension()) {
-            throw new MatrixDimensionMismatchException(m.getRowDimension(), m.getColumnDimension(), getRowDimension(), getColumnDimension());
-        }
-
-        try (Matrix mat = new Matrix(handle, m)) {
-            return subtract(mat);
-        }
-    }
-
-    /**
-     * @see Matrix#subtract(org.apache.commons.math3.linear.RealMatrix)
-     *
-     * @param other The other matrix to add.
-     * @return The result of element-wise addition.
-     */
-    public Matrix subtract(Matrix other) {
-        if (getHeight() != other.getHeight() || getWidth() != other.getWidth()) {
-            throw new IllegalArgumentException("Matrix dimensions are not compatible for addition");
-        }
-
-        return new Matrix(handle, height, width).addAndSet(-1, other, 1, this);
-    }
-
-    /**
-     * Multiplies everything in this matrix by a scalar and returns a new
-     * matrix. This one remains unchanged.
+     * Multiplies everything in this matrix by a scalar
      *
      * @param d The scalar that does the multiplying.
      * @return A new matrix equal to this matrix times a scalar.
      */
-    public Matrix multiply(double d) {
-        return new Matrix(handle, height, width).addAndSet(d, this, 0, this);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Matrix scalarMultiply(double d) {
-        return multiply(d);
+    public Matrix multiplyMe(double d) {
+        return addAndSet(d, this, 0, this);
     }
 
     /**
@@ -420,13 +332,16 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
     }
 
     /**
-     * {@inheritDoc}
+     * Adds a scalar to every element of this matrix.
+     *
+     * @param d The scalar to be added.
+     * @return this.
      */
-    @Override
-    public Matrix scalarAdd(double d) {
-        Matrix scalarMat = new Matrix(handle, height, width).fill(d);
-        return scalarMat.addAndSet(1, this, 1, scalarMat);
-
+    public Matrix addToMe(double d) {
+        try (DSingleton sing = new DSingleton(handle, d)) {
+            KernelManager.get("addScalarToMatrix").map(handle, sing, colDist, data, height, size());
+            return this;
+        }
     }
 
     /**
@@ -473,7 +388,7 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
         for (int row = 0; row < getHeight(); row++) {
             sb.append("[");
             for (int col = 0; col < getWidth(); col++) {
-                sb.append(getEntry(row, col));
+                sb.append(Matrix.this.get(row, col));
                 if (col < getWidth() - 1) {
                     sb.append(", ");
                 }
@@ -488,10 +403,13 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
     }
 
     /**
-     * {@inheritDoc}
+     * Gets the entry at the given row and column.
+     *
+     * @param row The row of the desired entry.
+     * @param column The column of the desired entry.
+     * @return The entry at the given row and column.
      */
-    @Override
-    public double getEntry(int row, int column) {
+    public double get(int row, int column) {
         return data.get(index(row, column)).getVal(handle);
 
     }
@@ -534,31 +452,17 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void copySubMatrix(int startRow, int endRow, int startColumn, int endColumn, double[][] destination) throws OutOfRangeException, NumberIsTooSmallException, MatrixDimensionMismatchException {
-
-        Dimension dim = subMatrixDimensions(startRow, endRow, startColumn, endColumn);
-
-        if (destination.length > dim.width) {
-            throw new MatrixDimensionMismatchException(destination.length, destination[0].length, height, width);
-        }
-
-        Matrix subMatrix = getSubMatrix(startRow, endRow, startColumn, endColumn);
-
-        for (int j = 0; j < dim.width; j++) {
-            destination[j] = subMatrix.getColumn(j);
-        }
-    }
-
-    /**
      * Passes by reference. Changes to the sub matrix will effect the original
      * matrix and vice versa.
      *
-     * {@inheritDoc}
+     * @param startRow The starting row of the submatrix.
+     * @param endRow The end row of the submatrix exclusive.
+     * @param startColumn The starting column of the submatrix.
+     * @param endColumn The end column exclusive.
+     * @return The submatrix.
+     * @throws OutOfRangeException
+     * @throws NumberIsTooSmallException
      */
-    @Override
     public Matrix getSubMatrix(int startRow, int endRow, int startColumn, int endColumn) throws OutOfRangeException, NumberIsTooSmallException {
 
         Dimension dim = subMatrixDimensions(startRow, endRow, startColumn, endColumn);
@@ -641,40 +545,6 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Matrix getSubMatrix(int[] selectedRows, int[] selectedColumns) throws NullArgumentException, NoDataException, OutOfRangeException {
-
-        checkForNull(selectedRows, selectedColumns);
-        if (selectedColumns.length == 0 || selectedRows.length == 0) {
-            throw new NoDataException();
-        }
-
-        Matrix subMat = new Matrix(handle, selectedRows.length, selectedColumns.length);
-
-        int toInd = 0;
-
-        for (int fromColInd : selectedColumns) {
-            for (int fromRowInd : selectedRows) {
-                checkRowCol(fromRowInd, fromColInd);
-
-                subMat.data.set(handle, data, toInd, index(fromRowInd, fromColInd), 1);
-            }
-        }
-
-        return subMat;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setSubMatrix(double[][] subMatrix, int row, int column) {
-        set(row, column, subMatrix);
-    }
-
-    /**
      * The number of elements in this matrix.
      *
      * @return The number of elements in this matrix.
@@ -684,47 +554,26 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
     }
 
     /**
-     * Checks to see if the two matrices are equal to within a margin of 1e-10.
-     *
-     * @param object
-     * @return True if they are equal, false otherwise.
-     */
-    public boolean equals(Matrix object) {
-        return equals(object, 1e-10);
-    }
-
-    /**
      * Checks if the two methods are equal to within an epsilon margin of error.
      *
      * @param other A matrix that might be equal to this one.
      * @param epsilon The acceptable margin of error.
+     * @param workSpace Should be the size of the matrix.
      * @return True if the matrices are very close to one another, false
      * otherwise.
      */
-    public boolean equals(Matrix other, double epsilon) {
-        if (height != other.height || width != other.width) {
-            return false;
-        }
-
-        return subtract(other).getFrobeniusNorm() <= epsilon;
+    public boolean equals(Matrix other, double epsilon, DArray workSpace) {
+        if (height != other.height || width != other.width) return false;
+        
+        return new Matrix(handle, data, height, width).addAndSet(1, this, -1, other)
+                .getFrobeniusNorm(workSpace.subArray(0, width)) <= epsilon;
     }
-
+    
     /**
-     * {@inheritDoc}
+     * A copy of this matrix.
+     *
+     * @return A copy of this matrix.
      */
-    @Override
-    public Matrix createMatrix(int height, int width) throws NotStrictlyPositiveException {
-        if (height <= 0 || width <= 0) {
-            throw new NotStrictlyPositiveException(java.lang.Math.min(height, width));
-        }
-
-        return new Matrix(handle, height, width);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public Matrix copy() {
         if (height == colDist) {
             return new Matrix(handle, data.copy(handle), height, width);
@@ -738,139 +587,66 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
     }
 
     /**
-     * {@inheritDoc}
+     * Sets an entry.
+     *
+     * @param row The row of the entry.
+     * @param column The column of the entry.
+     * @param value The value to be placed at the entry.
      */
-    @Override
-    public int getRowDimension() {
-        return height;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getColumnDimension() {
-        return width;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setEntry(int row, int column, double value) {
+    public void set(int row, int column, double value) {
         data.set(handle, index(row, column), value);
     }
 
     /**
-     * {@inheritDoc}
+     * gets the row.
+     *
+     * @param row the index of the desired row.
+     * @return The row at the requested index.
+     * @throws OutOfRangeException
      */
-    @Override
-    public Matrix getRowMatrix(int row) throws OutOfRangeException {
-        if (row < 0 || row >= height) {
-            throw new OutOfRangeException(row, 0, height);
-        }
-
-        return new Matrix(
-                handle, data.subArray(index(row, 0)),
-                1,
-                width,
-                colDist);
-
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public double[] getRow(int row) throws OutOfRangeException {
-        return getRow(row, handle);
-    }
-
-    /**
-     * @see Matrix#getRow(int)
-     */
-    public double[] getRow(int row, Handle handle) throws OutOfRangeException {
-        if (row < 0 || row >= height) {
-            throw new OutOfRangeException(row, 0, height);
-        }
-
-        Matrix rowMatrix = getRowMatrix(row);
-
-        try (Matrix rowCopy = rowMatrix.copy()) {
-            return rowCopy.data.get(handle);
-        }
-
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Vector getRowVector(int row) throws OutOfRangeException {//TODO: create a GPU vector class.
-
+    public Vector getRow(int row) throws OutOfRangeException {
         return new Vector(handle, data.subArray(row), colDist);
     }
 
     /**
-     * {@inheritDoc}
+     * Gets the requested column.
+     *
+     * @param column The index of the desired column.
+     * @return The column at the submited index.
+     * @throws OutOfRangeException
      */
-    @Override
-    public double[] getColumn(int column) throws OutOfRangeException {
-        if (column >= width || column < 0) {
-            throw new OutOfRangeException(column, 0, width);
-        }
-
-        return getColumnMatrix(column).data.get(handle);
-    }
-
-    /**
-     * This method passes by reference, meaning changes to the column matrix
-     * will affect this matrix and vice versa. {@inheritDoc}
-     */
-    @Override
-    public Matrix getColumnMatrix(int column) throws OutOfRangeException {
-        return new Matrix(
-                handle, data.subArray(index(0, column), height),
-                height,
-                1);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Vector getColumnVector(int column) throws OutOfRangeException {
+    public Vector getColumn(int column) throws OutOfRangeException {
         return new Vector(handle, data.subArray(index(0, column), height), 1);
     }
 
     /**
-     * {@inheritDoc}
+     * A copy of this matrix as a 2d cpu array.
+     *
+     * @return A copy of this matrix as a 2d cpu array.
      */
-    @Override
-    public double[][] getData() {
+    public double[][] get() {
         double[][] getData = new double[width][];
         Arrays.setAll(getData, i -> getColumn(i));
         return getData;
     }
 
     /**
-     * {@inheritDoc}
+     * The trace of this matrix.
      */
-    @Override
     public double getTrace() throws NonSquareMatrixException {
-        if (!isSquare()) {
-            throw new NonSquareMatrixException(width, height);
-        }
-
+        if (height != width) throw new NonSquareMatrixException(width, height);
         return data.dot(handle, new DSingleton(handle, 1), 0, width + 1);
     }
 
     /**
-     * {@inheritDoc}
+     * A hash code for this matrix. This is computed by importing the entire
+     * matrix into cpu memory. TODO: do better.
+     *
+     * @return a hash code for this matrix.
      */
     @Override
     public int hashCode() {
-        return new Array2DRowRealMatrix(getData()).hashCode();
+        return new Array2DRowRealMatrix(get()).hashCode();
     }
 
     /**
@@ -884,44 +660,6 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
         Matrix mat = new Matrix(handle, vec.length, 1);
         mat.data.set(handle, vec);
         return mat;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public double[] operate(double[] v) throws DimensionMismatchException {
-        if (width != v.length) {
-            throw new DimensionMismatchException(v.length, width);
-        }
-
-        Matrix vec = fromColVec(v, handle);
-        Matrix result = multiply(vec);
-        vec.close();
-
-        double[] operate = result.data.get(handle);
-        result.close();
-
-        return operate;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Vector operate(RealVector v) throws DimensionMismatchException {
-        try (Vector temp = new Vector(handle, v.toArray())) {
-            return operate(temp);
-        }
-    }
-
-    /**
-     * @see Matrix#operate(org.apache.commons.math3.linear.RealVector)
-     */
-    public Vector operate(Vector v) throws DimensionMismatchException {
-        Vector result = new Vector(handle, height);
-        result.dArray().multMatVec(handle, false, height, width, 1, data, colDist, v.dArray(), v.inc, 1, 1);
-        return result;
     }
 
     /**
@@ -955,320 +693,85 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
     }
 
     /**
-     * {@inheritDoc}
+     * Raise this square matrix to a power. This method may use a lot of
+     * auxiliary space and allocate new memory multiple times. TODO: fix this.
+     *
+     * @param p The power.
+     * @return This matrix raised to the given power.
+     * @throws NotPositiveException
+     * @throws NonSquareMatrixException
      */
-    @Override
     public Matrix power(int p) throws NotPositiveException, NonSquareMatrixException {
-        if (p < 0) {
-            throw new NotPositiveException(p);
-        }
-        if (!isSquare()) {
-            throw new NonSquareMatrixException(width, height);
-        }
 
-        if (p == 0) {
-            return identity(handle, width);
-        }
+        if (p < 0) throw new NotPositiveException(p);
+        if (height != width) throw new NonSquareMatrixException(width, height);
+        if (p == 0) return identity(handle, width);
 
         if (p % 2 == 0) {
-            Matrix halfPow = power(p / 2);
-            return halfPow.multiply(halfPow);
+            power(p / 2);
+            return multiplyAndSet(this, this);
         } else {
-            return multiply(power(p - 1));
+            try (Matrix copy = copy()) {
+                return multiplyAndSet(copy, power(p - 1));
+            }
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setColumn(int column, double... array) throws OutOfRangeException, MatrixDimensionMismatchException {
-        checkCol(column);
-        if (array.length != height) {
-            throw new MatrixDimensionMismatchException(0, array.length, 0, height);
-        }
-
-        data.set(handle, array, index(0, column));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public void setColumnMatrix(int column, Matrix matrix) throws OutOfRangeException, MatrixDimensionMismatchException {
-        checkCol(column);
-        if (matrix.height != height || matrix.width != 1) {
-            throw new MatrixDimensionMismatchException(matrix.width, matrix.height, 1, height);
-        }
-
-        data.set(handle, matrix.data, index(0, column), 0, height);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setColumnMatrix(int column, RealMatrix matrix) throws OutOfRangeException, MatrixDimensionMismatchException {
-        setColumn(column, matrix.getColumn(0));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setColumnVector(int column, RealVector vector) throws OutOfRangeException, MatrixDimensionMismatchException {
-        setColumn(column, vector.toArray());
     }
 
     /**
      * @see Matrix#setColumnVector(int,
-     * org.apache.commons.math3.linear.RealVector)
+     * org.apache.commons.math3.linear.RealVector)     
+     * 
+     * @param column The index of the column to be set.
+     * @param vector The vector to be put in the desired location.
+     * @throws OutOfRangeException
+     * @throws MatrixDimensionMismatchException 
      */
     public void setColumnVector(int column, Vector vector) throws OutOfRangeException, MatrixDimensionMismatchException {
-        data.set(handle, vector.dArray(), index(0, column), 0, 0, vector.inc, Math.min(height, vector.getDimension()));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setRow(int row, double[] array) throws OutOfRangeException, MatrixDimensionMismatchException {
-        checkRow(row);
-        if (array.length != width) {
-            throw new MatrixDimensionMismatchException(array.length, 0, width, 0);
-        }
-
-        try (Vector temp = new Vector(handle, array)) {
-            setRowVector(row, temp);
-        }
-    }
-
-    /**
-     * @see Matrix#setRowMatrix(int, org.apache.commons.math3.linear.RealMatrix)
-     */
-    public void setRowMatrix(int row, Matrix rowMatrix) throws OutOfRangeException, MatrixDimensionMismatchException {
-        insert(rowMatrix, row, 0);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setRowMatrix(int row, RealMatrix matrix) throws OutOfRangeException, MatrixDimensionMismatchException {
-        setRow(row, matrix.getRow(0));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setRowVector(int row, RealVector vector) throws OutOfRangeException, MatrixDimensionMismatchException {
-        setRow(row, vector.toArray());
+        data.set(handle, vector.dArray(), index(0, column), 0, 0, vector.colDist, Math.min(height, vector.dim()));
     }
 
     /**
      * @see Matrix#setRowVector(int, org.apache.commons.math3.linear.RealVector)
      */
     public void setRowVector(int row, Vector vector) throws OutOfRangeException, MatrixDimensionMismatchException {
-        data.set(handle, vector.dArray(), index(row, 0), 0, colDist, vector.inc, Math.min(width, vector.getDimension()));
+        data.set(handle, vector.dArray(), index(row, 0), 0, colDist, vector.colDist, Math.min(width, vector.dim()));
     }
 
     /**
-     * {@inheritDoc}
+     * transposes this matrix.
+     *
+     * @return
      */
-    @Override
-    public Matrix transpose() {
-        Matrix transpose = new Matrix(handle, width, height);
-
-        transpose.addAndSet(true, false, 1, this, 0, transpose);
-
-        return transpose;
+    public Matrix transposeMe() {
+        return addAndSet(true, false, 1, this, 0, this);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public double walkInColumnOrder(RealMatrixChangingVisitor visitor) {
-        double[] matrix = data.get(handle);
-
-        visitor.start(height, width, 0, height, 0, width);
-
-        Arrays.setAll(matrix, i -> visitor.visit(rowIndex(i), columnIndex(i), matrix[i]));
-
-        data.set(handle, matrix);
-
-        return visitor.end();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public double walkInColumnOrder(RealMatrixChangingVisitor visitor, int startRow, int endRow, int startColumn, int endColumn) {
-
-        Dimension sub = subMatrixDimensions(startRow, endRow, startColumn, endColumn);
-
-        double[] matrix = new double[sub.width * sub.height];
-
-        for (int toCol = 0; toCol <= sub.width; toCol++) {
-            data.get(handle, matrix, sub.height * toCol, index(0, toCol + startColumn), height);
-        }
-
-        Arrays.setAll(matrix, i -> visitor.visit(i % sub.height + startRow, i / sub.height + startColumn, matrix[i]));
-
-        for (int col = startColumn; col <= endColumn; col++) {
-            data.set(handle, matrix, index(startRow, col), col - startColumn, sub.height);
-        }
-
-        return visitor.end();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public double walkInOptimizedOrder(RealMatrixChangingVisitor visitor) {
-
-        return walkInColumnOrder(visitor);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public double walkInOptimizedOrder(RealMatrixChangingVisitor visitor, int startRow, int endRow, int startColumn, int endColumn) {
-
-        return walkInColumnOrder(visitor, startRow, endRow, startColumn, endColumn);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public double walkInOptimizedOrder(RealMatrixPreservingVisitor visitor) {
-        return walkInColumnOrder(visitor);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public double walkInRowOrder(RealMatrixChangingVisitor visitor) {
-        Matrix transp = transpose();
-        double result = transp.walkInColumnOrder(visitor);
-        insert(transp, 0, 0);
-        return result;
-
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public double walkInRowOrder(RealMatrixChangingVisitor visitor, int startRow, int endRow, int startColumn, int endColumn) throws OutOfRangeException, NumberIsTooSmallException {
-        checkSubMatrixParameters(startRow, endRow, startColumn, endColumn);
-
-        Matrix transpose = getSubMatrix(startRow, endRow, startColumn, endColumn).transpose();
-        double result = transpose.walkInColumnOrder(visitor);
-        insert(transpose, startRow, startColumn);
-        return result;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public double walkInColumnOrder(RealMatrixPreservingVisitor visitor) {
-        double[] matrix = data.get(handle);
-
-        visitor.start(height, width, 0, height, 0, width);
-        for (int i = 0; i < matrix.length; i++) {
-            visitor.visit(i / width, i % width, matrix[i]);
-        }
-
-        return visitor.end();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public double walkInColumnOrder(RealMatrixPreservingVisitor visitor, int startRow, int endRow, int startColumn, int endColumn) throws OutOfRangeException, NumberIsTooSmallException {
-        Dimension sub = subMatrixDimensions(startRow, endRow, startColumn, endColumn);
-
-        double[] matrix = new double[sub.width * sub.height];
-
-        visitor.start(height, width, 0, height, 0, width);
-
-        for (int toCol = 0; toCol <= sub.width; toCol++) {
-            data.get(handle, matrix, toCol * sub.height, index(0, toCol + startColumn), sub.height);
-        }
-
-        for (int i = 0; i < matrix.length; i++) {
-            visitor.visit(i % sub.height + startRow, i / sub.height + startColumn, matrix[i]);
-        }
-
-        return visitor.end();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public double walkInOptimizedOrder(RealMatrixPreservingVisitor visitor, int startRow, int endRow, int startColumn, int endColumn) throws OutOfRangeException, NumberIsTooSmallException {
-        return walkInColumnOrder(visitor, startRow, endRow, startColumn, endColumn);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public double walkInRowOrder(RealMatrixPreservingVisitor visitor) {
-        return walkInRowOrder(visitor, 0, height, 0, width);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public double walkInRowOrder(RealMatrixPreservingVisitor visitor, int startRow, int endRow, int startColumn, int endColumn) throws OutOfRangeException, NumberIsTooSmallException {
-        checkSubMatrixParameters(startRow, endRow, startColumn, endColumn);
-
-        Matrix transpose = getSubMatrix(startRow, endRow, startColumn, endColumn).transpose();
-        double result = transpose.walkInColumnOrder(visitor);
-        return result;
-    }
 
     /**
      * A vector containing the dot product of each column and itself.
      *
+     * @param workspace Should be as long as the width.
      * @return A vector containing the dot product of each column and itself.
      */
-    public Vector columnsSquared() {
+    public Vector columnsSquared(DArray workspace) {
 
-        MatricesStride columns = new MatricesStride(handle, data.getAsBatch(colDist, getWidth(), height), height);
+        Vector cs = new Vector(handle, data, 1);
 
-        return new MatricesStride(handle, 1, width)
-                .multAndAdd(true, false, columns, columns, 1, 0)
-                .get(0, 0);
+        VectorsStride columns = columns();
+        
+        cs.addBatchVecVecMult(1, columns, columns, 0);
+        
+        return cs;
     }
 
     /**
-     * <p>
-     * If the matrix is stored in column-major order with a column distance
-     * equal to the matrix height, the operation is performed on the current
-     * matrix. Otherwise, a copy of the matrix is created and the operation is
-     * performed on the copy.
-     * </p>
-     *
-     * {@inheritDoc}
+     * The norm of this vector.
+     * @param workspace Needs to be width long
+     * @return 
      */
-    @Override
-    public double getFrobeniusNorm() {
-
-        try (Vector colsSq = columnsSquared()) {
-            return Math.sqrt(colsSq.getL1Norm());
-        }
+    public double getFrobeniusNorm(DArray workspace) {
+        return Math.sqrt(columnsSquared(workspace).getL1Norm());
+        
 
     }
 
@@ -1291,7 +794,7 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
     }
 
     /**
-     * {@inheritDoc}
+     * Closes the underlying data of this method.
      */
     @Override
     public void close() {
@@ -1302,7 +805,7 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
     }
 
     /**
-     * Adds to this matrix the outer product of a and b.
+     * Adds the outer product of a and b to this matrix .
      *
      * @param a A column.
      * @param b A row
@@ -1310,7 +813,7 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
      */
     public Matrix addOuterProduct(Vector a, Vector b) {
 
-        data.outerProd(handle, height, width, 1, a.dArray(), a.inc, b.dArray(), b.inc, colDist);
+        data.outerProd(handle, height, width, 1, a.dArray(), a.colDist, b.dArray(), b.colDist, colDist);
 
         return this;
     }
@@ -1326,7 +829,8 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
 
     /**
      * The underlying data of this matrix in a vector.
-     *
+     * If colDist != height there will be elements in that vector that are not
+     * in this matrix.
      * @return The underlying data of this matrix in a vector.
      */
     public Vector asVector() {
@@ -1373,6 +877,7 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
      * @return The distance between the first element of each column in column
      * major order.
      */
+    @Override
     public int getColDist() {
         return colDist;
     }
@@ -1383,7 +888,7 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
      * @return The columns of this matrix.
      */
     public VectorsStride columns() {
-        return new VectorsStride(handle, data.getAsBatch(getColDist(), getWidth(), getHeight()), 1);
+        return new VectorsStride(handle, data, 1, height, colDist, width);
     }
 
     /**
@@ -1392,11 +897,7 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
      * @return The columns of this matrix.
      */
     public VectorsStride rows() {
-        return new VectorsStride(
-                handle,
-                data.getAsBatch(1, getHeight(), colDist * (getWidth() - 1) + 1),
-                colDist
-        );
+        return new VectorsStride(handle, data, colDist, width, 1, height);
     }
 
     /**
@@ -1410,24 +911,13 @@ public class Matrix extends AbstractRealMatrix implements AutoCloseable, ColumnM
         return dArray().get(handle);
     }
 
-    public static void main(String[] args) {
-
-        try (Handle hand = new Handle();
-                DArray array = new DArray(hand, 1, 2, 3, 4, 5, 6)) {
-
-            Matrix mat = new Matrix(hand, array, 3, 2);
-
-            System.out.println(mat.getSubMatrixRows(1, 3));
-
-        }
-    }
-    
     /**
      * This matrix repeating itself in a batch.
+     *
      * @param batchSize The size of the batch.
      * @return This matrix repeating itself in a batch.
      */
-    public MatricesStride repeating(int batchSize){
-        return new MatricesStride(handle, data.getAsBatch(0, batchSize, size()), height, width, colDist);
+    public MatricesStride repeating(int batchSize) {
+        return new MatricesStride(handle, data, height, width, colDist, 0, batchSize);
     }
 }

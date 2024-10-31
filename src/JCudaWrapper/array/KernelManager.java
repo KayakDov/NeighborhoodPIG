@@ -220,7 +220,7 @@ public class KernelManager implements AutoCloseable {
      * @return The {@code DArray} containing the processed results.
      */
     public DArray map(Handle handle, Vector input, Vector output) {
-        return map(handle, input.dArray(), input.inc, output.dArray(), output.inc, Math.min(input.getDimension(), output.getDimension()));
+        return map(handle, input.dArray(), input.colDist, output.dArray(), output.colDist, Math.min(input.dim(), output.dim()));
     }
 
     /**
