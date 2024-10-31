@@ -621,12 +621,12 @@ public class Matrix implements AutoCloseable, ColumnMajor {
 
     /**
      * A copy of this matrix as a 2d cpu array.
-     *
+     * TDOD: by iterating along columns and then transposing this method can be made faster.
      * @return A copy of this matrix as a 2d cpu array.
      */
     public double[][] get() {
-        double[][] getData = new double[width][];
-        Arrays.setAll(getData, i -> getColumn(i));
+        double[][] getData = new double[height][];
+        Arrays.setAll(getData, i -> getRow(i).vecGet());
         return getData;
     }
 

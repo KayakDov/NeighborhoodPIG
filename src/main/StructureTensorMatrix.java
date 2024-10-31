@@ -9,7 +9,6 @@ import JCudaWrapper.algebra.Vector;
 import JCudaWrapper.algebra.VectorsStride;
 import JCudaWrapper.array.KernelManager;
 import JCudaWrapper.resourceManagement.Handle;
-import java.util.Arrays;
 
 /**
  *
@@ -45,8 +44,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 //            nps.set(dY, dZ, 3);
 //            nps.set(dZ, dZ, 3);//Add these when working with dZ.
         }
-                
-        
+
         strctTensors.get(1, 0).set(strctTensors.get(0, 1));
 //        strctTensors.get(2, 0).set(strctTensors.get(0, 2)); //engage for 3x3.
 //        strctTensors.get(2, 1).set(strctTensors.get(1, 2));
@@ -87,7 +85,6 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         return strctTensors.getSubMatrix(index(row, col));
     }
 
-
     /**
      * Sets the orientations from the eigenvectors.
      */
@@ -112,20 +109,19 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * @return A vector where each index the cos of each column in m.
      */
     private Vector cosOf(double alpha, VectorsStride vecs2d, Matrix rotate) {
-        
-        
-        VectorsStride rotated = new VectorsStride(handle, 2, vecs2d.dArray().batchSize, vecs2d.getSubVecDim(), 1);
-        rotated.setMatVecMult(
-                rotate.repeating(vecs2d.dArray().batchCount()), 
-                vecs2d
-        );
-        
+
+        VectorsStride rotated = new VectorsStride(handle, 2, vecs2d.dArray().batchSize, vecs2d.getSubVecDim(), 1)
+                .setMatVecMult(
+                        rotate.repeating(vecs2d.dArray().batchCount()),
+                        vecs2d
+                );
+
         Vector xVals = vecs2d.getElement(0);
-        
+
         Vector cosDenominator = new Vector(handle, vecs2d.dArray().batchSize);
-        
+
         cosDenominator.setBatchVecVecMult(vecs2d, vecs2d);
-        
+
         cosDenominator.mapEBEDivide(xVals);
 
         return xVals;
@@ -143,14 +139,14 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         double RGB[][][] = new double[3][][];
 
         VectorsStride primaryAxis = eigen.vectors.column(0);
-        
+
         try (Matrix red = cosOf(256, primaryAxis, Rotation.id).asMatrix(orientation.getHeight())) {
             RGB[0] = red.get();
         }
         try (Matrix green = cosOf(256, primaryAxis, Rotation.r60).asMatrix(orientation.getHeight())) {
             RGB[1] = green.get();
         }
-        try (Matrix blue = cosOf(256, primaryAxis, Rotation.r60).asMatrix(orientation.getHeight())) {
+        try (Matrix blue = cosOf(256, primaryAxis, Rotation.r120).asMatrix(orientation.getHeight())) {
             RGB[2] = blue.get();
         }
 

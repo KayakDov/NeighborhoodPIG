@@ -289,7 +289,7 @@ public class Vector extends Matrix {
     public Vector mapEBEDivide(Vector numerator) {
 
         numerator.data.solveTriangularBandedSystem(handle, true, false, false,
-                dim(), 0, data, 1, 1);
+                dim(), 0, data, inc(), numerator.inc());
 
         return numerator;
     }
@@ -707,6 +707,14 @@ public class Vector extends Matrix {
         );
     }
 
+    /**
+     * This vector as a double array.
+     * @return 
+     */
+    public double[] vecGet(){
+        return data.getIncremented(handle, inc());
+    }
+    
     /**
      * The L2norm or magnitude of this vector.
      *

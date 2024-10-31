@@ -271,6 +271,21 @@ public class DArray extends Array {
         checkAgainstLength(index);
         return new DSingleton(this, index);
     }
+    
+    /**
+     * Maps the elements in this array at the given increment to a double[].
+     * @param handle The handle.
+     * @param inc The increment of the desired elements.
+     * @return A cpu array of all the elements at the given increment.
+     */
+    public double[] getIncremented(Handle handle, int inc){
+        double[] incremented = new double[Math.ceilDiv(length, inc)];
+        Pointer cpu = Pointer.to(incremented);
+        for(int i = 0; i < length; i+= inc)
+            get(handle, cpu, i, i, 1);
+        handle.synch();
+        return incremented;
+    }
 
     /**
      * Computes a matrix-matrix addition (GEAM) or transpose with

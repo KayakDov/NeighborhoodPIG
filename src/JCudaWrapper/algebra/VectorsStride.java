@@ -125,9 +125,11 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      *
      * @param mats The matrices.
      * @param vecs The vectors.
+     * @return this
      */
-    public void setVecMatMult(VectorsStride vecs, MatricesStride mats) {
+    public VectorsStride setVecMatMult(VectorsStride vecs, MatricesStride mats) {
         addVecMatMult(false, vecs, mats, 1, 0);
+        return this;
     }
 
     /**
@@ -136,9 +138,11 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      *
      * @param mats The matrices.
      * @param vecs The vectors.
+     * @return this
      */
-    public void setMatVecMult(MatricesStride mats, VectorsStride vecs) {
+    public VectorsStride setMatVecMult(MatricesStride mats, VectorsStride vecs) {
         addMatVecMult(false, mats, vecs, 1, 0);
+        return this;
     }
 
     public static void main(String[] args) {
@@ -233,6 +237,18 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      */
     public int inc() {
         return super.getColDist(); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
+    }
+    
+    /**
+     * Changes each element x to x squared.
+     * @return 
+     */
+    public VectorsStride norms(){
+        
+    }
+    
+    public VectorsStride unetize(){
+        
     }
     
     /**
