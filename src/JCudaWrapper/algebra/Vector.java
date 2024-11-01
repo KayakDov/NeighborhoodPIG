@@ -260,38 +260,17 @@ public class Vector extends Matrix {
     }
 
     /**
-     * Maps the inverse of each element in this vectot to the target. DO NOT
-     * pass this into mapTo. DO NOT use this method to map to itself.
+     * Element by element division. Like most methods, it changes this vector.
      *
-     * @param mapTo Where the inverse of the elements in this vector are to be
-     * put. This may not be this vector or have any overlapping data location
-     * with this vector.
-     * @return The vector mapTo with its elements overwritten to be the inverse
-     * of the elements in this vector.
+     * @param denominator the denominator.
+     * @return this
      */
-    public Vector mapEBEInverse(Vector mapTo) {
-        mapTo.fill(1);
+    public Vector ebeDivide(Vector denominator) {
 
-        mapTo.data.solveTriangularBandedSystem(handle, true, false, false,
-                dim(), 0, data, 1, 1);
+        data.solveTriangularBandedSystem(handle, true, false, false,
+                denominator.dim(), 0, denominator.data, denominator.inc(), inc());
 
-        return mapTo;
-    }
-
-    /**
-     * Maps the inverse of each element in this vectot to the target. DO NOT
-     * pass this into mapTo. DO NOT use this method to map to itself.
-     *
-     * @param numerator The the numerator. The elements in this vector become
-     * the denominator, and the result is stored in numerator.
-     * @return The vector numerator, now divided by this.
-     */
-    public Vector mapEBEDivide(Vector numerator) {
-
-        numerator.data.solveTriangularBandedSystem(handle, true, false, false,
-                dim(), 0, data, inc(), numerator.inc());
-
-        return numerator;
+        return this;
     }
 
     /**
@@ -506,12 +485,16 @@ public class Vector extends Matrix {
 
     /**
      * The cpu array that is a copy of this gpu vector.
+     * 
+     * @param workspace if inc == 1 then this will not be used and may be null.
+     * If inc != 1 then this should have dim() size.
      */
-    public double[] toArray() {
-        if (inc() != 1)
-            try (Vector copy = copy()) {
-            return copy.data.get(handle);
+    public double[] toArray(DArray workspace) {
+        if (inc() != 1){
+            data.get(handle, workspace, 0, 0, 1, inc(), dim());
+            return workspace.get(handle);
         }
+        
         return data.get(handle);
     }
 
@@ -683,7 +666,7 @@ public class Vector extends Matrix {
      *
      * @return The increment between elements of this vector.
      */
-    private int inc() {
+    public int inc() {
         return colDist;
     }
 
@@ -726,19 +709,10 @@ public class Vector extends Matrix {
 
     public static void main(String[] args) {
         try (Handle hand = new Handle();
-                DArray array = new DArray(hand, 1, 2, 3, 4, 5, 6);
-                DArray a = new DArray(hand, 1, 1);
-                DArray result = DArray.empty(3)) {
-            Matrix mat = new Matrix(hand, array, 3, 2);
-            Vector vec = new Vector(hand, a, 1);
-            Vector resultVec = new Vector(hand, result, 1);
-
-            System.out.println("mat = \n" + mat);
-            System.out.println("vec = \n" + vec);
-
-            resultVec.multiplyAndSet(mat, vec);
-
-            System.out.println("result = \n" + resultVec);
+                DArray array = new DArray(hand, 1, 2, 3, 4, 5, 6);DArray a2 = new DArray(hand, 2, 2, 2, 2, 2, 2)) {
+            Vector v = new Vector(hand, array, 1);
+            v.ebeDivide(new Vector(hand, a2, 1));
+            System.out.println(v);
         }
     }
 

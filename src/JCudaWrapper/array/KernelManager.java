@@ -1,5 +1,6 @@
 package JCudaWrapper.array;
 
+import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Vector;
 import java.io.File;
 import java.lang.ref.Cleaner;
@@ -153,7 +154,24 @@ public class KernelManager implements AutoCloseable {
         return output;
     }
     
-    
+    /**
+     * For operation between a vector and a batch of matrices.
+     * @param hand
+     * @param input
+     * @param matrices
+     * @return 
+     */
+    public DArray vectorBatchMatrix(Handle hand, Vector input, MatricesStride matrices){
+        return map(
+                hand, 
+                input.dArray(), 
+                input.inc(), 
+                matrices.dArray(), 
+                matrices.height, matrices.getBatchSize()*matrices.height*matrices.width, 
+                IArray.cpuPointer(matrices.width),
+                IArray.cpuPointer(matrices.colDist),
+                IArray.cpuPointer(matrices.getStrideSize()));
+    }
     /**
      * Runs the loaded CUDA kernel with the specified input and output arrays on
      * a specified stream. Note, a stream is generated for this method, so be

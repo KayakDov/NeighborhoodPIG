@@ -2,6 +2,7 @@ package JCudaWrapper.algebra;
 
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.DStrideArray;
+import JCudaWrapper.array.KernelManager;
 import java.util.Arrays;
 import JCudaWrapper.resourceManagement.Handle;
 
@@ -92,8 +93,8 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      * @param timesThis A scalar to multiply this by before the product is add
      * here.
      */
-    public void addMatVecMult(boolean transposeMats, MatricesStride mats, VectorsStride vecs, double timesAB, double timesThis) {
-        addVecMatMult(!transposeMats, vecs, mats, timesAB, timesThis);
+    public void addProduct(boolean transposeMats, MatricesStride mats, VectorsStride vecs, double timesAB, double timesThis) {
+        addProduct(!transposeMats, vecs, mats, timesAB, timesThis);
     }
 
     /**
@@ -107,16 +108,8 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      * @param timesThis A scalar to multiply this by before the product is add
      * here.
      */
-    public void addVecMatMult(boolean transposeMats, VectorsStride vecs, MatricesStride mats, double timesAB, double timesThis) {
-        data.multMatMatStridedBatched(handle, false, transposeMats,
-                1,
-                transposeMats ? mats.width : mats.height,
-                getSubVecDim(),
-                timesAB,
-                vecs.data, vecs.colDist,
-                mats.getBatchArray(), mats.getColDist(),
-                timesThis, colDist
-        );
+    public void addProduct(boolean transposeMats, VectorsStride vecs, MatricesStride mats, double timesAB, double timesThis) {
+         super.addProduct(false, transposeMats, vecs, mats, timesAB, timesThis);        
     }
 
     /**
@@ -128,7 +121,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      * @return this
      */
     public VectorsStride setVecMatMult(VectorsStride vecs, MatricesStride mats) {
-        addVecMatMult(false, vecs, mats, 1, 0);
+        addProduct(false, vecs, mats, 1, 0);
         return this;
     }
 
@@ -141,19 +134,8 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      * @return this
      */
     public VectorsStride setMatVecMult(MatricesStride mats, VectorsStride vecs) {
-        addMatVecMult(false, mats, vecs, 1, 0);
+        addProduct(false, mats, vecs, 1, 0);
         return this;
-    }
-
-    public static void main(String[] args) {
-        try (
-                Handle hand = new Handle();
-                DArray array = new DArray(hand, 1, 2, 3, 4, 5, 6, 7, 8)) {
-
-            Vector vec = new Vector(hand, array, 2);
-            VectorsStride vs = vec.subVectors(2, 2, 2, 1);
-            System.out.println(vs.getVector(1));
-        }
     }
 
     /**
@@ -241,16 +223,45 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
     
     /**
      * Changes each element x to x squared.
+     * @param normsGoHere This array will hold the norm of each vector.
      * @return 
      */
-    public VectorsStride norms(){
-        
+    public Vector norms(DArray normsGoHere){
+        Vector norms = new Vector(handle, normsGoHere, 1);
+        norms.addBatchVecVecMult(1, this, this, 0);
+        KernelManager.get("sqrt").mapToSelf(handle, norms);
+        return norms;
     }
     
-    public VectorsStride unetize(){
+    /**
+     * Turns these vectors into unit vectors.
+     * @param magnitude The magnitude that each vector will be stretched of squished to have.
+     * @param workSpace Should be 2 * batchSize in length.
+     * @return this.
+     */
+    public VectorsStride setVectorMagnitudes(double magnitude, DArray workSpace){
+        Vector norms = norms(workSpace.subArray(0, data.batchSize));        
         
+        Vector normsInverted = new Vector(handle, workSpace.subArray(data.batchSize), 1)
+                .fill(magnitude).ebeDivide(norms);
+        
+        multMe(normsInverted);
+        
+        return this;
     }
     
+    /**
+     * The vectors in this brought to the cpu.
+     * @param workspace should be dim in length.
+     * @return each vector as a [row][column].
+     */
+    public double[][] copyToCPURows(DArray workspace){
+        double[][] copy = new double[height][];
+        
+        Arrays.setAll(copy, i -> getVector(i).toArray(workspace));
+        
+        return copy;
+    }
     /**
      * The number of elements in each vector.  This is the width.
      * @return The number of elements in each vector.  This is the width.

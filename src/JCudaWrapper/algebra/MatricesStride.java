@@ -141,7 +141,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
     }
 
     /**
-     * Performs matrix multiplication and on the batches of matrices, and add
+     * Performs matrix multiplication on the batches of matrices, and adds
      * them to this matrix. This method multiplies matrix batches {@code a} and
      * {@code b}, scales the result by {@code timesAB}, scales the existing
      * matrix in the current instance by {@code timesResult}, and then adds them
@@ -153,29 +153,62 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      * @param b The right-hand matrix batch in the multiplication.
      * @param timesAB The scaling factor applied to the matrix product
      * {@code a * b}.
-     * @param timesResult The scaling factor applied to the result matrix.
+     * @param timesThis The scaling factor applied to the result matrix.
      * @return this
      * @throws DimensionMismatchException if the dimensions of matrices
      * {@code a} and {@code b} are incompatible for multiplication.
      */
-    public MatricesStride multAndAdd(boolean transposeA, boolean transposeB, MatricesStride a, MatricesStride b, double timesAB, double timesResult) {
-        if (a.width != b.height) {
-            throw new DimensionMismatchException(a.width, b.height);
-        }
+    public MatricesStride addProduct(boolean transposeA, boolean transposeB, MatricesStride a, MatricesStride b, double timesAB, double timesThis) {
+        
+        int aWidth = transposeA? a.height: a.width;
+        int bHeight = transposeB? b.width: b.height;
+        
+        if (aWidth != bHeight) throw new DimensionMismatchException(aWidth, bHeight);
 
         data.multMatMatStridedBatched(handle, transposeA, transposeB,
                 transposeA ? a.width : a.height,
-                transposeA ? a.height : a.width,
+                aWidth,
                 transposeB ? b.height : b.width,
                 timesAB,
                 a.data, a.colDist,
                 b.data, b.colDist,
-                timesResult, colDist
+                timesThis, colDist
         );
 
         return this;
     }
 
+    /**
+     * Performs matrix-scalar multiplication on the batches of matrices, and adds
+     * them to this matrix. This method multiplies matrix batches {@code a} and
+     * {@code b}, scales the result by {@code timesAB}, scales the existing
+     * matrix in the current instance by {@code timesResult}, and then adds them
+     * together and palces the result here.
+     *
+     * @param scalars the ith element is multiplied by the ith matrix.
+     * @return this
+     * @throws DimensionMismatchException if the dimensions of matrices
+     * {@code a} and {@code b} are incompatible for multiplication.
+     */
+    public MatricesStride multMe(Vector scalars) {
+        
+        KernelManager.get("prodScalarMatrixBatch").vectorBatchMatrix(handle, scalars, this);
+        
+        return this;
+    }
+    
+    /**
+     * Multiplies all the matrices in this set by the given scalar.
+     * @param scalar multiply all these matrices by this scalar.
+     * @param workSpace Should be width * height.
+     * @return this
+     */
+    public MatricesStride multMe(double scalar, DArray workSpace){
+        addToMe(false, scalar, this, 0, workSpace);
+        return this;
+    }
+    
+    
     /**
      * Computes the eigenvalues. This batch must be a set of symmetric 2x2
      * matrices.
@@ -365,9 +398,10 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
         p.addToMe(-1.0 / 3, c); //This is actually p/-3 from wikipedia.
 
         //c is free for now.  
-        Vector theta = c;
-        Vector pInverse = p.mapEBEInverse(root[1]); //c is now taken
+        Vector theta = c;        
+        Vector pInverse = root[1].fill(1).ebeDivide(p); //c is now taken
         sqrt.map(b.getHandle(), pInverse, theta);
+        
         theta.addEbeMultiplyToSelf(-0.5, q, theta, 0);//root[0] is now free (all roots).
         theta.ebeMultiplyAndSet(theta, pInverse); //c is now free.
         acos.mapToSelf(b.getHandle(), theta);
@@ -487,17 +521,13 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
         switch (eVector.getSubVecDim()) {//TODO: reduce code redundancy.
             case 3 -> {
-                y.set(m[1][2]);
-                m[1][1].mapEBEDivide(y);
+                y.set(m[1][2]).ebeDivide(m[1][1]);
                 x.ebeMultiplyAndSet(y, m[0][1]);
                 y.multiplyMe(-1);
-                x.addToMe(-1, m[0][2]);
-                m[0][0].mapEBEDivide(x);
+                x.addToMe(-1, m[0][2]).ebeDivide(m[0][0]);
             }
             case 2 -> {
-                x.set(m[0][1]);
-                m[0][0].mapEBEDivide(x);
-                x.multiplyMe(-1);
+                x.set(m[0][1]).ebeDivide(m[0][0]).multiplyMe(-1);
             }
             default ->
                 throw new UnsupportedOperationException(
@@ -615,6 +645,14 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
     public int getBatchSize() {
         return data.batchSize;
     }
+    
+    /**
+     * The stride size.
+     * @return The stride size.
+     */
+    public int getStrideSize(){
+        return data.stride;
+    }
 
     /**
      * Returns a matrices stride where each matrix is a sub matrix of one of the
@@ -719,7 +757,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
         Matrix id = Matrix.identity(handle, width, workSpace);
         
-        multAndAdd(transpose, false, toAdd, id.repeating(data.batchSize), timesToAdd, timesThis);
+        addProduct(transpose, false, toAdd, id.repeating(data.batchSize), timesToAdd, timesThis);
         return this;
     }
 

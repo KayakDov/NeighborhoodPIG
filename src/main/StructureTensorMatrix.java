@@ -7,6 +7,7 @@ import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.Vector;
 import JCudaWrapper.algebra.VectorsStride;
+import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.KernelManager;
 import JCudaWrapper.resourceManagement.Handle;
 
@@ -102,29 +103,17 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     }
 
     /**
-     * Gives the cos of the angle each 2d column vector in the matrix forms with
-     * the x axis.
+     * Takes in a vector, in column major order for a matrix with orientation
+     * dimensions, and returns a double[][] representing the vector in
+     * [row][column] format.
      *
-     * @param vecs2d A matrix where each column is a 2d vector.
-     * @return A vector where each index the cos of each column in m.
+     * @param columnMajor A vector that is column major order of a matrix with height height.
+     * @param workSpace An auxillery workspace.  It should be height in length.
+     * @return a cpu matrix.
      */
-    private Vector cosOf(double alpha, VectorsStride vecs2d, Matrix rotate) {
-
-        VectorsStride rotated = new VectorsStride(handle, 2, vecs2d.dArray().batchSize, vecs2d.getSubVecDim(), 1)
-                .setMatVecMult(
-                        rotate.repeating(vecs2d.dArray().batchCount()),
-                        vecs2d
-                );
-
-        Vector xVals = vecs2d.getElement(0);
-
-        Vector cosDenominator = new Vector(handle, vecs2d.dArray().batchSize);
-
-        cosDenominator.setBatchVecVecMult(vecs2d, vecs2d);
-
-        cosDenominator.mapEBEDivide(xVals);
-
-        return xVals;
+    private double[][] getRows(Vector columnMajor, DArray workSpace) {
+        return columnMajor.subVectors(1, orientation.getHeight(), orientation.getWidth(), orientation.colDist)
+                .copyToCPURows(workSpace.subArray(0, orientation.getWidth()));
     }
 
 //        (R, G, B) = (256*cos(x), 256*cos(x + 120), 256*cos(x - 120))  <- this is for 360.  For 180 maybe:
@@ -138,18 +127,26 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
         double RGB[][][] = new double[3][][];
 
-        VectorsStride primaryAxis = eigen.vectors.column(0);
+        try (DArray workSpace = DArray.empty(2 * orientation.size())) {
+            
+            VectorsStride primaryAxis = eigen.vectors.column(0).setVectorMagnitudes(255, workSpace);
+            
+            MatricesStride rotate60 = Rotation.r60.repeating(primaryAxis.getBatchSize());
 
-        try (Matrix red = cosOf(256, primaryAxis, Rotation.id).asMatrix(orientation.getHeight())) {
-            RGB[0] = red.get();
-        }
-        try (Matrix green = cosOf(256, primaryAxis, Rotation.r60).asMatrix(orientation.getHeight())) {
-            RGB[1] = green.get();
-        }
-        try (Matrix blue = cosOf(256, primaryAxis, Rotation.r120).asMatrix(orientation.getHeight())) {
-            RGB[2] = blue.get();
-        }
+            Vector cos = primaryAxis.get(0);
 
+            RGB[0] = getRows(cos, workSpace);
+
+            primaryAxis.setMatVecMult(rotate60, primaryAxis);
+            
+            RGB[1] = getRows(cos, workSpace);
+            
+            primaryAxis.setMatVecMult(rotate60, primaryAxis);
+            
+            RGB[2] = getRows(cos, workSpace);
+            
+            primaryAxis.setMatVecMult(rotate60, primaryAxis);
+        }
         return RGB;
     }
 
