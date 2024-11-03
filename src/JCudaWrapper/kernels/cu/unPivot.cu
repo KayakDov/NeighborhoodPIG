@@ -15,8 +15,12 @@ extern "C" __global__ void unPivotKernel(int *pivotScheme, int height, double *p
     
     if (idx >= n) return;  
 
-    for(int i = idx * ldP + height; i >= idx*ldP; i--)
-        swap(pivoted, i, pivotScheme[i] - 1);
+    for (int i = height - 1; i >= 0; i--) {
+        int currentPos = idx * ldP + i;
+        int pivotPos = idx * ldP + (pivotScheme[i] - 1);  // Adjusted for zero-indexed `pivotScheme`
+
+        swap(pivoted, currentPos, pivotPos);
+    }
     
 }
 

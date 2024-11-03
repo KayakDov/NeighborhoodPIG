@@ -427,7 +427,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      * @return The ith column of each submatrix.
      */
     public VectorsStride column(int i) {
-        return new VectorsStride(handle, data, 1, height, data.stride, data.batchSize);
+        return new VectorsStride(handle, data.subArray(i*colDist), 1, height, data.stride, data.batchSize);
     }
 
     /**
@@ -496,6 +496,17 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
                 workSpace.data.set(handle, data, 0, 0, data.length);
                 workSpace.computeVec(eValues.getElement(i), eVectors.column(i), info, pivot);
             }
+            
+            for(int i = 0; i < eValues.dim(); i++) 
+                KernelManager.get("unPivot").map(
+                        handle, 
+                        pivot, 
+                        height, 
+                        eVectors.column(i).dArray(), 
+                        eVectors.height*eVectors.width, 
+                        data.batchCount()
+                );
+            
         }
 
         return eVectors;
@@ -534,8 +545,6 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
                         "ComputeVec only works for 2x2 and 3x3 matrices.  This is a " + eVector.getSubVecDim() + " dimensional eigen vector."
                 );
         }
-        KernelManager.get("unPivot").map(handle, pivot, height, eVector.dArray(), eVector.getSubVecDim(), data.batchCount());
-
     }
 
     /**
