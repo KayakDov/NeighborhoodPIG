@@ -16,13 +16,14 @@ import java.awt.Color;
 import java.awt.image.WritableRaster;
 
 /**
- *
+ * Each neighborhood pig has it's own handle.
  * @author E. Dov Neimand
  */
-public class NeighborhoodPIG {
+public class NeighborhoodPIG implements AutoCloseable{
 
     private StructureTensorMatrix stm;
     private int height, width;
+    private Handle handle;
     
     /**
      *
@@ -31,8 +32,8 @@ public class NeighborhoodPIG {
      * @throws java.io.IOException If there's trouble loading the image.
      */
     public NeighborhoodPIG(String imagePath, int neighborhoodSize) throws IOException {
-        try (
-                Handle handle = new Handle();
+        handle = new Handle();
+        try (                
                 Matrix imageMat = processImage(imagePath, handle);
                 Gradient grad = new Gradient(imageMat, handle)
                 ) {
@@ -79,7 +80,7 @@ public class NeighborhoodPIG {
     }
 
     public static void main(String[] args) throws IOException {
-        NeighborhoodPIG np = new NeighborhoodPIG("images/input/debug.jpeg", 1);
+        NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 1);
         np.orientationColored("images/output/test.png");
         
     }
@@ -149,6 +150,12 @@ public class NeighborhoodPIG {
         g2d.dispose();
 
         return grayImage; // Return the grayscale image
+    }
+
+    @Override
+    public void close() {
+        stm.close();
+        handle.close();
     }
 
 }

@@ -6,6 +6,7 @@
             <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/array/DSingleton.java</file>
             <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/algebra/MatricesStride.java</file>
             <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/array/DArray.java</file>
+            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/algebra/VectorsStride.java</file>
             <file>file:/home/dov/projects/NeighborhoodPIG/src/main/NeighborhoodPIG.java</file>
             <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/algebra/Eigen.java</file>
             <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/array/KernelManager.java</file>

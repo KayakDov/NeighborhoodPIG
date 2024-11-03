@@ -267,8 +267,14 @@ public class Vector extends Matrix {
      */
     public Vector ebeDivide(Vector denominator) {
 
-        data.solveTriangularBandedSystem(handle, true, false, false,
-                denominator.dim(), 0, denominator.data, denominator.inc(), inc());
+        try {
+            data.solveTriangularBandedSystem(handle, true, false, false,
+                    denominator.dim(), 0, denominator.data, denominator.inc(), inc());
+        } catch (Exception e) {
+            if (Arrays.stream(denominator.toArray(DArray.empty(dim()))).anyMatch( i -> i ==0)) throw new ArithmeticException("Division by 0.");
+            else throw e;
+        
+        }
 
         return this;
     }
@@ -485,16 +491,16 @@ public class Vector extends Matrix {
 
     /**
      * The cpu array that is a copy of this gpu vector.
-     * 
+     *
      * @param workspace if inc == 1 then this will not be used and may be null.
      * If inc != 1 then this should have dim() size.
      */
     public double[] toArray(DArray workspace) {
-        if (inc() != 1){
+        if (inc() != 1) {
             data.get(handle, workspace, 0, 0, 1, inc(), dim());
             return workspace.get(handle);
         }
-        
+
         return data.get(handle);
     }
 
@@ -683,21 +689,22 @@ public class Vector extends Matrix {
         return new VectorsStride(
                 handle,
                 data,
-                inc() * subVectorInc, 
-                subVectorDim, 
-                inc()*stride, 
+                inc() * subVectorInc,
+                subVectorDim,
+                inc() * stride,
                 batchSize
         );
     }
 
     /**
      * This vector as a double array.
-     * @return 
+     *
+     * @return
      */
-    public double[] vecGet(){
+    public double[] vecGet() {
         return data.getIncremented(handle, inc());
     }
-    
+
     /**
      * The L2norm or magnitude of this vector.
      *
@@ -709,7 +716,8 @@ public class Vector extends Matrix {
 
     public static void main(String[] args) {
         try (Handle hand = new Handle();
-                DArray array = new DArray(hand, 1, 2, 3, 4, 5, 6);DArray a2 = new DArray(hand, 2, 2, 2, 2, 2, 2)) {
+                DArray array = new DArray(hand, 1, 2, 3, 4, 5, 6);
+                DArray a2 = new DArray(hand, 2, 2, 2, 2, 2, 2)) {
             Vector v = new Vector(hand, array, 1);
             v.ebeDivide(new Vector(hand, a2, 1));
             System.out.println(v);

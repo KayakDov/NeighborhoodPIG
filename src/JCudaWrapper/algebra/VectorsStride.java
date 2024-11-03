@@ -250,13 +250,21 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
         return this;
     }
     
+    public static void main(String[] args) {
+        try(Handle hand = new Handle(); DArray d = new DArray(hand, 1,2,1,3  ,3,0,-3,12); DArray workSpace = DArray.empty(4)){
+            VectorsStride vs = new VectorsStride(hand, d, 2, 2, 4, 2);
+            System.out.println(vs.setVectorMagnitudes(1, workSpace));
+        }
+    }
+    
+    
     /**
      * The vectors in this brought to the cpu.
      * @param workspace should be dim in length.
      * @return each vector as a [row][column].
      */
     public double[][] copyToCPURows(DArray workspace){
-        double[][] copy = new double[height][];
+        double[][] copy = new double[getBatchSize()][];
         
         Arrays.setAll(copy, i -> getVector(i).toArray(workspace));
         
