@@ -34,12 +34,14 @@ public class Eigen implements AutoCloseable {
     }
     
     public static void main(String[] args) {
-        try(Handle handle = new Handle(); DArray array = new DArray(handle, 1,2,2,3);){
-            MatricesStride mst = new MatricesStride(handle, array, 2, 2, 2, 4, 1);
+        try(Handle handle = new Handle(); DArray array = new DArray(handle, 1,2,2,3,4,5,5,6);){
+            MatricesStride mst = new MatricesStride(handle, array, 2, 2, 2, 4, 2);
             Matrix m1 = new Matrix(handle, array, 2, 2);
-//            Matrix m2 = new Matrix(handle, array.subArray(4), 2, 2);
+            Matrix m2 = new Matrix(handle, array.subArray(4), 2, 2);
             m1.power(2);
-//            m2.power(2);
+            m2.power(2);
+            
+            
             System.out.println(mst.toString());
             try(Eigen eig = new Eigen(mst, false)){
                 System.out.println("values \n" + eig.values.toString());

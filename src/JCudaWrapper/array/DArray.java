@@ -165,6 +165,25 @@ public class DArray extends Array {
                 toInc
         );
     }
+    
+    /**
+     * Copies from this vector to another with increments.
+     *
+     * @param handle handle to the cuBLAS library context.
+     * @param to The cpu array to copy to.
+     * @param toStart The index to start copying to.
+     * @param toInc stride between consecutive elements of the array copied to.
+     * @param fromStart The index to start copying from.
+     * @param fromInc stride between consecutive elements of this array.
+     * @param length The number of elements to copy.
+     */
+    public void get(Handle handle, double[] to, int toStart, int fromStart, int toInc, int fromInc, int length) {
+        if(fromInc == toInc && fromInc == 1) get(handle, to, toStart, fromStart, length);
+        else{
+            for(int i = 0; i < length; i++)
+                get(handle, to, i*toInc + toStart, i*fromInc + fromStart, 1);
+        }
+    }
 
     /**
      * Copies from to vector from another with increments.
@@ -1133,7 +1152,11 @@ public class DArray extends Array {
      * @return A representation of this array as a set of sub arrays.
      */
     public DPointerArray getPointerArray(Handle handle, int strideSize) {
-        return DPointerArray.empty(length / strideSize, strideSize)
-                .fill(handle, this, strideSize);
+        DPointerArray dPoint;
+        
+        if(strideSize == 0) dPoint = DPointerArray.empty(1, strideSize);
+        else dPoint = DPointerArray.empty(length / strideSize, strideSize);
+        
+        return dPoint.fill(handle, this, strideSize);
     }
 }

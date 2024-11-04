@@ -12,8 +12,6 @@ import JCudaWrapper.resourceManagement.Handle;
  */
 public class VectorsStride extends MatricesStride implements AutoCloseable {
 
-    
-    
     /**
      * The constructor.
      *
@@ -109,7 +107,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      * here.
      */
     public void addProduct(boolean transposeMats, VectorsStride vecs, MatricesStride mats, double timesAB, double timesThis) {
-         super.addProduct(false, transposeMats, vecs, mats, timesAB, timesThis);        
+        super.addProduct(false, transposeMats, vecs, mats, timesAB, timesThis);
     }
 
     /**
@@ -171,9 +169,9 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
     }
 
     /**
-     * @see MatricesStride#addToMe(boolean, double, JCudaWrapper.algebra.MatricesStride, double, JCudaWrapper.array.DArray) 
+     * @see MatricesStride#addToMe(boolean, double,
+     * JCudaWrapper.algebra.MatricesStride, double, JCudaWrapper.array.DArray)
      */
-    
     public VectorsStride addToMe(boolean transpose, double timesToAdd, VectorsStride toAdd, double timesThis, DArray workSpace) {
         super.addToMe(transpose, timesToAdd, toAdd, timesThis, workSpace);
         return this;
@@ -189,11 +187,11 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
     @Override
     public VectorsStride subBatch(int start, int length) {
         return new VectorsStride(
-                handle, 
-                data.subBatch(start, length), 
-                inc(), 
-                dim(), 
-                data.stride, 
+                handle,
+                data.subBatch(start, length),
+                inc(),
+                dim(),
+                data.stride,
                 length
         );
     }
@@ -211,70 +209,84 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
     public DStrideArray dArray() {
         return data;
     }
-    
-    
+
     /**
-     * The increments between elements of the subvectors.  This is the column distance.
-     * @return The increments between elements of the subvectors.  This is the column distance.
+     * The increments between elements of the subvectors. This is the column
+     * distance.
+     *
+     * @return The increments between elements of the subvectors. This is the
+     * column distance.
      */
     public int inc() {
         return super.getColDist(); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
     }
-    
+
     /**
      * Changes each element x to x squared.
+     *
      * @param normsGoHere This array will hold the norm of each vector.
-     * @return 
+     * @return
      */
-    public Vector norms(DArray normsGoHere){
+    public Vector norms(DArray normsGoHere) {
         Vector norms = new Vector(handle, normsGoHere, 1);
         norms.addBatchVecVecMult(1, this, this, 0);
         KernelManager.get("sqrt").mapToSelf(handle, norms);
         return norms;
     }
-    
+
     /**
      * Turns these vectors into unit vectors.
-     * @param magnitude The magnitude that each vector will be stretched of squished to have.
+     *
+     * @param magnitude The magnitude that each vector will be stretched of
+     * squished to have.
      * @param workSpace Should be 2 * batchSize in length.
      * @return this.
      */
-    public VectorsStride setVectorMagnitudes(double magnitude, DArray workSpace){
-        Vector norms = norms(workSpace.subArray(0, data.batchSize));        
-        
+    public VectorsStride setVectorMagnitudes(double magnitude, DArray workSpace) {
+        Vector norms = norms(workSpace.subArray(0, data.batchSize));
+
         Vector normsInverted = new Vector(handle, workSpace.subArray(data.batchSize), 1)
                 .fill(magnitude).ebeDivide(norms);
-        
+
         multMe(normsInverted);
-        
+
         return this;
     }
-    
+
     public static void main(String[] args) {
-        try(Handle hand = new Handle(); DArray d = new DArray(hand, 1,2,1,3  ,3,0,-3,12); DArray workSpace = DArray.empty(4)){
+        try (Handle hand = new Handle();
+                DArray d = new DArray(hand, 1, 2, 1, 3, 3, 0, -3, 12);
+                DArray workSpace = DArray.empty(4)) {
             VectorsStride vs = new VectorsStride(hand, d, 2, 2, 4, 2);
             System.out.println(vs.setVectorMagnitudes(1, workSpace));
         }
     }
-    
-    
+
     /**
      * The vectors in this brought to the cpu.
-     * @param workspace should be dim in length.
+     *    
      * @return each vector as a [row][column].
      */
-    public double[][] copyToCPURows(DArray workspace){
+    public double[][] copyToCPURows() {
         double[][] copy = new double[getBatchSize()][];
-        
-        Arrays.setAll(copy, i -> getVector(i).toArray(workspace));
-        
+
+        Arrays.setAll(copy, i -> getVector(i).toArray());
+
         return copy;
     }
+
+    @Override
+    public String toString() {
+        
+        return Arrays.deepToString(this.copyToCPURows()).replace("],", "],\n");
+    }
+
     /**
-     * The number of elements in each vector.  This is the width.
-     * @return The number of elements in each vector.  This is the width.
+     * The number of elements in each vector. This is the width.
+     *
+     * @return The number of elements in each vector. This is the width.
      */
-    public int dim(){
+    public int dim() {
         return width;
     }
 }

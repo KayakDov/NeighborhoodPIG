@@ -112,9 +112,9 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * @param workSpace An auxillery workspace.  It should be height in length.
      * @return a cpu matrix.
      */
-    private double[][] getRows(Vector columnMajor, DArray workSpace) {
+    private double[][] getRows(Vector columnMajor) {
         return columnMajor.subVectors(1, orientation.getHeight(), orientation.getWidth(), orientation.colDist)
-                .copyToCPURows(workSpace.subArray(0, orientation.getWidth()));
+                .copyToCPURows();
     }
 
 //        (R, G, B) = (256*cos(x), 256*cos(x + 120), 256*cos(x - 120))  <- this is for 360.  For 180 maybe:
@@ -136,17 +136,17 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
             Vector cos = primaryAxis.get(0);
 
-            RGB[0] = getRows(cos, workSpace);
+            RGB[0] = getRows(cos);
             
             
 
             primaryAxis.setMatVecMult(rotate60, primaryAxis);
             
-            RGB[1] = getRows(cos, workSpace);
+            RGB[1] = getRows(cos);
             
             primaryAxis.setMatVecMult(rotate60, primaryAxis);
             
-            RGB[2] = getRows(cos, workSpace);
+            RGB[2] = getRows(cos);
             
             primaryAxis.setMatVecMult(rotate60, primaryAxis);
         }

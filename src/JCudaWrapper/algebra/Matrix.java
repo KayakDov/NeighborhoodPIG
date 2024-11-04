@@ -383,23 +383,8 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      */
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("[");
-        for (int row = 0; row < getHeight(); row++) {
-            sb.append("[");
-            for (int col = 0; col < getWidth(); col++) {
-                sb.append(Matrix.this.get(row, col));
-                if (col < getWidth() - 1) {
-                    sb.append(", ");
-                }
-            }
-            sb.append("]");
-            if (row < getHeight() - 1) {
-                sb.append(",\n ");
-            }
-        }
-        sb.append("]");
-        return sb.toString();
+        return rows().toString();
+
     }
 
     /**
@@ -564,11 +549,11 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      */
     public boolean equals(Matrix other, double epsilon, DArray workSpace) {
         if (height != other.height || width != other.width) return false;
-        
+
         return new Matrix(handle, data, height, width).addAndSet(1, this, -1, other)
                 .getFrobeniusNorm(workSpace.subArray(0, width)) <= epsilon;
     }
-    
+
     /**
      * A copy of this matrix.
      *
@@ -620,8 +605,9 @@ public class Matrix implements AutoCloseable, ColumnMajor {
     }
 
     /**
-     * A copy of this matrix as a 2d cpu array.
-     * TDOD: by iterating along columns and then transposing this method can be made faster.
+     * A copy of this matrix as a 2d cpu array. TDOD: by iterating along columns
+     * and then transposing this method can be made faster.
+     *
      * @return A copy of this matrix as a 2d cpu array.
      */
     public double[][] get() {
@@ -719,12 +705,12 @@ public class Matrix implements AutoCloseable, ColumnMajor {
 
     /**
      * @see Matrix#setColumnVector(int,
-     * org.apache.commons.math3.linear.RealVector)     
-     * 
+     * org.apache.commons.math3.linear.RealVector)
+     *
      * @param column The index of the column to be set.
      * @param vector The vector to be put in the desired location.
      * @throws OutOfRangeException
-     * @throws MatrixDimensionMismatchException 
+     * @throws MatrixDimensionMismatchException
      */
     public void setColumnVector(int column, Vector vector) throws OutOfRangeException, MatrixDimensionMismatchException {
         data.set(handle, vector.dArray(), index(0, column), 0, 0, vector.colDist, Math.min(height, vector.dim()));
@@ -746,7 +732,6 @@ public class Matrix implements AutoCloseable, ColumnMajor {
         return addAndSet(true, false, 1, this, 0, this);
     }
 
-
     /**
      * A vector containing the dot product of each column and itself.
      *
@@ -758,20 +743,20 @@ public class Matrix implements AutoCloseable, ColumnMajor {
         Vector cs = new Vector(handle, data, 1);
 
         VectorsStride columns = columns();
-        
+
         cs.addBatchVecVecMult(1, columns, columns, 0);
-        
+
         return cs;
     }
 
     /**
      * The norm of this vector.
+     *
      * @param workspace Needs to be width long
-     * @return 
+     * @return
      */
     public double getFrobeniusNorm(DArray workspace) {
         return Math.sqrt(columnsSquared(workspace).getL1Norm());
-        
 
     }
 
@@ -828,9 +813,9 @@ public class Matrix implements AutoCloseable, ColumnMajor {
     }
 
     /**
-     * The underlying data of this matrix in a vector.
-     * If colDist != height there will be elements in that vector that are not
-     * in this matrix.
+     * The underlying data of this matrix in a vector. If colDist != height
+     * there will be elements in that vector that are not in this matrix.
+     *
      * @return The underlying data of this matrix in a vector.
      */
     public Vector asVector() {
@@ -918,6 +903,65 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return This matrix repeating itself in a batch.
      */
     public MatricesStride repeating(int batchSize) {
-        return new MatricesStride(handle, data, height, width, colDist, 0, batchSize);
+        return new MatricesStride(handle, data, height, width, colDist, size(), batchSize);
     }
+
+    /**
+     * This method extracts the lower left corner from this matrix. 1's are
+     * place on the diagonal. This is only meant for square matrices that have
+     * undergone LU factorization.
+     *
+     * @param putLHere Where the new matrix is to be placed.
+     * @return
+     */
+    public Matrix lowerLeftUnitDiagonal(DArray putLHere) {
+        Matrix l = new Matrix(handle, putLHere, height, width).fill(0);
+        for (int i = 0; i < height - 1; i++) {
+            l.getColumn(i).getSubVector(i + 1, height - i - 1)
+                    .set(getColumn(i).getSubVector(i + 1, height - i - 1));
+            l.set(i, i, 1);
+        }
+        l.set(height - 1, height - 1, 1);
+        return l;
+    }
+
+    /**
+     * This method extracts the upper right corner from this matrix. This is
+     * only meant for square matrices that have undergone LU factorization.
+     *
+     * @param putUHere Where the new matrix is to be placed.
+     * @return
+     */
+    public Matrix upperRight(DArray putUHere) {
+        Matrix u = new Matrix(handle, putUHere, height, width).fill(0);
+        for (int i = 0; i < height; i++)
+            u.getColumn(i).getSubVector(0, i + 1)
+                    .set(getColumn(i).getSubVector(0, i + 1));
+
+        return u;
+    }
+
+    public static void main(String[] args) {
+        try (Handle hand = new Handle();
+                DArray a = new DArray(hand, 1, 2, 2, 3);
+                DArray l = DArray.empty(4); 
+                DArray u = DArray.empty(4);
+                IArray info = IArray.empty(1); 
+                IArray pivot = IArray.empty(2);) {
+            
+            Matrix m = new Matrix(hand, a, 2, 2);
+            
+            m.power(2);
+            MatricesStride ms = m.repeating(1);
+            
+            System.out.println("m = \n" + m.toString());
+            
+            Eigen eigen = new Eigen(ms, false);
+            
+            
+            System.out.println("Eigen values:\n " + eigen.values);
+            System.out.println("Eigen vectors:\n " + eigen.vectors);
+        }
+    }
+
 }

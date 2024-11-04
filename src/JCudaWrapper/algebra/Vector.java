@@ -29,7 +29,7 @@ public class Vector extends Matrix {
      * @param handle The JCublas handle for GPU operations.
      */
     public Vector(Handle handle, DArray data, int inc) {
-        super(handle, data, 1, Math.ceilDiv(data.length, inc), inc);
+        super(handle, data, 1, inc==0?1:Math.ceilDiv(data.length, inc), inc);
     }
 
     /**
@@ -80,7 +80,7 @@ public class Vector extends Matrix {
      * @return The dimension of the vector. The number of elements in it.
      */
     public int dim() {
-        return Math.ceilDiv(data.length, inc());
+        return inc() == 0?1:Math.ceilDiv(data.length, inc());
     }
 
     /**
@@ -173,8 +173,18 @@ public class Vector extends Matrix {
      */
     public Vector ebeMultiplyAndSet(Vector a, Vector b) {
 
-        return Vector.this.addEbeMultiplyToSelf(a, b, 0);
+        return addEbeMultiplyToSelf(a, b, 0);
 
+    }
+    
+    /**
+     * multiplies this vector by the given scalar and vector (element by element).
+     * @param scalar The scalar times this.
+     * @param a The vector that will be ebe times this.
+     * @return this.
+     */
+    public Vector multiplyMe(double scalar, Vector a){
+        return addEbeMultiplyToSelf(scalar, a, this, 0);
     }
 
     /**
@@ -271,7 +281,7 @@ public class Vector extends Matrix {
             data.solveTriangularBandedSystem(handle, true, false, false,
                     denominator.dim(), 0, denominator.data, denominator.inc(), inc());
         } catch (Exception e) {
-            if (Arrays.stream(denominator.toArray(DArray.empty(dim()))).anyMatch( i -> i ==0)) throw new ArithmeticException("Division by 0.");
+            if (Arrays.stream(denominator.toArray()).anyMatch( i -> i ==0)) throw new ArithmeticException("Division by 0.");
             else throw e;
         
         }
@@ -491,17 +501,13 @@ public class Vector extends Matrix {
 
     /**
      * The cpu array that is a copy of this gpu vector.
-     *
-     * @param workspace if inc == 1 then this will not be used and may be null.
-     * If inc != 1 then this should have dim() size.
-     */
-    public double[] toArray(DArray workspace) {
-        if (inc() != 1) {
-            data.get(handle, workspace, 0, 0, 1, inc(), dim());
-            return workspace.get(handle);
-        }
 
-        return data.get(handle);
+     * @return the array in the cpu.
+     */
+    public double[] toArray() {
+        double[] to = new double[dim()];
+        data.get(handle, to, 0, 0, 1, inc(), dim());
+        return to;
     }
 
     /**
@@ -714,6 +720,13 @@ public class Vector extends Matrix {
         return data.norm(handle, dim(), colDist);
     }
 
+    @Override
+    public String toString() {
+        return Arrays.toString(toArray());
+    }
+
+    
+    
     public static void main(String[] args) {
         try (Handle hand = new Handle();
                 DArray array = new DArray(hand, 1, 2, 3, 4, 5, 6);
