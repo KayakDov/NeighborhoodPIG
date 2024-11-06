@@ -91,8 +91,10 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      * @param timesThis A scalar to multiply this by before the product is add
      * here.
      */
-    public void addProduct(boolean transposeMats, MatricesStride mats, VectorsStride vecs, double timesAB, double timesThis) {
-        addProduct(!transposeMats, vecs, mats, timesAB, timesThis);
+    public VectorsStride addProduct(boolean transposeMats, double timesAB, MatricesStride mats, VectorsStride vecs, double timesThis) {
+        //TODO: this method doesn't work because the reciecing vector, this, has the wrong dimensions.
+        return addProduct(!transposeMats, timesAB, vecs, mats, timesThis);
+        
     }
 
     /**
@@ -105,21 +107,10 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      * @param timesAB A scalar to multiply the product by.
      * @param timesThis A scalar to multiply this by before the product is add
      * here.
+     * @return this.
      */
-    public void addProduct(boolean transposeMats, VectorsStride vecs, MatricesStride mats, double timesAB, double timesThis) {
-        super.addProduct(false, transposeMats, vecs, mats, timesAB, timesThis);
-    }
-
-    /**
-     * Multiplies a set of matrices by a set of vectors. The result will be put
-     * in this.
-     *
-     * @param mats The matrices.
-     * @param vecs The vectors.
-     * @return this
-     */
-    public VectorsStride setVecMatMult(VectorsStride vecs, MatricesStride mats) {
-        addProduct(false, vecs, mats, 1, 0);
+    public VectorsStride addProduct(boolean transposeMats, double timesAB, VectorsStride vecs, MatricesStride mats, double timesThis) {
+        super.addProduct(false, transposeMats, timesAB, vecs, mats, timesThis);
         return this;
     }
 
@@ -131,8 +122,20 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      * @param vecs The vectors.
      * @return this
      */
-    public VectorsStride setMatVecMult(MatricesStride mats, VectorsStride vecs) {
-        addProduct(false, mats, vecs, 1, 0);
+    public VectorsStride setProduct(VectorsStride vecs, MatricesStride mats) {
+        return addProduct(false, 1, vecs, mats, 0);
+    }
+
+    /**
+     * Multiplies a set of matrices by a set of vectors. The result will be put
+     * in this.
+     *
+     * @param mats The matrices.
+     * @param vecs The vectors.
+     * @return this
+     */
+    public VectorsStride setProduct(MatricesStride mats, VectorsStride vecs) {
+        addProduct(false, 1, mats, vecs, 0);
         return this;
     }
 

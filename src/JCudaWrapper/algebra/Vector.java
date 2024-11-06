@@ -20,6 +20,7 @@ public class Vector extends Matrix {
 
     /**
      * Constructs a new {@code Vector} from an existing data pointer on the GPU.
+     * Do not use this constructor for vectors with inc == 0.
      *
      * @param data The {@code DArray} storing the vector on the GPU.
      * @param inc The increment between elements of the data that make of this
@@ -29,7 +30,7 @@ public class Vector extends Matrix {
      * @param handle The JCublas handle for GPU operations.
      */
     public Vector(Handle handle, DArray data, int inc) {
-        super(handle, data, 1, inc==0?1:Math.ceilDiv(data.length, inc), inc);
+        super(handle, data, 1, Math.ceilDiv(data.length, inc), inc);
     }
 
     /**
@@ -80,7 +81,7 @@ public class Vector extends Matrix {
      * @return The dimension of the vector. The number of elements in it.
      */
     public int dim() {
-        return inc() == 0?1:Math.ceilDiv(data.length, inc());
+        return inc() == 0 ? 1 : Math.ceilDiv(data.length, inc());
     }
 
     /**
@@ -176,14 +177,16 @@ public class Vector extends Matrix {
         return addEbeMultiplyToSelf(a, b, 0);
 
     }
-    
+
     /**
-     * multiplies this vector by the given scalar and vector (element by element).
+     * multiplies this vector by the given scalar and vector (element by
+     * element).
+     *
      * @param scalar The scalar times this.
      * @param a The vector that will be ebe times this.
      * @return this.
      */
-    public Vector multiplyMe(double scalar, Vector a){
+    public Vector multiplyMe(double scalar, Vector a) {
         return addEbeMultiplyToSelf(scalar, a, this, 0);
     }
 
@@ -281,9 +284,10 @@ public class Vector extends Matrix {
             data.solveTriangularBandedSystem(handle, true, false, false,
                     denominator.dim(), 0, denominator.data, denominator.inc(), inc());
         } catch (Exception e) {
-            if (Arrays.stream(denominator.toArray()).anyMatch( i -> i ==0)) throw new ArithmeticException("Division by 0.");
+            if (Arrays.stream(denominator.toArray()).anyMatch(i -> i == 0))
+                throw new ArithmeticException("Division by 0.");
             else throw e;
-        
+
         }
 
         return this;
@@ -501,7 +505,7 @@ public class Vector extends Matrix {
 
     /**
      * The cpu array that is a copy of this gpu vector.
-
+     *
      * @return the array in the cpu.
      */
     public double[] toArray() {
@@ -621,7 +625,7 @@ public class Vector extends Matrix {
      * @param timesCurrent Multiply this before adding the product.
      * @return The product is placed in this and this is returned.
      */
-    public Vector multiplyAndAdd(boolean transposeMat, double timesAB, Vector vec, Matrix mat, double timesCurrent) {
+    public Vector addProduct(boolean transposeMat, double timesAB, Vector vec, Matrix mat, double timesCurrent) {
         data.multMatMat(handle,
                 false, transposeMat,
                 1, transposeMat ? mat.getHeight() : mat.getWidth(), vec.dim(),
@@ -640,8 +644,8 @@ public class Vector extends Matrix {
      * @param mat The matrix to be multiplied.
      * @return The product is placed in this and this is returned.
      */
-    public Vector multiplyAndSet(Vector vec, Matrix mat) {
-        return multiplyAndAdd(false, 1, vec, mat, 0);
+    public Vector setProduct(Vector vec, Matrix mat) {
+        return addProduct(false, 1, vec, mat, 0);
     }
 
     /**
@@ -657,8 +661,16 @@ public class Vector extends Matrix {
      * @param timesCurrent Multiply this before adding the product.
      * @return The product is placed in this and this is returned.
      */
-    public Vector multiplyAndAdd(boolean transposeMat, double timesAB, Matrix mat, Vector vec, double timesCurrent) {
-        return multiplyAndAdd(!transposeMat, timesAB, vec, mat, timesCurrent);
+    public Vector addProduct(boolean transposeMat, double timesAB, Matrix mat, Vector vec, double timesCurrent) {
+//        if (inc() > 1) {
+//            Matrix in = new Matrix(handle, data, dim(), 1);
+//            DArray outTempStorageSite = data.subArray(dim());
+//            Matrix outNeedsStorage = new Matrix(handle, data.subArray(1), colDist - 1, dim(), colDist);
+//    //TODO: Finsih this section, otherwise this matrix has the wrong dimensions to recieve the product.
+//    //be careful not to lose or overwirte any data.
+//        }
+//        
+        return addProduct(!transposeMat, timesAB, vec, mat, timesCurrent);
     }
 
     /**
@@ -668,8 +680,8 @@ public class Vector extends Matrix {
      * @param mat The matrix to be multiplied.
      * @return The product is placed in this and this is returned.
      */
-    public Vector multiplyAndSet(Matrix mat, Vector vec) {
-        return multiplyAndAdd(false, 1, mat, vec, 0);
+    public Vector setProduct(Matrix mat, Vector vec) {
+        return addProduct(false, 1, mat, vec, 0);
     }
 
     /**
@@ -725,8 +737,6 @@ public class Vector extends Matrix {
         return Arrays.toString(toArray());
     }
 
-    
-    
     public static void main(String[] args) {
         try (Handle hand = new Handle();
                 DArray array = new DArray(hand, 1, 2, 3, 4, 5, 6);

@@ -84,11 +84,11 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * columns.
      */
     private void inRowSumsEdge() {
-        inRowSum.getColumn(0).multiplyAndSet(
+        inRowSum.getColumn(0).setProduct(
                 ebeStorage.getSubMatrixCols(0, nRad + 1),
                 halfNOnes
         );
-        inRowSum.getColumn(width - 1).multiplyAndSet(
+        inRowSum.getColumn(width - 1).setProduct(
                 ebeStorage.getSubMatrixCols(width - nRad - 1, width),
                 halfNOnes
         );
@@ -145,11 +145,11 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param halfNOnes Vector of ones used for summing the first and last rows.
      */
     private void nSumEdge(VectorsStride resultRows) {
-        resultRows.getVector(0).multiplyAndSet(
+        resultRows.getVector(0).setProduct(
                 halfNOnes,
                 inRowSum.getSubMatrixRows(0, nRad + 1)
         );
-        resultRows.getVector(height - 1).multiplyAndSet(
+        resultRows.getVector(height - 1).setProduct(
                 halfNOnes,
                 inRowSum.getSubMatrixRows(height - nRad - 1, height)
         );

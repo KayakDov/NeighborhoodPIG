@@ -164,7 +164,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param timesThis Scalar multiplier for the elements in this matrix.
      * @return This matrix after the operation.
      */
-    public Matrix multiplyAndSet(Handle handle, boolean transposeA, boolean transposeB, double timesAB, Matrix a, Matrix b, double timesThis) {
+    public Matrix addProduct(boolean transposeA, boolean transposeB, double timesAB, Matrix a, Matrix b, double timesThis) {
 
         Dimension aDim = new Dimension(transposeA ? a.height : a.width, transposeA ? a.width : a.height);
         Dimension bDim = new Dimension(transposeB ? b.height : b.width, transposeB ? b.width : b.height);
@@ -180,20 +180,20 @@ public class Matrix implements AutoCloseable, ColumnMajor {
     }
 
     /**
-     * @see Matrix#multiplyAndSet(processSupport.Handle, boolean, boolean,
-     * double, algebra.Matrix, algebra.Matrix, double) timesThis is set to 0,
-     * transpose values are false, and timesAB is 1.
+     * @see Matrix#addProduct(processSupport.Handle, boolean, boolean, double,
+     * algebra.Matrix, algebra.Matrix, double) timesThis is set to 0, transpose
+     * values are false, and timesAB is 1.
      * @param a To be multiplied by the first matrix.
      * @param b To be multiplied by the second matrix.
      * @return This matrix.
      */
-    public Matrix multiplyAndSet(Matrix a, Matrix b) {
-        return multiplyAndSet(handle, false, false, 1, a, b, 0);
+    public Matrix setToProduct(Matrix a, Matrix b) {
+        return addProduct(false, false, 1, a, b, 0);
     }
 
     /**
-     * @see Matrix#multiplyAndSet(processSupport.Handle, boolean, boolean,
-     * double, algebra.Matrix, algebra.Matrix, double) Uses the default handle.
+     * @see Matrix#addProduct(processSupport.Handle, boolean, boolean, double,
+     * algebra.Matrix, algebra.Matrix, double) Uses the default handle.
      * @param transposeA True to transpose A, false otherwise.
      * @param transposeB True to transpose B, false otherwise.
      * @param timesAB TO me multiplied by AB.
@@ -202,8 +202,8 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param timesThis To be multiplied by this.
      * @return this.
      */
-    public Matrix multiplyAndSet(boolean transposeA, boolean transposeB, double timesAB, Matrix a, Matrix b, double timesThis) {
-        return multiplyAndSet(handle, transposeA, transposeB, timesAB, a, b, timesThis);
+    public Matrix setToProduct(boolean transposeA, boolean transposeB, double timesAB, Matrix a, Matrix b, double timesThis) {
+        return addProduct(transposeA, transposeB, timesAB, a, b, timesThis);
     }
 
     /**
@@ -551,7 +551,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
         if (height != other.height || width != other.width) return false;
 
         return new Matrix(handle, data, height, width).addAndSet(1, this, -1, other)
-                .getFrobeniusNorm(workSpace.subArray(0, width)) <= epsilon;
+                .frobeniusNorm(workSpace.subArray(0, width)) <= epsilon;
     }
 
     /**
@@ -695,10 +695,10 @@ public class Matrix implements AutoCloseable, ColumnMajor {
 
         if (p % 2 == 0) {
             power(p / 2);
-            return multiplyAndSet(this, this);
+            return Matrix.this.setToProduct(this, this);
         } else {
             try (Matrix copy = copy()) {
-                return multiplyAndSet(copy, power(p - 1));
+                return Matrix.this.setToProduct(copy, power(p - 1));
             }
         }
     }
@@ -755,7 +755,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param workspace Needs to be width long
      * @return
      */
-    public double getFrobeniusNorm(DArray workspace) {
+    public double frobeniusNorm(DArray workspace) {
         return Math.sqrt(columnsSquared(workspace).getL1Norm());
 
     }
@@ -943,24 +943,36 @@ public class Matrix implements AutoCloseable, ColumnMajor {
 
     public static void main(String[] args) {
         try (Handle hand = new Handle();
-                DArray a = new DArray(hand, 1, 2, 2, 3);
-                DArray l = DArray.empty(4); 
-                DArray u = DArray.empty(4);
-                IArray info = IArray.empty(1); 
-                IArray pivot = IArray.empty(2);) {
-            
+                DArray a = new DArray(hand, -1, 3, 3, 2);
+                DArray l = DArray.empty(4); DArray u = DArray.empty(4);
+                IArray info = IArray.empty(1); IArray pivot = IArray.empty(2);) {
+
             Matrix m = new Matrix(hand, a, 2, 2);
-            
+
             m.power(2);
             MatricesStride ms = m.repeating(1);
-            
+
             System.out.println("m = \n" + m.toString());
-            
+
             Eigen eigen = new Eigen(ms, false);
-            
-            
-            System.out.println("Eigen values:\n " + eigen.values);
-            System.out.println("Eigen vectors:\n " + eigen.vectors);
+
+            for (int i = 0; i < m.height; i++) {
+                double eVal = eigen.values.get(i).get(0);
+                Vector eVec = eigen.vectors.getSubMatrix(0).getColumn(i);
+
+                System.out.println("Eigen value " + i + ":\n " + eVal);
+                System.out.println("Eigen vector " + i + ":\n " + eVec);
+
+                System.out.println("Checking: is the vector = \n"
+                        + eVec.addProduct(
+                                false,
+                                1 / eVal,
+                                m,
+                                eVec,
+                                0
+                        )
+                );
+            }
         }
     }
 

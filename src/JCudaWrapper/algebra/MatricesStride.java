@@ -10,6 +10,7 @@ import JCudaWrapper.array.KernelManager;
 import java.util.Arrays;
 import org.apache.commons.math3.exception.DimensionMismatchException;
 import JCudaWrapper.resourceManagement.Handle;
+import java.awt.Dimension;
 
 /**
  * This class provides methods for handling a batch of strided matrices stored
@@ -156,18 +157,16 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      * @throws DimensionMismatchException if the dimensions of matrices
      * {@code a} and {@code b} are incompatible for multiplication.
      */
-    public MatricesStride addProduct(boolean transposeA, boolean transposeB, MatricesStride a, MatricesStride b, double timesAB, double timesThis) {
+    public MatricesStride addProduct(boolean transposeA, boolean transposeB, double timesAB, MatricesStride a, MatricesStride b, double timesThis) {
 
-        int aWidth = transposeA ? a.height : a.width;
-        int bHeight = transposeB ? b.width : b.height;
+        Dimension aDim = new Dimension(transposeA ? a.height : a.width, transposeA ? a.width : a.height);
+        Dimension bDim = new Dimension(transposeB ? b.height : b.width, transposeB ? b.width : b.height);
 
-        if (aWidth != bHeight)
-            throw new DimensionMismatchException(aWidth, bHeight);
+        if (aDim.width != bDim.height || height != aDim.height || width != bDim.width)
+            throw new DimensionMismatchException(aDim.width, bDim.height);
 
         data.multMatMatStridedBatched(handle, transposeA, transposeB,
-                transposeA ? a.width : a.height,
-                aWidth,
-                transposeB ? b.height : b.width,
+                aDim.height, aDim.width, bDim.width,
                 timesAB,
                 a.data, a.colDist,
                 b.data, b.colDist,
@@ -276,9 +275,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
         setDiagonalMinors(minor, m, vals);
         Vector C = work[1].fill(0);
-        for (int i = 0; i < 3; i++) {
-            C.addToMe(1, minor[i][i]);
-        }
+        for (int i = 0; i < 3; i++)  C.addToMe(1, minor[i][i]);      
 
         setRow0Minors(minor, m, vals);
         Vector det = work[2];
@@ -286,8 +283,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
         det.addEbeMultiplyToSelf(-1, m[0][1], minor[0][1], 1);
         det.addEbeMultiplyToSelf(-1, m[0][2], minor[0][2], -1);
 
-//        System.out.println("algebra.Eigen.computeVals3x3() coeficiants: " + trace + ", " + C + ", " + det);
-        cubicRoots(negTrace, C, det, vals); // Helper function
+        cubicRoots(negTrace, C, det, vals); 
 
         return vals;
     }
@@ -482,6 +478,8 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      */
     public MatricesStride computeVecs(VectorsStride eValues, DArray workSpaceArray) {
 
+        
+        
         MatricesStride eVectors = copyDimensions(DArray.empty(data.length));
 
         try (
@@ -493,10 +491,13 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
             for (int i = 0; i < height; i++) {
                 MatricesStride workSpace = copy(workSpaceArray);
                 workSpace.computeVec(eValues.getElement(i), eVectors.column(i), info, pivot);
-//                System.out.println("JCudaWrapper.algebra.MatricesStride.computeVecs() checking eVector:\n" + 
+//                System.out.println("JCudaWrapper.algebra.MatricesStride.computeVecs() this is \n" + this);
+//                System.out.println("JCudaWrapper.algebra.MatricesStride.computeVecs() the eigen vector is \n" + eVectors.column(i));
+//                System.out.println("JCudaWrapper.algebra.MatricesStride.computeVecs() the eigen value is \n" + eValues.column(i));
+//                System.out.println("JCudaWrapper.algebra.MatricesStride.computeVecs() inverse of value * this * vector is:\n" + 
 //                        eVectors
 //                                .column(i)
-//                                .addProduct(false, true, this, eVectors.column(i), 1/eValues.get(i).get(0), 0));
+//                                .addProduct(false, 1/eValues.get(i).get(0), this, eVectors.column(i), 0));
             }
         }
 
@@ -515,7 +516,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
         for (int i = 0; i < height; i++)
             get(i, i).addToMe(-1, eValue);
 
-        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() After eigen subtraction:\n" + toString());
+//        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() After eigen subtraction:\n" + toString());
 
         getPointers().LUFactor(handle, pivot, info);        
 
@@ -527,13 +528,15 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 //        }
 //        
 //        
-//        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() pivot\n" + pivot.toString());
+        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() pivot\n" + pivot.toString());
 //        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() after LU:\n" + toString());
 
         Vector[][] m = parition();
+        
+//        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec()  m = " + Arrays.deepToString(m));
 
         eVector.get(height - 2)
-                .set(m[width - 1][height - 2])
+                .set(m[width - 2][height - 1])
                 .ebeDivide(m[width - 2][height - 2])
                 .multiplyMe(-1);
                 
@@ -542,12 +545,12 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
                         .set(eVector.getElement(1))
                         .multiplyMe(-1, m[0][1])
                         .addToMe(-1, m[0][2])
-                        .ebeDivide(m[0][1]);
+                        .ebeDivide(m[0][0]);
         
 //        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() vector befor pivtoing:\n" + eVector);
         
         
-        KernelManager.get("unPivotVec").map(
+        KernelManager.get("unPivotVec").map(//TODO: understand why unpivoting seems to give the wrong answer, and not unpivoting seems to get it right.
                         handle, 
                         pivot, 
                         height, 
@@ -555,7 +558,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
                         getStrideSize(), 
                         data.batchCount()
                 );
-//        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() vector after pivtoing:\n" + eVector); TODO: remove debug comments
+//        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() vector after pivtoing:\n" + eVector); //TODO: remove debug comments
         
         
     }
@@ -778,7 +781,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
         Matrix id = Matrix.identity(handle, width, workSpace);
 
-        addProduct(transpose, false, toAdd, id.repeating(data.batchSize), timesToAdd, timesThis);
+        addProduct(transpose, false, timesToAdd, toAdd, id.repeating(data.batchSize), timesThis);
         return this;
     }
     

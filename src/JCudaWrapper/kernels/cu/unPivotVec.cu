@@ -10,16 +10,14 @@ __device__ void swap(double* vec, int i, int j){
 
 //We assume pivoted describes square matrices: width = height.
 //n should be the total number of columns;
-extern "C" __global__ void unPivotVecKernel(int *pivotScheme, int height, double *pivoted, int ldP, int n) {
+extern "C" __global__ void unPivotVecKernel(int *pivotScheme, int dim, double *pivoted, int inc, int n, int stride) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
     if (idx >= n) return;
 
-    int startInd = ldP*idx;  
+    int startInd = stride*idx;  
 
-    for (int i = height - 1; i >= 0; i--) swap(pivoted, startInd + i, startInd + pivotScheme[startInd + i] - 1);
-
-    
+    for (int i = dim - 1; i >= 0; i--) swap(pivoted, startInd + i*inc, startInd + (pivotScheme[startInd + i] - 1)*inc);
 }
 
 

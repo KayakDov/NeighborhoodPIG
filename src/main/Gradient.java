@@ -101,8 +101,8 @@ public class Gradient implements AutoCloseable{
         
         target = target.subBatch(2, numBlocks);
 
-        if (blocks.height == diff.length) target.setVecMatMult(diffVecs, blocks);
-        else target.setMatVecMult(blocks, diffVecs);
+        if (blocks.height == diff.length) target.setProduct(diffVecs, blocks);
+        else target.setProduct(blocks, diffVecs);
     }
 
     /**

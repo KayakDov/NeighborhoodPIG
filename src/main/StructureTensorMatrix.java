@@ -140,15 +140,15 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
             
             
 
-            primaryAxis.setMatVecMult(rotate60, primaryAxis);
+            primaryAxis.setProduct(rotate60, primaryAxis);
             
             RGB[1] = getRows(cos);
             
-            primaryAxis.setMatVecMult(rotate60, primaryAxis);
+            primaryAxis.setProduct(rotate60, primaryAxis);
             
             RGB[2] = getRows(cos);
             
-            primaryAxis.setMatVecMult(rotate60, primaryAxis);
+            primaryAxis.setProduct(rotate60, primaryAxis);
         }
         return RGB;
     }

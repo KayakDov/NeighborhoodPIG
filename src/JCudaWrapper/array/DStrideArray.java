@@ -9,6 +9,7 @@ import jcuda.jcusolver.cusolverEigMode;
 import jcuda.jcusolver.gesvdjInfo;
 import JCudaWrapper.resourceManagement.Handle;
 import static JCudaWrapper.array.Array.checkPositive;
+import jcuda.runtime.cudaError;
 
 /**
  * A class for a batch of consecutive arrays.
@@ -214,7 +215,7 @@ public class DStrideArray extends DArray {
         checkPositive(aRows, bCols, ldb, ldResult);
         checkAgainstLength(aRows * bCols * batchCount() - 1);
 
-        JCublas2.cublasDgemmStridedBatched(
+        int result = JCublas2.cublasDgemmStridedBatched(
                 handle.get(),
                 DArray.transpose(transA), DArray.transpose(transB),
                 aRows, bCols, aColsBRows,
@@ -224,6 +225,9 @@ public class DStrideArray extends DArray {
                 cpuPointer(timesResult), pointer, ldResult, stride,
                 batchCount()
         );
+        if(result != cudaError.cudaSuccess){
+            throw new RuntimeException("cuda multiplication failed.");
+        }
     }
 
     /**
