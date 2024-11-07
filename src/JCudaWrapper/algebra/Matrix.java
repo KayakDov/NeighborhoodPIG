@@ -943,25 +943,28 @@ public class Matrix implements AutoCloseable, ColumnMajor {
 
     public static void main(String[] args) {
         try (Handle hand = new Handle();
-                DArray a = new DArray(hand, -1, 3, 3, 2);
-                DArray l = DArray.empty(4); DArray u = DArray.empty(4);
-                IArray info = IArray.empty(1); IArray pivot = IArray.empty(2);) {
+                DArray a = new DArray(hand, -1, 2, 3,   2, 4, 5,   3, 5, 6);
+                DArray l = DArray.empty(9); DArray u = DArray.empty(9);
+                IArray info = IArray.empty(1); IArray pivot = IArray.empty(3);) {
 
-            Matrix m = new Matrix(hand, a, 2, 2);
+            Matrix m = new Matrix(hand, a, 3, 3);
 
             m.power(2);
             MatricesStride ms = m.repeating(1);
 
-            System.out.println("m = \n" + m.toString());
+            System.out.println("m = \n" + m.toString() + "\n");
 
-            Eigen eigen = new Eigen(ms, false);
+            Eigen eigen = new Eigen(ms);
 
             for (int i = 0; i < m.height; i++) {
                 double eVal = eigen.values.get(i).get(0);
                 Vector eVec = eigen.vectors.getSubMatrix(0).getColumn(i);
 
-                System.out.println("Eigen value " + i + ":\n " + eVal);
+                System.out.println("\nEigen value " + i + ":\n " + eVal);
                 System.out.println("Eigen vector " + i + ":\n " + eVec);
+                
+                
+                System.out.println("m = \n" + m);
 
                 System.out.println("Checking: is the vector = \n"
                         + eVec.addProduct(

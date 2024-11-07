@@ -1,13 +1,22 @@
 package JCudaWrapper.array;
 
-import jcuda.Pointer;
 import JCudaWrapper.resourceManagement.Handle;
 
 /**
- * S ingle element in the gpu.
+ * Single element in the gpu.
  * @author E. Dov Neimand
  */
 public class DSingleton extends DArray{
+    /**
+     * For use in addToMe a scalar fill and anywhere else it's needed.
+     */
+    public static DSingleton oneOne;
+    
+    static{
+        try(Handle handle = new Handle()){
+            oneOne = new DSingleton(handle, 1);
+        }
+    }
     
     /**
      * Creates a singleton by taking an element from another array.

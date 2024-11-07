@@ -103,11 +103,11 @@ public class Vector extends Matrix {
      * @param scalar To be added to every element in this vector.
      * @return this.
      */
+    @Override
     public Vector addToMe(double scalar) {
-        try (Vector scalarVec = new Vector(handle, new DSingleton(handle, scalar), 0)) {
-            addToMe(1, scalarVec);
-            return this;
-        }
+        data.addToMe(handle, scalar, DSingleton.oneOne, 0, 1);
+        return this;
+
     }
 
     /**

@@ -79,7 +79,7 @@ public class IArray extends Array {
      * @param d A double that needs a pointer.
      * @return A pointer to a singleton array containing d.
      */
-    static Pointer cpuPointer(int d) {
+    public static Pointer cpuPointer(int d) {
         return Pointer.to(new int[]{d});
     }
 

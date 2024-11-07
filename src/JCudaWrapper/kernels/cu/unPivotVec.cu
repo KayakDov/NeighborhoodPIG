@@ -15,9 +15,10 @@ extern "C" __global__ void unPivotVecKernel(int *pivotScheme, int dim, double *p
     
     if (idx >= n) return;
 
-    int startInd = stride*idx;  
+    int vecsStartInd = stride*idx;
+    int psStartIndex = dim*(idx/dim);
 
-    for (int i = dim - 1; i >= 0; i--) swap(pivoted, startInd + i*inc, startInd + (pivotScheme[startInd + i] - 1)*inc);
+    for (int i = dim - 1; i >= 0; i--) swap(pivoted, vecsStartInd + i*inc, vecsStartInd + (pivotScheme[psStartIndex + i] - 1)*inc);
 }
 
 

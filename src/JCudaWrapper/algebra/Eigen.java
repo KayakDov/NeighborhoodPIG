@@ -18,14 +18,16 @@ public class Eigen implements AutoCloseable {
     /**
      * Computes the eigen values and vectors of the matrices.
      * @param mats A set of 2x2 or 3x3 matrices.
-     * @param is3x3 is it 2 or 3
+     * 
      */
-    public Eigen(MatricesStride mats, boolean is3x3) {
+    public Eigen(MatricesStride mats) {
         try (DArray workSpace = DArray.empty(mats.dArray().length)) {
 
-            if (!is3x3) 
-                values = mats.computeVals2x2(new Vector(mats.getHandle(), workSpace.subArray(0, mats.getBatchSize()), 1));
-            else values = mats.computeVals3x3(new Vector(mats.getHandle(), workSpace.subArray(0, mats.width), 1));
+            switch (mats.height) {
+                case 2 -> values = mats.computeVals2x2(new Vector(mats.getHandle(), workSpace.subArray(0, mats.getBatchSize()), 1));
+                case 3 -> values = mats.computeVals3x3(new Vector(mats.getHandle(), workSpace.subArray(0, mats.width), 1));
+                default -> throw new UnsupportedOperationException("Currently the Eigen method only works for 2x2 and 3x3 matrices.  Your matrix it " + mats.height + "x" + mats.width);
+            }
             
             vectors =  mats.computeVecs(values, workSpace);
 
@@ -43,7 +45,7 @@ public class Eigen implements AutoCloseable {
             
             
             System.out.println(mst.toString());
-            try(Eigen eig = new Eigen(mst, false)){
+            try(Eigen eig = new Eigen(mst)){
                 System.out.println("values \n" + eig.values.toString());
                 System.out.println("vectors \n" + eig.vectors.toString());
             }

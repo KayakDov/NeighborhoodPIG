@@ -459,13 +459,13 @@ public class DPointerArray extends Array {
      * Fills this arrays with pointers to the given array.
      * @param handle
      * @param source The array pointed to,
-     * @param stride The distance between the pointer targets.
+     * @param inc The distance between the pointer targets.
      * @return this
      */
-    public DPointerArray fill(Handle handle, DArray source, int stride){
+    public DPointerArray fill(Handle handle, DArray source, int inc){
         KernelManager.get("genPtrs").map(
                 handle, 
-                source, stride, 
+                source, inc, 
                 this, 1, 
                 length
         );

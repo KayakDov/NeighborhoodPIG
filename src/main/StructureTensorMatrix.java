@@ -52,7 +52,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 //        strctTensors.get(2, 1).set(strctTensors.get(1, 2));
 
         orientation = new Matrix(handle, height, width);
-        eigen = new Eigen(strctTensors, false);//set to true for 3x3.
+        eigen = new Eigen(strctTensors);//set to true for 3x3.
 
     }
 

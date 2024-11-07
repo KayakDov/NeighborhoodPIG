@@ -11,6 +11,7 @@ import java.util.Arrays;
 import org.apache.commons.math3.exception.DimensionMismatchException;
 import JCudaWrapper.resourceManagement.Handle;
 import java.awt.Dimension;
+import jcuda.Pointer;
 
 /**
  * This class provides methods for handling a batch of strided matrices stored
@@ -547,18 +548,18 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
                         .addToMe(-1, m[0][2])
                         .ebeDivide(m[0][0]);
         
-//        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() vector befor pivtoing:\n" + eVector);
-        
-        
-        KernelManager.get("unPivotVec").map(//TODO: understand why unpivoting seems to give the wrong answer, and not unpivoting seems to get it right.
-                        handle, 
-                        pivot, 
-                        height, 
-                        eVector.dArray(), 
-                        getStrideSize(), 
-                        data.batchCount()
-                );
-//        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() vector after pivtoing:\n" + eVector); //TODO: remove debug comments
+//        System.out.println("Before pivoting: " + eVector);
+//        KernelManager.get("unPivotVec").map(//TODO: understand why unpivoting seems to give the wrong answer, and not unpivoting seems to get it right.
+//                        handle, 
+//                        pivot, 
+//                        height, 
+//                        eVector.dArray(), 
+//                        eVector.inc(), 
+//                        data.batchCount(),
+//                        IArray.cpuPointer(data.stride)
+//                );
+//        System.out.println("After pivoting:  " + eVector);
+
         
         
     }
