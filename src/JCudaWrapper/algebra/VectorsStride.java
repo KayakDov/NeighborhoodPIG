@@ -146,7 +146,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      * @return Partitions this into an array of vectors so that v[i].get(j) is
      * the ith element in the jth vector.
      */
-    public Vector[] vecParition() {
+    public Vector[] vecPartition() {
         Vector[] parts = new Vector[getSubVecDim()];
         Arrays.setAll(parts, i -> get(i));
         return parts;

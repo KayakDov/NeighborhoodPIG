@@ -167,6 +167,8 @@ public class Handle implements AutoCloseable {
         return cuStream;
     }
 
+    public boolean isOpen = true;
+    
     /**
      * Closes the handle and stream, ensuring they are cleaned up. This method
      * is automatically called when the object is used in a try-with-resources
@@ -177,6 +179,7 @@ public class Handle implements AutoCloseable {
         synch();
         cleanableHandle.clean();  // Clean up the CUBLAS handle
         cleanableStream.clean();  // Clean up the CUDA stream
+        isOpen = false;
 
         if (solverHandle != null) cleanableSolverHandle.clean();
         if (cuStream != null) cleanableCUStream.clean();

@@ -29,7 +29,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
     private final Eigen eigen;
     private final Matrix orientation;
-    private final Handle handle;
+    private Handle handle;
 
     public StructureTensorMatrix(Matrix dX, Matrix dY, int neighborhoodRad) {
 
@@ -51,9 +51,9 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 //        strctTensors.get(2, 0).set(strctTensors.get(0, 2)); //engage for 3x3.
 //        strctTensors.get(2, 1).set(strctTensors.get(1, 2));
 
-        orientation = new Matrix(handle, height, width);
         eigen = new Eigen(strctTensors);//set to true for 3x3.
-
+        
+        orientation = new Matrix(handle, height, width);
     }
 
     /**
@@ -89,9 +89,12 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
     /**
      * Sets the orientations from the eigenvectors.
+     * @return The orientation matrix.
      */
-    public void setOrientations() {
+    public Matrix setOrientations() {
+
         KernelManager.get("atan2").map(handle, eigen.vectors.dArray(), 4, orientation.dArray(), 1, orientation.size());
+        return orientation;
     }
 
     /**

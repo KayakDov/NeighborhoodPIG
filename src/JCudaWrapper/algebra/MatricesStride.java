@@ -221,7 +221,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
             throw new IllegalArgumentException("compute vals 2x2 can only be called on a 2x2 matrix.  These matrices are " + height + "x" + width);
 
         VectorsStride vals = new VectorsStride(handle, 2, getBatchSize(), 2, 1);
-        Vector[] val = vals.vecParition();
+        Vector[] val = vals.vecPartition();
 
         Vector[][] m = parition();
 
@@ -330,7 +330,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      */
     private void setDiagonalMinors(Vector[][] minor, Vector[][] m, VectorsStride minorStorage) {
 
-        Vector[] storagePartition = minorStorage.vecParition();
+        Vector[] storagePartition = minorStorage.vecPartition();
 
         for (int i = 0; i < minor.length; i++)
             minor[i][i] = storagePartition[i];
@@ -353,7 +353,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      * @param minorStorage A space where the minors can be stored.
      */
     private void setRow0Minors(Vector[][] minor, Vector[][] m, VectorsStride minorStorage) {
-        minor[0] = minorStorage.vecParition();
+        minor[0] = minorStorage.vecPartition();
 
         minor[0][1].ebeMultiplyAndSet(m[1][1], m[2][2]);
         minor[0][1].addEbeMultiplyToSelf(-1, m[1][2], m[1][2], 1);
@@ -382,7 +382,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
                 acos = KernelManager.get("acos"),
                 sqrt = KernelManager.get("sqrt");
 
-        Vector[] root = roots.vecParition();
+        Vector[] root = roots.vecPartition();
 
         Vector q = root[0];
         q.ebeMultiplyAndSet(b, b);
@@ -396,8 +396,8 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
         //c is free for now.  
         Vector theta = c;
-        Vector pInverse = root[1].fill(1).ebeDivide(p); //c is now taken
-        sqrt.map(b.getHandle(), pInverse, theta);
+        Vector pInverse = root[1].fill(1).ebeDivide(p); //c is now taken               
+        sqrt.map(b.getHandle(), pInverse, theta);        
 
         theta.addEbeMultiplyToSelf(-0.5, q, theta, 0);//root[0] is now free (all roots).
         theta.ebeMultiplyAndSet(theta, pInverse); //c is now free.
@@ -466,6 +466,27 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
                 data.batchSize
         );
     }
+    
+    
+    /**
+     * Adds dimensions like batchsize and width to the given data.
+     *
+     * Stride and batch size are taken from add Dimensions, the rest of the dimensions from this.
+     * 
+     * @param addDimensions data in need of batch dimensions.
+     * @return The given data with this's dimensions.
+     */
+    public MatricesStride copyDimensions(DStrideArray addDimensions) {
+        return new MatricesStride(
+                handle,
+                addDimensions,
+                height,
+                width,
+                colDist,
+                addDimensions.stride,
+                addDimensions.batchSize
+        );
+    }
 
     /**
      * Computes the eigenvector for an eigenvalue. The matrices must be
@@ -529,7 +550,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 //        }
 //        
 //        
-        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() pivot\n" + pivot.toString());
+//        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() pivot\n" + pivot.toString());
 //        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() after LU:\n" + toString());
 
         Vector[][] m = parition();
@@ -643,11 +664,11 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
     public static void main(String[] args) {
         try (
                 Handle handle = new Handle();
-                MatricesStride mbs = new MatricesStride(handle, 2, 2)) {
+                DArray array = new DArray(handle, 1,2,3,4,  5,6,7,8,   9,10,11,12)) {
 
-            mbs.data.set(handle, new double[]{1, 2, 3, 4, 5, 6, 7, 8});
-
-            System.out.println(mbs.get(1, 1).toString());
+                MatricesStride ms = new MatricesStride(handle, array, 2, 2, 2, 4, 3);
+                
+                System.out.println(ms.subBatch(1, 2));
         }
     }
 

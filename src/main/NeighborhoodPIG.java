@@ -80,8 +80,10 @@ public class NeighborhoodPIG implements AutoCloseable{
     }
 
     public static void main(String[] args) throws IOException {
-        NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 1);
+        NeighborhoodPIG np = new NeighborhoodPIG("images/input/debug.jpeg", 1);
         np.orientationColored("images/output/test.png");
+        
+        System.out.println(np.stm.setOrientations());
         
     }
     

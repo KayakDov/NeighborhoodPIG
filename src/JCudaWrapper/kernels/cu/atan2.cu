@@ -1,5 +1,5 @@
 extern "C" __global__
-void atan2xy(const double* vectors, int ldFrom, double* angles, int incTo, int n) {
+void atan2Kernel(const double* vectors, int ldFrom, double* angles, int incTo, int n) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < n) {
         // x is at 2 * i * ldFrom, and y is at 2 * i *ldFrom + 1
