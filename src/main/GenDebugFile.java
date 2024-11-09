@@ -13,10 +13,7 @@ import javax.imageio.ImageIO;
 public class GenDebugFile {
 
     public static void main(String[] args) {
-        // Define the size of the image
-        int width = 6;
-        int height = 6;
-
+        
         // Define pixel values for each point in a 7x7 grid
         // We use values from 0.1, 0.2, ... to 0.7
         double[][] pixelValues = {
@@ -26,9 +23,12 @@ public class GenDebugFile {
             {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
             {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
             {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
-            
+            {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
         };
 
+        int width = pixelValues[0].length;
+        int height = pixelValues.length;
+        
         // Create a grayscale BufferedImage
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
         WritableRaster raster = image.getRaster();
@@ -46,7 +46,7 @@ public class GenDebugFile {
         try {
             File outputFile = new File("images/input/debug.jpeg");
             ImageIO.write(image, "jpeg", outputFile);
-            System.out.println("Image saved as grayscale_6x6.jpg");
+            System.out.println("Image saved as images/input/debug.jpeg, a " + height + "x" + width + " image.");
         } catch (Exception e) {
             e.printStackTrace();
         }

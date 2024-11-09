@@ -70,6 +70,8 @@ public class NeighborhoodProductSums implements AutoCloseable {
         nSumEdge(resultRows);
         nSumNearEdge(resultRows);
         nSumCenter(resultRows);
+        
+        //TODO: pixels nearer the edges have lower sums.  They should probably be normalized for this.
     }
 
     /**

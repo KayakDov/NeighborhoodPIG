@@ -36,22 +36,22 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         handle = dX.getHandle();
         int height = dX.getHeight(), width = dX.getWidth();
 
-        strctTensors = new MatricesStride(handle, 2, dX.size()).fill(0);//reset to 3x3 for dZ.
+        strctTensors = new MatricesStride(handle, 2, dX.size());//reset to 3x3 for dZ.
 
         try (NeighborhoodProductSums nps = new NeighborhoodProductSums(dX.getHandle(), neighborhoodRad, height, width)) {
             nps.set(dX, dX, strctTensors.get(0, 0));
             nps.set(dX, dY, strctTensors.get(0, 1));
             nps.set(dY, dY, strctTensors.get(1, 1));
-//            nps.set(dX, dZ, 3);
-//            nps.set(dY, dZ, 3);
-//            nps.set(dZ, dZ, 3);//Add these when working with dZ.
+//            nps.set(dX, dZ, strctTensors.get(0, 2));
+//            nps.set(dY, dZ, strctTensors.get(1, 2));
+//            nps.set(dZ, dZ, strctTensors.get(2, 2));//Add these when working with dZ.
         }
 
         strctTensors.get(1, 0).set(strctTensors.get(0, 1));
 //        strctTensors.get(2, 0).set(strctTensors.get(0, 2)); //engage for 3x3.
 //        strctTensors.get(2, 1).set(strctTensors.get(1, 2));
 
-        eigen = new Eigen(strctTensors);//set to true for 3x3.
+        eigen = new Eigen(strctTensors);
         
         orientation = new Matrix(handle, height, width);
     }

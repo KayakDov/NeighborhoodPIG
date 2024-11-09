@@ -1,6 +1,7 @@
 package JCudaWrapper.array;
 
 import JCudaWrapper.resourceManagement.Handle;
+import java.awt.image.Raster;
 import java.util.Arrays;
 import jcuda.Pointer;
 import jcuda.Sizeof;
@@ -33,6 +34,16 @@ public class DArray extends Array {
     public DArray(Handle handle, double... values) {
         this(Array.empty(values.length, PrimitiveType.DOUBLE), values.length);
         copy(handle, this, values, 0, 0, values.length);
+    }
+    
+    /**
+     * Writes the raster to this darray in column major order.
+     * @param handle
+     * @param raster 
+     */
+    public DArray(Handle handle, Raster raster){
+        this(Array.empty(raster.getWidth() * raster.getHeight(), PrimitiveType.DOUBLE), raster.getWidth() * raster.getHeight());
+//        raster.gets
     }
 
     /**

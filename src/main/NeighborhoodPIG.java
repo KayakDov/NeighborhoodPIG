@@ -1,7 +1,5 @@
 package main;
 
-
-
 import JCudaWrapper.algebra.Matrix;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
@@ -67,7 +65,7 @@ public class NeighborhoodPIG implements AutoCloseable{
         
         for (int row = 0; row < height; row++)
             for (int col = 0; col < width; col++)
-                raster.setPixel(row, col, getColor(row, col, rgb));
+                raster.setPixel(col, row, getColor(row, col, rgb));
         
         
         // Save the image to a file
@@ -81,6 +79,7 @@ public class NeighborhoodPIG implements AutoCloseable{
 
     public static void main(String[] args) throws IOException {
         NeighborhoodPIG np = new NeighborhoodPIG("images/input/debug.jpeg", 1);
+//NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 1);
         np.orientationColored("images/output/test.png");
         
         System.out.println(np.stm.setOrientations());
@@ -124,7 +123,7 @@ public class NeighborhoodPIG implements AutoCloseable{
         Raster raster = image.getRaster();
         width = image.getWidth();
         height = image.getHeight();
-
+        
         double[] imageData = new double[width * height];
 
         Arrays.setAll(imageData, i -> raster.getSample(i / height, i % height, 0) / 255.0);
