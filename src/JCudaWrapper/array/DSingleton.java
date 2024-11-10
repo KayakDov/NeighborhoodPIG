@@ -8,7 +8,7 @@ import JCudaWrapper.resourceManagement.Handle;
  */
 public class DSingleton extends DArray{
     /**
-     * For use in addToMe a scalar fill and anywhere else it's needed.
+     * For use in add a scalar fill and anywhere else it's needed.
      */
     public static DSingleton oneOne;
     

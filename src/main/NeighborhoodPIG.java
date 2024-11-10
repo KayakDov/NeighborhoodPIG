@@ -10,7 +10,6 @@ import java.util.Arrays;
 import javax.imageio.ImageIO;
 import JCudaWrapper.resourceManagement.Handle;
 import JCudaWrapper.array.DArray;
-import java.awt.Color;
 import java.awt.image.WritableRaster;
 
 /**
@@ -84,25 +83,11 @@ public class NeighborhoodPIG implements AutoCloseable {
         NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 1);
         np.orientationColored("images/output/test.png");
 
-        System.out.println(np.stm.setOrientations());
+//        System.out.println(np.stm.setOrientations());
 
     }
 
-    /**
-     * Interpolates between two colors based on a normalized value in [0, 1].
-     *
-     * @param start The starting color (corresponding to value 0.0).
-     * @param end The ending color (corresponding to value 1.0).
-     * @param ratio The normalized value in [0, 1] used to interpolate.
-     * @return The interpolated color.
-     */
-    private static Color interpolateColor(Color start, Color end, double ratio) {
-        int red = (int) (start.getRed() + ratio * (end.getRed() - start.getRed()));
-        int green = (int) (start.getGreen() + ratio * (end.getGreen() - start.getGreen()));
-        int blue = (int) (start.getBlue() + ratio * (end.getBlue() - start.getBlue()));
 
-        return new Color(red, green, blue);
-    }
 
     /**
      * Method to load a .tif image and convert it into a single-dimensional

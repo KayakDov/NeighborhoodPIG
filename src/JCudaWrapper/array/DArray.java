@@ -141,6 +141,7 @@ public class DArray extends Array {
      */
     public double[] get(Handle handle, int fromStart, int length) {
         double[] export = new double[length];
+        handle.synch();
         get(handle, export, 0, fromStart, length);
         return export;
     }
@@ -151,7 +152,7 @@ public class DArray extends Array {
      * @param handle handle to the cuBLAS library context.
      * @return A CPU array containing all elements of this GPU array.
      */
-    public double[] get(Handle handle) {
+    public double[] get(Handle handle) {        
         return get(handle, 0, length);
     }
 
@@ -1023,11 +1024,11 @@ public class DArray extends Array {
      * this.
      * @return this
      */
-    public DArray addToMe(Handle handle, double timesX, DArray x, int incX, int inc) {
+    public DArray add(Handle handle, double timesX, DArray x, int incX, int inc) {
         checkNull(handle, x);
         checkLowerBound(1, inc);
-
-        JCublas2.cublasDaxpy(handle.get(), length, cpuPointer(timesX), x.pointer, incX, pointer, inc);
+        
+        JCublas2.cublasDaxpy(handle.get(), Math.ceilDiv(length, inc), cpuPointer(timesX), x.pointer, incX, pointer, inc);
         return this;
     }
 
@@ -1092,7 +1093,7 @@ public class DArray extends Array {
      *
      *
      */
-    public DArray multMe(Handle handle, double mult, int inc) {
+    public DArray multiply(Handle handle, double mult, int inc) {
         checkNull(handle);
         checkLowerBound(1, inc);
         JCublas2.cublasDscal(handle.get(), Math.ceilDiv(length, inc), Pointer.to(new double[]{mult}), pointer, inc);

@@ -181,7 +181,7 @@ public class DPointerArray extends Array {
      * elements between consecutive columns in memory).
      * @param batchCount The number of matrix-matrix multiplications to compute.
      */
-    public void multMatMatBatched(Handle handle, boolean transA, boolean transB,
+    public void addProductBatched(Handle handle, boolean transA, boolean transB,
             int aRows, int aColsBRows, int bCols, double timesAB, DPointerArray A,
             int lda, DPointerArray B, int ldb, double timesResult, int ldResult, int batchCount) {
 

@@ -92,8 +92,8 @@ public class Vector extends Matrix {
      * @param v The vector to be added to this vector.
      * @return This vector.
      */
-    public Vector addToMe(double mult, Matrix v) {
-        data.addToMe(handle, mult, v.data, v.colDist, inc());
+    public Vector add(double mult, Vector v) {
+        data.add(handle, mult, v.data, v.colDist, inc());
         return this;
     }
 
@@ -104,8 +104,8 @@ public class Vector extends Matrix {
      * @return this.
      */
     @Override
-    public Vector addToMe(double scalar) {
-        data.addToMe(handle, scalar, DSingleton.oneOne, 0, 1);
+    public Vector add(double scalar) {
+        data.add(handle, scalar, DSingleton.oneOne, 0, 1);
         return this;
 
     }
@@ -116,8 +116,8 @@ public class Vector extends Matrix {
      * @param scalar to multiply this array.
      * @return this.
      */
-    public Vector multiplyMe(double scalar) {
-        data.multMe(handle, scalar, inc());
+    public Vector multiply(double scalar) {
+        data.multiply(handle, scalar, inc());
         return this;
     }
 
@@ -139,7 +139,6 @@ public class Vector extends Matrix {
     /**
      * Computes the dot product of this vector with another vector.
      *
-     * @see Vector#dotProduct(org.apache.commons.math3.linear.RealVector)
      * @param v The other vector to compute the dot product with.
      * @return The dot product of this vector and {@code v}.
      * @throws DimensionMismatchException if the vectors have different lengths.
@@ -172,9 +171,9 @@ public class Vector extends Matrix {
      * and {@code v}.
      * @throws DimensionMismatchException if the vectors have different lengths.
      */
-    public Vector ebeMultiplyAndSet(Vector a, Vector b) {
+    public Vector ebeSetProduct(Vector a, Vector b) {
 
-        return addEbeMultiplyToSelf(a, b, 0);
+        return ebeAddProduct(a, b, 0);
 
     }
 
@@ -186,8 +185,8 @@ public class Vector extends Matrix {
      * @param a The vector that will be ebe times this.
      * @return this.
      */
-    public Vector multiplyMe(double scalar, Vector a) {
-        return addEbeMultiplyToSelf(scalar, a, this, 0);
+    public Vector multiply(double scalar, Vector a) {
+        return addEbeProduct(scalar, a, this, 0);
     }
 
     /**
@@ -203,8 +202,8 @@ public class Vector extends Matrix {
      * and {@code v}.
      * @throws DimensionMismatchException if the vectors have different lengths.
      */
-    public Vector addEbeMultiplyToSelf(Vector a, Vector b, double timesThis) {
-        return Vector.this.addEbeMultiplyToSelf(1, a, b, timesThis);
+    public Vector ebeAddProduct(Vector a, Vector b, double timesThis) {
+        return addEbeProduct(1, a, b, timesThis);
     }
 
     /**
@@ -221,11 +220,12 @@ public class Vector extends Matrix {
      * and {@code v}.
      * @throws DimensionMismatchException if the vectors have different lengths.
      */
-    public Vector addEbeMultiplyToSelf(double timesAB, Vector a, Vector b, double timesThis) {
+    public Vector addEbeProduct(double timesAB, Vector a, Vector b, double timesThis) {
 
         data.multSymBandMatVec(handle, true,
                 dim(), 0,
-                timesAB, a.data, a.inc(),
+                timesAB, 
+                a.data, a.inc(),
                 b.data, b.inc(),
                 timesThis, inc()
         );
@@ -233,44 +233,6 @@ public class Vector extends Matrix {
         return this;
     }
 
-    /**
-     * Computes the element-wise product of this vector and another vector, and
-     * adds it to this vector.
-     *
-     * @param workSpace A space to work in. It should be at least the size of
-     * this vector.
-     * @param a The first vector.
-     * @param timesAB A scalar to multiply by a and b.
-     * @param timesThis multiply this vector before adding the product of a and
-     * b.
-     * @see Vector#ebeMultiply(org.apache.commons.math3.linear.RealVector)
-     * @return A new vector containing the element-wise product of this vector
-     * and {@code v}.
-     * @throws DimensionMismatchException if the vectors have different lengths.
-     */
-    public Vector addEbeMultiplyToSelf(Vector workSpace, double timesAB, double timesThis, Vector... a) {
-
-        multiplyMe(timesThis);
-
-        if (a.length == 0) {
-            return this;
-        }
-        if (a.length == 1) {
-            return Vector.this.addEbeMultiplyToSelf(timesAB, this, a[0], 1);
-        }
-        if (a.length == 2) {
-            return Vector.this.addEbeMultiplyToSelf(timesAB, a[0], a[1], 1);
-        }
-
-        workSpace.addEbeMultiplyToSelf(timesAB, a[0], a[1], 0);
-
-        for (int i = 2; i < a.length; i++) {
-            workSpace.addEbeMultiplyToSelf(workSpace, a[i], 0);
-        }
-
-        return addToMe(1, workSpace);
-
-    }
 
     /**
      * Element by element division. Like most methods, it changes this vector.
@@ -443,7 +405,7 @@ public class Vector extends Matrix {
             return argMaxAbsVal;
         }
 
-        try (Vector sameSign = copy().addToMe(maxAbsVal)) {
+        try (Vector sameSign = copy().add(maxAbsVal)) {
             return sameSign.data.argMinAbs(handle, dim(), inc());
         }
     }
@@ -500,7 +462,7 @@ public class Vector extends Matrix {
         data.dot(handle, v.data, v.inc(), inc(), dots, 0);
         v.data.dot(handle, v.data, v.inc(), inc(), dots, 1);
 
-        return v.multiplyMe(dots[0] / dots[1]);
+        return v.multiply(dots[0] / dots[1]);
     }
 
     /**
@@ -518,7 +480,7 @@ public class Vector extends Matrix {
      * Turn this vector into a unit vector.
      */
     public void unitize() throws MathArithmeticException {
-        multiplyMe(1 / norm());
+        Vector.this.multiply(1 / norm());
     }
 
     /**
@@ -714,6 +676,13 @@ public class Vector extends Matrix {
         );
     }
 
+    @Override
+    public Matrix addProduct(boolean transposeA, boolean transposeB, double timesAB, Matrix a, Matrix b, double timesThis) {
+        throw new UnsupportedOperationException("Use the addProduct methods that take vectors as parameters instead.");
+    }
+
+
+    
     /**
      * This vector as a double array.
      *

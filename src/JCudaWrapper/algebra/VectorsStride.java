@@ -68,7 +68,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      */
     public Vector getVector(int i) {
         return new Vector(handle, data.getBatchArray(i), colDist);
-//        return getSubVector(data.stride*i)/inc, getSubVecDim());
+
     }
 
     /**
@@ -172,11 +172,10 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
     }
 
     /**
-     * @see MatricesStride#addToMe(boolean, double,
-     * JCudaWrapper.algebra.MatricesStride, double, JCudaWrapper.array.DArray)
+     * @see MatricesStride#add(boolean, double, JCudaWrapper.algebra.MatricesStride, double, JCudaWrapper.array.DArray)
      */
-    public VectorsStride addToMe(boolean transpose, double timesToAdd, VectorsStride toAdd, double timesThis, DArray workSpace) {
-        super.addToMe(transpose, timesToAdd, toAdd, timesThis, workSpace);
+    public VectorsStride add(boolean transpose, double timesToAdd, VectorsStride toAdd, double timesThis, DArray workSpace) {
+        super.add(transpose, timesToAdd, toAdd, timesThis, workSpace);
         return this;
     }
 
@@ -251,7 +250,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
         Vector normsInverted = new Vector(handle, workSpace.subArray(data.batchSize), 1)
                 .fill(magnitude).ebeDivide(norms);
 
-        multMe(normsInverted);
+        multiply(normsInverted);
 
         return this;
     }

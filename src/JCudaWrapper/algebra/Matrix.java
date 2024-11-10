@@ -141,7 +141,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
     public int getHeight() {
         return height;
     }
-
+    
     /**
      * Returns the width (number of columns) of the matrix.
      *
@@ -155,7 +155,6 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * Multiplies two matrices, adding the result into this matrix. The result
      * is inserted into this matrix as a submatrix.
      *
-     * @param handle The handle for this operation.
      * @param transposeA True if the first matrix should be transposed.
      * @param transposeB True if the second matrix should be transposed.
      * @param timesAB Scalar multiplier for the product of the two matrices.
@@ -316,7 +315,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param d The scalar that does the multiplying.
      * @return A new matrix equal to this matrix times a scalar.
      */
-    public Matrix multiplyMe(double d) {
+    public Matrix multiply(double d) {
         return addAndSet(d, this, 0, this);
     }
 
@@ -337,7 +336,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param d The scalar to be added.
      * @return this.
      */
-    public Matrix addToMe(double d) {
+    public Matrix add(double d) {
         try (DSingleton sing = new DSingleton(handle, d)) {
             KernelManager.get("addScalarToMatrix").map(handle, sing, colDist, data, height, size());
             return this;
@@ -662,7 +661,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
         Matrix ident = new Matrix(hand, holdIdentity, n, n);
         ident.data.fill0(hand);
         try (DSingleton one = new DSingleton(hand, 1)) {
-            ident.data.addToMe(hand, 1, one, 0, n + 1);
+            ident.data.add(hand, 1, one, 0, n + 1);
         }
         return ident;
     }
@@ -810,16 +809,6 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      */
     public DArray dArray() {
         return data;
-    }
-
-    /**
-     * The underlying data of this matrix in a vector. If colDist != height
-     * there will be elements in that vector that are not in this matrix.
-     *
-     * @return The underlying data of this matrix in a vector.
-     */
-    public Vector asVector() {
-        return new Vector(handle, data, 1);
     }
 
     /**
@@ -977,6 +966,15 @@ public class Matrix implements AutoCloseable, ColumnMajor {
                 );
             }
         }
+    }
+    
+    /**
+     * The number op non zeroe elements in this matrix.
+     * @return The number op non zeroe elements in this matrix.
+     */
+    public int numNonZeroes(){
+        double[] columnMajor = colMajor();
+        return (int)Arrays.stream(columnMajor).filter(d -> Math.abs(d) > 1e-10).count();
     }
 
 }

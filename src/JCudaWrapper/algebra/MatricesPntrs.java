@@ -187,7 +187,7 @@ public class MatricesPntrs implements AutoCloseable {
      * @throws ArrayIndexOutOfBoundsException If the sizes of the matrix batches
      * A, B, and this batch do not match.
      */
-    public MatricesPntrs addToMeMatMatMult(Handle handle, double timesAB, MatricesPntrs a, MatricesPntrs b, double timesThis) {
+    public MatricesPntrs addProduct(Handle handle, double timesAB, MatricesPntrs a, MatricesPntrs b, double timesThis) {
         // Ensure the dimensions are compatible for matrix multiplication
         if (a.width != b.height) {
             throw new DimensionMismatchException(a.width, b.height);
@@ -201,7 +201,7 @@ public class MatricesPntrs implements AutoCloseable {
         }
 
         // Perform the batched matrix-matrix multiplication
-        arrays.multMatMatBatched(handle,
+        arrays.addProductBatched(handle,
                 a.transposeForOperations, b.transposeForOperations,
                 a.height, a.width, b.width,
                 timesAB,

@@ -189,7 +189,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      * @throws DimensionMismatchException if the dimensions of matrices
      * {@code a} and {@code b} are incompatible for multiplication.
      */
-    public MatricesStride multMe(Vector scalars) {
+    public MatricesStride multiply(Vector scalars) {
 
         KernelManager.get("prodScalarMatrixBatch").vectorBatchMatrix(handle, scalars, this);
 
@@ -203,8 +203,8 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      * @param workSpace Should be width * height.
      * @return this
      */
-    public MatricesStride multMe(double scalar, DArray workSpace) {
-        addToMe(false, scalar, this, 0, workSpace);
+    public MatricesStride multiply(double scalar, DArray workSpace) {
+        add(false, scalar, this, 0, workSpace);
         return this;
     }
 
@@ -227,22 +227,22 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
         Vector trace = workSpace.getSubVector(0, data.batchCount());
 
-        trace.set(m[1][1]).addToMe(1, m[0][0]);//= a + d
+        trace.set(m[1][1]).add(1, m[0][0]);//= a + d
 
-        eVal[0].ebeMultiplyAndSet(trace, trace); //= (d + a)*(d + a)
+        eVal[0].ebeSetProduct(trace, trace); //= (d + a)*(d + a)
 
-        eVal[1].ebeMultiplyAndSet(m[0][1], m[0][1]); //c^2
-        eVal[1].addEbeMultiplyToSelf(m[0][0], m[1][1], -1);// = ad - c^2
+        eVal[1].ebeSetProduct(m[0][1], m[0][1]); //c^2
+        eVal[1].ebeAddProduct(m[0][0], m[1][1], -1);// = ad - c^2
 
-        eVal[0].addToMe(-4, eVal[1]);//=(d + a)^2 - 4(ad - c^2)
+        eVal[0].add(-4, eVal[1]);//=(d + a)^2 - 4(ad - c^2)
 
         KernelManager.get("sqrt").mapToSelf(handle, eVal[0]);//sqrt((d + a)^2 - 4(ad - c^2))
 
         eVal[1].set(trace);
-        eVal[1].addToMe(-1, eVal[0]);
-        eVal[0].addToMe(1, trace);
+        eVal[1].add(-1, eVal[0]);
+        eVal[0].add(1, trace);
 
-        eVals.data.multMe(handle, 0.5, 1);
+        eVals.data.multiply(handle, 0.5, 1);
 
         return eVals;
     }
@@ -275,13 +275,13 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
         setDiagonalMinors(minor, m, vals);
         Vector C = work[1].fill(0);
-        for (int i = 0; i < 3; i++) C.addToMe(1, minor[i][i]);
+        for (int i = 0; i < 3; i++) C.add(1, minor[i][i]);
 
         setRow0Minors(minor, m, vals);
         Vector det = work[2];
-        det.ebeMultiplyAndSet(m[0][0], minor[0][0]);
-        det.addEbeMultiplyToSelf(-1, m[0][1], minor[0][1], 1);
-        det.addEbeMultiplyToSelf(-1, m[0][2], minor[0][2], -1);
+        det.ebeSetProduct(m[0][0], minor[0][0]);
+        det.addEbeProduct(-1, m[0][1], minor[0][1], 1);
+        det.addEbeProduct(-1, m[0][2], minor[0][2], -1);
 
         cubicRoots(negTrace, C, det, vals);
 
@@ -334,14 +334,14 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
         for (int i = 0; i < minor.length; i++)
             minor[i][i] = storagePartition[i];
 
-        minor[0][0].ebeMultiplyAndSet(m[1][1], m[2][2]);
-        minor[0][0].addEbeMultiplyToSelf(-1, m[1][2], m[1][2], 1);
+        minor[0][0].ebeSetProduct(m[1][1], m[2][2]);
+        minor[0][0].addEbeProduct(-1, m[1][2], m[1][2], 1);
 
-        minor[1][1].ebeMultiplyAndSet(m[0][0], m[2][2]);
-        minor[1][1].addEbeMultiplyToSelf(-1, m[0][2], m[0][2], 1);
+        minor[1][1].ebeSetProduct(m[0][0], m[2][2]);
+        minor[1][1].addEbeProduct(-1, m[0][2], m[0][2], 1);
 
-        minor[2][2].ebeMultiplyAndSet(m[0][0], m[1][1]);
-        minor[2][2].addEbeMultiplyToSelf(-1, m[0][1], m[0][1], 1);
+        minor[2][2].ebeSetProduct(m[0][0], m[1][1]);
+        minor[2][2].addEbeProduct(-1, m[0][1], m[0][1], 1);
     }
 
     /**
@@ -354,14 +354,14 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
     private void setRow0Minors(Vector[][] minor, Vector[][] m, VectorsStride minorStorage) {
         minor[0] = minorStorage.vecPartition();
 
-        minor[0][1].ebeMultiplyAndSet(m[1][1], m[2][2]);
-        minor[0][1].addEbeMultiplyToSelf(-1, m[1][2], m[1][2], 1);
+        minor[0][1].ebeSetProduct(m[1][1], m[2][2]);
+        minor[0][1].addEbeProduct(-1, m[1][2], m[1][2], 1);
 
-        minor[0][1].ebeMultiplyAndSet(m[0][1], m[2][2]);
-        minor[0][1].addEbeMultiplyToSelf(-1, m[0][2], m[1][2], 1);
+        minor[0][1].ebeSetProduct(m[0][1], m[2][2]);
+        minor[0][1].addEbeProduct(-1, m[0][2], m[1][2], 1);
 
-        minor[0][2].ebeMultiplyAndSet(m[0][1], m[1][2]);
-        minor[0][2].addEbeMultiplyToSelf(-1, m[1][1], m[0][2], 1);
+        minor[0][2].ebeSetProduct(m[0][1], m[1][2]);
+        minor[0][2].addEbeProduct(-1, m[1][1], m[0][2], 1);
     }
 
     /**
@@ -384,35 +384,33 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
         Vector[] root = roots.vecPartition();
 
         Vector q = root[0];
-        q.ebeMultiplyAndSet(b, b);
-        q.addEbeMultiplyToSelf(2.0 / 27, q, b, 0);
-        q.addEbeMultiplyToSelf(-1.0 / 3, b, c, 1);
-        q.addToMe(1, d);
+        q.ebeSetProduct(b, b);
+        q.addEbeProduct(2.0 / 27, q, b, 0);
+        q.addEbeProduct(-1.0 / 3, b, c, 1);
+        q.add(1, d);
 
         Vector p = d;
-        p.addEbeMultiplyToSelf(1.0 / 9, b, b, 0);
-        p.addToMe(-1.0 / 3, c); //This is actually p/-3 from wikipedia.
+        p.addEbeProduct(1.0 / 9, b, b, 0);
+        p.add(-1.0 / 3, c); //This is actually p/-3 from wikipedia.
 
         //c is free for now.  
         Vector theta = c;
         Vector pInverse = root[1].fill(1).ebeDivide(p); //c is now taken               
         sqrt.map(b.getHandle(), pInverse, theta);
 
-        theta.addEbeMultiplyToSelf(-0.5, q, theta, 0);//root[0] is now free (all roots).
-        theta.ebeMultiplyAndSet(theta, pInverse); //c is now free.
+        theta.addEbeProduct(-0.5, q, theta, 0);//root[0] is now free (all roots).
+        theta.ebeSetProduct(theta, pInverse); //c is now free.
         acos.mapToSelf(b.getHandle(), theta);
 
-        for (int k = 0; k < 3; k++) {
-            root[k].set(theta);
-            root[k].addToMe(-2 * Math.PI * k);
-        }
-        roots.data.multMe(b.getHandle(), 1.0 / 3, 1);
+        for (int k = 0; k < 3; k++) root[k].set(theta).add(-2 * Math.PI * k);
+        
+        roots.data.multiply(b.getHandle(), 1.0 / 3, 1);
         cos.mapToSelf(b.getHandle(), roots.data);
 
         sqrt.mapToSelf(b.getHandle(), p);
         for (Vector r : root) {
-            r.addEbeMultiplyToSelf(2, p, r, 0);
-            r.addToMe(-1.0 / 3, b);
+            r.addEbeProduct(2, p, r, 0);
+            r.add(-1.0 / 3, b);
         }
     }
 
@@ -533,7 +531,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
     private void computeVec(Vector eValue, VectorsStride eVector, IArray info, IArray pivot) {
 
         for (int i = 0; i < height; i++)
-            get(i, i).addToMe(-1, eValue);
+            get(i, i).add(-1, eValue);
 
 //        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() After eigen subtraction:\n" + toString());
         getPointers().LUFactor(handle, pivot, info);
@@ -554,13 +552,13 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
         eVector.get(height - 2)
                 .set(m[width - 2][height - 1])
                 .ebeDivide(m[width - 2][height - 2])
-                .multiplyMe(-1);
+                .multiply(-1);
 
         if (eVector.getSubVecDim() == 3)
             eVector.getElement(0)
                     .set(eVector.getElement(1))
-                    .multiplyMe(-1, m[0][1])
-                    .addToMe(-1, m[0][2])
+                    .multiply(-1, m[0][1])
+                    .add(-1, m[0][2])
                     .ebeDivide(m[0][0]);
 
 //        System.out.println("Before pivoting: " + eVector);
@@ -781,7 +779,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
                 MatricesStride empty = new Matrix(handle, workSpace, height, width).repeating(data.batchSize);
 
-                addToMe(false, scalar, empty, 0, workSpace);
+                add(false, scalar, empty, 0, workSpace);
             }
         }
         return this;
@@ -815,7 +813,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      * @param workSpace workspace should be width^2 length.
      * @return
      */
-    public MatricesStride addToMe(boolean transpose, double timesToAdd, MatricesStride toAdd, double timesThis, DArray workSpace) {
+    public MatricesStride add(boolean transpose, double timesToAdd, MatricesStride toAdd, double timesThis, DArray workSpace) {
 
         Matrix id = Matrix.identity(handle, width, workSpace);
 

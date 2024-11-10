@@ -5,6 +5,7 @@ import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.Vector;
 import JCudaWrapper.algebra.VectorsStride;
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.Arrays;
 
 /**
  * This class implements element-by-element multiplication (EBEM) for
@@ -58,9 +59,15 @@ public class NeighborhoodProductSums implements AutoCloseable {
      *
      */
     public void set(Matrix a, Matrix b, Vector result) {
-
-        ebeStorage.asVector().ebeMultiplyAndSet(a.asVector(), b.asVector());
-
+        
+        Handle hand = a.getHandle();
+        
+        new Vector(hand, ebeStorage.dArray(), 1)
+                .ebeSetProduct(
+                        new Vector(hand, a.dArray(), 1), 
+                        new Vector(hand, b.dArray(), 1)
+                );
+        
         inRowSumsEdge();
         inRowSumNearEdge();
         inRowSumCenter();
@@ -68,9 +75,8 @@ public class NeighborhoodProductSums implements AutoCloseable {
         VectorsStride resultRows = result.subVectors(1, height, width, a.colDist);
         
         nSumEdge(resultRows);
-        nSumNearEdge(resultRows);
+        nSumNearEdge(resultRows); //TODO: remove parameter a
         nSumCenter(resultRows);
-        
         //TODO: pixels nearer the edges have lower sums.  They should probably be normalized for this.
     }
 
@@ -133,7 +139,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
                     -1, ebeStorage.getColumn(colIndex - nRad - 1),
                     1, ebeStorage.getColumn(colIndex + nRad)
             );
-            column.addToMe(1, inRowSum.getColumn(colIndex - 1));
+            column.add(1, inRowSum.getColumn(colIndex - 1));
         }
     }
 
@@ -167,15 +173,21 @@ public class NeighborhoodProductSums implements AutoCloseable {
      */
     private void nSumNearEdge(VectorsStride resultRows) {
         for (int i = 1; i < nRad + 1; i++) {
+            
             int rowInd = i;
             Vector nSumRow = resultRows.getVector(rowInd);
-            nSumRow.addToMe(1, inRowSum.getRow(rowInd + nRad));
-            nSumRow.addToMe(1, resultRows.getVector(rowInd - 1));
-
+            
+            
+            Vector forwardEdge = inRowSum.getRow(rowInd + nRad);//TODO: insert into next line
+            
+            nSumRow.add(1, forwardEdge);
+            
+            nSumRow.add(1, resultRows.getVector(rowInd - 1));
+            
             rowInd = height - 1 - i;
             nSumRow = resultRows.getVector(rowInd);
-            nSumRow.addToMe(1, inRowSum.getRow(rowInd - nRad));
-            nSumRow.addToMe(1, resultRows.getVector(rowInd + 1));
+            nSumRow.add(1, inRowSum.getRow(rowInd - nRad));
+            nSumRow.add(1, resultRows.getVector(rowInd + 1));
 
         }
     }
@@ -191,10 +203,10 @@ public class NeighborhoodProductSums implements AutoCloseable {
     private void nSumCenter(VectorsStride resultRows) {
         for (int rowIndex = nRad + 1; rowIndex < height - nRad; rowIndex++) {
             Vector nSumsRow = resultRows.getVector(rowIndex);
-            nSumsRow.addToMe(-1, inRowSum.getRow(rowIndex - nRad - 1));
-            nSumsRow.addToMe(1, inRowSum.getRow(rowIndex + nRad));
+            nSumsRow.add(-1, inRowSum.getRow(rowIndex - nRad - 1));
+            nSumsRow.add(1, inRowSum.getRow(rowIndex + nRad));
 
-            nSumsRow.addToMe(1, resultRows.getVector(rowIndex - 1));
+            nSumsRow.add(1, resultRows.getVector(rowIndex - 1));
         }
     }
 
