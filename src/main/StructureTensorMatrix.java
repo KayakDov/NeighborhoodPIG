@@ -84,7 +84,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      */
     public Matrix getTensor(int row, int col) {
 
-        return strctTensors.getSubMatrix(index(row, col));
+        return strctTensors.getMatrix(index(row, col));
     }
 
     /**
