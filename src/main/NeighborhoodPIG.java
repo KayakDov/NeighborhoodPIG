@@ -106,19 +106,23 @@ public class NeighborhoodPIG implements AutoCloseable {
             image = convertToGrayscale(image);
 
         Raster raster = image.getRaster();
-        width = image.getWidth();
-        height = image.getHeight();
+        int size = (int)1e5;
+        width = Math.min(size, image.getWidth());
+        height = Math.min(size, image.getHeight());//TODO: change to full size by removing the size variabl and the min.
 
         double[] imageData = new double[width * height];
 
         Arrays.setAll(imageData, i -> raster.getSample(i / height, i % height, 0) / 255.0);
 
-        return new Matrix(
+        Matrix mat = new Matrix(
                 handle,
                 new DArray(handle, imageData),
                 height,
                 width);
-
+        
+//        System.out.println(mat);
+        
+        return mat;
     }
 
     /**

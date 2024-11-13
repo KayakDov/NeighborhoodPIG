@@ -3,6 +3,8 @@ package main;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
+import java.util.Arrays;
+import java.util.Random;
 import javax.imageio.ImageIO;
 
 /**
@@ -12,11 +14,8 @@ import javax.imageio.ImageIO;
  */
 public class GenDebugFile {
 
-    public static void main(String[] args) {
-        
-        // Define pixel values for each point in a 7x7 grid
-        // We use values from 0.1, 0.2, ... to 0.7
-        double[][] pixelValues = {
+    
+    public static double[][] xGrad1 = new double[][]{
             {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
             {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
             {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
@@ -25,6 +24,30 @@ public class GenDebugFile {
             {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
             {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
         };
+    
+    public static double[][] white = new double[][]{
+        {1,1,1,1,1,1},
+        {1,1,1,1,1,1},
+        {1,1,1,1,1,1},
+        {1,1,1,1,1,1},
+        {1,1,1,1,1,1},
+        {1,1,1,1,1,1},
+        {1,1,1,1,1,1}
+    };
+    
+    
+    public static double[][] random(int height, int width){
+        Random rand = new Random();
+        double[][] random = new double[height][width];
+        for(double[] row: random)
+            Arrays.setAll(row, i -> rand.nextDouble());
+        return random;
+    }
+    public static void main(String[] args) {
+        
+        // Define pixel values for each point in a 7x7 grid
+        // We use values from 0.1, 0.2, ... to 0.7
+        double[][] pixelValues = random(1000, 1000);
 
         int width = pixelValues[0].length;
         int height = pixelValues.length;
@@ -44,9 +67,10 @@ public class GenDebugFile {
 
         // Save the image as a JPEG file
         try {
-            File outputFile = new File("images/input/debug.jpeg");
+            String saveTo = "images/input/debug.jpeg";
+            File outputFile = new File(saveTo);
             ImageIO.write(image, "jpeg", outputFile);
-            System.out.println("Image saved as images/input/debug.jpeg, a " + height + "x" + width + " image.");
+            System.out.println("Image saved as:" + saveTo + ": "+ height + "x" + width);
         } catch (Exception e) {
             e.printStackTrace();
         }

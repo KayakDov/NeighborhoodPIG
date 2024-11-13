@@ -39,7 +39,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
     public VectorsStride(Handle handle, int strideSize, int batchSize, int subVecDim, int inc) {
         this(
                 handle,
-                DArray.empty(DStrideArray.minLength(strideSize, inc * subVecDim, batchSize)),
+                DArray.empty(DStrideArray.totalDataLength(strideSize, inc * subVecDim, batchSize)),
                 inc,
                 subVecDim,
                 strideSize,
@@ -257,10 +257,15 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
 
     public static void main(String[] args) {
         try (Handle hand = new Handle();
-                DArray d = new DArray(hand, 1, 2, 1, 3, 3, 0, -3, 12);
-                DArray workSpace = DArray.empty(4)) {
-            VectorsStride vs = new VectorsStride(hand, d, 2, 2, 4, 2);
-            System.out.println(vs.setVectorMagnitudes(1, workSpace));
+                Vector vec = new Vector(hand, 1,2,3,4,99,  5,6,7,8,99,  9,10,11,12,99)) {
+            
+            int width = 3, height = 4, colDist = 5;
+            
+            VectorsStride rows = vec.subVectors(1, width, colDist, height);
+            
+            System.out.println(rows);//2,6,10
+            
+            
         }
     }
 

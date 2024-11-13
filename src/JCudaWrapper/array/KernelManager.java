@@ -238,7 +238,7 @@ public class KernelManager implements AutoCloseable {
      * @return The {@code DArray} containing the processed results.
      */
     public DArray map(Handle handle, Vector input, Vector output) {
-        return map(handle, input.dArray(), input.colDist, output.dArray(), output.colDist, Math.min(input.dim(), output.dim()));
+        return map(handle, input.dArray(), input.inc(), output.dArray(), output.inc(), Math.min(input.dim(), output.dim()));
     }
 
     /**
@@ -281,6 +281,7 @@ public class KernelManager implements AutoCloseable {
      * Runs the loaded CUDA kernel, mapping the input to itself, on a specified
      * stream.
      *
+     * @param handle The handle.
      * @param input The {@code DArray} representing the input data to be
      * processed by the kernel.
      * @return The {@code DArray} containing the processed results.

@@ -141,7 +141,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
     public int getHeight() {
         return height;
     }
-    
+
     /**
      * Returns the width (number of columns) of the matrix.
      *
@@ -660,9 +660,9 @@ public class Matrix implements AutoCloseable, ColumnMajor {
 
         Matrix ident = new Matrix(hand, holdIdentity, n, n);
         ident.data.fill0(hand);
-        try (DSingleton one = new DSingleton(hand, 1)) {
-            ident.data.add(hand, 1, one, 0, n + 1);
-        }
+
+        ident.data.add(hand, 1, DSingleton.oneOne, 0, n + 1);
+
         return ident;
     }
 
@@ -782,9 +782,9 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      */
     @Override
     public void close() {
-        if (colDist != height) {
-            throw new IllegalAccessError("You are cleaning data from a sub Matrix");
-        }
+//        if (colDist != height) {
+//            throw new IllegalAccessError("You are cleaning data from a sub Matrix");
+//        }
         data.close();
     }
 
@@ -932,7 +932,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
 
     public static void main(String[] args) {
         try (Handle hand = new Handle();
-                DArray a = new DArray(hand, -1, 2, 3,   2, 4, 5,   3, 5, 6);
+                DArray a = new DArray(hand, -1, 2, 3, 2, 4, 5, 3, 5, 6);
                 DArray l = DArray.empty(9); DArray u = DArray.empty(9);
                 IArray info = IArray.empty(1); IArray pivot = IArray.empty(3);) {
 
@@ -951,8 +951,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
 
                 System.out.println("\nEigen value " + i + ":\n " + eVal);
                 System.out.println("Eigen vector " + i + ":\n " + eVec);
-                
-                
+
                 System.out.println("m = \n" + m);
 
                 System.out.println("Checking: is the vector = \n"
@@ -967,14 +966,15 @@ public class Matrix implements AutoCloseable, ColumnMajor {
             }
         }
     }
-    
+
     /**
      * The number op non zeroe elements in this matrix.
+     *
      * @return The number op non zeroe elements in this matrix.
      */
-    public int numNonZeroes(){
+    public int numNonZeroes() {
         double[] columnMajor = colMajor();
-        return (int)Arrays.stream(columnMajor).filter(d -> Math.abs(d) > 1e-10).count();
+        return (int) Arrays.stream(columnMajor).filter(d -> Math.abs(d) > 1e-10).count();
     }
 
 }

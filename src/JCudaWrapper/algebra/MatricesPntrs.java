@@ -399,22 +399,6 @@ public class MatricesPntrs implements AutoCloseable {
     }
 
     /**
-     * The reverse process of LU factorization. This method is slow and really
-     * only meant to check the success of LU factorization for debugging
-     * purposes.
-     *
-     * @param pivot The pivoting that took place during the LU factorization.
-     */
-    public void undoLU(Handle handle, IArray pivot) {
-        int[] pivotCPU = pivot.get(handle);
-        for (int i =  pivot.length;i >= 0; i--){
-            
-        }
-            
-    
-    }
-
-    /**
      * Replaces this matrix with the lu factorization. L has unit diagonal so
      * the diagoanal in this matrix will be U's.
      *

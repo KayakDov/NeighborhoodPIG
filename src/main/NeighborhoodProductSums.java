@@ -72,11 +72,11 @@ public class NeighborhoodProductSums implements AutoCloseable {
         inRowSumNearEdge();
         inRowSumCenter();
 
-        VectorsStride resultRows = result.subVectors(1, height, width, a.colDist);
+        VectorsStride resultRows = result.subVectors(1, width, a.colDist, height);
         
         nSumEdge(resultRows);
         nSumNearEdge(resultRows); //TODO: remove parameter a
-        nSumCenter(resultRows);
+        nSumCenter(resultRows, a);
         //TODO: pixels nearer the edges have lower sums.  They should probably be normalized for this.
     }
 
@@ -175,20 +175,16 @@ public class NeighborhoodProductSums implements AutoCloseable {
         for (int i = 1; i < nRad + 1; i++) {
             
             int rowInd = i;
-            Vector nSumRow = resultRows.getVector(rowInd);
-            
-            
-            Vector forwardEdge = inRowSum.getRow(rowInd + nRad);//TODO: insert into next line
-            
-            nSumRow.add(1, forwardEdge);
-            
-            nSumRow.add(1, resultRows.getVector(rowInd - 1));
-            
+            resultRows.getVector(rowInd).addAndSet(
+                    1, inRowSum.getRow(rowInd + nRad), 
+                    1, resultRows.getVector(rowInd - 1)
+            );
+                        
             rowInd = height - 1 - i;
-            nSumRow = resultRows.getVector(rowInd);
-            nSumRow.add(1, inRowSum.getRow(rowInd - nRad));
-            nSumRow.add(1, resultRows.getVector(rowInd + 1));
-
+            resultRows.getVector(rowInd).addAndSet(
+                    1, inRowSum.getRow(rowInd - nRad),
+                    1, resultRows.getVector(rowInd + 1)
+            );
         }
     }
 
@@ -200,13 +196,13 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param nRad Neighborhood radius.
      * @param height Height of the matrix.
      */
-    private void nSumCenter(VectorsStride resultRows) {
+    private void nSumCenter(VectorsStride resultRows, Matrix a) {
         for (int rowIndex = nRad + 1; rowIndex < height - nRad; rowIndex++) {
-            Vector nSumsRow = resultRows.getVector(rowIndex);
-            nSumsRow.add(-1, inRowSum.getRow(rowIndex - nRad - 1));
-            nSumsRow.add(1, inRowSum.getRow(rowIndex + nRad));
 
-            nSumsRow.add(1, resultRows.getVector(rowIndex - 1));
+            resultRows.getVector(rowIndex).addAndSet(
+                    -1, inRowSum.getRow(rowIndex - nRad - 1),
+                    1, inRowSum.getRow(rowIndex + nRad)
+            ).add(1, resultRows.getVector(rowIndex - 1));
         }
     }
 

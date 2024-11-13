@@ -9,6 +9,8 @@ import jcuda.driver.CUdeviceptr;
 import jcuda.jcublas.JCublas2;
 import jcuda.jcublas.cublasDiagType;
 import jcuda.jcublas.cublasFillMode;
+import jcuda.runtime.cudaError;
+import org.apache.commons.math3.exception.DimensionMismatchException;
 
 /**
  * This class provides functionalities to create and manipulate double arrays on
@@ -35,13 +37,14 @@ public class DArray extends Array {
         this(Array.empty(values.length, PrimitiveType.DOUBLE), values.length);
         copy(handle, this, values, 0, 0, values.length);
     }
-    
+
     /**
-     * Writes the raster to this darray in column major order.
+     * Writes the raster to this DArray in column major order.
+     *
      * @param handle
-     * @param raster 
+     * @param raster
      */
-    public DArray(Handle handle, Raster raster){
+    public DArray(Handle handle, Raster raster) {
         this(Array.empty(raster.getWidth() * raster.getHeight(), PrimitiveType.DOUBLE), raster.getWidth() * raster.getHeight());
 //        raster.gets
     }
@@ -152,7 +155,7 @@ public class DArray extends Array {
      * @param handle handle to the cuBLAS library context.
      * @return A CPU array containing all elements of this GPU array.
      */
-    public double[] get(Handle handle) {        
+    public double[] get(Handle handle) {
         return get(handle, 0, length);
     }
 
@@ -177,7 +180,7 @@ public class DArray extends Array {
                 toInc
         );
     }
-    
+
     /**
      * Copies from this vector to another with increments.
      *
@@ -190,10 +193,11 @@ public class DArray extends Array {
      * @param length The number of elements to copy.
      */
     public void get(Handle handle, double[] to, int toStart, int fromStart, int toInc, int fromInc, int length) {
-        if(fromInc == toInc && fromInc == 1) get(handle, to, toStart, fromStart, length);
-        else{
-            for(int i = 0; i < length; i++)
-                get(handle, to, i*toInc + toStart, i*fromInc + fromStart, 1);
+        if (fromInc == toInc && fromInc == 1)
+            get(handle, to, toStart, fromStart, length);
+        else {
+            for (int i = 0; i < length; i++)
+                get(handle, to, i * toInc + toStart, i * fromInc + fromStart, 1);
         }
     }
 
@@ -302,17 +306,18 @@ public class DArray extends Array {
         checkAgainstLength(index);
         return new DSingleton(this, index);
     }
-    
+
     /**
      * Maps the elements in this array at the given increment to a double[].
+     *
      * @param handle The handle.
      * @param inc The increment of the desired elements.
      * @return A cpu array of all the elements at the given increment.
      */
-    public double[] getIncremented(Handle handle, int inc){
-        double[] incremented = new double[Math.ceilDiv(length, inc)];
+    public double[] getIncremented(Handle handle, int inc) {
+        double[] incremented = new double[n(inc)];
         Pointer cpu = Pointer.to(incremented);
-        for(int i = 0; i < length; i+= inc)
+        for (int i = 0; i < length; i += inc)
             get(handle, cpu, i, i, 1);
         handle.synch();
         return incremented;
@@ -400,7 +405,7 @@ public class DArray extends Array {
      * read all of x, set to 1.
      * @param vecY Pointer to vector Y in GPU memory.
      * @param incY When iterating though the elements of y, the jump size.
-     *
+     * @param lda The distance between the first element of each column of a.
      */
     public void outerProd(Handle handle, int rows, int cols, double multProd, DArray vecX, int incX, DArray vecY, int incY, int lda) {
         checkNull(handle, vecX, vecY);
@@ -443,7 +448,7 @@ public class DArray extends Array {
      * @param result where the result is to be stored.
      */
     public void norm(Handle handle, int length, int inc, DSingleton result) {
-        
+
         checkNull(handle, result);
         JCublas2.cublasDnrm2(handle.get(), length, pointer, inc, result.pointer);
     }
@@ -862,7 +867,7 @@ public class DArray extends Array {
         checkNull(handle);
 
         DSingleton from = new DSingleton(handle, fill);
-        set(handle, from, 0, 0, inc, 0, Math.ceilDiv(length, inc));
+        set(handle, from, 0, 0, inc, 0, n(inc));
         return this;
     }
 
@@ -949,7 +954,7 @@ public class DArray extends Array {
     public void dot(Handle handle, DArray x, int incX, int inc, double[] result, int resultInd) {
         checkNull(handle, x, result);
         checkPositive(resultInd, inc, incX);
-        JCublas2.cublasDdot(handle.get(), length, x.pointer, incX, pointer, inc, Pointer.to(result).withByteOffset(resultInd * Sizeof.DOUBLE));
+        JCublas2.cublasDdot(handle.get(), n(inc), x.pointer, incX, pointer, inc, Pointer.to(result).withByteOffset(resultInd * Sizeof.DOUBLE));
 
     }
 
@@ -971,8 +976,8 @@ public class DArray extends Array {
      * !transposeA).
      * @param bThisCols The number of columns of this matrix and matrix B (if
      * !transposeP).
-     * @param aColsBRows The number of columns of matrix A (if !transposeA) and rows
-     * of matrix B (if !transposeB).
+     * @param aColsBRows The number of columns of matrix A (if !transposeA) and
+     * rows of matrix B (if !transposeB).
      * @param timesAB A scalar to be multiplied by AB.
      * @param a Pointer to matrix A, stored in GPU memory. successive rows in
      * memory, usually equal to ARows).
@@ -990,9 +995,9 @@ public class DArray extends Array {
             int bThisCols, int aColsBRows, double timesAB, DArray a, int lda, DArray b, int ldb, double timesCurrent, int ldc) {
         checkNull(handle, a, b);
         checkPositive(aRows, bThisCols, aColsBRows, lda, ldb, ldc);
-        if(!transposeA)checkLowerBound(aRows, lda);
-        if(!transposeB)checkLowerBound(aColsBRows);
-        
+        if (!transposeA) checkLowerBound(aRows, lda);
+        if (!transposeB) checkLowerBound(aColsBRows);
+
         a.checkAgainstLength(aColsBRows * lda - 1);
         checkAgainstLength(aRows * bThisCols - 1);
 
@@ -1000,8 +1005,10 @@ public class DArray extends Array {
                 handle.get(), // cublas handle
                 transpose(transposeA), transpose(transposeB),
                 aRows, bThisCols, aColsBRows,
-                cpuPointer(timesAB), a.pointer, lda,
-                b.pointer, ldb, cpuPointer(timesCurrent),
+                cpuPointer(timesAB), 
+                a.pointer, lda,
+                b.pointer, ldb, 
+                cpuPointer(timesCurrent),
                 pointer, ldc
         );
     }
@@ -1027,8 +1034,19 @@ public class DArray extends Array {
     public DArray add(Handle handle, double timesX, DArray x, int incX, int inc) {
         checkNull(handle, x);
         checkLowerBound(1, inc);
+        checkAgainstLength((n(inc) - 1)*inc);
         
-        JCublas2.cublasDaxpy(handle.get(), Math.ceilDiv(length, inc), cpuPointer(timesX), x.pointer, incX, pointer, inc);
+        if(incX != 0 &&  x.n(incX) != n(inc)) throw new DimensionMismatchException(n(inc), x.n(incX));
+        
+        int result = JCublas2.cublasDaxpy(
+                handle.get(), 
+                n(inc), 
+                cpuPointer(timesX), x.pointer, incX, 
+                pointer, inc
+        );
+        if(result != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda addition failed. Error: " +result);
+        
         return this;
     }
 
@@ -1096,7 +1114,7 @@ public class DArray extends Array {
     public DArray multiply(Handle handle, double mult, int inc) {
         checkNull(handle);
         checkLowerBound(1, inc);
-        JCublas2.cublasDscal(handle.get(), Math.ceilDiv(length, inc), Pointer.to(new double[]{mult}), pointer, inc);
+        JCublas2.cublasDscal(handle.get(), n(inc), cpuPointer(mult), pointer, inc);
         return this;
     }
 
@@ -1153,22 +1171,35 @@ public class DArray extends Array {
      * @return A representation of this array as a set of sub arrays.
      */
     public DStrideArray getAsBatch(int strideSize, int subArrayLength, int batchSize) {
-        return new DStrideArray(pointer, strideSize, batchSize, subArrayLength);
+        return new DStrideArray(pointer, strideSize, subArrayLength, batchSize);
     }
 
     /**
      * Breaks this array into a a set of sub arrays.
      *
      * @param handle
-     * @param strideSize The length of each sub array.
+     * @param strideSize The length of each sub array, except for the last one which may be longer.
      * @return A representation of this array as a set of sub arrays.
      */
     public DPointerArray getPointerArray(Handle handle, int strideSize) {
         DPointerArray dPoint;
-        
-        if(strideSize == 0) dPoint = DPointerArray.empty(1, strideSize);
+
+        if (strideSize == 0) dPoint = DPointerArray.empty(1, strideSize);
         else dPoint = DPointerArray.empty(length / strideSize, strideSize);
-        
+
         return dPoint.fill(handle, this, strideSize);
     }
+
+    /**
+     * The maximum number of times something can be done at the requested
+     * increment.
+     *
+     * @param inc The increment between the elements that the something is done
+     * with.
+     * @return The number of times is can be done
+     */
+    private int n(int inc) {
+        return Math.ceilDiv(length, inc);
+    }
+
 }

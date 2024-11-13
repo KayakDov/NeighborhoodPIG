@@ -120,7 +120,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * @return a cpu matrix.
      */
     private double[][] getRows(Vector columnMajor) {
-        return columnMajor.subVectors(1, orientation.getHeight(), orientation.getWidth(), orientation.colDist)
+        return columnMajor.subVectors(1, orientation.getWidth(), orientation.colDist, orientation.getHeight())
                 .copyToCPURows();
     }
 

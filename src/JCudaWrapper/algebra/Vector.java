@@ -93,7 +93,7 @@ public class Vector extends Matrix {
      * @return This vector.
      */
     public Vector add(double mult, Vector v) {
-        data.add(handle, mult, v.data, v.colDist, inc());
+        data.add(handle, mult, v.data, v.inc(), inc());
         return this;
     }
 
@@ -371,6 +371,22 @@ public class Vector extends Matrix {
         return workSpace.norm();
     }
 
+    /**
+     * {@inheritDoc}
+     * @param alpha
+     * @param a
+     * @param beta
+     * @param b
+     * @return 
+     */
+    @Override
+    public Vector addAndSet(double alpha, Matrix a, double beta, Matrix b) {
+        super.addAndSet(alpha, a, beta, b);
+        return this;
+    }
+
+    
+    
     /**
      * The L_1 norm.
      */
@@ -665,7 +681,7 @@ public class Vector extends Matrix {
      * @param subVectorInc The increment of each sub vector over this vector.
      * @return The set of sub vectors.
      */
-    public VectorsStride subVectors(int stride, int batchSize, int subVectorDim, int subVectorInc) {
+    public VectorsStride subVectors(int stride, int subVectorDim, int subVectorInc, int batchSize) {
         return new VectorsStride(
                 handle,
                 data,

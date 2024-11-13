@@ -29,8 +29,8 @@ public class DStrideArray extends DArray {
      * @param batchSize The number of strides. @param subArrayLength The length of e
      * @param subArrayLength The length of each sub arrau/
      */
-    protected DStrideArray(CUdeviceptr p, int strideSize, int batchSize, int subArrayLength) {
-        super(p, minLength(strideSize, subArrayLength, batchSize));
+    protected DStrideArray(CUdeviceptr p, int strideSize, int subArrayLength, int batchSize) {
+        super(p, totalDataLength(strideSize, subArrayLength, batchSize));
         this.stride = strideSize;
         this.subArrayLength = subArrayLength;
         this.batchSize = batchSize;
@@ -45,7 +45,7 @@ public class DStrideArray extends DArray {
      * @param subArrayLength The length of each sub array.
      */
     public DStrideArray(DArray array, int strideSize, int batchSize, int subArrayLength) {
-        this(array.pointer, strideSize, batchSize, subArrayLength);
+        this(array.pointer, strideSize, subArrayLength, batchSize);
     }
 
     /**
@@ -225,9 +225,9 @@ public class DStrideArray extends DArray {
                 cpuPointer(timesResult), pointer, ldResult, stride,
                 batchCount()
         );
-        if(result != cudaError.cudaSuccess){
+        if(result != cudaError.cudaSuccess)
             throw new RuntimeException("cuda multiplication failed.");
-        }
+        
     }
 
     /**
@@ -238,7 +238,7 @@ public class DStrideArray extends DArray {
      * @param subArrayLength The length of each subArray.
      * @return The minimum length to hold a batch described by these paramters.
      */
-    public static int minLength(int strideSize, int subArrayLength, int batchSize) {
+    public static int totalDataLength(int strideSize, int subArrayLength, int batchSize) {
         return strideSize * (batchSize - 1) + subArrayLength;
     }
 
@@ -253,10 +253,9 @@ public class DStrideArray extends DArray {
     public static DStrideArray empty(int batchSize, int strideSize, int subArrayLength) {
 
         return new DStrideArray(
-                Array.empty(minLength(strideSize, subArrayLength, batchSize), PrimitiveType.DOUBLE),
+                Array.empty(totalDataLength(strideSize, subArrayLength, batchSize), PrimitiveType.DOUBLE),
                 strideSize,
-                batchSize,
-                subArrayLength
+                subArrayLength, batchSize
         );
     }
     
@@ -334,7 +333,7 @@ public class DStrideArray extends DArray {
      * @return A subbatch.
      */
     public DStrideArray subBatch(int start, int length) {
-        return subArray(start * stride, minLength(stride, subArrayLength, length)).getAsBatch(stride, subArrayLength, length);
+        return subArray(start * stride, totalDataLength(stride, subArrayLength, length)).getAsBatch(stride, subArrayLength, length);
     }
     
     /**
@@ -343,7 +342,9 @@ public class DStrideArray extends DArray {
      * @return The member of the batch at the given batch index.
      */
     public DArray getBatchArray(int i){
-        return super.subArray(stride*i, subArrayLength);
+        if(i >= batchSize) throw new ArrayIndexOutOfBoundsException();
+        
+        return subArray(stride*i, subArrayLength);
     }
 
     @Override

@@ -48,7 +48,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
     public MatricesStride(Handle handle, int height, int width, int stride, int batchSize) {
         this(
                 handle,
-                DArray.empty(DStrideArray.minLength(stride, width * height, batchSize)),
+                DArray.empty(DStrideArray.totalDataLength(stride, width * height, batchSize)),
                 height,
                 width,
                 height,
@@ -229,12 +229,9 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
         trace.set(m[1][1]).add(1, m[0][0]);//= a + d
 
-        eVal[0].ebeSetProduct(trace, trace); //= (d + a)*(d + a)
-
-        eVal[1].ebeSetProduct(m[0][1], m[0][1]); //c^2
-        eVal[1].ebeAddProduct(m[0][0], m[1][1], -1);// = ad - c^2
-
-        eVal[0].add(-4, eVal[1]);//=(d + a)^2 - 4(ad - c^2)
+        eVal[1].ebeSetProduct(m[0][1], m[0][1]).ebeAddProduct(m[0][0], m[1][1], -1);// = ad - c^2
+        
+        eVal[0].ebeSetProduct(trace, trace).add(-4, eVal[1]);//=(d + a)^2 - 4(ad - c^2)
 
         KernelManager.get("sqrt").mapToSelf(handle, eVal[0]);//sqrt((d + a)^2 - 4(ad - c^2))
 
@@ -403,7 +400,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
         acos.mapToSelf(b.getHandle(), theta);
 
         for (int k = 0; k < 3; k++) root[k].set(theta).add(-2 * Math.PI * k);
-        
+
         roots.data.multiply(b.getHandle(), 1.0 / 3, 1);
         cos.mapToSelf(b.getHandle(), roots.data);
 
