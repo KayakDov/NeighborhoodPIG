@@ -56,10 +56,10 @@ public class Gradient implements AutoCloseable{
      * @param length The max row (column) index exclusive.
      */
     private void computeBoundaryGradients(IntFunction<Matrix> pic, IntFunction<Matrix> dM, int length) {
-        dM.apply(0).addAndSet(-1, pic.apply(0), 1, pic.apply(1));
-        dM.apply(length - 1).addAndSet(-1, pic.apply(length - 2), 1, pic.apply(length - 1));
-        dM.apply(1).addAndSet(-0.5, pic.apply(0), 0.5, pic.apply(2));
-        dM.apply(length - 2).addAndSet(-0.5, pic.apply(length - 3), 0.5, pic.apply(length - 1));
+        dM.apply(0).setSum(-1, pic.apply(0), 1, pic.apply(1));
+        dM.apply(length - 1).setSum(-1, pic.apply(length - 2), 1, pic.apply(length - 1));
+        dM.apply(1).setSum(-0.5, pic.apply(0), 0.5, pic.apply(2));
+        dM.apply(length - 2).setSum(-0.5, pic.apply(length - 3), 0.5, pic.apply(length - 1));
     }
 
     /**

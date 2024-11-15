@@ -171,7 +171,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
 
         checkRowCol(result.height - 1, result.width - 1);
 
-        data.multMatMat(handle, transposeA, transposeB,
+        data.addProduct(handle, transposeA, transposeB,
                 aDim.height, bDim.width, aDim.width, timesAB,
                 a.data, a.colDist, b.data, b.colDist,
                 timesThis, colDist);
@@ -263,7 +263,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return this
      *
      */
-    public Matrix addAndSet(Handle handle, boolean transA, boolean transB, double alpha, Matrix a, double beta, Matrix b) {
+    public Matrix setSum(Handle handle, boolean transA, boolean transB, double alpha, Matrix a, double beta, Matrix b) {
 
         if (transA) {
             checkRowCol(a.width - 1, a.height - 1);
@@ -276,14 +276,13 @@ public class Matrix implements AutoCloseable, ColumnMajor {
             checkRowCol(b.height - 1, b.width - 1);
         }
 
-        data.addAndSet(handle, transA, transB, height, width, alpha, a.data, a.colDist, beta, b.data, b.colDist, colDist);
+        data.setSum(handle, transA, transB, height, width, alpha, a.data, a.colDist, beta, b.data, b.colDist, colDist);
 
         return this;
     }
 
     /**
-     * @see Matrix#addAndSet(boolean, boolean, double, algebra.Matrix, double,
-     * algebra.Matrix) Uses default handle.
+     * @see Matrix#setSum(boolean, boolean, double, algebra.Matrix, double, algebra.Matrix) Uses default handle.
      * @param transA True to transpose A.
      * @param transB True to transpose B.
      * @param alpha the multiply by A.
@@ -292,21 +291,20 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param b The B matrix.
      * @return This.
      */
-    public Matrix addAndSet(boolean transA, boolean transB, double alpha, Matrix a, double beta, Matrix b) {
-        return addAndSet(handle, transA, transB, alpha, a, beta, b);
+    public Matrix setSum(boolean transA, boolean transB, double alpha, Matrix a, double beta, Matrix b) {
+        return Matrix.this.setSum(handle, transA, transB, alpha, a, beta, b);
     }
 
     /**
-     * @see Matrix#addAndSet(boolean, boolean, double, algebra.Matrix, double,
-     * algebra.Matrix) Uses default handle.
+     * @see Matrix#setSum(boolean, boolean, double, algebra.Matrix, double, algebra.Matrix) Uses default handle.
      * @param alpha the multiply by A.
      * @param a The A matrix.
      * @param beta To multiply by B.
      * @param b The B matrix.
      * @return This.
      */
-    public Matrix addAndSet(double alpha, Matrix a, double beta, Matrix b) {
-        return addAndSet(handle, false, false, alpha, a, beta, b);
+    public Matrix setSum(double alpha, Matrix a, double beta, Matrix b) {
+        return Matrix.this.setSum(handle, false, false, alpha, a, beta, b);
     }
 
     /**
@@ -316,7 +314,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return A new matrix equal to this matrix times a scalar.
      */
     public Matrix multiply(double d) {
-        return addAndSet(d, this, 0, this);
+        return Matrix.this.setSum(d, this, 0, this);
     }
 
     /**
@@ -359,7 +357,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
         checkSubMatrixParameters(row, row + other.height, col, col + other.width);
 
         getSubMatrix(row, row + other.height, col, col + other.width)
-                .addAndSet(1, other, 0, other);
+                .setSum(1, other, 0, other);
 
         return this;
     }
@@ -549,7 +547,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
     public boolean equals(Matrix other, double epsilon, DArray workSpace) {
         if (height != other.height || width != other.width) return false;
 
-        return new Matrix(handle, data, height, width).addAndSet(1, this, -1, other)
+        return new Matrix(handle, data, height, width).setSum(1, this, -1, other)
                 .frobeniusNorm(workSpace.subArray(0, width)) <= epsilon;
     }
 
@@ -565,7 +563,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
 
         Matrix copy = new Matrix(handle, height, width);
 
-        copy.addAndSet(1, this, 0, this);
+        copy.setSum(1, this, 0, this);
 
         return copy;
     }
@@ -728,7 +726,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return
      */
     public Matrix transposeMe() {
-        return addAndSet(true, false, 1, this, 0, this);
+        return setSum(true, false, 1, this, 0, this);
     }
 
     /**

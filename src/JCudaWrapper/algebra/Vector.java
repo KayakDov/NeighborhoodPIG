@@ -222,7 +222,7 @@ public class Vector extends Matrix {
      */
     public Vector addEbeProduct(double timesAB, Vector a, Vector b, double timesThis) {
 
-        data.multSymBandMatVec(handle, true,
+        data.addProductSymBandMatVec(handle, true,
                 dim(), 0,
                 timesAB, 
                 a.data, a.inc(),
@@ -367,7 +367,7 @@ public class Vector extends Matrix {
      */
     public double getDistance(Vector v, Vector workSpace) throws DimensionMismatchException {
         workSpace.fill(0);
-        workSpace.addAndSet(1, v, -1, this);
+        workSpace.setSum(1, v, -1, this);
         return workSpace.norm();
     }
 
@@ -380,8 +380,8 @@ public class Vector extends Matrix {
      * @return 
      */
     @Override
-    public Vector addAndSet(double alpha, Matrix a, double beta, Matrix b) {
-        super.addAndSet(alpha, a, beta, b);
+    public Vector setSum(double alpha, Matrix a, double beta, Matrix b) {
+        super.setSum(alpha, a, beta, b);
         return this;
     }
 
@@ -604,7 +604,7 @@ public class Vector extends Matrix {
      * @return The product is placed in this and this is returned.
      */
     public Vector addProduct(boolean transposeMat, double timesAB, Vector vec, Matrix mat, double timesCurrent) {
-        data.multMatMat(handle,
+        data.addProduct(handle,
                 false, transposeMat,
                 1, transposeMat ? mat.getHeight() : mat.getWidth(), vec.dim(),
                 timesAB,
@@ -640,15 +640,15 @@ public class Vector extends Matrix {
      * @return The product is placed in this and this is returned.
      */
     public Vector addProduct(boolean transposeMat, double timesAB, Matrix mat, Vector vec, double timesCurrent) {
-//        if (inc() > 1) {
-//            Matrix in = new Matrix(handle, data, dim(), 1);
-//            DArray outTempStorageSite = data.subArray(dim());
-//            Matrix outNeedsStorage = new Matrix(handle, data.subArray(1), colDist - 1, dim(), colDist);
-//    //TODO: Finsih this section, otherwise this matrix has the wrong dimensions to recieve the product.
-//    //be careful not to lose or overwirte any data.
-//        }
-//        
-        return addProduct(!transposeMat, timesAB, vec, mat, timesCurrent);
+
+        data.addProduct(handle, transposeMat, 
+                mat.getHeight(), mat.getWidth(),                 
+                timesAB, mat.data, mat.getColDist(), 
+                vec.dArray(), vec.inc(), 
+                timesCurrent, inc()
+        );
+        
+        return this;
     }
 
     /**

@@ -172,13 +172,15 @@ public class DArray extends Array {
      */
     public void get(Handle handle, DArray to, int toStart, int fromStart, int toInc, int fromInc, int length) {
 
-        JCublas2.cublasDcopy(handle.get(),
+        int result = JCublas2.cublasDcopy(handle.get(),
                 length,
                 pointer(fromStart),
                 fromInc,
                 to.pointer(toStart),
                 toInc
         );
+        if (result != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(result));
     }
 
     /**
@@ -324,70 +326,6 @@ public class DArray extends Array {
     }
 
     /**
-     * Computes a matrix-matrix addition (GEAM) or transpose with
-     * double-precision.
-     *
-     * This function computes this = alpha * op(A) + beta * op(B), where op(X)
-     * can be X or X^T (the transpose of X). For matrix transposition, set op(A)
-     * to A^T (transpose), and set B as null with beta = 0.
-     *
-     * @param handle The CUBLAS context (a pointer to the initialized
-     * cublasHandle_t).
-     * @param transA Operation type for matrix A. Can be one of: CUBLAS_OP_N (no
-     * transpose), CUBLAS_OP_T (transpose), CUBLAS_OP_C (conjugate transpose).
-     * @param transB Operation type for matrix B. Can be one of: CUBLAS_OP_N (no
-     * transpose), CUBLAS_OP_T (transpose), CUBLAS_OP_C (conjugate transpose).
-     * For transpose operation, set transB to CUBLAS_OP_N and B as null.
-     * @param heightA The number of rows of the matrix A (before transposition).
-     * @param widthA The number of columns of the matrix A (before
-     * transposition).
-     * @param alpha Pointer to the scalar alpha (usually 1.0 for transposition).
-     * @param a Pointer to the input matrix A on the GPU (before transposition).
-     * @param lda The number of elements between the first element of each
-     * column, this is usually height, but can be more if the matrix described
-     * is a submatrix.
-     * @param beta Pointer to the scalar beta (set to 0.0 for transposition).
-     * @param b Pointer to the matrix B on the GPU (can be null for
-     * transposition). 0).
-     * @param ldb This should be 0 if B is null.
-     * @param ldc ldc: Leading dimension of this matrix (ldc ≥ max(1, n) after
-     * transposition).
-     *
-     * @return Status code from CUBLAS library: CUBLAS_STATUS_SUCCESS if the
-     * operation was successful, or an appropriate error code otherwise.
-     *
-     */
-    public int matrixAddWithTranspose(
-            Handle handle,
-            boolean transA,
-            boolean transB,
-            int heightA,
-            int widthA,
-            double alpha,
-            DArray a,
-            int lda,
-            double beta,
-            DArray b,
-            int ldb,
-            int ldc
-    ) {
-        checkNull(handle, a, b);
-        checkPositive(heightA, widthA);
-        checkLowerBound(heightA, lda, ldb, ldc);
-        a.checkAgainstLength(heightA * widthA - 1);
-        b.checkAgainstLength(heightA * widthA - 1);
-        checkAgainstLength(heightA * widthA - 1);
-
-        return JCublas2.cublasDgeam(
-                handle.get(),
-                transpose(transA), transpose(transB),
-                heightA, widthA, cpuPointer(alpha), a.pointer, lda,
-                cpuPointer(beta),
-                b == null ? null : b.pointer,
-                ldb, pointer, ldc);
-    }
-
-    /**
      * Performs the rank-1 update: This is outer product.
      *
      * <pre>
@@ -413,7 +351,9 @@ public class DArray extends Array {
         checkLowerBound(1, incY, incX);
         checkAgainstLength(lda * cols - 1);
 
-        JCublas2.cublasDger(handle.get(), rows, cols, cpuPointer(multProd), vecX.pointer, incX, vecY.pointer, incY, pointer, lda);
+        int result = JCublas2.cublasDger(handle.get(), rows, cols, cpuPointer(multProd), vecX.pointer, incX, vecY.pointer, incY, pointer, lda);
+        if (result != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(result));
     }
 
     /**
@@ -450,7 +390,9 @@ public class DArray extends Array {
     public void norm(Handle handle, int length, int inc, DSingleton result) {
 
         checkNull(handle, result);
-        JCublas2.cublasDnrm2(handle.get(), length, pointer, inc, result.pointer);
+        int errorCode = JCublas2.cublasDnrm2(handle.get(), length, pointer, inc, result.pointer);
+        if (errorCode != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(errorCode));
     }
 
     /**
@@ -470,7 +412,9 @@ public class DArray extends Array {
      */
     public void argMinAbs(Handle handle, int length, int inc, int[] result, int toIndex) {
         checkNull(handle, result);
-        JCublas2.cublasIdamin(handle.get(), length, pointer, inc, Pointer.to(result).withByteOffset(toIndex * Sizeof.INT));
+        int error = JCublas2.cublasIdamin(handle.get(), length, pointer, inc, Pointer.to(result).withByteOffset(toIndex * Sizeof.INT));
+        if (error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
         result[toIndex] -= 1;//It looks like the cuda methods are index-1 based.
     }
 
@@ -491,7 +435,9 @@ public class DArray extends Array {
      */
     public void argMaxAbs(Handle handle, int length, int inc, int[] result, int toIndex) {
         checkNull(handle, result);
-        JCublas2.cublasIdamax(handle.get(), length, pointer, inc, Pointer.to(result).withByteOffset(toIndex * Sizeof.INT));
+        int error = JCublas2.cublasIdamax(handle.get(), length, pointer, inc, Pointer.to(result).withByteOffset(toIndex * Sizeof.INT));
+        if (error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
         result[toIndex] -= 1; //It looks like the cuda methods are index-1 based.
     }
 
@@ -576,7 +522,9 @@ public class DArray extends Array {
      */
     public void sumAbs(Handle handle, int length, int inc, double[] result, int toIndex) {
         checkNull(handle, result);
-        JCublas2.cublasDasum(handle.get(), length, pointer, inc, Pointer.to(result).withByteOffset(toIndex * Sizeof.DOUBLE));
+        int error = JCublas2.cublasDasum(handle.get(), length, pointer, inc, Pointer.to(result).withByteOffset(toIndex * Sizeof.DOUBLE));
+        if (error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
     }
 
     /**
@@ -606,26 +554,25 @@ public class DArray extends Array {
      * array.
      * @return this array after this = timesAx * op(A) * X + beta*this
      */
-    public DArray multMatVec(Handle handle, boolean transA, int aRows, int aCols, double timesAx, DArray matA, int lda, DArray vecX, int incX, double beta, int inc) {
+    public DArray addProduct(Handle handle, boolean transA, int aRows, int aCols, double timesAx, DArray matA, int lda, DArray vecX, int incX, double beta, int inc) {
         checkNull(handle, matA, vecX);
         checkPositive(aRows, aCols);
         checkLowerBound(1, inc, incX);
         matA.checkAgainstLength(aRows * aCols);
 
-        JCublas2.cublasDgemv(
+        int error = JCublas2.cublasDgemv(
                 handle.get(),
                 transA ? 'T' : 'N',
-                aRows,
-                aCols,
+                aRows, aCols,
                 cpuPointer(timesAx),
-                matA.pointer,
-                lda,
-                vecX.pointer,
-                incX,
+                matA.pointer, lda,
+                vecX.pointer, incX,
                 cpuPointer(beta),
                 pointer,
                 inc
         );
+        if (error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
         return this;
     }
 
@@ -684,22 +631,18 @@ public class DArray extends Array {
      * @return The updated vector (this), after the matrix-vector multiplication
      * and addition.
      */
-    public DArray multBandMatVec(Handle handle, boolean transposeA, int rowsA, int colsA, int subDiagonalsA, int superDiagonalA, double timesA, DArray Ma, int ldm, DArray x, int incX, double timesThis, int inc) {
-        JCublas2.cublasDgbmv(
+    public DArray addProductBandMatVec(Handle handle, boolean transposeA, int rowsA, int colsA, int subDiagonalsA, int superDiagonalA, double timesA, DArray Ma, int ldm, DArray x, int incX, double timesThis, int inc) {
+        int error = JCublas2.cublasDgbmv(
                 handle.get(),
                 transpose(transposeA),
-                rowsA,
-                colsA,
-                subDiagonalsA,
-                superDiagonalA,
+                rowsA, colsA,
+                subDiagonalsA, superDiagonalA,
                 cpuPointer(timesA),
-                Ma.pointer,
-                ldm,
-                x.pointer,
-                incX,
-                cpuPointer(timesThis),
-                pointer,
-                inc);
+                Ma.pointer, ldm,
+                x.pointer, incX,
+                cpuPointer(timesThis), pointer, inc);
+        if (error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
 
         return this;
     }
@@ -752,7 +695,7 @@ public class DArray extends Array {
      */
     public DArray solveTriangularBandedSystem(Handle handle, boolean isUpper, boolean transposeA, boolean onesOnDiagonal, int rowsA, int nonPrimaryDiagonals, DArray Ma, int ldm, int inc) {
         // Call the cublasDtbsv function to solve the system
-        JCublas2.cublasDtbsv(
+        int error = JCublas2.cublasDtbsv(
                 handle.get(),
                 isUpper ? cublasFillMode.CUBLAS_FILL_MODE_UPPER : cublasFillMode.CUBLAS_FILL_MODE_LOWER, // Upper or lower triangular matrix
                 transpose(transposeA),
@@ -763,7 +706,8 @@ public class DArray extends Array {
                 ldm, // Leading dimension of Ma
                 pointer, // Pointer to the right-hand side vector (b)
                 inc);          // Stride through the elements of b
-
+        if (error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
         return this;  // The result (solution vector x) is stored in b
     }
 
@@ -829,21 +773,22 @@ public class DArray extends Array {
      * @return The updated vector (this), after the matrix-vector multiplication
      * and addition.
      */
-    public DArray multSymBandMatVec(Handle handle, boolean upper, int colA, int diagonals, double timesA, DArray Ma, int ldm, DArray x, int incX, double timesThis, int inc) {
-        JCublas2.cublasDsbmv(
+    public DArray addProductSymBandMatVec(Handle handle, boolean upper, int colA, int diagonals, double timesA, DArray Ma, int ldm, DArray x, int incX, double timesThis, int inc) {
+        int error = JCublas2.cublasDsbmv(
                 handle.get(),
                 upper ? cublasFillMode.CUBLAS_FILL_MODE_UPPER : cublasFillMode.CUBLAS_FILL_MODE_LOWER,
                 colA,
                 diagonals,
                 cpuPointer(timesA),
-                Ma.pointer,
-                ldm,
+                Ma.pointer, ldm,
                 x.pointer,
                 incX,
                 cpuPointer(timesThis),
                 pointer,
                 inc);
-
+        if (error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
+        
         return this;
     }
 
@@ -954,7 +899,9 @@ public class DArray extends Array {
     public void dot(Handle handle, DArray x, int incX, int inc, double[] result, int resultInd) {
         checkNull(handle, x, result);
         checkPositive(resultInd, inc, incX);
-        JCublas2.cublasDdot(handle.get(), n(inc), x.pointer, incX, pointer, inc, Pointer.to(result).withByteOffset(resultInd * Sizeof.DOUBLE));
+        int error = JCublas2.cublasDdot(handle.get(), n(inc), x.pointer, incX, pointer, inc, Pointer.to(result).withByteOffset(resultInd * Sizeof.DOUBLE));
+        if(error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error "  + cudaError.stringFor(error));
 
     }
 
@@ -991,7 +938,7 @@ public class DArray extends Array {
      * 1 to add the product to the current array as is.
      * @param ldc @see ldb
      */
-    public void multMatMat(Handle handle, boolean transposeA, boolean transposeB, int aRows,
+    public void addProduct(Handle handle, boolean transposeA, boolean transposeB, int aRows,
             int bThisCols, int aColsBRows, double timesAB, DArray a, int lda, DArray b, int ldb, double timesCurrent, int ldc) {
         checkNull(handle, a, b);
         checkPositive(aRows, bThisCols, aColsBRows, lda, ldb, ldc);
@@ -1001,16 +948,18 @@ public class DArray extends Array {
         a.checkAgainstLength(aColsBRows * lda - 1);
         checkAgainstLength(aRows * bThisCols - 1);
 
-        JCublas2.cublasDgemm(
+        int error = JCublas2.cublasDgemm(
                 handle.get(), // cublas handle
                 transpose(transposeA), transpose(transposeB),
                 aRows, bThisCols, aColsBRows,
-                cpuPointer(timesAB), 
+                cpuPointer(timesAB),
                 a.pointer, lda,
-                b.pointer, ldb, 
+                b.pointer, ldb,
                 cpuPointer(timesCurrent),
                 pointer, ldc
         );
+        if(error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error "  + cudaError.stringFor(error));
     }
 
     /**
@@ -1034,19 +983,25 @@ public class DArray extends Array {
     public DArray add(Handle handle, double timesX, DArray x, int incX, int inc) {
         checkNull(handle, x);
         checkLowerBound(1, inc);
-        checkAgainstLength((n(inc) - 1)*inc);
-        
-        if(incX != 0 &&  x.n(incX) != n(inc)) throw new DimensionMismatchException(n(inc), x.n(incX));
-        
+        checkAgainstLength((n(inc) - 1) * inc);
+
+        if (incX != 0 && x.n(incX) != n(inc))
+            throw new DimensionMismatchException(n(inc), x.n(incX));
+
         int result = JCublas2.cublasDaxpy(
-                handle.get(), 
-                n(inc), 
-                cpuPointer(timesX), x.pointer, incX, 
+                handle.get(),
+                n(inc),
+                cpuPointer(timesX), x.pointer, incX,
                 pointer, inc
         );
-        if(result != cudaError.cudaSuccess)
-            throw new RuntimeException("cuda addition failed. Error: " +result);
-        
+        if (result != cudaError.cudaSuccess) {
+            System.out.println(x);
+            System.out.println("With increment " + incX);
+            System.out.println(toString());
+            System.out.println("With increment " + inc);
+            throw new RuntimeException("cuda addition failed. Error: " + result + " - " + cudaError.stringFor(result));
+        }
+
         return this;
     }
 
@@ -1077,14 +1032,14 @@ public class DArray extends Array {
      * @return this
      *
      */
-    public DArray addAndSet(Handle handle, boolean transA, boolean transB, int height,
+    public DArray setSum(Handle handle, boolean transA, boolean transB, int height,
             int width, double alpha, DArray a, int lda, double beta, DArray b,
             int ldb, int ldc) {
         checkNull(handle, a, b);
         checkPositive(height, width);
         checkAgainstLength(height * width - 1);
 
-        JCublas2.cublasDgeam(
+        int result = JCublas2.cublasDgeam(
                 handle.get(),
                 transpose(transA), transpose(transB),
                 height, width,
@@ -1092,6 +1047,8 @@ public class DArray extends Array {
                 cpuPointer(beta), b.pointer, ldb,
                 pointer, ldc
         );
+        if (result != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(result));
 
         return this;
     }
@@ -1114,7 +1071,9 @@ public class DArray extends Array {
     public DArray multiply(Handle handle, double mult, int inc) {
         checkNull(handle);
         checkLowerBound(1, inc);
-        JCublas2.cublasDscal(handle.get(), n(inc), cpuPointer(mult), pointer, inc);
+        int result = JCublas2.cublasDscal(handle.get(), n(inc), cpuPointer(mult), pointer, inc);
+        if (result != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(result));
         return this;
     }
 
@@ -1151,7 +1110,7 @@ public class DArray extends Array {
             double timesThis,
             int ldThis) {
 
-        JCublas2.cublasDsyrk(
+        int result = JCublas2.cublasDsyrk(
                 handle.get(),
                 uplo,
                 transpose(transpose),
@@ -1160,6 +1119,8 @@ public class DArray extends Array {
                 cpuPointer(alpha),
                 pointer, ldThis
         );
+        if (result != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(result));
     }
 
     /**
@@ -1178,7 +1139,8 @@ public class DArray extends Array {
      * Breaks this array into a a set of sub arrays.
      *
      * @param handle
-     * @param strideSize The length of each sub array, except for the last one which may be longer.
+     * @param strideSize The length of each sub array, except for the last one
+     * which may be longer.
      * @return A representation of this array as a set of sub arrays.
      */
     public DPointerArray getPointerArray(Handle handle, int strideSize) {
