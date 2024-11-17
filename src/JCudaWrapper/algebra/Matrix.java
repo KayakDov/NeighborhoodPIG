@@ -464,7 +464,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param endRow The last row, exclusive.
      * @return A submatrix from the given rows.
      */
-    public Matrix getSubMatrixRows(int startRow, int endRow) {
+    public Matrix getRows(int startRow, int endRow) {
         return getSubMatrix(startRow, endRow, 0, getWidth());
     }
 
@@ -475,7 +475,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param endCol The last column, exclusive.
      * @return A submatrix from the given rows.
      */
-    public Matrix getSubMatrixCols(int startCol, int endCol) {
+    public Matrix getColumns(int startCol, int endCol) {
         return getSubMatrix(0, getHeight(), startCol, endCol);
     }
 

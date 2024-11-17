@@ -102,16 +102,16 @@ public class DStrideArray extends DArray {
 //        return lwork[0];
 //    }
 
-    /**
-     * If each sub array is square matrix data,then this is the height and width
-     * of the matrix.
-     *
-     * @return If each sub array is square matrix data,then this is the height
-     * and width of the matrix.
-     */
-    private int squareMatrixHeightWidth() {
-        return (int) Math.round(Math.sqrt(subArrayLength));
-    }
+//    /**
+//     * If each sub array is square matrix data,then this is the height and width
+//     * of the matrix.
+//     *
+//     * @return If each sub array is square matrix data,then this is the height
+//     * and width of the matrix.
+//     */
+//    private int squareMatrixHeightWidth() {
+//        return (int) Math.round(Math.sqrt(subArrayLength));
+//    }
 //
 ////Doesn't work because JacobiParams doesn't work.
 //    /**
@@ -206,7 +206,7 @@ public class DStrideArray extends DArray {
      * elements between consecutive columns in memory).
      *
      */
-    public void multMatMatStridedBatched(Handle handle, boolean transA, boolean transB,
+    public void addProduct(Handle handle, boolean transA, boolean transB,
             int aRows, int aColsBRows, int bCols, double timesAB, DStrideArray matA,
             int lda, DStrideArray matB, int ldb, double timesResult,
             int ldResult) {
@@ -310,7 +310,7 @@ public class DStrideArray extends DArray {
 
         int jobzInt = computeVectors ? cusolverEigMode.CUSOLVER_EIG_MODE_VECTOR : cusolverEigMode.CUSOLVER_EIG_MODE_NOVECTOR;
 
-        JCusolverDn.cusolverDnDgesvdjBatched(
+        int error = JCusolverDn.cusolverDnDgesvdjBatched(
                 handle.solverHandle(),
                 jobzInt, rows, cols,
                 pointer, lda,
@@ -322,6 +322,8 @@ public class DStrideArray extends DArray {
                 gesvdj,//I can't seem to create this parameter without a core crash. 
                 batchSize
         );
+        if (error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
     }
 
     /**

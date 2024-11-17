@@ -122,7 +122,10 @@ abstract class Array implements AutoCloseable {
         checkPositive(numElements);
 
         CUdeviceptr p = new CUdeviceptr();
-        JCuda.cudaMalloc(p, numElements * type.size);
+        int error = JCuda.cudaMalloc(p, numElements * type.size);
+        if(error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
+        
         return p;
     }
 
@@ -176,12 +179,14 @@ abstract class Array implements AutoCloseable {
         checkAgainstLength(fromIndex + length - 1);
         checkNull(to);
 
-        JCuda.cudaMemcpyAsync(to.pointer(toIndex),
+        int error = JCuda.cudaMemcpyAsync(to.pointer(toIndex),
                 pointer(fromIndex),
                 length * type.size,
                 cudaMemcpyKind.cudaMemcpyDeviceToDevice,
                 handle.getStream()
         );
+        if(error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
     }
 
     /**
@@ -198,12 +203,14 @@ abstract class Array implements AutoCloseable {
      * is negative.
      */
     public void get(Array to, int toIndex, int fromIndex, int length, Handle handle) {
-        JCuda.cudaMemcpyAsync(
+        int error = JCuda.cudaMemcpyAsync(
                 to.pointer(toIndex),
                 pointer(fromIndex),
                 length * type.size,
                 cudaMemcpyKind.cudaMemcpyDeviceToDevice,
                 handle.getStream());
+        if(error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
     }
 
     /**
@@ -238,13 +245,15 @@ abstract class Array implements AutoCloseable {
         checkPositive(toStart, fromStart, length);
         checkAgainstLength(fromStart + length - 1);
         //TODO:  cudaHostAlloc can be faster, but has risks.        
-        JCuda.cudaMemcpyAsync(
+        int error = JCuda.cudaMemcpyAsync(
                 toCPUArray.withByteOffset(toStart * type.size),
                 pointer(fromStart),
                 length * type.size,
                 cudaMemcpyKind.cudaMemcpyDeviceToHost,
                 handle.getStream()
         );
+        if(error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
     }
 
     /**
@@ -310,7 +319,9 @@ abstract class Array implements AutoCloseable {
      * @return this.
      */
     public Array fill0(Handle handle) {
-        JCuda.cudaMemsetAsync(pointer, 0, length * type.size, handle.getStream());
+        int error = JCuda.cudaMemsetAsync(pointer, 0, length * type.size, handle.getStream());
+        if(error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
         return this;
     }
 

@@ -556,7 +556,7 @@ public class Vector extends Matrix {
      */
     public void addBatchVecVecMult(double timesAB, VectorsStride a, VectorsStride b, double timesThis) {
 
-        data.getAsBatch(inc(), 1, dim()).multMatMatStridedBatched(handle,
+        data.getAsBatch(inc(), 1, dim()).addProduct(handle,
                 false, true,
                 1, a.getSubVecDim(), 1,
                 timesAB,

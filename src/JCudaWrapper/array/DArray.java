@@ -558,11 +558,11 @@ public class DArray extends Array {
         checkNull(handle, matA, vecX);
         checkPositive(aRows, aCols);
         checkLowerBound(1, inc, incX);
-        matA.checkAgainstLength(aRows * aCols);
+        matA.checkAgainstLength(aRows * aCols - 1);
 
         int error = JCublas2.cublasDgemv(
                 handle.get(),
-                transA ? 'T' : 'N',
+                transpose(transA), //                transA ? 'T' : 'N' is what I used to have, but it may be wrong.  TODO:resolve.
                 aRows, aCols,
                 cpuPointer(timesAx),
                 matA.pointer, lda,
@@ -788,7 +788,7 @@ public class DArray extends Array {
                 inc);
         if (error != cudaError.cudaSuccess)
             throw new RuntimeException("cuda error " + cudaError.stringFor(error));
-        
+
         return this;
     }
 
@@ -900,8 +900,8 @@ public class DArray extends Array {
         checkNull(handle, x, result);
         checkPositive(resultInd, inc, incX);
         int error = JCublas2.cublasDdot(handle.get(), n(inc), x.pointer, incX, pointer, inc, Pointer.to(result).withByteOffset(resultInd * Sizeof.DOUBLE));
-        if(error != cudaError.cudaSuccess)
-            throw new RuntimeException("cuda error "  + cudaError.stringFor(error));
+        if (error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
 
     }
 
@@ -958,8 +958,8 @@ public class DArray extends Array {
                 cpuPointer(timesCurrent),
                 pointer, ldc
         );
-        if(error != cudaError.cudaSuccess)
-            throw new RuntimeException("cuda error "  + cudaError.stringFor(error));
+        if (error != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
     }
 
     /**
@@ -987,20 +987,15 @@ public class DArray extends Array {
 
         if (incX != 0 && x.n(incX) != n(inc))
             throw new DimensionMismatchException(n(inc), x.n(incX));
-
+        
         int result = JCublas2.cublasDaxpy(
                 handle.get(),
                 n(inc),
                 cpuPointer(timesX), x.pointer, incX,
                 pointer, inc
         );
-        if (result != cudaError.cudaSuccess) {
-            System.out.println(x);
-            System.out.println("With increment " + incX);
-            System.out.println(toString());
-            System.out.println("With increment " + inc);
+        if (result != cudaError.cudaSuccess)
             throw new RuntimeException("cuda addition failed. Error: " + result + " - " + cudaError.stringFor(result));
-        }
 
         return this;
     }

@@ -4,14 +4,12 @@ import JCudaWrapper.algebra.Eigen;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.DStrideArray;
 import JCudaWrapper.array.DPointerArray;
-import JCudaWrapper.array.DSingleton;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.KernelManager;
 import java.util.Arrays;
 import org.apache.commons.math3.exception.DimensionMismatchException;
 import JCudaWrapper.resourceManagement.Handle;
 import java.awt.Dimension;
-import jcuda.Pointer;
 
 /**
  * This class provides methods for handling a batch of strided matrices stored
@@ -166,7 +164,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
         if (aDim.width != bDim.height || height != aDim.height || width != bDim.width)
             throw new DimensionMismatchException(aDim.width, bDim.height);
 
-        data.multMatMatStridedBatched(handle, transposeA, transposeB,
+        data.addProduct(handle, transposeA, transposeB,
                 aDim.height, aDim.width, bDim.width,
                 timesAB,
                 a.data, a.colDist,

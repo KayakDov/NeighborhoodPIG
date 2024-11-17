@@ -32,13 +32,13 @@ public class NeighborhoodPIG implements AutoCloseable {
      */
     public NeighborhoodPIG(String imagePath, int neighborhoodSize) throws IOException {
         handle = new Handle();
-        try (
-                Matrix imageMat = processImage(imagePath, handle);
-                Gradient grad = new Gradient(imageMat, handle)) {
 
-            stm = new StructureTensorMatrix(grad.x(), grad.y(), neighborhoodSize);
+        Matrix imageMat = processImage(imagePath, handle);
+        Gradient grad = new Gradient(imageMat, handle);
+        imageMat.close();
+        stm = new StructureTensorMatrix(grad.x(), grad.y(), neighborhoodSize);
+        grad.close();
 
-        }
     }
 
     /**
@@ -84,10 +84,7 @@ public class NeighborhoodPIG implements AutoCloseable {
         np.orientationColored("images/output/test.png");
 
 //        System.out.println(np.stm.setOrientations());
-
     }
-
-
 
     /**
      * Method to load a .tif image and convert it into a single-dimensional
@@ -106,7 +103,7 @@ public class NeighborhoodPIG implements AutoCloseable {
             image = convertToGrayscale(image);
 
         Raster raster = image.getRaster();
-        int size = (int)1e5;
+        int size = (int) 1e5;
         width = Math.min(size, image.getWidth());
         height = Math.min(size, image.getHeight());//TODO: change to full size by removing the size variabl and the min.
 
@@ -119,9 +116,8 @@ public class NeighborhoodPIG implements AutoCloseable {
                 new DArray(handle, imageData),
                 height,
                 width);
-        
+
 //        System.out.println(mat);
-        
         return mat;
     }
 
