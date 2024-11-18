@@ -391,4 +391,12 @@ abstract class Array implements AutoCloseable {
         return t ? cublasOperation.CUBLAS_OP_T : cublasOperation.CUBLAS_OP_N;
     }
 
+    
+    /**
+     * A pointer to this pointer.
+     * @return A pointer to this pointer.
+     */
+    public Pointer pointerToPointer(){
+        return Pointer.to(pointer);
+    }
 }

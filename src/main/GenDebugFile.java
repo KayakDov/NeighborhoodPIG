@@ -47,7 +47,7 @@ public class GenDebugFile {
         
         // Define pixel values for each point in a 7x7 grid
         // We use values from 0.1, 0.2, ... to 0.7
-        double[][] pixelValues = random(1000, 1000);
+        double[][] pixelValues = xGrad1;
 
         int width = pixelValues[0].length;
         int height = pixelValues.length;

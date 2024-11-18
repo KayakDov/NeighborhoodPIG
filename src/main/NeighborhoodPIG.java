@@ -79,8 +79,8 @@ public class NeighborhoodPIG implements AutoCloseable {
     }
 
     public static void main(String[] args) throws IOException {
-//        NeighborhoodPIG np = new NeighborhoodPIG("images/input/debug.jpeg", 1);
-        NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 1);
+        NeighborhoodPIG np = new NeighborhoodPIG("images/input/debug.jpeg", 1);
+//        NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 1);
         np.orientationColored("images/output/test.png");
 
 //        System.out.println(np.stm.setOrientations());
@@ -103,9 +103,9 @@ public class NeighborhoodPIG implements AutoCloseable {
             image = convertToGrayscale(image);
 
         Raster raster = image.getRaster();
-        int size = (int) 1e5;
-        width = Math.min(size, image.getWidth());
-        height = Math.min(size, image.getHeight());//TODO: change to full size by removing the size variabl and the min.
+//        int size = (int) 1e5;
+        width = image.getWidth();//Math.min(size, image.getWidth());
+        height = image.getHeight();//Math.min(size, image.getHeight());//TODO: change to full size by removing the size variabl and the min.
 
         double[] imageData = new double[width * height];
 

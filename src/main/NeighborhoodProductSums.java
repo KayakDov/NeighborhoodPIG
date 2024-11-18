@@ -1,11 +1,9 @@
 package main;
 
-import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.Vector;
 import JCudaWrapper.algebra.VectorsStride;
 import JCudaWrapper.resourceManagement.Handle;
-import java.util.Arrays;
 
 /**
  * This class implements element-by-element multiplication (EBEM) for
@@ -40,7 +38,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
         this.nRad = nRad;
         this.height = height;
         this.width = width;
-        sumLocalRowElements = new Matrix(handle, height, width);
+        sumLocalRowElements = new Matrix(handle, height, width).fill(0);//TODO:remove fill 0
         ebeStorage = new Matrix(handle, height, width);
         halfNOnes = new Vector(handle, nRad + 1).fill(1);
     }
@@ -54,9 +52,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param a The first matrix.
      * @param b The second matrix.
      * @param result Store the result here in column major order. Note that the
-     * increment of this vector is probably not one. Be sure this is set to 0's
-     * before passing it.
-     *
+     * increment of this vector is probably not one. 
      */
     public void set(Matrix a, Matrix b, Vector result) {
 
@@ -67,24 +63,16 @@ public class NeighborhoodProductSums implements AutoCloseable {
                         new Vector(hand, a.dArray(), 1),
                         new Vector(hand, b.dArray(), 1)
                 );
-        
-        
 
-        inRowSumsEdge();
-        
-        
-        
-        
-        inRowSumNearEdge();
-        inRowSumCenter();
-
-        
+        sumLocalRowElementsEdge();
+        sumLocalRowElementsNearEdge();
+        sumLocalRowElementsCenter();
         
         VectorsStride resultRows = result.subVectors(1, width, a.colDist, height);
 
         nSumEdge(resultRows);
-        nSumNearEdge(resultRows); //TODO: remove parameter a
-        nSumCenter(resultRows, a);
+        nSumNearEdge(resultRows);
+        nSumCenter(resultRows);
         //TODO: pixels nearer the edges have lower sums.  They should probably be normalized for this.
     }
 
@@ -99,21 +87,16 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param halfNOnes Vector of ones used for summing the first and last
      * columns.
      */
-    private void inRowSumsEdge() {
+    private void sumLocalRowElementsEdge() {
         
         sumLocalRowElements.getColumn(0).setProduct(
                 ebeStorage.getColumns(0, nRad + 1),
                 halfNOnes
         );
-        System.out.println("main.NeighborhoodProductSums.inRowSumsEdge() ebe storage 1\n" + ebeStorage.getColumn(0).toString().substring(0, 10));
-        System.out.println("main.NeighborhoodProductSums.inRowSumsEdge() in Row sum\n" + sumLocalRowElements.getColumn(width - 1).toString().substring(0, 10));
-        
         sumLocalRowElements.getColumn(width - 1).setProduct(
                 ebeStorage.getColumns(width - nRad - 1, width),
                 halfNOnes
-        );
-        System.out.println("main.NeighborhoodProductSums.inRowSumsEdge() 2\n" + ebeStorage.getColumn(0).toString().substring(0, 10));
-        
+        );        
     }
 
     /**
@@ -124,7 +107,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param nRad Neighborhood radius.
      * @param width Width of the matrix.
      */
-    private void inRowSumNearEdge() {
+    private void sumLocalRowElementsNearEdge() {
         for (int i = 1; i < nRad + 1; i++) {
             sumLocalRowElements.getColumn(i).setSum(
                     1, ebeStorage.getColumn(i + nRad),
@@ -146,7 +129,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param nRad Neighborhood radius.
      * @param width Width of the matrix.
      */
-    private void inRowSumCenter() {
+    private void sumLocalRowElementsCenter() {
         for (int colIndex = nRad + 1; colIndex + nRad < width; colIndex++) {
                        
             
@@ -212,7 +195,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param nRad Neighborhood radius.
      * @param height Height of the matrix.
      */
-    private void nSumCenter(VectorsStride resultRows, Matrix a) {
+    private void nSumCenter(VectorsStride resultRows) {
         for (int rowIndex = nRad + 1; rowIndex < height - nRad; rowIndex++) {
 
             resultRows.getVector(rowIndex).setSum(

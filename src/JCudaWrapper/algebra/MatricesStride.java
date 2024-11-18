@@ -494,22 +494,13 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
         MatricesStride eVectors = copyDimensions(DArray.empty(data.length));
 
-        try (
-                IArray info = IArray.empty(data.batchSize);
-                IArray pivot = IArray.empty(data.batchSize * height)) {
+        try (IArray pivot = IArray.empty(data.batchSize * height)) {
 
             eVectors.row(height - 1).fill(1);
 
             for (int i = 0; i < height; i++) {
-                MatricesStride workSpace = copy(workSpaceArray);
-                workSpace.computeVec(eValues.getElement(i), eVectors.column(i), info, pivot);
-//                System.out.println("JCudaWrapper.algebra.MatricesStride.computeVecs() this is \n" + this);
-//                System.out.println("JCudaWrapper.algebra.MatricesStride.computeVecs() the eigen vector is \n" + eVectors.column(i));
-//                System.out.println("JCudaWrapper.algebra.MatricesStride.computeVecs() the eigen value is \n" + eValues.column(i));
-//                System.out.println("JCudaWrapper.algebra.MatricesStride.computeVecs() inverse of value * this * vector is:\n" + 
-//                        eVectors
-//                                .column(i)
-//                                .addProduct(false, 1/eValues.get(i).get(0), this, eVectors.column(i), 0));
+                MatricesStride workSpace = copy(workSpaceArray);//TODO: with each iteration, only elements on the diagonal change.  Why recopy the whole thing?
+                workSpace.computeVec(eValues.getElement(i), eVectors.column(i), pivot);
             }
         }
 
@@ -523,50 +514,20 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      * @param eVector Where the eigenvector will be placed.
      * @param info The success of the computations.
      */
-    private void computeVec(Vector eValue, VectorsStride eVector, IArray info, IArray pivot) {
+    private void computeVec(Vector eValue, VectorsStride eVector, IArray pivot) {
 
-        for (int i = 0; i < height; i++)
-            get(i, i).add(-1, eValue);
+        for (int i = 0; i < height; i++) get(i, i).add(-1, eValue);
+        
+        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() from data " + data.toString());
+        
+        KernelManager.get("nullSpace1dBatch").map(
+                handle, 
+                data, colDist, 
+                eVector.data, eVector.getStrideSize(), 
+                getBatchSize(), 
+                IArray.cpuPointer(width), DArray.cpuPointer(1e-5), pivot.pointerToPointer()
+         );
 
-//        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() After eigen subtraction:\n" + toString());
-        getPointers().LUFactor(handle, pivot, info);
-
-//        try(DArray ld = DArray.empty(4); DArray ud = DArray.empty(4)){
-//            //delte this hole section.  Its just for debugging.
-//            Matrix l = getSubMatrix(0).lowerLeftUnitDiagonal(ld);
-//            Matrix u = getSubMatrix(0).upperRight(ud);
-//            System.out.println("checking LU product: \n" + l.multiplyAndSet(l, u));
-//        }
-//        
-//        
-//        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() pivot\n" + pivot.toString());
-//        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() after LU:\n" + toString());
-        Vector[][] m = parition();
-
-//        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec()  m = " + Arrays.deepToString(m));
-        eVector.get(height - 2)
-                .set(m[width - 2][height - 1])
-                .ebeDivide(m[width - 2][height - 2])
-                .multiply(-1);
-
-        if (eVector.getSubVecDim() == 3)
-            eVector.getElement(0)
-                    .set(eVector.getElement(1))
-                    .multiply(-1, m[0][1])
-                    .add(-1, m[0][2])
-                    .ebeDivide(m[0][0]);
-
-//        System.out.println("Before pivoting: " + eVector);
-//        KernelManager.get("unPivotVec").map(//TODO: understand why unpivoting seems to give the wrong answer, and not unpivoting seems to get it right.
-//                        handle, 
-//                        pivot, 
-//                        height, 
-//                        eVector.dArray(), 
-//                        eVector.inc(), 
-//                        data.batchCount(),
-//                        IArray.cpuPointer(data.stride)
-//                );
-//        System.out.println("After pivoting:  " + eVector);
     }
 
     /**
@@ -603,7 +564,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
     }
 
     /**
-     * Gets the matrix at the given index.
+     * Gdets the matrix at the given index.
      *
      * @param i The index of the desired matrix.
      * @return The matrix at the requested index.
@@ -662,7 +623,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
             try (Eigen eigen = new Eigen(ms)) {
 
-                System.out.println("Eigen values:\n" + eigen.values);//TODO: EIGEN VALUES LOOKS WRONG!
+                System.out.println("Eigen values:\n" + eigen.values);
 
                 System.out.println("Eigen vectors:\n" + eigen.vectors);
 
@@ -681,6 +642,16 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
         }
     }
 
+    
+//    public static void main(String[] args) {
+//        try(Handle hand = new Handle(); DArray da = new DArray(hand, 1,0,0,0)){
+//            Matrix m = new Matrix(hand, da, 2, 2);
+//            Eigen eigen = new Eigen(m.repeating(1));
+//            System.out.println(eigen.vectors);
+//            
+//        }
+//    }
+    
     /**
      * The underlying batch array.
      *
@@ -831,3 +802,49 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
     }
 
 }
+
+
+
+
+
+////Former eVec method.
+////        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() After eigen subtraction:\n" + toString());
+//        getPointers().LUFactor(handle, pivot, info);
+//
+////        try(DArray ld = DArray.empty(4); DArray ud = DArray.empty(4)){
+////            //delte this hole section.  Its just for debugging.
+////            Matrix l = getSubMatrix(0).lowerLeftUnitDiagonal(ld);
+////            Matrix u = getSubMatrix(0).upperRight(ud);
+////            System.out.println("checking LU product: \n" + l.multiplyAndSet(l, u));
+////        }
+////        
+////        
+////        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() pivot\n" + pivot.toString());
+////        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() after LU:\n" + toString());
+//
+//        JCudaWrapper.algebra.Vector[][] m = parition();
+//
+////        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec()  m = " + Arrays.deepToString(m));
+//        eVector.get(height - 2)
+//                .set(m[width - 2][height - 1])
+//                .ebeDivide(m[width - 2][height - 2])
+//                .multiply(-1);
+//
+//        if (eVector.getSubVecDim() == 3)
+//            eVector.getElement(0)
+//                    .set(eVector.getElement(1))
+//                    .multiply(-1, m[0][1])
+//                    .add(-1, m[0][2])
+//                    .ebeDivide(m[0][0]);
+//
+////        System.out.println("Before pivoting: " + eVector);
+////        KernelManager.get("unPivotVec").map(//TODO: understand why unpivoting seems to give the wrong answer, and not unpivoting seems to get it right.
+////                        handle, 
+////                        pivot, 
+////                        height, 
+////                        eVector.dArray(), 
+////                        eVector.inc(), 
+////                        data.batchCount(),
+////                        IArray.cpuPointer(data.stride)
+////                );
+////        System.out.println("After pivoting:  " + eVector);

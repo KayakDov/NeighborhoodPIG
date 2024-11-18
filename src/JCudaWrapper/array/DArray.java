@@ -113,10 +113,10 @@ public class DArray extends Array {
      * @param d A double that needs a pointer.
      * @return A pointer to a singleton array containing d.
      */
-    static Pointer cpuPointer(double d) {
+    public static Pointer cpuPointer(double d) {
         return Pointer.to(new double[]{d});
     }
-
+    
     /**
      * Copies the contents of this GPU array to a CPU array.
      *
@@ -562,7 +562,7 @@ public class DArray extends Array {
 
         int error = JCublas2.cublasDgemv(
                 handle.get(),
-                transpose(transA), //                transA ? 'T' : 'N' is what I used to have, but it may be wrong.  TODO:resolve.
+                transpose(transA),
                 aRows, aCols,
                 cpuPointer(timesAx),
                 matA.pointer, lda,
@@ -850,10 +850,15 @@ public class DArray extends Array {
     }
 
     public static void main(String[] args) {
-        Handle hand = new Handle();
-        DArray d = new DArray(hand, 1, 2, 3, 4, 5, 6);
-        d.fillMatrix(hand, 2, 2, 3, 7);
-        System.out.println(d);
+        try (
+                Handle hand = new Handle();
+                DArray d = new DArray(hand, 1, 2, 3, 4, 5, 6);
+                DArray x = empty(6).fill(hand, 2, 1)) {
+
+            d.add(hand, 3, x, 2, 2);
+
+            System.out.println(d);
+        }
     }
 
     /**
@@ -987,15 +992,16 @@ public class DArray extends Array {
 
         if (incX != 0 && x.n(incX) != n(inc))
             throw new DimensionMismatchException(n(inc), x.n(incX));
-        
+
         int result = JCublas2.cublasDaxpy(
                 handle.get(),
                 n(inc),
                 cpuPointer(timesX), x.pointer, incX,
                 pointer, inc
         );
-        if (result != cudaError.cudaSuccess)
+        if (result != cudaError.cudaSuccess){
             throw new RuntimeException("cuda addition failed. Error: " + result + " - " + cudaError.stringFor(result));
+        }
 
         return this;
     }
@@ -1042,8 +1048,9 @@ public class DArray extends Array {
                 cpuPointer(beta), b.pointer, ldb,
                 pointer, ldc
         );
-        if (result != cudaError.cudaSuccess)
-            throw new RuntimeException("cuda error " + cudaError.stringFor(result));
+        if (result != cudaError.cudaSuccess){
+            throw new RuntimeException("cuda error " + result + " - " + cudaError.stringFor(result));
+        }
 
         return this;
     }
