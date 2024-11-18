@@ -518,8 +518,6 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
         for (int i = 0; i < height; i++) get(i, i).add(-1, eValue);
         
-        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() from data " + data.toString());
-        
         KernelManager.get("nullSpace1dBatch").map(
                 handle, 
                 data, colDist, 
@@ -647,6 +645,8 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 //        try(Handle hand = new Handle(); DArray da = new DArray(hand, 1,0,0,0)){
 //            Matrix m = new Matrix(hand, da, 2, 2);
 //            Eigen eigen = new Eigen(m.repeating(1));
+//            System.out.println(m + "\n");
+//            System.out.println(eigen.values + "\n");
 //            System.out.println(eigen.vectors);
 //            
 //        }

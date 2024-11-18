@@ -13,8 +13,8 @@ __device__ void swap(double& a, double& b) {
 class Row {
 private:
     double* data; /**< Pointer to the beginning of the row's data. */
-    int width;
-    int ld;
+    int width;    /**< Width of the matrix. */
+    int ld;       /**< Leading dimension of the matrix. */
 
 public:
     /**
@@ -27,7 +27,6 @@ public:
 
     /**
      * Accessor for elements in the row.
-     * Computes the pointer to an element in the row based on the column index.
      * @param col The column index of the desired element.
      * @return Reference to the element at the given column index.
      */
@@ -61,9 +60,9 @@ public:
 class Matrix {
 private:
     double* data; /**< Pointer to the matrix data. */
-    int* pivot;
-    int width; /**< Width of the matrix. */
-    int ld;
+    int* pivot;   /**< Pointer to the pivot array. */
+    int width;    /**< Width of the matrix. */
+    int ld;       /**< Leading dimension of the matrix. */
 
 public:
     /**
@@ -95,53 +94,72 @@ public:
     }
 
     /**
-     * Converts the matrix to upper triangular form via Gaussian elimination.
+     * Performs the work to bring the current row to row echelon form.
+     * @param row Current row index.
+     * @param col Current column index.
+     * @param tolerance Tolerance for determining pivot validity.
+     * @return True if a valid pivot was found; False otherwise.
+     */
+    __device__ bool rowEchelonWorkRow(int row, int col, double tolerance) {
+        Row r(data + row, width, ld);
+        int swapWith = row;
+
+        // Find a valid pivot row
+        while (fabs((*this)(swapWith, col)) <= tolerance && swapWith < width) 
+            swapWith++;
+        
+        if (swapWith != row && swapWith < width) {
+            Row needsSwap(data + swapWith, width, ld);
+            r.swap(needsSwap);
+            pivot[row] = swapWith;
+        } else if (swapWith == width) {
+            return false; // No valid pivot found
+        } else {
+            pivot[row] = row; // No swap needed
+        }
+
+        // Perform row elimination
+        double diagonalElement = (*this)(row, col);
+        for (int j = row + 1; j < width; j++) {
+            double factor = (*this)(j, col) / diagonalElement;
+            Row lower(data + j, width, ld);
+            lower.subtract(r, factor);
+        }
+        return true;
+    }
+
+    /**
+     * Converts the matrix to row echelon form via Gaussian elimination.
      * Updates the pivot index if a row swap occurs.
      * @param tolerance Tolerance for determining pivot validity.
      */
-    __device__ void triangulize(double tolerance) {
-        for (int i = 0; i < width; i++) {
-
-            Row r(data + i, width, ld);
-
-            int swapWith = i;
-            
-            while (fabs((*this)(swapWith, i)) <= tolerance && swapWith < width) 
-                swapWith++;
-            if (swapWith != i && swapWith < width) {
-                Row needsSwap(data + swapWith, width, ld);
-                r.swap(needsSwap);
-            }
-            
-            pivot[i] = swapWith;
-            
-            double diagonalLmnt = (*this)(i, i);
-
-            for (int j = i + 1; j < width; j++) {
-                double factor = (*this)(j, i) / diagonalLmnt;
-                Row lower(data + j, width, ld);
-                lower.subtract(r, factor);
-            }
+    __device__ void rowEchelon(double tolerance) {
+        for (int row = 0, col = 0; row < width && col < width; col++) {
+            if (rowEchelonWorkRow(row, col, tolerance)) 
+                row++;
         }
     }
-    
-    __device__ void reversePivot(double* vec){
-    	for(int i = width - 1; i >= 0; i--){
-    	    if(pivot[i] != i){
-    	    	Row r1(data + i, width, ld);
-    	    	Row r2(data + pivot[i], width, ld);
-    	    	r1.swap(r2);
-    	    }
-    	}
-    		
+
+    /**
+     * Restores the original row order using the pivot array.
+     * @param vec Pointer to the vector to be adjusted.
+     */
+    __device__ void reversePivot(double* vec) {
+        for (int i = width - 1; i >= 0; i--) {
+            if (pivot[i] != i) {
+                Row r1(data + i, width, ld);
+                Row r2(data + pivot[i], width, ld);
+                r1.swap(r2);
+            }
+        }
     }
 };
 
 /**
- * CUDA kernel to process a batch of matrices, converting each to upper triangular form.
+ * CUDA kernel to process a batch of matrices, converting each to row echelon form.
  * @param from Pointer to input matrix array (batch of column-major matrices).
  * @param ldFrom Leading dimension of input matrices.
- * @param to Pointer to output array for nullspace computation.  The final element of each vector should be 1.
+ * @param to Pointer to output array for nullspace computation. The final element of each vector should be 1.
  * @param ldTo Leading dimension of output matrices.
  * @param batchSize Number of matrices in the batch.
  * @param width Width of each square matrix.
@@ -154,14 +172,19 @@ extern "C" __global__ void nullSpace1dBatchKernel(double* from, int ldFrom, doub
     if (idx >= batchSize) return;
 
     Matrix mat(from + width * ldFrom * idx, width, ldFrom, workSpace + width * idx);
-    mat.triangulize(tolerance);
+
+    // Shared memory for partial pivoting
+    extern __shared__ double sharedPivotValues[];
+    mat.rowEchelon(tolerance);
 
     double* eVec = to + ldTo * idx;
 
-    for(int i = width - 2; i >= 0; i--){
-    	eVec[i] = 0;
-    	for(int j = i + 1; j < width; j++) eVec[i] -= eVec[j] * mat(i, j);
-    	eVec[i] /= mat(i, i); 
+    for (int i = width - 2; i >= 0; i--) {
+        eVec[i] = 0;
+        for (int j = i + 1; j < width; j++) 
+            eVec[i] -= eVec[j] * mat(i, j);
+        if (mat(i, i) != 0) 
+            eVec[i] /= mat(i, i);
     }
 
     mat.reversePivot(eVec);
