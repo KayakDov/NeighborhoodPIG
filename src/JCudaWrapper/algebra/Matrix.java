@@ -890,7 +890,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return This matrix repeating itself in a batch.
      */
     public MatricesStride repeating(int batchSize) {
-        return new MatricesStride(handle, data, height, width, colDist, size(), batchSize);
+        return new MatricesStride(handle, data, height, width, colDist, 0, batchSize);
     }
 
     /**

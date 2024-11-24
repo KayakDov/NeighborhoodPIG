@@ -10,6 +10,7 @@ import JCudaWrapper.algebra.VectorsStride;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.KernelManager;
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.Arrays;
 
 
 /**
@@ -115,7 +116,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * dimensions, and returns a double[][] representing the vector in
      * [row][column] format.
      *
-     * @param columnMajor A vector that is column major order of a matrix with height height.
+     * @param columnMajor A vector that is column major order of a matrix with height orientation.height.
      * @param workSpace An auxillery workspace.  It should be height in length.
      * @return a cpu matrix.
      */
@@ -124,6 +125,8 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
                 .copyToCPURows();
     }
 
+    
+    
 //        (R, G, B) = (256*cos(x), 256*cos(x + 120), 256*cos(x - 120))  <- this is for 360.  For 180 maybe:
 //    (R, G, B) = (256*cos(x), 256*cos(x + 60), 256*cos(x + 120))
     /**
@@ -137,25 +140,20 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
         try (DArray workSpace = DArray.empty(2 * orientation.size())) {
             
-            VectorsStride primaryAxis = eigen.vectors.column(0).setVectorMagnitudes(255, workSpace);
+            VectorsStride orientationVecs255 = eigen.vectors.column(0).setVectorMagnitudes(255, workSpace);
             
-            MatricesStride rotate60 = Rotation.r60.repeating(primaryAxis.getBatchSize());
+            MatricesStride rotate120 = Rotation.r120.repeating(orientationVecs255.getBatchSize());
 
-            Vector cos = primaryAxis.get(0);
-
+            Vector cos = orientationVecs255.get(0);
             RGB[0] = getRows(cos);
             
-            
-
-            primaryAxis.setProduct(rotate60, primaryAxis);
-            
+            orientationVecs255.setProduct(rotate120, orientationVecs255);
             RGB[1] = getRows(cos);
             
-            primaryAxis.setProduct(rotate60, primaryAxis);
-            
+            orientationVecs255.setProduct(rotate120, orientationVecs255);
             RGB[2] = getRows(cos);
             
-            primaryAxis.setProduct(rotate60, primaryAxis);
+            orientationVecs255.setProduct(rotate120, orientationVecs255);
         }
         return RGB;
     }

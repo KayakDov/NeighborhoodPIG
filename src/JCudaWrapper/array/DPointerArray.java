@@ -8,11 +8,9 @@ import jcuda.jcublas.JCublas2;
 import org.apache.commons.math3.exception.DimensionMismatchException;
 import JCudaWrapper.resourceManagement.Handle;
 import static JCudaWrapper.array.Array.checkNull;
-import static JCudaWrapper.array.DArray.cpuPointer;
 import jcuda.jcublas.cublasFillMode;
 import jcuda.jcublas.cublasStatus;
 import jcuda.jcusolver.JCusolverDn;
-import jcuda.jcusolver.cusolverEigMode;
 import jcuda.jcusolver.cusolverStatus;
 
 import static JCudaWrapper.array.Array.checkPositive;
