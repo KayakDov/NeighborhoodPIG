@@ -108,14 +108,14 @@ public:
         while (fabs((*this)(swapWith, col)) <= tolerance && swapWith < width) 
             swapWith++;
         
-        if (swapWith != row && swapWith < width) {
+        if(swapWith == row || swapWith == width){
+            pivot[row] = row;
+	    if (swapWith == width) return false; // No valid pivot found
+        }
+	else{
             Row needsSwap(data + swapWith, width, ld);
             r.swap(needsSwap);
             pivot[row] = swapWith;
-        } else if (swapWith == width) {
-            return false; // No valid pivot found
-        } else {
-            pivot[row] = row; // No swap needed
         }
 
         // Perform row elimination
@@ -132,12 +132,16 @@ public:
      * Converts the matrix to row echelon form via Gaussian elimination.
      * Updates the pivot index if a row swap occurs.
      * @param tolerance Tolerance for determining pivot validity.
+     * @param trackPivots the indices of the pivot coluns will be set to one.
      */
-    __device__ void rowEchelon(double tolerance) {
-        for (int row = 0, col = 0; row < width && col < width; col++) {
-            if (rowEchelonWorkRow(row, col, tolerance)) 
-                row++;
-        }
+    __device__ int rowEchelon(double* trackPivots, double tolerance) {
+        int numPivots = 0, row = 0;
+        for (int col = 0; col < width; col++)
+            if (rowEchelonWorkRow(row, col, tolerance)) row++;
+	    else numPivots++;
+	for(; row < width; row++)
+	    pivot[row] = row;
+	return numPivots;
     }
 
     /**
@@ -145,14 +149,34 @@ public:
      * @param vec Pointer to the vector to be adjusted.
      */
     __device__ void reversePivot(double* vec) {
-        for (int i = width - 1; i >= 0; i--) {
-            if (pivot[i] != i) {
-                Row r1(data + i, width, ld);
-                Row r2(data + pivot[i], width, ld);
-                r1.swap(r2);
-            }
+        for (int row = width - 1; row >= 0; row--) {
+            if (pivot[row] != row) swap(vec[row], vec[pivot[row]]);            
         }
     }
+
+    /**
+     * Prints the matrix in a readable row-major format.
+     * Note: Use only for debugging purposes as printf is costly in CUDA kernels.
+     */
+    __device__ void printMatrix(const char* label = "") {
+        if (threadIdx.x == 0 && blockIdx.x == 0) { // Ensure only one thread prints
+            printf("Matrix %s (%dx%d):\n", label, width, width);
+            for (int row = 0; row < width; row++) {
+                for (int col = 0; col < width; col++) {
+                    printf("%10.4f ", (*this)(row, col));
+                }
+                printf("\n");
+            }
+            printf("\n");
+        }
+    }
+    __device__ void printPivots() const {
+    	printf("Pivot Data:\n");
+    	for (int i = 0; i < width; i++) 
+            printf("Row %d: Pivot Index = %d\n", i, pivot[i]);
+        
+    }
+
 };
 
 /**
@@ -173,19 +197,27 @@ extern "C" __global__ void nullSpace1dBatchKernel(double* from, int ldFrom, doub
 
     Matrix mat(from + width * ldFrom * idx, width, ldFrom, workSpace + width * idx);
 
-    // Shared memory for partial pivoting
-    extern __shared__ double sharedPivotValues[];
-    mat.rowEchelon(tolerance);
-
     double* eVec = to + ldTo * idx;
+    
+//    mat.printMatrix("initial matrix");
+    
+    int numPivots = mat.rowEchelon(eVec, tolerance);
+   // printf("num pivots = %d\n", numPivots);
 
-    for (int i = width - 2; i >= 0; i--) {
-        eVec[i] = 0;
-        for (int j = i + 1; j < width; j++) 
-            eVec[i] -= eVec[j] * mat(i, j);
-        if (mat(i, i) != 0) 
-            eVec[i] /= mat(i, i);
+  //  mat.printMatrix("row echelon");   
+
+    for(int i = width - 1; i > width - numPivots; i--) eVec[i] = 0;
+    eVec[width - numPivots] = 1;
+    
+    for (int row = width - numPivots - 1, col = width - 1; row >= 0; row--,  col--) {
+    	eVec[row] = 0;
+        while(col > 0 && fabs(mat(row, col - 1)) > tolerance) col--;
+        for (int i = col + 1; i <= width - numPivots; i++) eVec[row] -= eVec[i] * mat(row, i);
+        eVec[row] /= mat(row, col);
     }
 
+	//mat.printPivots();
+	//mat.printMatrix("before pivot");
     mat.reversePivot(eVec);
+    //mat.printMatrix("after pivot");
 }

@@ -496,8 +496,6 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
         try (IArray pivot = IArray.empty(data.batchSize * height)) {
 
-            eVectors.row(height - 1).fill(1);
-
             for (int i = 0; i < height; i++) {
                 MatricesStride workSpace = copy(workSpaceArray);//TODO: with each iteration, only elements on the diagonal change.  Why recopy the whole thing?
                 workSpace.computeVec(eValues.getElement(i), eVectors.column(i), pivot);
@@ -606,18 +604,16 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
     public static void main(String[] args) {
         try (
                 Handle handle = new Handle();
-                DArray array = new DArray(handle, 1, 2, 2, 3, 9, 11, 11, 12, 5, 6, 6, 8)) {
+                DArray array = new DArray(handle, 1, 2, 2, 3, 9, 11, 11, 12, 5, 6, 6, 8, 1, 0, 0, 0)) {
 
-            MatricesStride ms = new MatricesStride(handle, array, 2, 2, 2, 4, 3);
+            MatricesStride ms = new MatricesStride(handle, array, 2, 2, 2, 4, 4);
 
-            Matrix[] m = new Matrix[3];
-            m[0] = new Matrix(handle, array, 2, 2);
-            m[1] = new Matrix(handle, array.subArray(4), 2, 2);
-            m[2] = new Matrix(handle, array.subArray(8), 2, 2);
-
-            for (int i = 0; i < 3; i++) m[i].power(2);
+            Matrix[] m = new Matrix[4];
+            Arrays.setAll(m, i -> new Matrix(handle, array.subArray(i * 4), 2, 2));
+            for (int i = 0; i < m.length; i++) m[i].power(2);
 
             System.out.println("matrices:\n" + ms);
+
 
             try (Eigen eigen = new Eigen(ms)) {
 
@@ -644,10 +640,13 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 //    public static void main(String[] args) {
 //        try(Handle hand = new Handle(); DArray da = new DArray(hand, 1,0,0,0)){
 //            Matrix m = new Matrix(hand, da, 2, 2);
+//            
+//            System.out.println("matrix = \n" + m + "\n");
+//            
 //            Eigen eigen = new Eigen(m.repeating(1));
-//            System.out.println(m + "\n");
-//            System.out.println(eigen.values + "\n");
-//            System.out.println(eigen.vectors);
+//            
+//            System.out.println("values: " + eigen.values + "\n");
+//            System.out.println("vectors:\n" + eigen.vectors);
 //            
 //        }
 //    }

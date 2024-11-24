@@ -10,7 +10,7 @@ import JCudaWrapper.algebra.VectorsStride;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.KernelManager;
 import JCudaWrapper.resourceManagement.Handle;
-import java.util.Arrays;
+
 
 /**
  *
