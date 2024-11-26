@@ -95,6 +95,7 @@ public class Handle implements AutoCloseable {
      * @return The {@link cublasHandle} for performing CUBLAS operations.
      */
     public cublasHandle get() {
+        if(!isOpen) throw new RuntimeException("This handle has been closed.");
         if (cuStream != null) JCudaDriver.cuStreamSynchronize(cuStream);
         return handle;
     }
@@ -105,6 +106,7 @@ public class Handle implements AutoCloseable {
      * @return The stream associated with this handle.
      */
     public cudaStream_t getStream() {
+        if(!isOpen) throw new RuntimeException("This handle has been closed.");
         if (cuStream != null) JCudaDriver.cuStreamSynchronize(cuStream);
         return stream;
     }

@@ -103,7 +103,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
     /**
      * Constructs a new Matrix from an existing data pointer on the GPU.
      *
-     * @param vector Pointer to the data on the GPU.
+     * @param array Pointer to the data on the GPU.
      * @param height The number of rows in the matrix.
      * @param width The number of columns in the matrix.
      * @param distBetweenFirstElementOfColumns The distance between the first
@@ -111,13 +111,10 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * submatrix, it may differ.
      * @param handle The handle for GPU operations.
      */
-    public Matrix(Handle handle, DArray vector, int height, int width, int distBetweenFirstElementOfColumns) {
-//        if (!GPU.IsAvailable())
-//            throw new RuntimeException("GPU is not available.");
-
+    public Matrix(Handle handle, DArray array, int height, int width, int distBetweenFirstElementOfColumns) {
         this.height = height;
         this.width = width;
-        this.data = vector;
+        this.data = array;
         this.handle = handle;
         this.colDist = distBetweenFirstElementOfColumns;
     }
@@ -265,16 +262,11 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      */
     public Matrix setSum(Handle handle, boolean transA, boolean transB, double alpha, Matrix a, double beta, Matrix b) {
 
-        if (transA) {
-            checkRowCol(a.width - 1, a.height - 1);
-        } else {
-            checkRowCol(a.height - 1, a.width - 1);
-        }
-        if (transB) {
-            checkRowCol(b.width - 1, b.height - 1);
-        } else {
-            checkRowCol(b.height - 1, b.width - 1);
-        }
+        if (transA) checkRowCol(a.width - 1, a.height - 1);
+        else checkRowCol(a.height - 1, a.width - 1);
+        if (transB) checkRowCol(b.width - 1, b.height - 1);
+        else  checkRowCol(b.height - 1, b.width - 1);
+        
 
         data.setSum(handle, transA, transB, height, width, alpha, a.data, a.colDist, beta, b.data, b.colDist, colDist);
 
@@ -292,7 +284,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return This.
      */
     public Matrix setSum(boolean transA, boolean transB, double alpha, Matrix a, double beta, Matrix b) {
-        return Matrix.this.setSum(handle, transA, transB, alpha, a, beta, b);
+        return setSum(handle, transA, transB, alpha, a, beta, b);
     }
 
     /**
@@ -304,7 +296,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return This.
      */
     public Matrix setSum(double alpha, Matrix a, double beta, Matrix b) {
-        return Matrix.this.setSum(handle, false, false, alpha, a, beta, b);
+        return setSum(handle, false, false, alpha, a, beta, b);
     }
 
     /**
@@ -314,7 +306,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return A new matrix equal to this matrix times a scalar.
      */
     public Matrix multiply(double d) {
-        return Matrix.this.setSum(d, this, 0, this);
+        return setSum(d, this, 0, this);
     }
 
     /**

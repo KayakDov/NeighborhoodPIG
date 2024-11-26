@@ -304,12 +304,18 @@ abstract class Array implements AutoCloseable {
     }
 
     /**
+     * Default of true, and set to false when the memory is dealocated.
+     */
+    protected boolean isOpen = true;
+    
+    /**
      * Frees the GPU memory allocated for this array. This method is invoked
      * automatically when the object is closed.
      */
     @Override
     public void close() {
         cleanable.clean();
+        isOpen = false;
     }
 
     /**
@@ -354,6 +360,13 @@ abstract class Array implements AutoCloseable {
      */
     protected void checkAgainstLength(int... maybeInBounds) {
         checkUpperBound(length, maybeInBounds);
+    }
+    
+    /**
+     * Checks if the memory is available.  If it is not, then an exception is thrown.
+     */
+    public void checkMemAllocation(){
+        if(!isOpen) throw new RuntimeException("This memory has been dealocated.");
     }
 
     /**

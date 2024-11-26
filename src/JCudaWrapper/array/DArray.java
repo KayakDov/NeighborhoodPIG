@@ -9,6 +9,7 @@ import jcuda.driver.CUdeviceptr;
 import jcuda.jcublas.JCublas2;
 import jcuda.jcublas.cublasDiagType;
 import jcuda.jcublas.cublasFillMode;
+import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaError;
 import org.apache.commons.math3.exception.DimensionMismatchException;
 
@@ -197,10 +198,11 @@ public class DArray extends Array {
     public void get(Handle handle, double[] to, int toStart, int fromStart, int toInc, int fromInc, int length) {
         if (fromInc == toInc && fromInc == 1)
             get(handle, to, toStart, fromStart, length);
-        else {
+        else 
             for (int i = 0; i < length; i++)
                 get(handle, to, i * toInc + toStart, i * fromInc + fromStart, 1);
-        }
+        
+        handle.synch();
     }
 
     /**
@@ -713,6 +715,7 @@ public class DArray extends Array {
 
     @Override
     public String toString() {
+        JCuda.cudaDeviceSynchronize();
         try (Handle handle = new Handle()) {
             return Arrays.toString(get(handle));
         }
@@ -989,7 +992,9 @@ public class DArray extends Array {
         checkNull(handle, x);
         checkLowerBound(1, inc);
         checkAgainstLength((n(inc) - 1) * inc);
-
+        checkMemAllocation();
+        x.checkMemAllocation();
+        
         if (incX != 0 && x.n(incX) != n(inc))
             throw new DimensionMismatchException(n(inc), x.n(incX));
 
@@ -1002,7 +1007,7 @@ public class DArray extends Array {
         if (result != cudaError.cudaSuccess){
             throw new RuntimeException("cuda addition failed. Error: " + result + " - " + cudaError.stringFor(result));
         }
-
+        
         return this;
     }
 
@@ -1039,6 +1044,8 @@ public class DArray extends Array {
         checkNull(handle, a, b);
         checkPositive(height, width);
         checkAgainstLength(height * width - 1);
+        checkMemAllocation();
+        a.checkMemAllocation();
 
         int result = JCublas2.cublasDgeam(
                 handle.get(),
@@ -1048,10 +1055,9 @@ public class DArray extends Array {
                 cpuPointer(beta), b.pointer, ldb,
                 pointer, ldc
         );
-        if (result != cudaError.cudaSuccess){
+        if (result != cudaError.cudaSuccess)
             throw new RuntimeException("cuda error " + result + " - " + cudaError.stringFor(result));
-        }
-
+        
         return this;
     }
 

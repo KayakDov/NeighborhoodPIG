@@ -12,6 +12,8 @@ import JCudaWrapper.resourceManagement.Handle;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.IArray;
 import java.awt.image.WritableRaster;
+import jcuda.Pointer;
+import jcuda.runtime.JCuda;
 
 /**
  * Each neighborhood pig has it's own handle.
@@ -32,10 +34,13 @@ public class NeighborhoodPIG implements AutoCloseable {
      * @throws java.io.IOException If there's trouble loading the image.
      */
     public NeighborhoodPIG(String imagePath, int neighborhoodSize) throws IOException {
+
         handle = new Handle();
 
         Matrix imageMat = processImage(imagePath, handle);
+
         Gradient grad = new Gradient(imageMat, handle);
+
         imageMat.close();
         stm = new StructureTensorMatrix(grad.x(), grad.y(), neighborhoodSize);
         grad.close();
@@ -51,7 +56,7 @@ public class NeighborhoodPIG implements AutoCloseable {
 
         try (IArray rgb = stm.getRGB()) {
 
-            BufferedImage image = new BufferedImage(height, width, BufferedImage.TYPE_INT_RGB);
+            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             WritableRaster raster = image.getRaster();
 
             for (int row = 0; row < height; row++)
@@ -65,16 +70,6 @@ public class NeighborhoodPIG implements AutoCloseable {
             }
         }
 
-    }
-
-    public static void main(String[] args) throws IOException {
-//        NeighborhoodPIG np = new NeighborhoodPIG("images/input/debug.jpeg", 1);
-
-        NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 1);
-
-        np.orientationColored("images/output/test.png");
-
-//        System.out.println(np.stm.setOrientations());
     }
 
     /**
@@ -93,26 +88,33 @@ public class NeighborhoodPIG implements AutoCloseable {
         if (image.getType() != BufferedImage.TYPE_BYTE_GRAY)
             image = convertToGrayscale(image);
 
-        //TODO: delete next two lines.
-        int d = 55;//55 seems to be the maximum
-        image = image.getSubimage(image.getWidth() / 2 - d / 2, image.getHeight() / 2 - d / 2, d, d);
+//        TODO: delete ////////////////////////////////////////
+        int d = 400;
+        image = image.getSubimage(
+                image.getWidth() / 2 - d / 2,
+                image.getHeight() / 2 - d / 2 - 1,
+                d,
+                d + 2
+        );
+        ////////////////////////////////////////////////
 
         Raster raster = image.getRaster();
 
         width = image.getWidth();
         height = image.getHeight();
 
-        double[] imageData = new double[width * height];
+        double[] imageDataCPU = new double[width * height];
 
-        Arrays.setAll(imageData, i -> raster.getSample(i / height, i % height, 0) / 255.0);
+        Arrays.setAll(imageDataCPU, i -> raster.getSample(i / height, i % height, 0) / 255.0);
+
+        DArray imageDataGPU = new DArray(handle, imageDataCPU);
 
         Matrix mat = new Matrix(
                 handle,
-                new DArray(handle, imageData),
+                imageDataGPU,
                 height,
                 width);
 
-//        System.out.println(mat);
         return mat;
     }
 
@@ -138,4 +140,15 @@ public class NeighborhoodPIG implements AutoCloseable {
         stm.close();
         handle.close();
     }
+
+    public static void main(String[] args) throws IOException {
+//        NeighborhoodPIG np = new NeighborhoodPIG("images/input/debug.jpeg", 1);
+
+        NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 1);
+
+        np.orientationColored("images/output/test.png");
+
+//        System.out.println(np.stm.setOrientations());
+    }
+
 }

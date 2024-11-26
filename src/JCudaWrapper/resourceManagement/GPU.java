@@ -19,6 +19,7 @@ public class GPU {
     static {
         useGPU = checkGPUAvailability();
         if (useGPU) {
+            JCuda.cudaDeviceReset();
             JCublas.cublasInit();
             JCuda.setExceptionsEnabled(true);
             JCublas.setExceptionsEnabled(true);

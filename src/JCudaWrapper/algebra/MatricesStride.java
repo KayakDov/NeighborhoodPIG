@@ -114,7 +114,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      * the batch.
      */
     public Vector get(int i, int j) {
-        return new Vector(handle, data.subArray(index(i, j)), data.stride);
+        return new Vector(handle, data.subArray(index(i, j), (getBatchSize() - 1)*getStrideSize() + 1), data.stride);
     }
 
     /**
@@ -516,7 +516,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
         for (int i = 0; i < height; i++) get(i, i).add(-1, eValue);
         
-        double tolerance = 1e-10;
+        final double tolerance = 5e-13;
         
         KernelManager.get("nullSpace1dBatch").map(
                 handle, 

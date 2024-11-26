@@ -8,6 +8,7 @@ import org.apache.commons.math3.exception.NotPositiveException;
 import JCudaWrapper.resourceManagement.Handle;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.DSingleton;
+import jcuda.runtime.JCuda;
 
 /**
  * The {@code Vector} class extends {@code RealVector} and represents a vector
@@ -224,7 +225,7 @@ public class Vector extends Matrix {
 
         data.addProductSymBandMatVec(handle, true,
                 dim(), 0,
-                timesAB, 
+                timesAB,
                 a.data, a.inc(),
                 b.data, b.inc(),
                 timesThis, inc()
@@ -232,7 +233,6 @@ public class Vector extends Matrix {
 
         return this;
     }
-
 
     /**
      * Element by element division. Like most methods, it changes this vector.
@@ -373,11 +373,12 @@ public class Vector extends Matrix {
 
     /**
      * {@inheritDoc}
+     *
      * @param alpha
      * @param a
      * @param beta
      * @param b
-     * @return 
+     * @return
      */
     @Override
     public Vector setSum(double alpha, Matrix a, double beta, Matrix b) {
@@ -385,8 +386,6 @@ public class Vector extends Matrix {
         return this;
     }
 
-    
-    
     /**
      * The L_1 norm.
      */
@@ -481,6 +480,8 @@ public class Vector extends Matrix {
         return v.multiply(dots[0] / dots[1]);
     }
 
+    static int i = 0; //TODO remove
+
     /**
      * The cpu array that is a copy of this gpu vector.
      *
@@ -488,7 +489,9 @@ public class Vector extends Matrix {
      */
     public double[] toArray() {
         double[] to = new double[dim()];
+
         data.get(handle, to, 0, 0, 1, inc(), dim());
+
         return to;
     }
 
@@ -641,13 +644,13 @@ public class Vector extends Matrix {
      */
     public Vector addProduct(boolean transposeMat, double timesAB, Matrix mat, Vector vec, double timesCurrent) {
 
-        data.addProduct(handle, transposeMat, 
-                mat.getHeight(), mat.getWidth(),                 
-                timesAB, mat.data, mat.getColDist(), 
-                vec.dArray(), vec.inc(), 
+        data.addProduct(handle, transposeMat,
+                mat.getHeight(), mat.getWidth(),
+                timesAB, mat.data, mat.getColDist(),
+                vec.dArray(), vec.inc(),
                 timesCurrent, inc()
         );
-        
+
         return this;
     }
 
@@ -697,8 +700,6 @@ public class Vector extends Matrix {
         throw new UnsupportedOperationException("Use the addProduct methods that take vectors as parameters instead.");
     }
 
-
-    
     /**
      * This vector as a double array.
      *

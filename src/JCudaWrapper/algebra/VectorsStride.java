@@ -285,7 +285,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
     @Override
     public String toString() {
         
-        return Arrays.deepToString(this.copyToCPURows()).replace("],", "],\n");
+        return Arrays.deepToString(copyToCPURows()).replace("],", "],\n");
     }
 
     /**

@@ -57,13 +57,13 @@ public class NeighborhoodProductSums implements AutoCloseable {
     public void set(Matrix a, Matrix b, Vector result) {
 
         Handle hand = a.getHandle();
-
+        
         new Vector(hand, ebeStorage.dArray(), 1)
                 .ebeSetProduct(
                         new Vector(hand, a.dArray(), 1),
                         new Vector(hand, b.dArray(), 1)
                 );
-
+        
         sumLocalRowElementsEdge();
         sumLocalRowElementsNearEdge();
         sumLocalRowElementsCenter();
@@ -72,8 +72,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
 
         nSumEdge(resultRows);
         nSumNearEdge(resultRows);
-        nSumCenter(resultRows);
-        //TODO: pixels nearer the edges have lower sums.  They should probably be normalized for this.
+        nSumCenter(resultRows);       
     }
 
     /**
@@ -130,16 +129,11 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param width Width of the matrix.
      */
     private void sumLocalRowElementsCenter() {
-        for (int colIndex = nRad + 1; colIndex + nRad < width; colIndex++) {
-                       
-            
+        for (int colIndex = nRad + 1; colIndex + nRad < width; colIndex++)
             sumLocalRowElements.getColumn(colIndex).setSum(
                     -1, ebeStorage.getColumn(colIndex - nRad - 1),
                     1, ebeStorage.getColumn(colIndex + nRad)
-            );
-            sumLocalRowElements.getColumn(colIndex).add(1, sumLocalRowElements.getColumn(colIndex - 1));//todo: make this one command instead of two.
-
-        }
+            ).add(1, sumLocalRowElements.getColumn(colIndex - 1));
     }
 
     /**
