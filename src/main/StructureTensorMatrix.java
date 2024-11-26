@@ -1,17 +1,15 @@
 package main;
 
 import JCudaWrapper.algebra.ColumnMajor;
-import MathSupport.Rotation;
 import JCudaWrapper.algebra.Eigen;
 import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.Vector;
-import JCudaWrapper.algebra.VectorsStride;
-import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.KernelManager;
 import JCudaWrapper.resourceManagement.Handle;
+import java.awt.Color;
 import java.util.Arrays;
-
 
 /**
  *
@@ -35,29 +33,27 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     public StructureTensorMatrix(Matrix dX, Matrix dY, int neighborhoodRad) {
 
         handle = dX.getHandle();
-                
+
         int height = dX.getHeight(), width = dX.getWidth();
 
         strctTensors = new MatricesStride(handle, 2, dX.size());//reset to 3x3 for dZ.
-        
-        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(dX.getHandle(), neighborhoodRad, height, width)) {            
+
+        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(dX.getHandle(), neighborhoodRad, height, width)) {
             nps.set(dX, dX, strctTensors.get(0, 0));
             nps.set(dX, dY, strctTensors.get(0, 1));//TODO: Check other arrays for using length as the number of times something is done when increment says it should not be!
             nps.set(dY, dY, strctTensors.get(1, 1));
-            
+
 //            nps.set(dX, dZ, strctTensors.get(0, 2));
 //            nps.set(dY, dZ, strctTensors.get(1, 2));
 //            nps.set(dZ, dZ, strctTensors.get(2, 2));//Add these when working with dZ.
         }
-        
+
         strctTensors.get(1, 0).set(strctTensors.get(0, 1));
 //        strctTensors.get(2, 0).set(strctTensors.get(0, 2)); //engage for 3x3.
 //        strctTensors.get(2, 1).set(strctTensors.get(1, 2));
 
-        
-
         eigen = new Eigen(strctTensors);
-        
+
         orientation = new Matrix(handle, height, width);
     }
 
@@ -93,12 +89,30 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     }
 
     /**
+     * All the eigen vectors with y less than 0 are mulitplied by -1.
+     *
+     * @return The eigenvectors.
+     */
+    public MatricesStride setVecs0ToPi() {
+        MatricesStride eVecs = eigen.vectors;
+        KernelManager.get("vecToNematic").mapToSelf(handle,
+                eVecs.dArray(), eVecs.colDist,
+                eVecs.getBatchSize() * eVecs.width
+        );
+        return eVecs;
+    }
+
+    /**
      * Sets the orientations from the eigenvectors.
+     *
      * @return The orientation matrix.
      */
     public Matrix setOrientations() {
-
-        KernelManager.get("atan2").map(handle, eigen.vectors.dArray(), 4, orientation.dArray(), 1, orientation.size());
+        KernelManager.get("atan2").map(handle,
+                eigen.vectors.dArray(), eigen.vectors.getStrideSize(),
+                orientation.dArray(), 1,
+                orientation.size()
+        );
         return orientation;
     }
 
@@ -116,8 +130,9 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * dimensions, and returns a double[][] representing the vector in
      * [row][column] format.
      *
-     * @param columnMajor A vector that is column major order of a matrix with height orientation.height.
-     * @param workSpace An auxillery workspace.  It should be height in length.
+     * @param columnMajor A vector that is column major order of a matrix with
+     * height orientation.height.
+     * @param workSpace An auxillery workspace. It should be height in length.
      * @return a cpu matrix.
      */
     private double[][] getRows(Vector columnMajor) {
@@ -125,37 +140,29 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
                 .copyToCPURows();
     }
 
-    
-    
 //        (R, G, B) = (256*cos(x), 256*cos(x + 120), 256*cos(x - 120))  <- this is for 360.  For 180 maybe:
 //    (R, G, B) = (256*cos(x), 256*cos(x + 60), 256*cos(x + 120))
     /**
      * Three matrices for red green blue color values.
      *
-     * @return
+     * @return a column major array of colors. The first 3 elements are the RGB
+     * values for the first color, etc...
      */
-    public double[][][] getRGB() {
+    public IArray getRGB() {
 
-        double RGB[][][] = new double[3][][];
+        setVecs0ToPi();
+        setOrientations().multiply(2);
+        
+        System.out.println("\nmain.StructureTensorMatrix.getRGB() tensor: \n" + strctTensors.getMatrix(26));
+        System.out.println("\nmain.StructureTensorMatrix.getRGB() vectors: \n" + eigen.vectors.getMatrix(26));
+        System.out.println("\nmain.StructureTensorMatrix.getRGB() values:\n" + eigen.values.getVector(26));
+        
+        IArray colors = IArray.empty(orientation.size() * 3);
 
-        try (DArray workSpace = DArray.empty(2 * orientation.size())) {
-            
-            VectorsStride orientationVecs255 = eigen.vectors.column(0).setVectorMagnitudes(255, workSpace);
-            
-            MatricesStride rotate120 = Rotation.r120.repeating(orientationVecs255.getBatchSize());
+        KernelManager.get("color").map(handle, orientation.dArray(), 1, colors, 3, orientation.size());
 
-            Vector cos = orientationVecs255.get(0);
-            RGB[0] = getRows(cos);
-            
-            orientationVecs255.setProduct(rotate120, orientationVecs255);
-            RGB[1] = getRows(cos);
-            
-            orientationVecs255.setProduct(rotate120, orientationVecs255);
-            RGB[2] = getRows(cos);
-            
-            orientationVecs255.setProduct(rotate120, orientationVecs255);
-        }
-        return RGB;
+        return colors;
+
     }
 
     /**

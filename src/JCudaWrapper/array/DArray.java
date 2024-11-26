@@ -319,8 +319,8 @@ public class DArray extends Array {
     public double[] getIncremented(Handle handle, int inc) {
         double[] incremented = new double[n(inc)];
         Pointer cpu = Pointer.to(incremented);
-        for (int i = 0; i < length; i += inc)
-            get(handle, cpu, i, i, 1);
+        for (int i = 0; i < incremented.length; i++)
+            get(handle, cpu, i, i*inc, 1);
         handle.synch();
         return incremented;
     }

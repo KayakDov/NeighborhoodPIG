@@ -10,6 +10,7 @@ import java.util.Arrays;
 import javax.imageio.ImageIO;
 import JCudaWrapper.resourceManagement.Handle;
 import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.IArray;
 import java.awt.image.WritableRaster;
 
 /**
@@ -42,38 +43,26 @@ public class NeighborhoodPIG implements AutoCloseable {
     }
 
     /**
-     * Extracts the color at a specific pixel from matrices of colors.
-     *
-     * @param row
-     * @param col
-     * @param rgb
-     * @return
-     */
-    private double[] getColor(int row, int col, double[][][] rgb) {
-        return new double[]{rgb[0][row][col], rgb[1][row][col], rgb[2][row][col]};
-    }
-
-    /**
      * Writes a heat map orientation picture to the given file.
      *
      * @param writeTo The new orientation image.
      */
     public void orientationColored(String writeTo) {
 
-        double[][][] rgb = stm.getRGB();
+        try (IArray rgb = stm.getRGB()) {
 
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        WritableRaster raster = image.getRaster();
+            BufferedImage image = new BufferedImage(height, width, BufferedImage.TYPE_INT_RGB);
+            WritableRaster raster = image.getRaster();
 
-        for (int row = 0; row < height; row++)
-            for (int col = 0; col < width; col++)
-                raster.setPixel(col, row, getColor(row, col, rgb));
+            for (int row = 0; row < height; row++)
+                for (int col = 0; col < width; col++)
+                    raster.setPixel(col, row, rgb.get(handle, (col * height + row) * 3, 3));
 
-        // Save the image to a file
-        try {
-            ImageIO.write(image, "png", new File(writeTo));
-        } catch (Exception e) {
-            e.printStackTrace();
+            try {
+                ImageIO.write(image, "png", new File(writeTo));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
     }
@@ -106,8 +95,8 @@ public class NeighborhoodPIG implements AutoCloseable {
 
         //TODO: delete next two lines.
         int d = 55;//55 seems to be the maximum
-        image = image.getSubimage(image.getWidth()/2 - d/2, image.getHeight()/2 - d/2, d, d);
-        
+        image = image.getSubimage(image.getWidth() / 2 - d / 2, image.getHeight() / 2 - d / 2, d, d);
+
         Raster raster = image.getRaster();
 
         width = image.getWidth();
@@ -149,5 +138,4 @@ public class NeighborhoodPIG implements AutoCloseable {
         stm.close();
         handle.close();
     }
-
 }

@@ -235,26 +235,26 @@ abstract class Array implements AutoCloseable {
      * @param toCPUArray The destination CPU array.
      * @param toStart The starting index in the CPU array.
      * @param fromStart The starting index in this GPU array.
-     * @param length The number of elements to copy.
+     * @param n The number of elements to copy.
      * @param handle The handle.
      *
      * @throws IllegalArgumentException if any index is out of bounds or length
      * is negative.
      */
-    protected void get(Handle handle, Pointer toCPUArray, int toStart, int fromStart, int length) {
-        checkPositive(toStart, fromStart, length);
-        checkAgainstLength(fromStart + length - 1);
-        //TODO:  cudaHostAlloc can be faster, but has risks.        
+    protected void get(Handle handle, Pointer toCPUArray, int toStart, int fromStart, int n) {
+        checkPositive(toStart, fromStart, n);
+        checkAgainstLength(fromStart + n - 1);
+       
         int error = JCuda.cudaMemcpyAsync(
                 toCPUArray.withByteOffset(toStart * type.size),
                 pointer(fromStart),
-                length * type.size,
+                n * type.size,
                 cudaMemcpyKind.cudaMemcpyDeviceToHost,
                 handle.getStream()
         );
         if(error != cudaError.cudaSuccess)
-            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
-    }
+            throw new RuntimeException("cuda error " + error + " " + cudaError.stringFor(error));
+    }//TODO:  cudaHostAlloc can be faster, but has risks.
 
     /**
      * Copies data from a CPU array to this GPU array.

@@ -516,12 +516,14 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
         for (int i = 0; i < height; i++) get(i, i).add(-1, eValue);
         
+        double tolerance = 1e-10;
+        
         KernelManager.get("nullSpace1dBatch").map(
                 handle, 
                 data, colDist, 
                 eVector.data, eVector.getStrideSize(), 
                 getBatchSize(), 
-                IArray.cpuPointer(width), DArray.cpuPointer(1e-5), pivot.pointerToPointer()
+                IArray.cpuPointer(width), DArray.cpuPointer(tolerance), pivot.pointerToPointer()
          );
 
     }

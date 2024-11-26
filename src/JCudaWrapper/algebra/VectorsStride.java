@@ -237,7 +237,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
     }
 
     /**
-     * Turns these vectors into unit vectors.
+     * Turns these vectors into unit vectors, and then multiplies them by the magnitude.
      *
      * @param magnitude The magnitude that each vector will be stretched of
      * squished to have.

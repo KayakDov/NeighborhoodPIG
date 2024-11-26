@@ -52,12 +52,28 @@ public class IArray extends Array {
      * this array.
      * @param toStart The index in the array to start copying to.
      * @param fromStart The index in this array to start copying from.
-     * @param length The number of elements to copy.
+     * @param n The number of elements to copy.
      */
-    public void get(Handle handle, int[] toCPUArray, int toStart, int fromStart, int length) {
-        super.get(handle, Pointer.to(toCPUArray), toStart, fromStart, length);
+    public void get(Handle handle, int[] toCPUArray, int toStart, int fromStart, int n) {
+        
+        if(toStart + n > toCPUArray.length) throw new ArrayIndexOutOfBoundsException();
+        
+        super.get(handle, Pointer.to(toCPUArray), toStart, fromStart, n);
     }
     
+    /**
+     * Exports the contents of this array to the cpu array.
+     *
+     * @param handle The handle.
+     * @param fromStart The index in this array to start copying from.
+     * @param n The number of elements to copy.
+     * @return A subsection of this array of integers.
+     */
+    public int[] get(Handle handle, int fromStart, int n) {
+        int[] toCPUArray = new int[n];
+        super.get(handle, Pointer.to(toCPUArray), 0, fromStart, n);
+        return toCPUArray;
+    }
     
     /**
      * Exports the contents of this array to the cpu.

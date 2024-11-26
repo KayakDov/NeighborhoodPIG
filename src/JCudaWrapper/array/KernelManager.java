@@ -2,6 +2,7 @@ package JCudaWrapper.array;
 
 import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Vector;
+import JCudaWrapper.algebra.VectorsStride;
 import java.io.File;
 import java.lang.ref.Cleaner;
 import java.nio.file.Path;
@@ -257,6 +258,7 @@ public class KernelManager implements AutoCloseable {
      * Runs the loaded CUDA kernel, mapping the input to itself, on a specified
      * stream.
      *
+     * @param handle The handle.
      * @param input The {@code DArray} representing the input data to be
      * processed by the kernel.
      * @return The {@code DArray} containing the processed results.
@@ -264,6 +266,7 @@ public class KernelManager implements AutoCloseable {
     public DArray mapToSelf(Handle handle, DArray input) {
         return map(handle, input, input, input.length);
     }
+    
 
     /**
      * Runs the loaded CUDA kernel, mapping the input to itself, on a specified
