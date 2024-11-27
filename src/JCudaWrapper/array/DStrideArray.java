@@ -19,7 +19,6 @@ import jcuda.runtime.cudaError;
  */
 public class DStrideArray extends DArray {
 
-//    TODO: implement cusolverDnSgesvdjBatched
     public final int stride, batchSize, subArrayLength;
 
     /**
@@ -29,24 +28,13 @@ public class DStrideArray extends DArray {
      * @param strideSize The number of elements between the first element of each subarray. 
      * @param batchSize The number of strides. @param subArrayLength The length of e
      * @param subArrayLength The length of each sub arrau/
+     * @param deallocateOnClose Dealocate gpu memory when this is closed or inaccessible.
      */
-    protected DStrideArray(CUdeviceptr p, int strideSize, int subArrayLength, int batchSize) {
-        super(p, totalDataLength(strideSize, subArrayLength, batchSize));
+    protected DStrideArray(CUdeviceptr p, int strideSize, int subArrayLength, int batchSize, boolean deallocateOnClose) {
+        super(p, totalDataLength(strideSize, subArrayLength, batchSize), deallocateOnClose);
         this.stride = strideSize;
         this.subArrayLength = subArrayLength;
         this.batchSize = batchSize;
-    }
-
-    /**
-     * The constructor. Make sure batchSize * strideSize is less than length 
-     * @param array The underlying data. 
-     * @param strideSize The distance from the
-     * first element of one subsequence to the first element of the next. 
-     * @param batchSize The number of strides. 
-     * @param subArrayLength The length of each sub array.
-     */
-    public DStrideArray(DArray array, int strideSize, int batchSize, int subArrayLength) {
-        this(array.pointer, strideSize, subArrayLength, batchSize);
     }
 
     /**
@@ -256,7 +244,7 @@ public class DStrideArray extends DArray {
         return new DStrideArray(
                 Array.empty(totalDataLength(strideSize, subArrayLength, batchSize), PrimitiveType.DOUBLE),
                 strideSize,
-                subArrayLength, batchSize
+                subArrayLength, batchSize, true
         );
     }
     

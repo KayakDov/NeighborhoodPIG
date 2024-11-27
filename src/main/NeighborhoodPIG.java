@@ -89,13 +89,13 @@ public class NeighborhoodPIG implements AutoCloseable {
             image = convertToGrayscale(image);
 
 //        TODO: delete ////////////////////////////////////////
-        int d = 400;
-        image = image.getSubimage(
-                image.getWidth() / 2 - d / 2,
-                image.getHeight() / 2 - d / 2 - 1,
-                d,
-                d + 2
-        );
+//        int d = 400;
+//        image = image.getSubimage(
+//                image.getWidth() / 2 - d / 2,
+//                image.getHeight() / 2 - d / 2 - 1,
+//                d,
+//                d + 2
+//        );
         ////////////////////////////////////////////////
 
         Raster raster = image.getRaster();

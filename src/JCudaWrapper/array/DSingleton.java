@@ -26,14 +26,14 @@ public class DSingleton extends DArray{
      * @param index The index in the array.
      */
     public DSingleton(DArray from, int index){
-        super(from.pointer(index), 1);
+        super(from.pointer(index), 1, false);
     }
     
     /**
      * Creates a singleton with no assigned value.
      */
     public DSingleton(){
-        super(Array.empty(1, PrimitiveType.DOUBLE), 1);
+        super(Array.empty(1, PrimitiveType.DOUBLE), 1, false);
     }
     /**
      * Creates a singleton from a cpu element.

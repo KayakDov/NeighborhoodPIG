@@ -117,7 +117,7 @@ public class DPointerArray extends Array {
 
         get(handle, Pointer.to(hostPointer), 0, index, 1);
 
-        return new DArray(hostPointer[0], lengthOfArrays);
+        return new DArray(hostPointer[0], lengthOfArrays, false);
     }
 
     /**

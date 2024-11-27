@@ -83,7 +83,7 @@ abstract class Array implements AutoCloseable {
         this.type = type;
 
         // Register cleanup of GPU memory
-        cleanable = deallocateOnClose?ResourceDealocator.register(this, pointer -> JCuda.cudaFree(pointer), pointer):null; //TODO: don't delete memory sub arrays!
+        cleanable = deallocateOnClose?ResourceDealocator.register(this, point -> JCuda.cudaFree(point), pointer):null; 
     }
 
     /**

@@ -38,19 +38,8 @@ public class DArray extends Array {
      * @throws IllegalArgumentException if the values array is null.
      */
     public DArray(Handle handle, double... values) {
-        this(Array.empty(values.length, PrimitiveType.DOUBLE), values.length);
+        this(Array.empty(values.length, PrimitiveType.DOUBLE), values.length, true);
         copy(handle, this, values, 0, 0, values.length);
-    }
-
-    /**
-     * Writes the raster to this DArray in column major order.
-     *
-     * @param handle
-     * @param raster
-     */
-    public DArray(Handle handle, Raster raster) {
-        this(Array.empty(raster.getWidth() * raster.getHeight(), PrimitiveType.DOUBLE), raster.getWidth() * raster.getHeight());
-//        raster.gets
     }
 
     /**
@@ -73,16 +62,6 @@ public class DArray extends Array {
     protected DArray(CUdeviceptr p, int length, boolean dealocateOnClose) {
         super(p, length, PrimitiveType.DOUBLE, dealocateOnClose);
     }
-    
-    /**
-     * Constructs an array with a given GPU pointer and length.
-     *
-     * @param p A pointer to the first element of the array on the GPU.
-     * @param length The length of the array.
-     */
-    protected DArray(CUdeviceptr p, int length) {
-        this(p, length, true);
-    }
 
     /**
      * Creates an empty DArray with the specified size.
@@ -93,7 +72,7 @@ public class DArray extends Array {
      */
     public static DArray empty(int size) {
         checkPositive(size);
-        return new DArray(Array.empty(size, PrimitiveType.DOUBLE), size);
+        return new DArray(Array.empty(size, PrimitiveType.DOUBLE), size, true);
     }
 
     /**
@@ -1129,7 +1108,7 @@ public class DArray extends Array {
      * @return A representation of this array as a set of sub arrays.
      */
     public DStrideArray getAsBatch(int strideSize, int subArrayLength, int batchSize) {
-        return new DStrideArray(pointer, strideSize, subArrayLength, batchSize);
+        return new DStrideArray(pointer, strideSize, subArrayLength, batchSize, false);
     }
 
     /**
