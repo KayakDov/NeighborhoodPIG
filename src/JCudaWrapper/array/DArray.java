@@ -6,11 +6,14 @@ import java.util.Arrays;
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.driver.CUdeviceptr;
+import jcuda.driver.JCudaDriver;
 import jcuda.jcublas.JCublas2;
 import jcuda.jcublas.cublasDiagType;
 import jcuda.jcublas.cublasFillMode;
 import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaError;
+import jcuda.runtime.cudaMemcpyKind;
+import jcuda.runtime.cudaStream_t;
 import org.apache.commons.math3.exception.DimensionMismatchException;
 
 /**
@@ -65,9 +68,20 @@ public class DArray extends Array {
      *
      * @param p A pointer to the first element of the array on the GPU.
      * @param length The length of the array.
+     * @param dealocateOnClose True if the memory is to be deallocated when this method is inaccessible or close.
+     */
+    protected DArray(CUdeviceptr p, int length, boolean dealocateOnClose) {
+        super(p, length, PrimitiveType.DOUBLE, dealocateOnClose);
+    }
+    
+    /**
+     * Constructs an array with a given GPU pointer and length.
+     *
+     * @param p A pointer to the first element of the array on the GPU.
+     * @param length The length of the array.
      */
     protected DArray(CUdeviceptr p, int length) {
-        super(p, length, PrimitiveType.DOUBLE);
+        this(p, length, true);
     }
 
     /**
@@ -117,37 +131,21 @@ public class DArray extends Array {
     public static Pointer cpuPointer(double d) {
         return Pointer.to(new double[]{d});
     }
-    
+
     /**
      * Copies the contents of this GPU array to a CPU array.
      *
      * @param to The destination CPU array.
      * @param toStart The index in the destination array to start copying to.
      * @param fromStart The index in this array to start copying from.
-     * @param length The number of elements to copy.
+     * @param n The number of elements to copy.
      * @param handle The handle.
      * @throws IllegalArgumentException if any index is out of bounds or length
      * is negative.
      */
-    public void get(Handle handle, double[] to, int toStart, int fromStart, int length) {
-        checkNull(to);
-        get(handle, Pointer.to(to), toStart, fromStart, length);
-    }
-
-    /**
-     * Exports a portion of this GPU array to a CPU array.
-     *
-     * @param handle handle to the cuBLAS library context.
-     * @param fromStart The starting index in this GPU array.
-     * @param length The number of elements to export.
-     * @return A CPU array containing the exported portion.
-     * @throws IllegalArgumentException if fromStart or length is out of bounds.
-     */
-    public double[] get(Handle handle, int fromStart, int length) {
-        double[] export = new double[length];
-        handle.synch();
-        get(handle, export, 0, fromStart, length);
-        return export;
+    public void get(Handle handle, double[] to, int toStart, int fromStart, int n) {
+        checkNull(new Object[]{to});
+        get(handle, Pointer.to(to), toStart, fromStart, n);
     }
 
     /**
@@ -157,7 +155,10 @@ public class DArray extends Array {
      * @return A CPU array containing all elements of this GPU array.
      */
     public double[] get(Handle handle) {
-        return get(handle, 0, length);
+        double[] export = new double[length];
+        handle.synch();
+        get(handle, export, 0, 0, length);
+        return export;
     }
 
     /**
@@ -193,15 +194,15 @@ public class DArray extends Array {
      * @param toInc stride between consecutive elements of the array copied to.
      * @param fromStart The index to start copying from.
      * @param fromInc stride between consecutive elements of this array.
-     * @param length The number of elements to copy.
+     * @param n The number of elements to copy.
      */
-    public void get(Handle handle, double[] to, int toStart, int fromStart, int toInc, int fromInc, int length) {
+    public void get(Handle handle, double[] to, int toStart, int fromStart, int toInc, int fromInc, int n) {
         if (fromInc == toInc && fromInc == 1)
-            get(handle, to, toStart, fromStart, length);
-        else 
-            for (int i = 0; i < length; i++)
+            get(handle, to, toStart, fromStart, n);
+        else
+            for (int i = 0; i < n; i++)
                 get(handle, to, i * toInc + toStart, i * fromInc + fromStart, 1);
-        
+
         handle.synch();
     }
 
@@ -270,7 +271,8 @@ public class DArray extends Array {
     public DArray subArray(int start, int length) {
         checkPositive(start, length);
         checkAgainstLength(start + length - 1, start);
-        return new DArray(pointer(start), length);
+
+        return new DArray(pointer(start), length, false);
     }
 
     /**
@@ -282,8 +284,7 @@ public class DArray extends Array {
      * @return A sub array.
      */
     public DArray subArray(int start) {
-        checkPositive(start);
-        return new DArray(pointer(start), length - start);
+        return subArray(start, length - start);
     }
 
     /**
@@ -322,7 +323,7 @@ public class DArray extends Array {
         double[] incremented = new double[n(inc)];
         Pointer cpu = Pointer.to(incremented);
         for (int i = 0; i < incremented.length; i++)
-            get(handle, cpu, i, i*inc, 1);
+            get(handle, cpu, i, i * inc, 1);
         handle.synch();
         return incremented;
     }
@@ -715,7 +716,7 @@ public class DArray extends Array {
 
     @Override
     public String toString() {
-        JCuda.cudaDeviceSynchronize();
+
         try (Handle handle = new Handle()) {
             return Arrays.toString(get(handle));
         }
@@ -852,18 +853,6 @@ public class DArray extends Array {
         return this;
     }
 
-    public static void main(String[] args) {
-        try (
-                Handle hand = new Handle();
-                DArray d = new DArray(hand, 1, 2, 3, 4, 5, 6);
-                DArray x = empty(6).fill(hand, 2, 1)) {
-
-            d.add(hand, 3, x, 2, 2);
-
-            System.out.println(d);
-        }
-    }
-
     /**
      * Computes the dot product of two vectors:
      *
@@ -994,7 +983,7 @@ public class DArray extends Array {
         checkAgainstLength((n(inc) - 1) * inc);
         checkMemAllocation();
         x.checkMemAllocation();
-        
+
         if (incX != 0 && x.n(incX) != n(inc))
             throw new DimensionMismatchException(n(inc), x.n(incX));
 
@@ -1004,10 +993,10 @@ public class DArray extends Array {
                 cpuPointer(timesX), x.pointer, incX,
                 pointer, inc
         );
-        if (result != cudaError.cudaSuccess){
+        if (result != cudaError.cudaSuccess) {
             throw new RuntimeException("cuda addition failed. Error: " + result + " - " + cudaError.stringFor(result));
         }
-        
+
         return this;
     }
 
@@ -1057,7 +1046,7 @@ public class DArray extends Array {
         );
         if (result != cudaError.cudaSuccess)
             throw new RuntimeException("cuda error " + result + " - " + cudaError.stringFor(result));
-        
+
         return this;
     }
 
@@ -1171,5 +1160,38 @@ public class DArray extends Array {
     private int n(int inc) {
         return Math.ceilDiv(length, inc);
     }
+
+//    public static void main(String[] args) {
+//
+//        int size = 1;
+//
+//        cudaStream_t stream = new cudaStream_t();
+//        JCuda.cudaStreamCreate(stream);
+//
+//        Pointer p = new Pointer();
+//        JCuda.cudaMalloc(p, size);
+//
+//        for (int i = 0; i < 10_000_000; i++) {
+//
+//            System.out.println("\ni = " + i);
+//
+//            Pointer da = p.withByteOffset(0);
+//
+//            double[] export = new double[1];
+//
+//            int error = JCuda.cudaMemcpyAsync(
+//                    Pointer.to(export).withByteOffset(0),
+//                    p.withByteOffset(0),
+//                    1 * Sizeof.DOUBLE,
+//                    cudaMemcpyKind.cudaMemcpyDeviceToHost,
+//                    stream
+//            );
+//            if (error != cudaError.cudaSuccess)
+//                throw new RuntimeException("cuda error " + error + " " + cudaError.stringFor(error));
+//
+//            JCuda.cudaFree(p);
+//            JCuda.cudaStreamDestroy(stream);
+//        }
+//    }
 
 }

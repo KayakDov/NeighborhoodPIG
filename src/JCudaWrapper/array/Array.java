@@ -74,7 +74,7 @@ abstract class Array implements AutoCloseable {
      * @throws IllegalArgumentException if the pointer is null or length is
      * negative.
      */
-    protected Array(CUdeviceptr p, int length, PrimitiveType type) {
+    protected Array(CUdeviceptr p, int length, PrimitiveType type, boolean deallocateOnClose) {
         checkNull(p, type);
         checkPositive(length);
 
@@ -83,7 +83,7 @@ abstract class Array implements AutoCloseable {
         this.type = type;
 
         // Register cleanup of GPU memory
-        cleanable = ResourceDealocator.register(this, pointer -> JCuda.cudaFree(pointer), pointer);
+        cleanable = deallocateOnClose?ResourceDealocator.register(this, pointer -> JCuda.cudaFree(pointer), pointer):null; //TODO: don't delete memory sub arrays!
     }
 
     /**
@@ -314,7 +314,7 @@ abstract class Array implements AutoCloseable {
      */
     @Override
     public void close() {
-        cleanable.clean();
+        if(cleanable != null) cleanable.clean();
         isOpen = false;
     }
 

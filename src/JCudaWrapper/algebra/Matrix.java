@@ -936,7 +936,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
             Eigen eigen = new Eigen(ms);
 
             for (int i = 0; i < m.height; i++) {
-                double eVal = eigen.values.get(i).get(0);
+                double eVal = eigen.values.elmntsAtVecInd(i).get(0);
                 Vector eVec = eigen.vectors.getMatrix(0).getColumn(i);
 
                 System.out.println("\nEigen value " + i + ":\n " + eVal);

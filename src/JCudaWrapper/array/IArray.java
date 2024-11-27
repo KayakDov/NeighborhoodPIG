@@ -18,8 +18,8 @@ public class IArray extends Array {
      * @param p A pointer to the first element of the array.
      * @param length The length of the array.
      */
-    private IArray(CUdeviceptr p, int length) {
-        super(p, length, PrimitiveType.INT);
+    private IArray(CUdeviceptr p, int length, boolean deallocateOnClose) {
+        super(p, length, PrimitiveType.INT, deallocateOnClose);
     }
 
     /**
@@ -28,7 +28,7 @@ public class IArray extends Array {
      * @return An empty asrray.
      */
     public static IArray empty(int length) {
-        return new IArray(empty(length, PrimitiveType.INT), length);
+        return new IArray(empty(length, PrimitiveType.INT), length, true);
     }
 
     /**

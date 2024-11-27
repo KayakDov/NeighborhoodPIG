@@ -1,11 +1,7 @@
 package JCudaWrapper.resourceManagement;
 
 import java.lang.ref.Cleaner;
-import jcuda.Pointer;
-import jcuda.driver.CUevent;
-import jcuda.driver.CUevent_flags;
 import jcuda.driver.CUstream;
-import jcuda.driver.CUstreamCallback;
 import jcuda.driver.CUstream_flags;
 import jcuda.driver.JCudaDriver;
 import jcuda.jcublas.JCublas2;
@@ -13,7 +9,6 @@ import jcuda.jcublas.cublasHandle;
 import jcuda.jcusolver.JCusolverDn;
 import jcuda.jcusolver.cusolverDnHandle;
 import jcuda.runtime.JCuda;
-import jcuda.runtime.cudaEvent_t;
 import jcuda.runtime.cudaStream_t;
 
 /**

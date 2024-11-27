@@ -148,7 +148,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      */
     public Vector[] vecPartition() {
         Vector[] parts = new Vector[getSubVecDim()];
-        Arrays.setAll(parts, i -> get(i));
+        Arrays.setAll(parts, i -> elmntsAtVecInd(i));
         return parts;
     }
 
@@ -158,7 +158,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      * @param i The index of the desired elements.
      * @return An array, a such that a_j is the ith element of the jth array.
      */
-    public Vector get(int i) {
+    public Vector elmntsAtVecInd(int i) {
         return new Vector(handle, data.subArray(i * colDist), data.stride);
     }
 

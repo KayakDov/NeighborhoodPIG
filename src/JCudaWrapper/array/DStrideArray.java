@@ -9,6 +9,7 @@ import jcuda.jcusolver.cusolverEigMode;
 import jcuda.jcusolver.gesvdjInfo;
 import JCudaWrapper.resourceManagement.Handle;
 import static JCudaWrapper.array.Array.checkPositive;
+import jcuda.driver.JCudaDriver;
 import jcuda.runtime.cudaError;
 
 /**
@@ -345,7 +346,6 @@ public class DStrideArray extends DArray {
      */
     public DArray getBatchArray(int i){
         if(i >= batchSize) throw new ArrayIndexOutOfBoundsException();
-        
         return subArray(stride*i, subArrayLength);
     }
 

@@ -113,8 +113,8 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      * @return A vector containing the elements at (i, j) for each submatrix in
      * the batch.
      */
-    public Vector get(int i, int j) {
-        return new Vector(handle, data.subArray(index(i, j), (getBatchSize() - 1)*getStrideSize() + 1), data.stride);
+    public Vector elmntsAtMatInd(int i, int j) {
+        return new Vector(handle, data.subArray(index(i, j), (getBatchSize() - 1) * getStrideSize() + 1), data.stride);
     }
 
     /**
@@ -133,7 +133,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
         Vector[][] all = new Vector[height][width];
         for (int i = 0; i < height; i++) {
             int row = i;
-            Arrays.setAll(all[row], col -> get(row, col));
+            Arrays.setAll(all[row], col -> elmntsAtMatInd(row, col));
         }
         return all;
     }
@@ -176,11 +176,8 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
     }
 
     /**
-     * Performs matrix-scalar multiplication on the batches of matrices, and
-     * adds them to this matrix. This method multiplies matrix batches {@code a}
-     * and {@code b}, scales the result by {@code timesAB}, scales the existing
-     * matrix in the current instance by {@code timesResult}, and then adds them
-     * together and palces the result here.
+     * Multiplies each matrix in the batch by it's coresponding scalar in the
+     * vector.
      *
      * @param scalars the ith element is multiplied by the ith matrix.
      * @return this
@@ -228,7 +225,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
         trace.set(m[1][1]).add(1, m[0][0]);//= a + d
 
         eVal[1].ebeSetProduct(m[0][1], m[0][1]).ebeAddProduct(m[0][0], m[1][1], -1);// = ad - c^2
-        
+
         eVal[0].ebeSetProduct(trace, trace).add(-4, eVal[1]);//=(d + a)^2 - 4(ad - c^2)
 
         KernelManager.get("sqrt").mapToSelf(handle, eVal[0]);//sqrt((d + a)^2 - 4(ad - c^2))
@@ -514,17 +511,17 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      */
     private void computeVec(Vector eValue, VectorsStride eVector, IArray pivot) {
 
-        for (int i = 0; i < height; i++) get(i, i).add(-1, eValue);
-        
+        for (int i = 0; i < height; i++) elmntsAtMatInd(i, i).add(-1, eValue);
+
         final double tolerance = 5e-13;
-        
+
         KernelManager.get("nullSpace1dBatch").map(
-                handle, 
-                data, colDist, 
-                eVector.data, eVector.getStrideSize(), 
-                getBatchSize(), 
+                handle,
+                data, colDist,
+                eVector.data, eVector.getStrideSize(),
+                getBatchSize(),
                 IArray.cpuPointer(width), DArray.cpuPointer(tolerance), pivot.pointerToPointer()
-         );
+        );
 
     }
 
@@ -616,7 +613,6 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
             System.out.println("matrices:\n" + ms);
 
-
             try (Eigen eigen = new Eigen(ms)) {
 
                 System.out.println("Eigen values:\n" + eigen.values);
@@ -638,7 +634,6 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
         }
     }
 
-    
 //    public static void main(String[] args) {
 //        try(Handle hand = new Handle(); DArray da = new DArray(hand, 1,0,0,0)){
 //            Matrix m = new Matrix(hand, da, 2, 2);
@@ -652,7 +647,6 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 //            
 //        }
 //    }
-    
     /**
      * The underlying batch array.
      *
@@ -803,10 +797,6 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
     }
 
 }
-
-
-
-
 
 ////Former eVec method.
 ////        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVec() After eigen subtraction:\n" + toString());

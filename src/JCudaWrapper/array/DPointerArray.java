@@ -35,9 +35,10 @@ public class DPointerArray extends Array {
      * @param lengthOfArrays The length of the arrays.
      * @param numberOfArrays The number of arrays stored in this array. The
      * length of this array of arrays.
+     * @param dealocateOnCLose dealocate the memory when this object is closed or no longer accessible.
      */
-    private DPointerArray(CUdeviceptr p, int lengthOfArrays, int numberOfArrays) {
-        super(p, numberOfArrays, PrimitiveType.POINTER);
+    private DPointerArray(CUdeviceptr p, int lengthOfArrays, int numberOfArrays, boolean dealocateOnCLose) {
+        super(p, numberOfArrays, PrimitiveType.POINTER, dealocateOnCLose);
         this.lengthOfArrays = lengthOfArrays;
     }
 
@@ -50,7 +51,7 @@ public class DPointerArray extends Array {
      */
     public DPointerArray(Handle handle, DArray[] arrays) {
         super(empty(arrays.length, PrimitiveType.POINTER), arrays.length,
-                PrimitiveType.POINTER);
+                PrimitiveType.POINTER, true);
 
         CUdeviceptr[] pointers = new CUdeviceptr[length];
         Arrays.setAll(pointers, i -> arrays[i].pointer);
@@ -70,7 +71,7 @@ public class DPointerArray extends Array {
     public static DPointerArray empty(int length, int lengthOfArrays) {
         checkPositive(length);
         return new DPointerArray(Array.empty(length, PrimitiveType.POINTER),
-                lengthOfArrays, length);
+                lengthOfArrays, length, true);
     }
 
     /**
