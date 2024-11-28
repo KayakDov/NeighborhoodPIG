@@ -1,19 +1,14 @@
 package JCudaWrapper.array;
 
 import JCudaWrapper.resourceManagement.Handle;
-import java.awt.image.Raster;
 import java.util.Arrays;
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.driver.CUdeviceptr;
-import jcuda.driver.JCudaDriver;
 import jcuda.jcublas.JCublas2;
 import jcuda.jcublas.cublasDiagType;
 import jcuda.jcublas.cublasFillMode;
-import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaError;
-import jcuda.runtime.cudaMemcpyKind;
-import jcuda.runtime.cudaStream_t;
 import org.apache.commons.math3.exception.DimensionMismatchException;
 
 /**

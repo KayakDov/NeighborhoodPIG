@@ -933,7 +933,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
 
             System.out.println("m = \n" + m.toString() + "\n");
 
-            Eigen eigen = new Eigen(ms);
+            Eigen eigen = new Eigen(ms, 1e-13);
 
             for (int i = 0; i < m.height; i++) {
                 double eVal = eigen.values.elmntsAtVecInd(i).get(0);

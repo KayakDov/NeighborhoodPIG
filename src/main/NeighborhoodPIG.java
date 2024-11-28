@@ -31,9 +31,10 @@ public class NeighborhoodPIG implements AutoCloseable {
      * @param imagePath The location of the image.
      * @param neighborhoodSize The size of the edges of each neighborhood
      * square.
+     * @param tolerance How close must a number be to 0 to be considered 0.
      * @throws java.io.IOException If there's trouble loading the image.
      */
-    public NeighborhoodPIG(String imagePath, int neighborhoodSize) throws IOException {
+    public NeighborhoodPIG(String imagePath, int neighborhoodSize, double tolerance) throws IOException {
 
         handle = new Handle();
 
@@ -42,7 +43,7 @@ public class NeighborhoodPIG implements AutoCloseable {
         Gradient grad = new Gradient(imageMat, handle);
 
         imageMat.close();
-        stm = new StructureTensorMatrix(grad.x(), grad.y(), neighborhoodSize);
+        stm = new StructureTensorMatrix(grad.x(), grad.y(), neighborhoodSize, tolerance);
         grad.close();
 
     }
@@ -88,16 +89,6 @@ public class NeighborhoodPIG implements AutoCloseable {
         if (image.getType() != BufferedImage.TYPE_BYTE_GRAY)
             image = convertToGrayscale(image);
 
-//        TODO: delete ////////////////////////////////////////
-//        int d = 400;
-//        image = image.getSubimage(
-//                image.getWidth() / 2 - d / 2,
-//                image.getHeight() / 2 - d / 2 - 1,
-//                d,
-//                d + 2
-//        );
-        ////////////////////////////////////////////////
-
         Raster raster = image.getRaster();
 
         width = image.getWidth();
@@ -142,11 +133,11 @@ public class NeighborhoodPIG implements AutoCloseable {
     }
 
     public static void main(String[] args) throws IOException {
-//        NeighborhoodPIG np = new NeighborhoodPIG("images/input/debug.jpeg", 1);
 
-        NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 1);
+        try (NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 5, 1e-11)) {
 
-        np.orientationColored("images/output/test.png");
+            np.orientationColored("images/output/test.png");
+        }
 
 //        System.out.println(np.stm.setOrientations());
     }

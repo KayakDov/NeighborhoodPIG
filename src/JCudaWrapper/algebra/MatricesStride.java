@@ -484,10 +484,11 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      *
      * @param eValues The eigenvalues, organized by sets per matrix.
      * @param workSpaceArray Should have as many elements as there are in this.
+     * @param tolerance What is considered 0
      * @return The eigenvectors.
      *
      */
-    public MatricesStride computeVecs(VectorsStride eValues, DArray workSpaceArray) {
+    public MatricesStride computeVecs(VectorsStride eValues, DArray workSpaceArray, double tolerance) {
 
         MatricesStride eVectors = copyDimensions(DArray.empty(data.length));
 
@@ -495,7 +496,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
             for (int i = 0; i < height; i++) {
                 MatricesStride workSpace = copy(workSpaceArray);//TODO: with each iteration, only elements on the diagonal change.  Why recopy the whole thing?
-                workSpace.computeVec(eValues.getElement(i), eVectors.column(i), pivot);
+                workSpace.computeVec(eValues.getElement(i), eVectors.column(i), pivot, tolerance);
             }
         }
 
@@ -508,12 +509,13 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      * @param eValue The eigenvalues.
      * @param eVector Where the eigenvector will be placed.
      * @param info The success of the computations.
+     * @param tolerance what is considered 0.
      */
-    private void computeVec(Vector eValue, VectorsStride eVector, IArray pivot) {
+    private void computeVec(Vector eValue, VectorsStride eVector, IArray pivot, double tolerance) {
 
         for (int i = 0; i < height; i++) elmntsAtMatInd(i, i).add(-1, eValue);
 
-        final double tolerance = 5e-13;
+
 
         KernelManager.get("nullSpace1dBatch").map(
                 handle,
@@ -613,7 +615,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
             System.out.println("matrices:\n" + ms);
 
-            try (Eigen eigen = new Eigen(ms)) {
+            try (Eigen eigen = new Eigen(ms, 1e-13)) {
 
                 System.out.println("Eigen values:\n" + eigen.values);
 

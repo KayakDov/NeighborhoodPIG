@@ -5,6 +5,7 @@ import JCudaWrapper.algebra.Eigen;
 import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.Vector;
+import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.KernelManager;
 import JCudaWrapper.resourceManagement.Handle;
@@ -27,17 +28,28 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     private final MatricesStride strctTensors;
 
     private final Eigen eigen;
-    private final Matrix orientation;
+    private final Matrix orientation, coherence;
     private Handle handle;
 
-    public StructureTensorMatrix(Matrix dX, Matrix dY, int neighborhoodRad) {
-        
+    /**
+     * Finds the structure tensor for every pixel in the image and stores them
+     * in a column major format.
+     *
+     * @param dX The pixel intensity gradient of the image in the x direction.
+     * @param dY The pixel intensity gradient of the image in the y direction.
+     * @param neighborhoodRad A aquare window considered a neighborhood around a
+     * point. This is the distance from the center of the square to the nearest
+     * point on the edge.
+     * @param tolerance How close a number be to 0 to be considered 0.
+     */
+    public StructureTensorMatrix(Matrix dX, Matrix dY, int neighborhoodRad, double tolerance) {
+
         handle = dX.getHandle();
 
         int height = dX.getHeight(), width = dX.getWidth();
 
         strctTensors = new MatricesStride(handle, 2, dX.size());//reset to 3x3 for dZ.
-        
+
         try (NeighborhoodProductSums nps = new NeighborhoodProductSums(dX.getHandle(), neighborhoodRad, height, width)) {
             nps.set(dX, dX, strctTensors.elmntsAtMatInd(0, 0));
             nps.set(dX, dY, strctTensors.elmntsAtMatInd(0, 1));
@@ -52,9 +64,10 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 //        strctTensors.get(2, 0).set(strctTensors.get(0, 2)); //engage for 3x3.
 //        strctTensors.get(2, 1).set(strctTensors.get(1, 2));
 
-        eigen = new Eigen(strctTensors);
+        eigen = new Eigen(strctTensors, tolerance);
 
         orientation = new Matrix(handle, height, width);
+        coherence = new Matrix(handle, height, width);
     }
 
     /**
@@ -117,6 +130,23 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     }
 
     /**
+     * Sets and returns the coherence matrix.
+     *
+     * @param workSpace Should be the size of the image.
+     * @return The coherence matrix.
+     */
+    public Matrix setCoherence(DArray workSpace) {
+        Vector[] l = eigen.values.vecPartition();
+        Vector denom = new Vector(handle, workSpace, 1)
+                .setSum(1, l[0], 1, l[1]);
+        Vector coherenceVec = new Vector(handle, coherence.dArray(), 1)
+                .setSum(1, l[0], -1, l[1])
+                .ebeDivide(denom);
+        coherenceVec.ebeSetProduct(coherenceVec, coherenceVec);
+        return coherence;
+    }
+
+    /**
      * Gets the matrix of orientations.
      *
      * @return Thew matrix of orientations.
@@ -151,12 +181,20 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     public IArray getRGB() {
 
         setVecs0ToPi();
+        setCoherence(orientation.dArray());
         setOrientations().multiply(2);
-        
+
         IArray colors = IArray.empty(orientation.size() * 3);
 
-        KernelManager.get("color").map(handle, orientation.dArray(), 1, colors, 3, orientation.size());
+        KernelManager.get("color").map(handle, 
+                orientation.dArray(), 1, 
+                colors, 3, 
+                orientation.size(),
+                coherence.dArray().pointerToPointer(),
+                IArray.cpuPointer(1)
+                );
 
+        orientation.multiply(0.5);
         return colors;
 
     }
@@ -169,6 +207,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         strctTensors.close();
         eigen.close();
         orientation.close();
+        coherence.close();
     }
 
     @Override

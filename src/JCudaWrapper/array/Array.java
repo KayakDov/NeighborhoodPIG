@@ -34,7 +34,7 @@ import JCudaWrapper.resourceManagement.Handle;
  */
 abstract class Array implements AutoCloseable {
 
-    private final Cleaner.Cleanable cleanable;
+//    private final Cleaner.Cleanable cleanable; TODO: Self cleaning removed since sub arrays may be intended to linger after parent arrays are destroyed or vice versa. A more nuanced approach is required.
     /**
      * The pointer to the array in gpu memory.
      */
@@ -83,7 +83,7 @@ abstract class Array implements AutoCloseable {
         this.type = type;
 
         // Register cleanup of GPU memory
-        cleanable = deallocateOnClose?ResourceDealocator.register(this, point -> JCuda.cudaFree(point), pointer):null; 
+//        cleanable = deallocateOnClose?ResourceDealocator.register(this, point -> JCuda.cudaFree(point), pointer):null; 
     }
 
     /**
@@ -123,9 +123,9 @@ abstract class Array implements AutoCloseable {
 
         CUdeviceptr p = new CUdeviceptr();
         int error = JCuda.cudaMalloc(p, numElements * type.size);
-        if(error != cudaError.cudaSuccess)
+        if (error != cudaError.cudaSuccess)
             throw new RuntimeException("cuda error " + cudaError.stringFor(error));
-        
+
         return p;
     }
 
@@ -185,7 +185,7 @@ abstract class Array implements AutoCloseable {
                 cudaMemcpyKind.cudaMemcpyDeviceToDevice,
                 handle.getStream()
         );
-        if(error != cudaError.cudaSuccess)
+        if (error != cudaError.cudaSuccess)
             throw new RuntimeException("cuda error " + cudaError.stringFor(error));
     }
 
@@ -209,7 +209,7 @@ abstract class Array implements AutoCloseable {
                 length * type.size,
                 cudaMemcpyKind.cudaMemcpyDeviceToDevice,
                 handle.getStream());
-        if(error != cudaError.cudaSuccess)
+        if (error != cudaError.cudaSuccess)
             throw new RuntimeException("cuda error " + cudaError.stringFor(error));
     }
 
@@ -244,7 +244,7 @@ abstract class Array implements AutoCloseable {
     protected void get(Handle handle, Pointer toCPUArray, int toStart, int fromStart, int n) {
         checkPositive(toStart, fromStart, n);
         checkAgainstLength(fromStart + n - 1);
-       
+
         int error = JCuda.cudaMemcpyAsync(
                 toCPUArray.withByteOffset(toStart * type.size),
                 pointer(fromStart),
@@ -252,7 +252,7 @@ abstract class Array implements AutoCloseable {
                 cudaMemcpyKind.cudaMemcpyDeviceToHost,
                 handle.getStream()
         );
-        if(error != cudaError.cudaSuccess)
+        if (error != cudaError.cudaSuccess)
             throw new RuntimeException("cuda error " + error + " " + cudaError.stringFor(error));
     }//TODO:  cudaHostAlloc can be faster, but has risks.
 
@@ -307,14 +307,15 @@ abstract class Array implements AutoCloseable {
      * Default of true, and set to false when the memory is dealocated.
      */
     protected boolean isOpen = true;
-    
+
     /**
      * Frees the GPU memory allocated for this array. This method is invoked
      * automatically when the object is closed.
      */
     @Override
     public void close() {
-        if(cleanable != null) cleanable.clean();
+//        if(cleanable != null) cleanable.clean();
+        JCuda.cudaFree(pointer);
         isOpen = false;
     }
 
@@ -326,7 +327,7 @@ abstract class Array implements AutoCloseable {
      */
     public Array fill0(Handle handle) {
         int error = JCuda.cudaMemsetAsync(pointer, 0, length * type.size, handle.getStream());
-        if(error != cudaError.cudaSuccess)
+        if (error != cudaError.cudaSuccess)
             throw new RuntimeException("cuda error " + cudaError.stringFor(error));
         return this;
     }
@@ -361,12 +362,14 @@ abstract class Array implements AutoCloseable {
     protected void checkAgainstLength(int... maybeInBounds) {
         checkUpperBound(length, maybeInBounds);
     }
-    
+
     /**
-     * Checks if the memory is available.  If it is not, then an exception is thrown.
+     * Checks if the memory is available. If it is not, then an exception is
+     * thrown.
      */
-    public void checkMemAllocation(){
-        if(!isOpen) throw new RuntimeException("This memory has been dealocated.");
+    public void checkMemAllocation() {
+        if (!isOpen)
+            throw new RuntimeException("This memory has been dealocated.");
     }
 
     /**
@@ -393,7 +396,6 @@ abstract class Array implements AutoCloseable {
             throw new NullPointerException();
     }
 
-
     /**
      * A mapping from boolean transpose to the corresponding cuda integer.
      *
@@ -404,12 +406,12 @@ abstract class Array implements AutoCloseable {
         return t ? cublasOperation.CUBLAS_OP_T : cublasOperation.CUBLAS_OP_N;
     }
 
-    
     /**
      * A pointer to this pointer.
+     *
      * @return A pointer to this pointer.
      */
-    public Pointer pointerToPointer(){
+    public Pointer pointerToPointer() {
         return Pointer.to(pointer);
     }
 }

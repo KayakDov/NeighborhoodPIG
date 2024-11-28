@@ -11,13 +11,14 @@ __device__ int up(int a, double theta){
 
 // ldColor must be greater than or equal to 3.
 extern "C" __global__
-void colorKernel(const double* angles, int anglesInc, int* colors, int ldColor, int n) {
+void colorKernel(const double* angles, int anglesInc, int* colors, int ldColor, int n, double* intensities, int intensitiesInc) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= n) return;
 
     double angle = *(angles + idx * anglesInc);
     int* color = colors + idx * ldColor;
+    double intensity = *(intensities + idx * intensitiesInc);
 
     if (0 <= angle && angle < CUDART_PI / 3) {
         color[0] = 255;
@@ -44,4 +45,8 @@ void colorKernel(const double* angles, int anglesInc, int* colors, int ldColor, 
         color[1] = 0;    
         color[2] = down(5, angle);
     }
+
+    color[0] *= intensity;//TODO: these should all be done at once.
+    color[1] *= intensity;
+    color[2] *= intensity;
 }

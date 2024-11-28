@@ -55,6 +55,7 @@ public class ResourceDealocator<T> implements Runnable {
         if (needsClosure != null && cleaned.compareAndSet(false, true)) {
             for(T closeMe: needsClosure)
             close.accept(closeMe);
+            
 //            System.out.println("gpu.ResourceDealocator.run(): dealocated " + needsClosure.toString());
         }
     }

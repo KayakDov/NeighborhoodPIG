@@ -20,7 +20,7 @@ public class Eigen implements AutoCloseable {
      * @param mats A set of 2x2 or 3x3 matrices.
      * 
      */
-    public Eigen(MatricesStride mats) {
+    public Eigen(MatricesStride mats, double tolerance) {
         try (DArray workSpace = DArray.empty(mats.dArray().length)) {
 
             switch (mats.height) {
@@ -29,7 +29,7 @@ public class Eigen implements AutoCloseable {
                 default -> throw new UnsupportedOperationException("Currently the Eigen method only works for 2x2 and 3x3 matrices.  Your matrix is " + mats.height + "x" + mats.width);
             }
             
-            vectors =  mats.computeVecs(values, workSpace);
+            vectors =  mats.computeVecs(values, workSpace, tolerance);
 
         }
 
@@ -45,7 +45,7 @@ public class Eigen implements AutoCloseable {
             
             
             System.out.println(mst.toString());
-            try(Eigen eig = new Eigen(mst)){
+            try(Eigen eig = new Eigen(mst, 1e-13)){
                 System.out.println("values \n" + eig.values.toString());
                 System.out.println("vectors \n" + eig.vectors.toString());
             }
