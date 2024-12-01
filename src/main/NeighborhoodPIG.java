@@ -26,15 +26,18 @@ public class NeighborhoodPIG implements AutoCloseable {
     private int height, width;
     private Handle handle;
 
+    public static boolean D3 = true, D2 = false;
+    
     /**
      *
      * @param imagePath The location of the image.
      * @param neighborhoodSize The size of the edges of each neighborhood
      * square.
+     * @param is3d true for 3d, false for 2d.
      * @param tolerance How close must a number be to 0 to be considered 0.
      * @throws java.io.IOException If there's trouble loading the image.
      */
-    public NeighborhoodPIG(String imagePath, int neighborhoodSize, double tolerance) throws IOException {
+    public NeighborhoodPIG(String imagePath, int neighborhoodSize, boolean is3d, double tolerance) throws IOException {
 
         handle = new Handle();
 
@@ -60,9 +63,14 @@ public class NeighborhoodPIG implements AutoCloseable {
             BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             WritableRaster raster = image.getRaster();
 
+            int[] cpuRGB = rgb.get(handle);
+            int[] pixelRGB = new int[3];
             for (int row = 0; row < height; row++)
-                for (int col = 0; col < width; col++)
-                    raster.setPixel(col, row, rgb.get(handle, (col * height + row) * 3, 3));
+                for (int col = 0; col < width; col++){
+                    
+                    System.arraycopy(cpuRGB, (col * height + row) * 3, pixelRGB, 0, 3);
+                    raster.setPixel(col, row, pixelRGB);
+                }
 
             try {
                 ImageIO.write(image, "png", new File(writeTo));
@@ -134,9 +142,10 @@ public class NeighborhoodPIG implements AutoCloseable {
 
     public static void main(String[] args) throws IOException {
 
-        try (NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 5, 1e-11)) {
+        try (NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 10, D2, 1e-11)) {
 
             np.orientationColored("images/output/test.png");
+            
         }
 
 //        System.out.println(np.stm.setOrientations());

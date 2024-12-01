@@ -127,9 +127,10 @@ public class TestStuff {
                 eigenVec, 2,
                 1, 
                 IArray.cpuPointer(2), 
-                DArray.cpuPointer(0.1), 
-                workSpace.pointerToPointer()
+                DArray.cpuPointer(0.1)
             );
+            
+            System.out.println(eigenVec);
         }
     }
     

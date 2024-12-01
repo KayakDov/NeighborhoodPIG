@@ -492,12 +492,9 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
         MatricesStride eVectors = copyDimensions(DArray.empty(data.length));
 
-        try (IArray pivot = IArray.empty(data.batchSize * height)) {
-
-            for (int i = 0; i < height; i++) {
-                MatricesStride workSpace = copy(workSpaceArray);//TODO: with each iteration, only elements on the diagonal change.  Why recopy the whole thing?
-                workSpace.computeVec(eValues.getElement(i), eVectors.column(i), pivot, tolerance);
-            }
+        for (int i = 0; i < height; i++) {
+            MatricesStride workSpace = copy(workSpaceArray);
+            workSpace.computeVec(eValues.getElement(i), eVectors.column(i), tolerance);
         }
 
         return eVectors;
@@ -508,21 +505,18 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      *
      * @param eValue The eigenvalues.
      * @param eVector Where the eigenvector will be placed.
-     * @param info The success of the computations.
      * @param tolerance what is considered 0.
      */
-    private void computeVec(Vector eValue, VectorsStride eVector, IArray pivot, double tolerance) {
+    private void computeVec(Vector eValue, VectorsStride eVector, double tolerance) {
 
         for (int i = 0; i < height; i++) elmntsAtMatInd(i, i).add(-1, eValue);
-
-
 
         KernelManager.get("nullSpace1dBatch").map(
                 handle,
                 data, colDist,
                 eVector.data, eVector.getStrideSize(),
                 getBatchSize(),
-                IArray.cpuPointer(width), DArray.cpuPointer(tolerance), pivot.pointerToPointer()
+                IArray.cpuPointer(width), DArray.cpuPointer(tolerance)
         );
 
     }
@@ -606,7 +600,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
         try (
                 Handle handle = new Handle();
                 DArray array = new DArray(handle, 0, 2, 0, 3/*, 9, 11, 11, 12, 5, 6, 6, 8, 1, 0, 0, 0*/)) {
-            
+
             int numMatrices = 1;
 
             MatricesStride ms = new MatricesStride(handle, array, 2, 2, 2, 4, numMatrices);

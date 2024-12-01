@@ -9,8 +9,6 @@ import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.KernelManager;
 import JCudaWrapper.resourceManagement.Handle;
-import java.awt.Color;
-import java.util.Arrays;
 
 /**
  *
@@ -37,7 +35,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      *
      * @param dX The pixel intensity gradient of the image in the x direction.
      * @param dY The pixel intensity gradient of the image in the y direction.
-     * @param neighborhoodRad A aquare window considered a neighborhood around a
+     * @param neighborhoodRad A square window considered a neighborhood around a
      * point. This is the distance from the center of the square to the nearest
      * point on the edge.
      * @param tolerance How close a number be to 0 to be considered 0.
@@ -147,6 +145,16 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     }
 
     /**
+     * The coherence matrix.
+     * @return The coherence matrix.
+     */
+    public Matrix getCoherence() {
+        return coherence;
+    }
+
+    
+    
+    /**
      * Gets the matrix of orientations.
      *
      * @return Thew matrix of orientations.
@@ -214,5 +222,15 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     public int getColDist() {
         return orientation.getHeight();
     }
+
+    /**
+     * The eigenvalues and vectors of the structure tensors.
+     * @return The eigenvalues and vectors of the structure tensors.
+     */
+    public Eigen getEigen() {
+        return eigen;
+    }
+    
+    
 
 }

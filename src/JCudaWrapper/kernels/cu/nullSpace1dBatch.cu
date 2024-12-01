@@ -60,7 +60,6 @@ public:
 class Matrix {
 private:
     double* data; /**< Pointer to the matrix data. */
-    int* pivot;   /**< Pointer to the pivot array. */
     int width;    /**< Width of the matrix. */
     int ld;       /**< Leading dimension of the matrix. */
 
@@ -72,7 +71,7 @@ public:
      * @param ld Leading dimension of the matrix.
      * @param pivot Pointer to the pivot array.
      */
-    __device__ Matrix(double* data, int width, int ld, int* pivot) : data(data), width(width), ld(ld), pivot(pivot) {}
+    __device__ Matrix(double* data, int width, int ld) : data(data), width(width), ld(ld){}
 
     /**
      * Accessor for elements of the matrix.
@@ -101,29 +100,18 @@ public:
      * @return True if a valid pivot was found; False otherwise.
      */
     __device__ bool rowEchelonWorkRow(int row, int col, double tolerance) {
-        Row r(data + row, width, ld);
+
+	Row r(data + row, width, ld);
         int swapWith = row;
 
         // Find a valid pivot row
         while (fabs((*this)(swapWith, col)) <= tolerance && swapWith < width) 
             swapWith++;
-        
-        //printf("\nswapWith = %d and row = %d  and width = %d\n\n", swapWith, row, width);
-        
-        if(swapWith == row) {
-            pivot[row] = row;
-            //printf("swap with = row\n");
-        }
-	else if(swapWith == width) {
-	    //printf("swap with = width\n");
-	    return false; // No valid pivot found
-	}
-	else{
-	    //printf("\npivoting 1\n\n");
+
+	if(swapWith == width) return false;
+	if(swapWith > row){
             Row needsSwap(data + swapWith, width, ld);
-            r.swap(needsSwap);
-            pivot[row] = swapWith;
-            //printf("\npivoting 2\n\n");
+            r.swap(needsSwap);       
         }
 
         // Perform row elimination
@@ -142,24 +130,12 @@ public:
      * @param tolerance Tolerance for determining pivot validity.
      * @param trackPivots the indices of the pivot coluns will be set to one.
      */
-    __device__ int rowEchelon(double* trackPivots, double tolerance) {
+    __device__ int rowEchelon(double tolerance) {
         int numPivots = 0, row = 0;
         for (int col = 0; col < width; col++)
             if (rowEchelonWorkRow(row, col, tolerance)) row++;
-	    else numPivots++;
-	for(; row < width; row++)
-	    pivot[row] = row;
+	    else numPivots++;	
 	return numPivots;
-    }
-
-    /**
-     * Restores the original row order using the pivot array.
-     * @param vec Pointer to the vector to be adjusted.
-     */
-    __device__ void reversePivot(double* vec) {
-        for (int row = width - 1; row >= 0; row--) {
-            if (pivot[row] != row) swap(vec[row], vec[pivot[row]]);            
-        }
     }
 
     /**
@@ -177,19 +153,7 @@ public:
             }
             printf("\n");
         }
-    }
-    
-    /**
-     * Prints the pivots.
-     * Note: Use only for debugging purposes as printf is costly in CUDA kernels.
-     */
-    __device__ void printPivots() const {
-    	printf("Pivot Data:\n");
-    	for (int i = 0; i < width; i++) 
-            printf("Row %d: Pivot Index = %d\n", i, pivot[i]);
-        
-    }
-
+    }  
 };
 
 /**
@@ -203,21 +167,16 @@ public:
  * @param tolerance Tolerance for numerical operations.
  * @param workSpace Workspace for storing pivot information.
  */
-extern "C" __global__ void nullSpace1dBatchKernel(double* from, int ldFrom, double* to, int ldTo, int batchSize, int width, double tolerance, int* workSpace) {
+extern "C" __global__ void nullSpace1dBatchKernel(double* from, int ldFrom, double* to, int ldTo, int batchSize, int width, double tolerance) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= batchSize) return;
 
-    Matrix mat(from + width * ldFrom * idx, width, ldFrom, workSpace + width * idx);
+    Matrix mat(from + width * ldFrom * idx, width, ldFrom);
 
     double* eVec = to + ldTo * idx;
     
-//    mat.printMatrix("initial matrix");
-    
-    int numPivots = mat.rowEchelon(eVec, tolerance);
-   // printf("num pivots = %d\n", numPivots);
-
-  //  mat.printMatrix("row echelon");   
+    int numPivots = mat.rowEchelon(tolerance);
 
     for(int i = width - 1; i > width - numPivots; i--) eVec[i] = 0;
     eVec[width - numPivots] = 1;
@@ -229,8 +188,4 @@ extern "C" __global__ void nullSpace1dBatchKernel(double* from, int ldFrom, doub
         eVec[row] /= mat(row, col);
     }
 
-    //mat.printPivots();
-    //mat.printMatrix("before unpivot");
-    //mat.reversePivot(eVec); //TODO: remove reverse pivots!
-    //mat.printMatrix("after unpivot");
 }
