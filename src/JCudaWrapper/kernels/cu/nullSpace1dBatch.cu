@@ -108,14 +108,22 @@ public:
         while (fabs((*this)(swapWith, col)) <= tolerance && swapWith < width) 
             swapWith++;
         
-        if(swapWith == row || swapWith == width){
+        //printf("\nswapWith = %d and row = %d  and width = %d\n\n", swapWith, row, width);
+        
+        if(swapWith == row) {
             pivot[row] = row;
-	    if (swapWith == width) return false; // No valid pivot found
+            //printf("swap with = row\n");
         }
+	else if(swapWith == width) {
+	    //printf("swap with = width\n");
+	    return false; // No valid pivot found
+	}
 	else{
+	    //printf("\npivoting 1\n\n");
             Row needsSwap(data + swapWith, width, ld);
             r.swap(needsSwap);
             pivot[row] = swapWith;
+            //printf("\npivoting 2\n\n");
         }
 
         // Perform row elimination
@@ -170,6 +178,11 @@ public:
             printf("\n");
         }
     }
+    
+    /**
+     * Prints the pivots.
+     * Note: Use only for debugging purposes as printf is costly in CUDA kernels.
+     */
     __device__ void printPivots() const {
     	printf("Pivot Data:\n");
     	for (int i = 0; i < width; i++) 
@@ -216,8 +229,8 @@ extern "C" __global__ void nullSpace1dBatchKernel(double* from, int ldFrom, doub
         eVec[row] /= mat(row, col);
     }
 
-	//mat.printPivots();
-	//mat.printMatrix("before pivot");
-    mat.reversePivot(eVec);
-    //mat.printMatrix("after pivot");
+    //mat.printPivots();
+    //mat.printMatrix("before unpivot");
+    //mat.reversePivot(eVec); //TODO: remove reverse pivots!
+    //mat.printMatrix("after unpivot");
 }

@@ -605,11 +605,13 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
     public static void main(String[] args) {
         try (
                 Handle handle = new Handle();
-                DArray array = new DArray(handle, 1, 2, 2, 3, 9, 11, 11, 12, 5, 6, 6, 8, 1, 0, 0, 0)) {
+                DArray array = new DArray(handle, 0, 2, 0, 3/*, 9, 11, 11, 12, 5, 6, 6, 8, 1, 0, 0, 0*/)) {
+            
+            int numMatrices = 1;
 
-            MatricesStride ms = new MatricesStride(handle, array, 2, 2, 2, 4, 4);
+            MatricesStride ms = new MatricesStride(handle, array, 2, 2, 2, 4, numMatrices);
 
-            Matrix[] m = new Matrix[4];
+            Matrix[] m = new Matrix[1];
             Arrays.setAll(m, i -> new Matrix(handle, array.subArray(i * 4), 2, 2));
             for (int i = 0; i < m.length; i++) m[i].power(2);
 

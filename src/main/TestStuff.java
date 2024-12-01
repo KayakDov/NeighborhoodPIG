@@ -4,6 +4,8 @@ import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.VectorsStride;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.DStrideArray;
+import JCudaWrapper.array.IArray;
+import JCudaWrapper.array.KernelManager;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;
 import jcuda.Pointer;
@@ -19,20 +21,20 @@ import jcuda.runtime.cudaStream_t;
  */
 public class TestStuff {
 
-    public static void main(String[] args) {
-        try (
-                Handle hand = new Handle();
-                Matrix m = new Matrix(hand, 500, 500)) {
-
-            VectorsStride vs = m.rows();
-
-            for (int i = 0; i < m.getHeight(); i++) {
-                System.out.println(" i = " + i + " is " + vs.getVector(i).toString().substring(0, 100) + " ...");
-            }
-
-//            System.out.println(m);
-        }
-    }
+//    public static void main(String[] args) {
+//        try (
+//                Handle hand = new Handle();
+//                Matrix m = new Matrix(hand, 500, 500)) {
+//
+//            VectorsStride vs = m.rows();
+//
+//            for (int i = 0; i < m.getHeight(); i++) {
+//                System.out.println(" i = " + i + " is " + vs.getVector(i).toString().substring(0, 100) + " ...");
+//            }
+//
+////            System.out.println(m);
+//        }
+//    }
 //    public static void main(String[] args) {
 //        
 //        int height =70, width = 90;
@@ -106,4 +108,29 @@ public class TestStuff {
 //
 //        System.out.println("Finished!");
 //    }
+    
+    
+    
+    public static void main(String[] args) {
+        try(
+                Handle hand = new Handle(); 
+                DArray d = new DArray(hand, 0, 1, 0, 2);
+                DArray eigenVec = DArray.empty(2);
+                DArray workSpace = DArray.empty(2);
+                ){
+            
+            System.out.println(d);
+            
+            KernelManager.get("nullSpace1dBatch").map(
+                hand,
+                d, 2,
+                eigenVec, 2,
+                1, 
+                IArray.cpuPointer(2), 
+                DArray.cpuPointer(0.1), 
+                workSpace.pointerToPointer()
+            );
+        }
+    }
+    
 }

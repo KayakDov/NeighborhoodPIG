@@ -125,7 +125,8 @@ public class KernelManager implements AutoCloseable {
      * pointers to device pointers.
      * @return The {@code DArray} containing the processed results.
      */
-    public <T extends Array> T map(Handle handle, Array input, int incInput, T output, int incOutput, int n, Pointer... additionalParmaters) {
+    public <T extends Array> T map(Handle handle, Array input, int incInput, 
+            T output, int incOutput, int n, Pointer... additionalParmaters) {
 
         
         NativePointerObject[] pointers = new NativePointerObject[additionalParmaters.length + 5];
