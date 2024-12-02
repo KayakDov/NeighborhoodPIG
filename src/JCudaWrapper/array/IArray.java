@@ -98,6 +98,21 @@ public class IArray extends Array {
     public static Pointer cpuPointer(int d) {
         return Pointer.to(new int[]{d});
     }
+    
+    /**
+     * Points to a true value.
+     * @return A pointer to true;
+     */
+    public static Pointer cpuTrue(){
+        return cpuPointer(1);
+    }
+    /**
+     * Points to a false value.
+     * @return A pointer to false.
+     */
+    public static Pointer cpuFalse(){
+        return cpuPointer(0);
+    }
 
     @Override
     public String toString() {
@@ -108,4 +123,5 @@ public class IArray extends Array {
         }
     }
 
+    
 }

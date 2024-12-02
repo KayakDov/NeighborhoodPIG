@@ -67,7 +67,6 @@ public class NeighborhoodPIG implements AutoCloseable {
             int[] pixelRGB = new int[3];
             for (int row = 0; row < height; row++)
                 for (int col = 0; col < width; col++){
-                    
                     System.arraycopy(cpuRGB, (col * height + row) * 3, pixelRGB, 0, 3);
                     raster.setPixel(col, row, pixelRGB);
                 }
@@ -142,13 +141,13 @@ public class NeighborhoodPIG implements AutoCloseable {
 
     public static void main(String[] args) throws IOException {
 
+//        try (NeighborhoodPIG np = new NeighborhoodPIG("images/input/debug.jpeg", 10, D2, 1e-11)) {
+//            np.orientationColored("images/output/test.png");
+//        }
+        
         try (NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 10, D2, 1e-11)) {
-
             np.orientationColored("images/output/test.png");
-            
         }
-
-//        System.out.println(np.stm.setOrientations());
     }
 
 }
