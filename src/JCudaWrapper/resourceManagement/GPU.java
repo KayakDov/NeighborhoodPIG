@@ -16,18 +16,17 @@ public class GPU {
     
     
 
-    static {
-        useGPU = checkGPUAvailability();
-        if (useGPU) {
-            JCuda.cudaDeviceReset();
-            JCublas.cublasInit();
-            JCuda.setExceptionsEnabled(true);
-            JCublas.setExceptionsEnabled(true);
-            JCudaDriver.setExceptionsEnabled(true);
-            JCusolver.setExceptionsEnabled(true);
-
-        }
-    }
+//    static {
+//        useGPU = checkGPUAvailability();
+//        if (useGPU) {
+//            JCublas.cublasInit();
+//            JCuda.setExceptionsEnabled(true);
+//            JCublas.setExceptionsEnabled(true);
+//            JCudaDriver.setExceptionsEnabled(true);
+//            JCusolver.setExceptionsEnabled(true);
+//
+//        }
+//    }
     
     
     /**
