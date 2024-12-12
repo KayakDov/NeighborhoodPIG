@@ -31,11 +31,9 @@ public class TestStuff {
             
             System.out.println("input matrix\n" + from + "\n\noutput Matrix\n");
             
-            KernelManager.get("neighborhoodSum").map(
-                hand,
+            KernelManager.get("neighborhoodSum").map(hand, 3,
                 from.dArray(), 4,
-                to.dArray(), 1,
-                3, 
+                to.dArray(), 1, 
                 IArray.cpuTrue(), 
                 IArray.cpuPointer(1)
             );

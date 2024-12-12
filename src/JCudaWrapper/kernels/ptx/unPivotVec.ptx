@@ -13,10 +13,10 @@
 	// .globl	unPivotVecKernel
 
 .visible .entry unPivotVecKernel(
-	.param .u64 unPivotVecKernel_param_0,
-	.param .u32 unPivotVecKernel_param_1,
-	.param .u64 unPivotVecKernel_param_2,
-	.param .u32 unPivotVecKernel_param_3,
+	.param .u32 unPivotVecKernel_param_0,
+	.param .u64 unPivotVecKernel_param_1,
+	.param .u32 unPivotVecKernel_param_2,
+	.param .u64 unPivotVecKernel_param_3,
 	.param .u32 unPivotVecKernel_param_4,
 	.param .u32 unPivotVecKernel_param_5
 )
@@ -27,11 +27,11 @@
 	.reg .b64 	%rd<37>;
 
 
-	ld.param.u64 	%rd9, [unPivotVecKernel_param_0];
-	ld.param.u32 	%r71, [unPivotVecKernel_param_1];
-	ld.param.u64 	%rd10, [unPivotVecKernel_param_2];
-	ld.param.u32 	%r38, [unPivotVecKernel_param_3];
-	ld.param.u32 	%r40, [unPivotVecKernel_param_4];
+	ld.param.u32 	%r40, [unPivotVecKernel_param_0];
+	ld.param.u64 	%rd9, [unPivotVecKernel_param_1];
+	ld.param.u32 	%r71, [unPivotVecKernel_param_2];
+	ld.param.u64 	%rd10, [unPivotVecKernel_param_3];
+	ld.param.u32 	%r38, [unPivotVecKernel_param_4];
 	ld.param.u32 	%r39, [unPivotVecKernel_param_5];
 	cvta.to.global.u64 	%rd1, %rd10;
 	cvta.to.global.u64 	%rd2, %rd9;

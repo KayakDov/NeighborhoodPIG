@@ -13,10 +13,10 @@
 	// .globl	prodScalarMatrixBatchKernel
 
 .visible .entry prodScalarMatrixBatchKernel(
-	.param .u64 prodScalarMatrixBatchKernel_param_0,
-	.param .u32 prodScalarMatrixBatchKernel_param_1,
-	.param .u64 prodScalarMatrixBatchKernel_param_2,
-	.param .u32 prodScalarMatrixBatchKernel_param_3,
+	.param .u32 prodScalarMatrixBatchKernel_param_0,
+	.param .u64 prodScalarMatrixBatchKernel_param_1,
+	.param .u32 prodScalarMatrixBatchKernel_param_2,
+	.param .u64 prodScalarMatrixBatchKernel_param_3,
 	.param .u32 prodScalarMatrixBatchKernel_param_4,
 	.param .u32 prodScalarMatrixBatchKernel_param_5,
 	.param .u32 prodScalarMatrixBatchKernel_param_6,
@@ -29,11 +29,11 @@
 	.reg .b64 	%rd<9>;
 
 
-	ld.param.u64 	%rd1, [prodScalarMatrixBatchKernel_param_0];
-	ld.param.u32 	%r2, [prodScalarMatrixBatchKernel_param_1];
-	ld.param.u64 	%rd2, [prodScalarMatrixBatchKernel_param_2];
-	ld.param.u32 	%r3, [prodScalarMatrixBatchKernel_param_3];
-	ld.param.u32 	%r7, [prodScalarMatrixBatchKernel_param_4];
+	ld.param.u32 	%r7, [prodScalarMatrixBatchKernel_param_0];
+	ld.param.u64 	%rd1, [prodScalarMatrixBatchKernel_param_1];
+	ld.param.u32 	%r2, [prodScalarMatrixBatchKernel_param_2];
+	ld.param.u64 	%rd2, [prodScalarMatrixBatchKernel_param_3];
+	ld.param.u32 	%r3, [prodScalarMatrixBatchKernel_param_4];
 	ld.param.u32 	%r4, [prodScalarMatrixBatchKernel_param_5];
 	ld.param.u32 	%r5, [prodScalarMatrixBatchKernel_param_6];
 	ld.param.u32 	%r6, [prodScalarMatrixBatchKernel_param_7];

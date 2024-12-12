@@ -31,13 +31,13 @@ public class NeighborhoodPIG implements AutoCloseable {
     /**
      *
      * @param imagePath The location of the image.
-     * @param neighborhoodSize The size of the edges of each neighborhood
+     * @param neighborhoodRad The radius of the edges of each neighborhood
      * square.
      * @param is3d true for 3d, false for 2d.
      * @param tolerance How close must a number be to 0 to be considered 0.
      * @throws java.io.IOException If there's trouble loading the image.
      */
-    public NeighborhoodPIG(String imagePath, int neighborhoodSize, boolean is3d, double tolerance) throws IOException {
+    public NeighborhoodPIG(String imagePath, int neighborhoodRad, boolean is3d, double tolerance) throws IOException {
 
         handle = new Handle();
 
@@ -46,7 +46,7 @@ public class NeighborhoodPIG implements AutoCloseable {
         Gradient grad = new Gradient(imageMat, handle);
 
         imageMat.close();
-        stm = new StructureTensorMatrix(grad.x(), grad.y(), neighborhoodSize, tolerance);
+        stm = new StructureTensorMatrix(grad.x(), grad.y(), neighborhoodRad, tolerance);
         grad.close();
 
     }

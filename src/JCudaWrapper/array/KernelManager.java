@@ -2,8 +2,6 @@ package JCudaWrapper.array;
 
 import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Vector;
-import JCudaWrapper.algebra.VectorsStride;
-import java.io.File;
 import java.lang.ref.Cleaner;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -16,6 +14,7 @@ import jcuda.driver.CUresult;
 import jcuda.driver.JCudaDriver;
 import JCudaWrapper.resourceManagement.Handle;
 import JCudaWrapper.resourceManagement.ResourceDealocator;
+import java.io.File;
 
 /**
  * The {@code Kernel} class is a utility for managing and executing CUDA kernels
@@ -125,23 +124,52 @@ public class KernelManager implements AutoCloseable {
      * pointers to device pointers.
      * @return The {@code DArray} containing the processed results.
      */
-    public <T extends Array> T map(Handle handle, Array input, int incInput, 
-            T output, int incOutput, int n, Pointer... additionalParmaters) {
+    public <T extends Array> T map(Handle handle, int n, Array input, int incInput, T output, int incOutput, Pointer... additionalParmaters) {
 
         
-        NativePointerObject[] pointers = new NativePointerObject[additionalParmaters.length + 5];
-        pointers[0] = Pointer.to(input.pointer);
-        pointers[1] = IArray.cpuPointer(incInput);
-        pointers[2] = Pointer.to(output.pointer);
-        pointers[3] = IArray.cpuPointer(incOutput);
-        pointers[4] = IArray.cpuPointer(n);
+        Pointer[] pointers = new Pointer[additionalParmaters.length + 3];
+        
+        pointers[0] = IArray.cpuPointer(incInput);
+        pointers[1] = output.pointerToPointer();
+        pointers[2] = IArray.cpuPointer(incOutput);
+        
         
         if(additionalParmaters.length > 0) 
-            System.arraycopy(additionalParmaters, 0, pointers, 5, additionalParmaters.length);
+            System.arraycopy(additionalParmaters, 0, pointers, 3, additionalParmaters.length);
+        
+        map(handle, n, input, pointers);
+        
+        return output;
+    }
+    
+    
+    /**
+     * Runs the loaded CUDA kernel with the specified input and output arrays on
+     * a specified stream. Note, a stream is generated for this method, so be
+     * sure that the data is synchronized before and after.
+     *
+     * @param <T> The type of array.
+     * @param handle
+     * @param numThreads The number of threads to be used in the kernel.
+     * @param input The {@code DArray} representing the input data to be
+     * processed by the kernel.
+     * @param additionalParmaters These should all be pointers to cpu arrays or
+     * pointers to device pointers.
+     */
+    public <T extends Array> void map(Handle handle, int numThreads, Array input, Pointer... additionalParmaters) {
+
+        
+        NativePointerObject[] pointers = new NativePointerObject[additionalParmaters.length + 2];
+        pointers[0] = IArray.cpuPointer(numThreads);
+        pointers[1] = input.pointerToPointer();
+        
+        
+        if(additionalParmaters.length > 0) 
+            System.arraycopy(additionalParmaters, 0, pointers, 2, additionalParmaters.length);
         
         Pointer kernelParameters = Pointer.to(pointers);
 
-        int gridSize = (int) Math.ceil((double) n / BLOCK_SIZE);
+        int gridSize = (int) Math.ceil((double) numThreads / BLOCK_SIZE);
         int result = JCudaDriver.cuLaunchKernel(
                 function,
                 gridSize, 1, 1, // Grid size (number of blocks)
@@ -152,8 +180,6 @@ public class KernelManager implements AutoCloseable {
         checkResult(result);
 
         JCudaDriver.cuCtxSynchronize();
-
-        return output;
     }
     
     /**
@@ -164,12 +190,11 @@ public class KernelManager implements AutoCloseable {
      * @return 
      */
     public DArray vectorBatchMatrix(Handle hand, Vector input, MatricesStride matrices){
-        return map(
-                hand, 
+        return map(hand, matrices.getBatchSize()*matrices.height*matrices.width, 
                 input.dArray(), 
                 input.inc(), 
                 matrices.dArray(), 
-                matrices.height, matrices.getBatchSize()*matrices.height*matrices.width, 
+                matrices.height, 
                 IArray.cpuPointer(matrices.width),
                 IArray.cpuPointer(matrices.colDist),
                 IArray.cpuPointer(matrices.getStrideSize()));
@@ -192,7 +217,7 @@ public class KernelManager implements AutoCloseable {
      * @return The {@code DArray} containing the processed results.
      */
     public <T extends Array> T map(Handle handle, T input, int incInput, T output, int incOutput, int n, int shift) {
-        return map(handle, input, incInput, output, incOutput, n, IArray.cpuPointer(shift));
+        return map(handle, n, input, incInput, output, incOutput, IArray.cpuPointer(shift));
     }
     
     
@@ -224,7 +249,7 @@ public class KernelManager implements AutoCloseable {
      * @return The {@code DArray} containing the processed results.
      */
     public DArray map(Handle handle, DArray input, DArray output, int n) {
-        return map(handle, input, 1, output, 1, n);
+        return map(handle, n, input, 1, output, 1);
     }
 
     /**
@@ -240,7 +265,7 @@ public class KernelManager implements AutoCloseable {
      * @return The {@code DArray} containing the processed results.
      */
     public DArray map(Handle handle, Vector input, Vector output) {
-        return map(handle, input.dArray(), input.inc(), output.dArray(), output.inc(), Math.min(input.dim(), output.dim()));
+        return map(handle, Math.min(input.dim(), output.dim()), input.dArray(), input.inc(), output.dArray(), output.inc());
     }
 
     /**
@@ -278,7 +303,7 @@ public class KernelManager implements AutoCloseable {
      * @return The {@code DArray} containing the processed results.
      */
     public DArray mapToSelf(Handle handle, DArray input, int inc, int n) {
-        return map(handle, input, inc, input, inc, n);
+        return map(handle, n, input, inc, input, inc);
     }
 
     /**

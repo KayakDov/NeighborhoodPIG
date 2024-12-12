@@ -24,11 +24,7 @@ import java.awt.Dimension;
  *
  * @author E. Dov Neimand
  */
-public class MatricesStride implements ColumnMajor, AutoCloseable {
-
-    protected final Handle handle;
-    public final int height, width, colDist;
-    protected final DStrideArray data;
+public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, AutoCloseable {
 
     /**
      * Constructor for creating a batch of strided matrices. Each matrix is
@@ -67,11 +63,7 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
      * @param batchSize The number of matrices in this batch.
      */
     public MatricesStride(Handle handle, DArray data, int height, int width, int colDist, int strideSize, int batchSize) {
-        this.handle = handle;
-        this.data = data.getAsBatch(strideSize, colDist * (width - 1) + height, batchSize);
-        this.height = height;
-        this.width = width;
-        this.colDist = colDist;
+        super(handle, height, width, 1, colDist, height*width, strideSize, batchSize, data);
     }
 
     /**
@@ -511,11 +503,9 @@ public class MatricesStride implements ColumnMajor, AutoCloseable {
 
         for (int i = 0; i < height; i++) elmntsAtMatInd(i, i).add(-1, eValue);
 
-        KernelManager.get("nullSpace1dBatch").map(
-                handle,
+        KernelManager.get("nullSpace1dBatch").map(handle, getBatchSize(),
                 data, colDist,
                 eVector.data, eVector.getStrideSize(),
-                getBatchSize(),
                 IArray.cpuPointer(width), DArray.cpuPointer(tolerance)
         );
 

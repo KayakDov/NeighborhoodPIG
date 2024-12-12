@@ -167,7 +167,7 @@ public:
  * @param tolerance Tolerance for numerical operations.
  * @param workSpace Workspace for storing pivot information.
  */
-extern "C" __global__ void nullSpace1dBatchKernel(double* from, int ldFrom, double* to, int ldTo, int batchSize, int width, double tolerance) {
+extern "C" __global__ void nullSpace1dBatchKernel(int batchSize, double* from, int ldFrom, double* to, int ldTo, int width, double tolerance) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= batchSize) return;

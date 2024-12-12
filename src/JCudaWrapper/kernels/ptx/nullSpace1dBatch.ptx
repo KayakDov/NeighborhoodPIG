@@ -13,10 +13,10 @@
 	// .globl	nullSpace1dBatchKernel
 
 .visible .entry nullSpace1dBatchKernel(
-	.param .u64 nullSpace1dBatchKernel_param_0,
-	.param .u32 nullSpace1dBatchKernel_param_1,
-	.param .u64 nullSpace1dBatchKernel_param_2,
-	.param .u32 nullSpace1dBatchKernel_param_3,
+	.param .u32 nullSpace1dBatchKernel_param_0,
+	.param .u64 nullSpace1dBatchKernel_param_1,
+	.param .u32 nullSpace1dBatchKernel_param_2,
+	.param .u64 nullSpace1dBatchKernel_param_3,
 	.param .u32 nullSpace1dBatchKernel_param_4,
 	.param .u32 nullSpace1dBatchKernel_param_5,
 	.param .f64 nullSpace1dBatchKernel_param_6
@@ -28,11 +28,11 @@
 	.reg .b64 	%rd<157>;
 
 
-	ld.param.u64 	%rd21, [nullSpace1dBatchKernel_param_0];
-	ld.param.u32 	%r59, [nullSpace1dBatchKernel_param_1];
-	ld.param.u64 	%rd22, [nullSpace1dBatchKernel_param_2];
-	ld.param.u32 	%r60, [nullSpace1dBatchKernel_param_3];
-	ld.param.u32 	%r62, [nullSpace1dBatchKernel_param_4];
+	ld.param.u32 	%r62, [nullSpace1dBatchKernel_param_0];
+	ld.param.u64 	%rd21, [nullSpace1dBatchKernel_param_1];
+	ld.param.u32 	%r59, [nullSpace1dBatchKernel_param_2];
+	ld.param.u64 	%rd22, [nullSpace1dBatchKernel_param_3];
+	ld.param.u32 	%r60, [nullSpace1dBatchKernel_param_4];
 	ld.param.u32 	%r112, [nullSpace1dBatchKernel_param_5];
 	ld.param.f64 	%fd10, [nullSpace1dBatchKernel_param_6];
 	cvta.to.global.u64 	%rd1, %rd22;

@@ -328,7 +328,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      */
     public Matrix add(double d) {
         try (DSingleton sing = new DSingleton(handle, d)) {
-            KernelManager.get("addScalarToMatrix").map(handle, sing, colDist, data, height, size());
+            KernelManager.get("addScalarToMatrix").map(handle, size(), sing, colDist, data, height);
             return this;
         }
     }

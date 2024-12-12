@@ -462,12 +462,9 @@ public class DPointerArray extends Array {
      * @return this
      */
     public DPointerArray fill(Handle handle, DArray source, int inc){
-        KernelManager.get("genPtrs").map(
-                handle, 
+        KernelManager.get("genPtrs").map(handle, length, 
                 source, inc, 
-                this, 1, 
-                length
-        );
+                this, 1);
         return this;
     }
     

@@ -1,6 +1,6 @@
 
 extern "C" __global__
-void atan2Kernel(const double* vectors, int ldFrom, double* angles, int incTo, int n) {
+void atan2Kernel(int n, const double* vectors, int ldFrom, double* angles, int incTo) {
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 

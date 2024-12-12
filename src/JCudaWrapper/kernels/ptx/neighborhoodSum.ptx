@@ -13,10 +13,10 @@
 	// .globl	neighborhoodSumKernel
 
 .visible .entry neighborhoodSumKernel(
-	.param .u64 neighborhoodSumKernel_param_0,
-	.param .u32 neighborhoodSumKernel_param_1,
-	.param .u64 neighborhoodSumKernel_param_2,
-	.param .u32 neighborhoodSumKernel_param_3,
+	.param .u32 neighborhoodSumKernel_param_0,
+	.param .u64 neighborhoodSumKernel_param_1,
+	.param .u32 neighborhoodSumKernel_param_2,
+	.param .u64 neighborhoodSumKernel_param_3,
 	.param .u32 neighborhoodSumKernel_param_4,
 	.param .u8 neighborhoodSumKernel_param_5,
 	.param .u32 neighborhoodSumKernel_param_6
@@ -30,10 +30,10 @@
 
 
 	ld.param.s8 	%rs1, [neighborhoodSumKernel_param_5];
-	ld.param.u64 	%rd98, [neighborhoodSumKernel_param_0];
-	ld.param.u32 	%r159, [neighborhoodSumKernel_param_1];
-	ld.param.u64 	%rd99, [neighborhoodSumKernel_param_2];
-	ld.param.u32 	%r160, [neighborhoodSumKernel_param_3];
+	ld.param.u32 	%r159, [neighborhoodSumKernel_param_0];
+	ld.param.u64 	%rd98, [neighborhoodSumKernel_param_1];
+	ld.param.u32 	%r160, [neighborhoodSumKernel_param_2];
+	ld.param.u64 	%rd99, [neighborhoodSumKernel_param_3];
 	ld.param.u32 	%r161, [neighborhoodSumKernel_param_4];
 	ld.param.u32 	%r162, [neighborhoodSumKernel_param_6];
 	cvta.to.global.u64 	%rd1, %rd98;
@@ -42,13 +42,13 @@
 	mov.u32 	%r164, %ctaid.x;
 	mov.u32 	%r165, %tid.x;
 	mad.lo.s32 	%r1, %r164, %r163, %r165;
-	setp.ge.s32 	%p1, %r1, %r161;
+	setp.ge.s32 	%p1, %r1, %r159;
 	@%p1 bra 	$L__BB0_59;
 
 	setp.eq.s16 	%p2, %rs1, 0;
-	selp.b32 	%r2, %r159, %r161, %p2;
-	selp.b32 	%r166, %r159, 1, %p2;
-	mul.lo.s32 	%r267, %r1, %r160;
+	selp.b32 	%r2, %r160, %r159, %p2;
+	selp.b32 	%r166, %r160, 1, %p2;
+	mul.lo.s32 	%r267, %r1, %r161;
 	mul.lo.s32 	%r167, %r267, %r166;
 	mul.wide.s32 	%rd100, %r167, 8;
 	add.s64 	%rd3, %rd2, %rd100;
@@ -181,7 +181,7 @@ $L__BB0_15:
 	mad.lo.s32 	%r183, %r2, %r182, %r1;
 	mul.wide.s32 	%rd110, %r183, 8;
 	add.s64 	%rd203, %rd1, %rd110;
-	mul.lo.s32 	%r184, %r2, %r160;
+	mul.lo.s32 	%r184, %r2, %r161;
 	shl.b32 	%r23, %r184, 2;
 	sub.s32 	%r24, %r286, %r162;
 	mul.wide.s32 	%rd19, %r184, 8;
@@ -225,10 +225,10 @@ $L__BB0_21:
 
 	add.s32 	%r186, %r287, 1;
 	mad.lo.s32 	%r187, %r2, %r186, %r1;
-	mul.lo.s32 	%r275, %r160, %r187;
-	mul.lo.s32 	%r35, %r2, %r160;
+	mul.lo.s32 	%r275, %r161, %r187;
+	mul.lo.s32 	%r35, %r2, %r161;
 	mad.lo.s32 	%r188, %r2, %r287, %r1;
-	mul.lo.s32 	%r274, %r160, %r188;
+	mul.lo.s32 	%r274, %r161, %r188;
 	add.s32 	%r189, %r287, %r162;
 	add.s32 	%r190, %r189, 1;
 	mad.lo.s32 	%r191, %r2, %r190, %r1;
@@ -264,17 +264,17 @@ $L__BB0_24:
 	@%p19 bra 	$L__BB0_28;
 
 	sub.s32 	%r279, %r162, %r286;
-	shl.b32 	%r196, %r160, 2;
+	shl.b32 	%r196, %r161, 2;
 	mul.wide.s32 	%rd27, %r196, 8;
 	mad.lo.s32 	%r197, %r2, %r1, %r162;
 	mul.wide.s32 	%rd125, %r197, 8;
 	add.s64 	%rd126, %rd1, %rd125;
 	add.s64 	%rd206, %rd126, 16;
-	mul.lo.s32 	%r198, %r2, %r160;
+	mul.lo.s32 	%r198, %r2, %r161;
 	mul.lo.s32 	%r199, %r198, %r1;
 	mul.wide.s32 	%rd127, %r199, 8;
 	add.s64 	%rd205, %rd2, %rd127;
-	mul.wide.s32 	%rd30, %r160, 8;
+	mul.wide.s32 	%rd30, %r161, 8;
 
 $L__BB0_26:
 	ld.global.f64 	%fd43, [%rd206+-8];
@@ -309,12 +309,12 @@ $L__BB0_28:
 
 	mul.lo.s32 	%r200, %r2, %r1;
 	add.s32 	%r201, %r287, %r200;
-	mul.lo.s32 	%r202, %r160, %r201;
+	mul.lo.s32 	%r202, %r161, %r201;
 	mul.wide.s32 	%rd132, %r202, 8;
 	add.s64 	%rd209, %rd2, %rd132;
-	mul.wide.s32 	%rd36, %r160, 8;
+	mul.wide.s32 	%rd36, %r161, 8;
 	add.s32 	%r203, %r201, 1;
-	mul.lo.s32 	%r204, %r160, %r203;
+	mul.lo.s32 	%r204, %r161, %r203;
 	mul.wide.s32 	%rd133, %r204, 8;
 	add.s64 	%rd208, %rd2, %rd133;
 	add.s32 	%r205, %r287, %r162;
@@ -339,14 +339,14 @@ $L__BB0_30:
 	@%p22 bra 	$L__BB0_30;
 
 $L__BB0_31:
-	sub.s32 	%r66, %r159, %r162;
+	sub.s32 	%r66, %r160, %r162;
 	setp.ge.s32 	%p23, %r288, %r66;
 	@%p23 bra 	$L__BB0_45;
 
-	sub.s32 	%r207, %r159, %r288;
+	sub.s32 	%r207, %r160, %r288;
 	sub.s32 	%r208, %r207, %r162;
 	not.b32 	%r209, %r288;
-	add.s32 	%r210, %r209, %r159;
+	add.s32 	%r210, %r209, %r160;
 	sub.s32 	%r67, %r210, %r162;
 	and.b32  	%r305, %r208, 3;
 	@%p2 bra 	$L__BB0_39;
@@ -358,10 +358,10 @@ $L__BB0_31:
 	mad.lo.s32 	%r292, %r2, %r212, %r1;
 	add.s32 	%r213, %r287, 1;
 	mad.lo.s32 	%r214, %r2, %r213, %r1;
-	mul.lo.s32 	%r291, %r160, %r214;
-	mul.lo.s32 	%r71, %r2, %r160;
+	mul.lo.s32 	%r291, %r161, %r214;
+	mul.lo.s32 	%r71, %r2, %r161;
 	mad.lo.s32 	%r215, %r2, %r287, %r1;
-	mul.lo.s32 	%r290, %r160, %r215;
+	mul.lo.s32 	%r290, %r161, %r215;
 	add.s32 	%r216, %r287, %r162;
 	add.s32 	%r217, %r216, 1;
 	mad.lo.s32 	%r218, %r2, %r217, %r1;
@@ -406,10 +406,10 @@ $L__BB0_36:
 	add.s64 	%rd211, %rd1, %rd143;
 	sub.s32 	%r222, %r287, %r162;
 	mad.lo.s32 	%r300, %r2, %r222, %r1;
-	mul.lo.s32 	%r223, %r2, %r160;
+	mul.lo.s32 	%r223, %r2, %r161;
 	shl.b32 	%r92, %r223, 2;
 	mad.lo.s32 	%r224, %r2, %r287, %r1;
-	mul.lo.s32 	%r299, %r160, %r224;
+	mul.lo.s32 	%r299, %r161, %r224;
 	mul.wide.s32 	%rd50, %r223, 8;
 	mul.wide.s32 	%rd51, %r2, 8;
 
@@ -467,12 +467,12 @@ $L__BB0_39:
 	sub.s32 	%r228, %r227, %r162;
 	mul.wide.s32 	%rd158, %r228, 8;
 	add.s64 	%rd215, %rd1, %rd158;
-	mul.lo.s32 	%r229, %r160, %r227;
+	mul.lo.s32 	%r229, %r161, %r227;
 	mul.wide.s32 	%rd159, %r229, 8;
 	add.s64 	%rd214, %rd2, %rd159;
-	mul.wide.s32 	%rd56, %r160, 8;
+	mul.wide.s32 	%rd56, %r161, 8;
 	add.s32 	%r230, %r227, 1;
-	mul.lo.s32 	%r231, %r160, %r230;
+	mul.lo.s32 	%r231, %r161, %r230;
 	mul.wide.s32 	%rd160, %r231, 8;
 	add.s64 	%rd213, %rd2, %rd160;
 	add.s32 	%r232, %r287, %r162;
@@ -505,9 +505,9 @@ $L__BB0_42:
 
 	mul.lo.s32 	%r234, %r2, %r1;
 	add.s32 	%r235, %r287, %r234;
-	shl.b32 	%r236, %r160, 2;
+	shl.b32 	%r236, %r161, 2;
 	mul.wide.s32 	%rd67, %r236, 8;
-	mul.lo.s32 	%r237, %r160, %r235;
+	mul.lo.s32 	%r237, %r161, %r235;
 	mul.wide.s32 	%rd163, %r237, 8;
 	add.s64 	%rd218, %rd2, %rd163;
 	add.s32 	%r238, %r287, %r162;
@@ -519,7 +519,7 @@ $L__BB0_42:
 	mul.wide.s32 	%rd166, %r240, 8;
 	add.s64 	%rd167, %rd1, %rd166;
 	add.s64 	%rd216, %rd167, 16;
-	mul.wide.s32 	%rd71, %r160, 8;
+	mul.wide.s32 	%rd71, %r161, 8;
 
 $L__BB0_44:
 	ld.global.f64 	%fd82, [%rd216+-16];
@@ -556,12 +556,12 @@ $L__BB0_44:
 	@%p32 bra 	$L__BB0_44;
 
 $L__BB0_45:
-	setp.ge.s32 	%p33, %r288, %r159;
+	setp.ge.s32 	%p33, %r288, %r160;
 	@%p33 bra 	$L__BB0_59;
 
 	not.b32 	%r241, %r288;
-	add.s32 	%r118, %r241, %r159;
-	sub.s32 	%r242, %r159, %r288;
+	add.s32 	%r118, %r241, %r160;
+	sub.s32 	%r242, %r160, %r288;
 	and.b32  	%r327, %r242, 3;
 	@%p2 bra 	$L__BB0_53;
 
@@ -572,10 +572,10 @@ $L__BB0_45:
 	mad.lo.s32 	%r317, %r2, %r243, %r1;
 	add.s32 	%r244, %r287, 1;
 	mad.lo.s32 	%r245, %r2, %r244, %r1;
-	mul.lo.s32 	%r316, %r160, %r245;
-	mul.lo.s32 	%r122, %r2, %r160;
+	mul.lo.s32 	%r316, %r161, %r245;
+	mul.lo.s32 	%r122, %r2, %r161;
 	mad.lo.s32 	%r246, %r2, %r287, %r1;
-	mul.lo.s32 	%r315, %r160, %r246;
+	mul.lo.s32 	%r315, %r161, %r246;
 	neg.s32 	%r314, %r327;
 
 $L__BB0_49:
@@ -606,10 +606,10 @@ $L__BB0_50:
 	shl.b32 	%r139, %r2, 2;
 	sub.s32 	%r247, %r287, %r162;
 	mad.lo.s32 	%r323, %r2, %r247, %r1;
-	mul.lo.s32 	%r248, %r2, %r160;
+	mul.lo.s32 	%r248, %r2, %r161;
 	shl.b32 	%r141, %r248, 2;
 	mad.lo.s32 	%r249, %r2, %r287, %r1;
-	mul.lo.s32 	%r322, %r160, %r249;
+	mul.lo.s32 	%r322, %r161, %r249;
 	mul.wide.s32 	%rd78, %r248, 8;
 	mul.wide.s32 	%rd79, %r2, 8;
 
@@ -641,7 +641,7 @@ $L__BB0_52:
 	add.s32 	%r323, %r323, %r139;
 	add.s32 	%r322, %r322, %r141;
 	add.s32 	%r288, %r288, 4;
-	setp.lt.s32 	%p38, %r288, %r159;
+	setp.lt.s32 	%p38, %r288, %r160;
 	@%p38 bra 	$L__BB0_52;
 	bra.uni 	$L__BB0_59;
 
@@ -653,12 +653,12 @@ $L__BB0_53:
 	sub.s32 	%r251, %r250, %r162;
 	mul.wide.s32 	%rd189, %r251, 8;
 	add.s64 	%rd221, %rd1, %rd189;
-	mul.lo.s32 	%r252, %r160, %r250;
+	mul.lo.s32 	%r252, %r161, %r250;
 	mul.wide.s32 	%rd190, %r252, 8;
 	add.s64 	%rd220, %rd2, %rd190;
-	mul.wide.s32 	%rd82, %r160, 8;
+	mul.wide.s32 	%rd82, %r161, 8;
 	add.s32 	%r253, %r250, 1;
-	mul.lo.s32 	%r254, %r160, %r253;
+	mul.lo.s32 	%r254, %r161, %r253;
 	mul.wide.s32 	%rd191, %r254, 8;
 	add.s64 	%rd219, %rd2, %rd191;
 
@@ -682,16 +682,16 @@ $L__BB0_56:
 	@%p41 bra 	$L__BB0_59;
 
 	mad.lo.s32 	%r255, %r2, %r1, %r287;
-	shl.b32 	%r256, %r160, 2;
+	shl.b32 	%r256, %r161, 2;
 	mul.wide.s32 	%rd90, %r256, 8;
-	mul.lo.s32 	%r257, %r160, %r255;
+	mul.lo.s32 	%r257, %r161, %r255;
 	mul.wide.s32 	%rd192, %r257, 8;
 	add.s64 	%rd223, %rd2, %rd192;
 	sub.s32 	%r258, %r255, %r162;
 	mul.wide.s32 	%rd193, %r258, 8;
 	add.s64 	%rd194, %rd1, %rd193;
 	add.s64 	%rd222, %rd194, 16;
-	mul.wide.s32 	%rd93, %r160, 8;
+	mul.wide.s32 	%rd93, %r161, 8;
 
 $L__BB0_58:
 	ld.global.f64 	%fd114, [%rd222+-16];
@@ -714,7 +714,7 @@ $L__BB0_58:
 	add.s64 	%rd223, %rd223, %rd90;
 	add.s64 	%rd222, %rd222, 32;
 	add.s32 	%r288, %r288, 4;
-	setp.lt.s32 	%p42, %r288, %r159;
+	setp.lt.s32 	%p42, %r288, %r160;
 	@%p42 bra 	$L__BB0_58;
 
 $L__BB0_59:

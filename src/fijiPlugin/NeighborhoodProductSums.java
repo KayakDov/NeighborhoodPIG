@@ -66,22 +66,20 @@ public class NeighborhoodProductSums implements AutoCloseable {
                         new Vector(hand, b.dArray(), 1)
                 );
 
-        KernelManager.get("neighborhoodSum").map(hand,
+        KernelManager.get("neighborhoodSum").map(hand, height,
                 ebeStorage.dArray(),
                 width,
                 sumLocalRowElements.dArray(),
                 1,
-                height,
                 IArray.cpuTrue(),
                 IArray.cpuPointer(nRad)
         );
 
-        KernelManager.get("neighborhoodSum").map(hand,
+        KernelManager.get("neighborhoodSum").map(hand, width,
                 sumLocalRowElements.dArray(),
                 height,
                 result.dArray(),
                 result.inc(),
-                width,
                 IArray.cpuFalse(),
                 IArray.cpuPointer(nRad)
         );

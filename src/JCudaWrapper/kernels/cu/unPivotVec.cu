@@ -10,7 +10,7 @@ __device__ void swap(double* vec, int i, int j){
 
 //We assume pivoted describes square matrices: width = height.
 //n should be the total number of columns;
-extern "C" __global__ void unPivotVecKernel(int *pivotScheme, int dim, double *pivoted, int inc, int n, int stride) {
+extern "C" __global__ void unPivotVecKernel(int n, int *pivotScheme, int dim, double *pivoted, int inc, int stride) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
     if (idx >= n) return;

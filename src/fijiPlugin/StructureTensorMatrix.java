@@ -119,11 +119,9 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * @return The orientation matrix.
      */
     public Matrix setOrientations() {
-        KernelManager.get("atan2").map(handle,
+        KernelManager.get("atan2").map(handle, orientation.size(),
                 eigen.vectors.dArray(), eigen.vectors.getStrideSize(),
-                orientation.dArray(), 1,
-                orientation.size()
-        );
+                orientation.dArray(), 1);
         return orientation;
     }
 
@@ -194,10 +192,9 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
         IArray colors = IArray.empty(orientation.size() * 3);
 
-        KernelManager.get("color").map(handle, 
+        KernelManager.get("color").map(handle, orientation.size(), 
                 orientation.dArray(), 1, 
-                colors, 3, 
-                orientation.size(),
+                colors, 3,
                 coherence.dArray().pointerToPointer(),
                 IArray.cpuPointer(1)
                 );

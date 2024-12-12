@@ -10,7 +10,7 @@ __device__ void swap(double* vec, int i, int j){
 
 //We assume pivoted describes square matrices: width = height.
 //n should be the total number of columns; n = batchSize * width.
-extern "C" __global__ void unPivotMatrixKernel(int *pivotScheme, int height, double *pivoted, int ldP, int n) {
+extern "C" __global__ void unPivotMatrixKernel(int n, int *pivotScheme, int height, double *pivoted, int ldP) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
     if (idx >= n) return;

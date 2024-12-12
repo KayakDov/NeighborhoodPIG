@@ -95,7 +95,14 @@ public:
  * @param isRowTraversal If true, the kernel operates on rows; otherwise, it operates on columns.
  * @param targetInc The stride for accessing values in the target matrix.
  */
-extern "C" __global__ void neighborhoodSumKernel(double* sourceMat, int vecLength, double* targetMat, int targetInc, int numVecs, bool isRowTraversal, int neighborhoodSize) {
+extern "C" __global__ void neighborhoodSumKernel(
+    int numVecs, double* sourceMat, 
+    int vecLength, 
+    double* targetMat, 
+    int targetInc, 
+    bool isRowTraversal, 
+    int neighborhoodSize
+    ) {
 
     int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;   
 

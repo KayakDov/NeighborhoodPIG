@@ -13,10 +13,10 @@
 	// .globl	addScalarToMatrixKernel
 
 .visible .entry addScalarToMatrixKernel(
-	.param .u64 addScalarToMatrixKernel_param_0,
-	.param .u32 addScalarToMatrixKernel_param_1,
-	.param .u64 addScalarToMatrixKernel_param_2,
-	.param .u32 addScalarToMatrixKernel_param_3,
+	.param .u32 addScalarToMatrixKernel_param_0,
+	.param .u64 addScalarToMatrixKernel_param_1,
+	.param .u32 addScalarToMatrixKernel_param_2,
+	.param .u64 addScalarToMatrixKernel_param_3,
 	.param .u32 addScalarToMatrixKernel_param_4
 )
 {
@@ -26,11 +26,11 @@
 	.reg .b64 	%rd<7>;
 
 
-	ld.param.u64 	%rd1, [addScalarToMatrixKernel_param_0];
-	ld.param.u32 	%r2, [addScalarToMatrixKernel_param_1];
-	ld.param.u64 	%rd2, [addScalarToMatrixKernel_param_2];
-	ld.param.u32 	%r3, [addScalarToMatrixKernel_param_3];
-	ld.param.u32 	%r4, [addScalarToMatrixKernel_param_4];
+	ld.param.u32 	%r4, [addScalarToMatrixKernel_param_0];
+	ld.param.u64 	%rd1, [addScalarToMatrixKernel_param_1];
+	ld.param.u32 	%r2, [addScalarToMatrixKernel_param_2];
+	ld.param.u64 	%rd2, [addScalarToMatrixKernel_param_3];
+	ld.param.u32 	%r3, [addScalarToMatrixKernel_param_4];
 	mov.u32 	%r5, %ctaid.x;
 	mov.u32 	%r6, %ntid.x;
 	mov.u32 	%r7, %tid.x;

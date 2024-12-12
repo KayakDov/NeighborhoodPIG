@@ -1,5 +1,5 @@
 
-extern "C" __global__ void cosKernel(double *from, int incFrom, double *to, int incTo, int n) {
+extern "C" __global__ void cosKernel(int n, double *from, int incFrom, double *to, int incTo) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     // Ensure the index is within bounds

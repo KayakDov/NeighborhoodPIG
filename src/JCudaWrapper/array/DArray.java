@@ -821,7 +821,7 @@ public class DArray extends Array {
         try (DArray filler = new DSingleton(handle, fill)) {
             int size = height * width;
             KernelManager kern = KernelManager.get("fillMatrix");
-            kern.map(handle, filler, lda, this, height, size);
+            kern.map(handle, size, filler, lda, this, height);
         }
 
         return this;
@@ -1104,6 +1104,18 @@ public class DArray extends Array {
      */
     public DStrideArray getAsBatch(int strideSize, int subArrayLength, int batchSize) {
         return new DStrideArray(pointer, strideSize, subArrayLength, batchSize, false);
+    }
+    
+    
+    /**
+     * Breaks this array into a a set of sub arrays, one after the other.
+     *
+     * @param batchSize The number of elements in the batch.
+     * @param subArrayLength The number of elements in each subArray.
+     * @return A representation of this array as a set of sub arrays.
+     */
+    public DStrideArray getAsBatch(int subArrayLength, int batchSize) {
+        return getAsBatch(subArrayLength, subArrayLength, batchSize);
     }
 
     /**

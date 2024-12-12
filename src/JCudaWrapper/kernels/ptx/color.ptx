@@ -13,10 +13,10 @@
 	// .globl	colorKernel
 
 .visible .entry colorKernel(
-	.param .u64 colorKernel_param_0,
-	.param .u32 colorKernel_param_1,
-	.param .u64 colorKernel_param_2,
-	.param .u32 colorKernel_param_3,
+	.param .u32 colorKernel_param_0,
+	.param .u64 colorKernel_param_1,
+	.param .u32 colorKernel_param_2,
+	.param .u64 colorKernel_param_3,
 	.param .u32 colorKernel_param_4,
 	.param .u64 colorKernel_param_5,
 	.param .u32 colorKernel_param_6
@@ -28,11 +28,11 @@
 	.reg .b64 	%rd<13>;
 
 
-	ld.param.u64 	%rd2, [colorKernel_param_0];
-	ld.param.u32 	%r2, [colorKernel_param_1];
-	ld.param.u64 	%rd3, [colorKernel_param_2];
-	ld.param.u32 	%r3, [colorKernel_param_3];
-	ld.param.u32 	%r5, [colorKernel_param_4];
+	ld.param.u32 	%r5, [colorKernel_param_0];
+	ld.param.u64 	%rd2, [colorKernel_param_1];
+	ld.param.u32 	%r2, [colorKernel_param_2];
+	ld.param.u64 	%rd3, [colorKernel_param_3];
+	ld.param.u32 	%r3, [colorKernel_param_4];
 	ld.param.u64 	%rd4, [colorKernel_param_5];
 	ld.param.u32 	%r4, [colorKernel_param_6];
 	mov.u32 	%r6, %ntid.x;
