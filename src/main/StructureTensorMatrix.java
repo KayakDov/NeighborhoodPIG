@@ -195,7 +195,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         KernelManager.get("color").map(handle, orientation.size(), 
                 orientation.dArray(), 1, 
                 colors, 3,
-                coherence.dArray().pointerToPointer(),
+                coherence.dArray().pToP(),
                 IArray.cpuPointer(1)
                 );
 

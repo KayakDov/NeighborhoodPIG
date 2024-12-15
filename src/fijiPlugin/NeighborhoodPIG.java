@@ -6,6 +6,8 @@ import JCudaWrapper.array.DStrideArray;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
+import ij.ImageStack;
+import ij.process.ColorProcessor;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -31,12 +33,12 @@ public class NeighborhoodPIG implements AutoCloseable {
      * @param imp The image from fiji.
      * @param neighborhoodSize The size of the edges of each neighborhood
      * square.
-     * @param tolerance How close must a number be to 0 to be considered 0.    
+     * @param tolerance How close must a number be to 0 to be considered 0.
      */
     public NeighborhoodPIG(ImagePlus imp, int neighborhoodSize, double tolerance) {
 
         handle = new Handle();
-        
+
         TensorOrd3Stride image = processImage(imp);
 
         Gradient grad = new Gradient(imageMat, handle);
@@ -53,7 +55,7 @@ public class NeighborhoodPIG implements AutoCloseable {
      */
     public void orientationColored(String writeTo) {
 
-        try (IArray rgb = stm.getRGB()) {
+        try (IArray rgb = stm.getRGBArray()) {
 
             BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             WritableRaster raster = image.getRaster();
@@ -78,33 +80,30 @@ public class NeighborhoodPIG implements AutoCloseable {
     /**
      * Processes the given ImagePlus object and converts it into a 3D tensor
      * with GPU strides.
-     *
-     * @param imp The ImagePlus object containing image data.
-     * @return A TensorOrd3Stride object containing the processed image data.
-     * @throws IOException If there is an error during processing.
      */
-    public final TensorOrd3Stride processImage(ImagePlus imp) {
+    public final void fijiDisplayOrientationHeatmap() {
 
-        width = imp.getWidth();
-        height = imp.getHeight();
-        depth = imp.getNSlices();
-        duration = imp.getNFrames();
+        ImageStack stack = new ImageStack(width, height);
 
-        double[] imageDataCPU = new double[width * height * depth * duration];
-        if ((long) width * height * depth * duration > Integer.MAX_VALUE)
-            throw new IllegalArgumentException("Image size exceeds array limit.");
+        try (IArray gpuColors = stm.getRGBs()) {
 
-        int toIndex = 0;
-        for (int slice = 1; slice <= duration * depth; slice++) {//slices are 1-based
-            ImageProcessor ip = imp.getStack().getProcessor(slice);
-            for (int col = 0; col < height; col++)
-                for (int row = 0; row < width; row++)
-                    imageDataCPU[toIndex++] = ip.getPixelValue(row, col);
+            if ((long) width * height * depth * duration > Integer.MAX_VALUE)
+                throw new IllegalArgumentException("Image size exceeds array limit.");
+
+            int[] colorsCPU = gpuColors.get(handle, 0, gpuColors.length);
+            int[] slice = new int[height * width];
+            int colorsIndex = 0, layerSize = height*width;
+
+            for (int frameIndex = 0; frameIndex < duration; frameIndex++)
+                for (int layerIndex = 0; layerIndex < depth; layerIndex++) {
+                    System.arraycopy(colorsCPU, frameIndex*layerIndex*layerSize, slice, 0, layerSize);
+                    ColorProcessor sliceProcessor = new ColorProcessor(width, height, slice);
+                    stack.addSlice("Frame " + frameIndex + " depth " + layerIndex, sliceProcessor);
+                }
         }
 
-        DStrideArray imageDataGPU = new DArray(handle, imageDataCPU).getAsBatch(height * width * depth, duration);
-
-        return new TensorOrd3Stride(handle, height, width, depth, duration, imageDataGPU);
+        ImagePlus imagePlus = new ImagePlus("Orientation Colored Images", stack);
+        imagePlus.show();
     }
 
     @Override

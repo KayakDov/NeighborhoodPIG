@@ -176,15 +176,11 @@ public class TensorOrd3Stride implements AutoCloseable{
         data.close();
     }
 
-    public TensorOrd3Stride setSum(double alpha, TensorOrd3Stride a, double beta, TensorOrd3Stride b){
-        //sets data
-    }
-
     /**
      * The underlying data behind this object.
      * @return The underlying data behind this object.
      */
-    public DStrideArray getData() {
+    public DStrideArray dArray() {
         return data;
     }
 

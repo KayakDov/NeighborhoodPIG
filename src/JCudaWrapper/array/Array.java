@@ -42,7 +42,7 @@ abstract class Array implements AutoCloseable {
     /**
      * The length of the array.
      */
-    public final int length;
+    public final int length;//TODO: change this to a long
     private final PrimitiveType type;
 
     /**
@@ -411,7 +411,7 @@ abstract class Array implements AutoCloseable {
      *
      * @return A pointer to this pointer.
      */
-    public Pointer pointerToPointer() {
+    public Pointer pToP() {
         return Pointer.to(pointer);
     }
 }

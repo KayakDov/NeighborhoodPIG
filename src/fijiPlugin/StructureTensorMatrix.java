@@ -144,14 +144,13 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
     /**
      * The coherence matrix.
+     *
      * @return The coherence matrix.
      */
     public Matrix getCoherence() {
         return coherence;
     }
 
-    
-    
     /**
      * Gets the matrix of orientations.
      *
@@ -184,7 +183,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * @return a column major array of colors. The first 3 elements are the RGB
      * values for the first color, etc...
      */
-    public IArray getRGB() {
+    public IArray getRGBArray() {
 
         setVecs0ToPi();
         setCoherence(orientation.dArray());
@@ -192,12 +191,39 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
         IArray colors = IArray.empty(orientation.size() * 3);
 
-        KernelManager.get("color").map(handle, orientation.size(), 
-                orientation.dArray(), 1, 
+        KernelManager.get("colorTriplet").map(handle, orientation.size(),
+                orientation.dArray(), 1,
                 colors, 3,
-                coherence.dArray().pointerToPointer(),
+                coherence.dArray().pToP(),
                 IArray.cpuPointer(1)
-                );
+        );
+
+        orientation.multiply(0.5);
+        return colors;
+
+    }
+
+    /**
+     * An array of integers where each value represents a color for a
+     * colum-major corresponding orientation.
+     *
+     * @return a column major array of colors. The first 3 elements are the RGB
+     * values for the first color, etc...
+     */
+    public IArray getRGBs() {
+
+        setVecs0ToPi();
+        setCoherence(orientation.dArray());
+        setOrientations().multiply(2);
+
+        IArray colors = IArray.empty(orientation.size());
+
+        KernelManager.get("colorSingle").map(handle, orientation.size(),
+                orientation.dArray(), 1,
+                colors, 3,
+                coherence.dArray().pToP(),
+                IArray.cpuPointer(1)
+        );
 
         orientation.multiply(0.5);
         return colors;
@@ -222,12 +248,11 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
     /**
      * The eigenvalues and vectors of the structure tensors.
+     *
      * @return The eigenvalues and vectors of the structure tensors.
      */
     public Eigen getEigen() {
         return eigen;
     }
-    
-    
 
 }

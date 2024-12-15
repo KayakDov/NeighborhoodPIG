@@ -734,14 +734,6 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
         return this;
     }
 
-    /**
-     * The underlying data.
-     *
-     * @return The underlying data.
-     */
-    public DArray dArray() {
-        return data;
-    }
 
     /**
      * The handle used for this's operations.

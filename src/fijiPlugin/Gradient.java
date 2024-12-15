@@ -3,11 +3,10 @@ package fijiPlugin;
 import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.TensorOrd3Stride;
-import JCudaWrapper.algebra.VectorsStride;
 import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.KernelManager;
 import JCudaWrapper.resourceManagement.Handle;
-import java.util.function.IntFunction;
 
 /**
  * The gradient for each pixel.
@@ -19,7 +18,7 @@ public class Gradient implements AutoCloseable{
     private TensorOrd3Stride dX, dY, dZ;
 
     /**
-     * Computes the gradients of an image in both the x and y directions.
+     * Computemutty gradients of an image in both the x and y directions.
      * Gradients are computed using central differences for interior points and
      * forward/backward differences for boundary points.
      *
@@ -33,32 +32,54 @@ public class Gradient implements AutoCloseable{
         dY = pic.emptyCopyDimensions();
         dZ = pic.emptyCopyDimensions();
 
-        KernelManager.get("batchGradients").map(hand, 3*pic.getData().length, pic.getD);
+        KernelManager.get("batchGradients").map(hand, 
+                3*pic.dArray().length, 
+                pic.dArray(),
+                IArray.cpuPointer(pic.height), 
+                IArray.cpuPointer(pic.width), 
+                IArray.cpuPointer(pic.depth), 
+                IArray.cpuPointer(pic.batchSize),
+                dX.dArray().pToP(), 
+                dY.dArray().pToP(), 
+                dZ.dArray().pToP()
+        );
         
+    }
+    
+    public static void main(String[] args) {
+        try(Handle hand = new Handle(); DArray array = new DArray(hand, 1,2,3, 4,5,5, 4,3,2, 1,3,3, 3,3,3)){
+            TensorOrd3Stride tenStr = new Matrix(hand, array, 3, 5).repeating(1);
+            
+            try(Gradient grad = new Gradient(tenStr, hand)){
+                
+                System.out.println("dX: " + grad.dX.dArray().toString());
+                
+            }
+        }
     }
 
     /**
-     * An unmodifiable x gradient matrix.
+     * An  x gradient matrix.
      *
-     * @return An unmodifiable x gradient matrix.
+     * @return An  x gradient matrix.
      */
     public TensorOrd3Stride x() {
         return dX;
     }
 
     /**
-     * An unmodifiable y gradient matrix.
+     * An  y gradient matrix.
      *
-     * @return An unmodifiable y gradient matrix.
+     * @return A y gradient matrix.
      */
     public TensorOrd3Stride y() {
         return dY;
     }
         
     /**
-     * An unmodifiable y gradient matrix.
+     * A y gradient matrix.
      *
-     * @return An unmodifiable y gradient matrix.
+     * @return A y gradient matrix.
      */
     public TensorOrd3Stride z() {
         return dZ;
@@ -68,6 +89,7 @@ public class Gradient implements AutoCloseable{
     public void close() {
         dX.close();
         dY.close();
+        dZ.close();
     }
-
+    
 }

@@ -1,12 +1,12 @@
-class Indices;
-
 /**
  * Represents the dimensions and memory layout of batched tensors.
  */
 class Dim {
 public:
-    const int &height, &width, &depth, &numTensors;
-    const int layerSize, tensorSize, batchSize;
+    const int &height, &width, &depth, &numTensors; ///< Tensor dimensions and batch size.
+    const int layerSize;   ///< Total number of elements in a single layer.
+    const int tensorSize;  ///< Total number of elements in a single tensor.
+    const int batchSize;   ///< Total number of elements in the batch.
 
     /**
      * Constructor for Dim.
@@ -19,12 +19,6 @@ public:
         : height(height), width(width), depth(depth), numTensors(numTensors),
           layerSize(height * width), tensorSize(layerSize * depth), batchSize(tensorSize * numTensors) {}
 
-    /**
-     * Computes the flattened index in the tensor batch.
-     * @param indices The multi-dimensional indices.
-     * @return Flattened memory index.
-     */
-    __device__ int index(const Indices &indices) const;
 };
 
 /**
@@ -32,57 +26,61 @@ public:
  */
 class Indices {
 public:
-    const int gradient, tensor, layer, col, row;
+    const Dim& dim;
+    const int gradient; ///< Gradient index (0 = X, 1 = Y, 2 = Z).    
+    const int layer;    ///< Layer index in the tensor.
+    const int col;      ///< Column index in the layer.
+    const int row;      ///< Row index in the layer.
+    const int flatIndex; ///< Flat memory index.
+    
 
     /**
      * Constructs Indices from a flat index.
-     * @param flatIndex Flat memory index.
+     * @param threadIndex Flat memory index.
      * @param dim Dimensions of the tensor batch.
      */
-    __device__ Indices(int flatIndex, const Dim &dim)
-        : gradient(flatIndex / dim.batchSize),
-          tensor((flatIndex % dim.batchSize) / dim.tensorSize),
-          layer((flatIndex % dim.tensorSize) / dim.layerSize),
-          col((flatIndex % dim.layerSize) / dim.height),
-          row(flatIndex % dim.height) {}
-
-    /**
-     * Constructs Indices directly from gradient, tensor, layer, column, and row.
-     */
-    __device__ Indices(int gradient, int tensor, int layer, int col, int row)
-        : gradient(gradient), tensor(tensor), layer(layer), col(col), row(row) {}
+    __device__ Indices(int threadIndex, const Dim &dim)
+        : gradient(threadIndex / dim.batchSize),          
+          layer((threadIndex % dim.tensorSize) / dim.layerSize),
+          col((threadIndex % dim.layerSize) / dim.height),
+          row(threadIndex % dim.height),
+          flatIndex(threadIndex % dim.batchSize),
+          dim(dim){}
 
     /**
      * Shifts the current indices along a specified dimension.
      * @param offset Shift value.
      * @param dimension Dimension to shift (0 = row, 1 = col, 2 = layer).
-     * @return New shifted Indices.
+     * @return Flat index of the shifted position.
      */
-    __device__ Indices shift(int offset, int dimension) const {
-        switch (dimension) {
-            case 0: return Indices(gradient, tensor, layer, col, row + offset);
-            case 1: return Indices(gradient, tensor, layer, col + offset, row);
-            case 2: return Indices(gradient, tensor, layer + offset, col, row);
-            default: return *this; // No shift for invalid dimension
+    __device__ int shift(int offset) const {
+        switch (gradient) {
+            case 0: return flatIndex + dim.height*offset;
+            case 1: return flatIndex + offset;
+            case 2: return flatIndex + dim.width*dim.height*offset;
         }
+        printf("bad gradient = %d", gradient);
     }
-};
+    
+	/**
+ 	* Prints the current state of the indices in a single printf statement.
+ 	*/
+	__device__ void print() const {
+	    printf("FlatIndex: %d | Gradient: %d (0=X, 1=Y, 2=Z) | Layer: %d | Col: %d | Row: %d | Dimensions [H: %d, W: %d, D: %d, N: %d]\n",
+	           flatIndex, gradient, layer, col, row,
+	           dim.height, dim.width, dim.depth, dim.numTensors);
+	}
 
-__device__ int Dim::index(const Indices &indices) const {
-        return batchSize * indices.gradient +
-               tensorSize * indices.tensor +
-               layerSize * indices.layer +
-               indices.col * height + indices.row;
-    }
+};
 
 /**
  * Encapsulates operations on a single tensor element.
  */
 class Pixel {
 public:
-    const Indices &indices;
-    const Dim &dim;
-    const double *data;
+    const Indices &indices; ///< Indices of the current pixel.
+    const Dim &dim;         ///< Dimensions of the tensor batch.
+    const double *data;     ///< Pointer to tensor data.
 
     /**
      * Constructor for Pixel.
@@ -99,33 +97,32 @@ public:
      * @param dimension Dimension to shift (0 = row, 1 = col, 2 = layer).
      * @return Value of the shifted pixel.
      */
-    __device__ double shift(int offset, int dimension) const {
-        return data[dim.index(indices.shift(offset, dimension))];
+    __device__ double shift(int offset) const {
+        return data[indices.shift(offset)];
     }
 
     /**
-     * Computes the gradient along a specified direction.
-     * @param dir Direction for gradient computation (0 = x, 1 = y, 2 = z).
+     * Computes the gradient along a specified direction.     
      * @return Gradient value.
      */
-    __device__ double grad(int dir) const {
+    __device__ double grad() const {
         int loc, end;
-        switch (dir) {
+        switch (indices.gradient) {
             case 0: loc = indices.col; end = dim.width; break;
             case 1: loc = indices.row; end = dim.height; break;
             case 2: loc = indices.layer; end = dim.depth; break;
-            default: return 0.0; // Invalid direction
         }
+        
+        //printf("The gradient is %d, the index is %d. The value is: %f, and shifted 0 is %f, and shifted -1 is %f, and shifted +1 is %f.\n", indices.gradient, indices.flatIndex, data[indices.flatIndex], shift(0), shift(-1), shift(1));
 
-        if (loc == 0)
-            return shift(1, dir) - data[dim.index(indices)];
-        else if (loc == 1 || loc == end - 2)
-            return (shift(1, dir) - shift(-1, dir)) / 2.0;
-        else if (loc < end - 2)
-            return (-shift(-2, dir) / 12 + shift(-1, dir) * 2.0 / 3 -
-                    shift(1, dir) * 2.0 / 3 + shift(2, dir) / 12);
-        else
-            return data[dim.index(indices)] - shift(-1, dir);
+	//indices.print();
+
+        if (end == 1) return 0;
+
+        if (loc == 0) return shift(1) - data[indices.flatIndex];
+        else if (loc == 1 || loc == end - 2) return (shift(1) - shift(-1)) / 2.0;
+        else if (loc < end - 2) return (-shift(-2) / 12 + shift(-1) * 2.0 / 3 - shift(1) * 2.0 / 3 + shift(2) / 12);
+        else return data[indices.flatIndex] - shift(-1);
     }
 };
 
@@ -148,14 +145,14 @@ extern "C" __global__ void batchGradientsKernel(
 
     if (idx >= n) return;
 
-    Dim dim(height, width, depth, numTensors);
-    Indices indices(idx, dim);
-    Pixel pixel(indices, mat, dim);
+    const Dim dim(height, width, depth, numTensors);//TODO: Is there a way to do this with shared memory?
+    const Indices indices(idx, dim);
+    const Pixel pixel(indices, mat, dim);
 
     switch (indices.gradient) {
-        case 0: dX[idx] = pixel.grad(0); break;
-        case 1: dY[idx % dim.batchSize] = pixel.grad(1); break;
-        case 2: dZ[idx % dim.batchSize] = pixel.grad(2); break;
+        case 0: dX[idx] = pixel.grad(); break;
+        case 1: dY[idx % dim.batchSize] = pixel.grad(); break;
+        case 2: dZ[idx % dim.batchSize] = pixel.grad(); break;
     }
 }
 

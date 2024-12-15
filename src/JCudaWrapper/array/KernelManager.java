@@ -130,7 +130,7 @@ public class KernelManager implements AutoCloseable {
         Pointer[] pointers = new Pointer[additionalParmaters.length + 3];
         
         pointers[0] = IArray.cpuPointer(incInput);
-        pointers[1] = output.pointerToPointer();
+        pointers[1] = output.pToP();
         pointers[2] = IArray.cpuPointer(incOutput);
         
         
@@ -161,7 +161,7 @@ public class KernelManager implements AutoCloseable {
         
         NativePointerObject[] pointers = new NativePointerObject[additionalParmaters.length + 2];
         pointers[0] = IArray.cpuPointer(numThreads);
-        pointers[1] = input.pointerToPointer();
+        pointers[1] = input.pToP();
         
         
         if(additionalParmaters.length > 0) 

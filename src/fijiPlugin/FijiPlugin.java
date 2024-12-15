@@ -1,9 +1,12 @@
 package fijiPlugin;
 
+import JCudaWrapper.array.IArray;
 import ij.IJ;
 import ij.ImagePlus;
+import ij.ImageStack;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
+import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
 import jcuda.Pointer;
 import jcuda.runtime.JCuda;
@@ -16,6 +19,8 @@ import org.apache.commons.math3.complex.Complex;
  */
 public class FijiPlugin implements PlugIn {
 
+    private ImagePlus imp;
+    
     public static void sampleFijiCode() {//TODO: delte me
 
         IJ.showMessage("Hello, World! ", " Welcome Ahhhh! Fiji plugin development! ");
@@ -57,11 +62,12 @@ public class FijiPlugin implements PlugIn {
 
     /**
      * Checks that the image is selected and gray scale.
+     *
      * @param imp The image.
      * @return true if the image is selected and gray scale, false otherwise.
      */
-    private static boolean validImage(ImagePlus imp){
-        
+    private static boolean validImage(ImagePlus imp) {
+
         // Check if an image is open
         if (imp == null) {
             ij.IJ.showMessage("No image open.");
@@ -75,37 +81,38 @@ public class FijiPlugin implements PlugIn {
             ij.IJ.showMessage("Image needs to be grayscale.");
             return false;
         }
-        
+
         return true;
     }
-    
+
     /**
      * Checks if the parameters are valid.
+     *
      * @param nRad The neighborhood radius.
      * @param tol The tolerance.
      * @return true if the parameters are valid, false otherwise.
      */
-    private static boolean validParamaters(int nRad, double tol){
+    private static boolean validParamaters(int nRad, double tol) {
 
         if (nRad <= 0) {
             ij.IJ.showMessage("Neighborhood size must be a positive number.");
             return false;
         }
-        
+
         if (tol < 0) {
             ij.IJ.showMessage("Tolerance must be non-negative.");
             return false;
         }
-        
+
         return true;
     }
-    
+
     @Override
     public void run(String string) {
 
-        ImagePlus imp = ij.WindowManager.getCurrentImage();
+        imp = ij.WindowManager.getCurrentImage();
 
-        if(!validImage(imp)) return;
+        if (!validImage(imp)) return;
 
         int defaultNeighborhoodRadius = 3;
         double defaultTolerance = 1e-10;
@@ -114,18 +121,21 @@ public class FijiPlugin implements PlugIn {
         gd.addNumericField("Neighborhood raqdius:", defaultNeighborhoodRadius, 0);
         gd.addNumericField("Tolerance:", defaultTolerance, 2);
         gd.showDialog();
-        
+
         if (gd.wasCanceled()) return;
-        
 
         int neighborhoodSize = (int) gd.getNextNumber();
         double tolerance = gd.getNextNumber();
 
-        if(!validParamaters(neighborhoodSize, tolerance)) return;
+        if (!validParamaters(neighborhoodSize, tolerance)) return;
 
         NeighborhoodPIG np = new NeighborhoodPIG(imp, neighborhoodSize, tolerance);
+        
+        np.fijiDisplayOrientationHeatmap();        
 
         ij.IJ.showMessage("NeighborhoodPIG processing complete.");
     }
 
+    
+    
 }

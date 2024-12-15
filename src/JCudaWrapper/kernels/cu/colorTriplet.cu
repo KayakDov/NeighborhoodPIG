@@ -12,7 +12,7 @@ __device__ int up(int a, double theta){
 // ldColor must be greater than or equal to 3.
 //Pass -1 for intensitiesInc if intensities are not to be used.
 extern "C" __global__
-void colorKernel(int n, const double* angles, int anglesInc, int* colors, int ldColor, double* intensities, int intensitiesInc) {
+void colorTripletKernel(int n, const double* angles, int anglesInc, int* colors, int ldColor, double* intensities, int intensitiesInc) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= n) return;
