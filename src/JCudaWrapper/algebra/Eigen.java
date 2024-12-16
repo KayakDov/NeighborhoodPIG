@@ -25,7 +25,7 @@ public class Eigen implements AutoCloseable {
 
             switch (mats.height) {
                 case 2: values = mats.computeVals2x2(new Vector(mats.getHandle(), workSpace.subArray(0, mats.getBatchSize()), 1)); break;
-                case 3: values = mats.computeVals3x3(new Vector(mats.getHandle(), workSpace.subArray(0, mats.width), 1)); break;
+                case 3: values = mats.computeVals3x3(new Vector(mats.getHandle(), workSpace.subArray(0, mats.width* mats.getBatchSize()), 1)); break;
                 default: throw new UnsupportedOperationException("Currently the Eigen method only works for 2x2 and 3x3 matrices.  Your matrix is " + mats.height + "x" + mats.width); 
             }
             
