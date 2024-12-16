@@ -4,6 +4,7 @@ import JCudaWrapper.algebra.ColumnMajor;
 import JCudaWrapper.algebra.Eigen;
 import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
+import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.algebra.Vector;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.IArray;
@@ -26,64 +27,42 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     private final MatricesStride strctTensors;
 
     private final Eigen eigen;
-    private final Matrix orientation, coherence;
+    private final TensorOrd3Stride orientation, coherence;
     private Handle handle;
 
     /**
      * Finds the structure tensor for every pixel in the image and stores them
      * in a column major format.
      *
-     * @param dX The pixel intensity gradient of the image in the x direction.
-     * @param dY The pixel intensity gradient of the image in the y direction.
+     * @param grad The pixel intensity gradient of the image.
      * @param neighborhoodRad A square window considered a neighborhood around a
      * point. This is the distance from the center of the square to the nearest
      * point on the edge.
      * @param tolerance How close a number be to 0 to be considered 0.
      */
-    public StructureTensorMatrix(Matrix dX, Matrix dY, int neighborhoodRad, double tolerance) {
+    public StructureTensorMatrix(Gradient grad, int neighborhoodRad, double tolerance) {
 
-        handle = dX.getHandle();
+        handle = grad.x().handle;
 
-        int height = dX.getHeight(), width = dX.getWidth();
+        strctTensors = new MatricesStride(handle, 3, grad.size());
 
-        strctTensors = new MatricesStride(handle, 2, dX.size());//reset to 3x3 for dZ.
-
-        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(dX.getHandle(), neighborhoodRad, height, width)) {
-            nps.set(dX, dX, strctTensors.elmntsAtMatInd(0, 0));
-            nps.set(dX, dY, strctTensors.elmntsAtMatInd(0, 1));
-            nps.set(dY, dY, strctTensors.elmntsAtMatInd(1, 1));
-
-//            nps.set(dX, dZ, strctTensors.get(0, 2));
-//            nps.set(dY, dZ, strctTensors.get(1, 2));
-//            nps.set(dZ, dZ, strctTensors.get(2, 2));//Add these when working with dZ.
+        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, neighborhoodRad, grad.height, grad.width, grad.depth, grad.batchSize)) {
+            nps.set(grad.x(), grad.x(), strctTensors.matIndices(0, 0));
+            nps.set(grad.x(), grad.y(), strctTensors.matIndices(0, 1));
+            nps.set(grad.y(), grad.y(), strctTensors.matIndices(1, 1));
+            nps.set(grad.x(), grad.z(), strctTensors.matIndices(0, 2));
+            nps.set(grad.y(), grad.z(), strctTensors.matIndices(1, 2));
+            nps.set(grad.z(), grad.z(), strctTensors.matIndices(2, 2));
         }
 
-        strctTensors.elmntsAtMatInd(1, 0).set(strctTensors.elmntsAtMatInd(0, 1));
-//        strctTensors.get(2, 0).set(strctTensors.get(0, 2)); //engage for 3x3.
-//        strctTensors.get(2, 1).set(strctTensors.get(1, 2));
+        strctTensors.matIndices(1, 0).set(strctTensors.matIndices(0, 1));
+        strctTensors.matIndices(2, 0).set(strctTensors.matIndices(0, 2)); //engage for 3x3.
+        strctTensors.matIndices(2, 1).set(strctTensors.matIndices(1, 2));
 
         eigen = new Eigen(strctTensors, tolerance);
 
-        orientation = new Matrix(handle, height, width);
-        coherence = new Matrix(handle, height, width);
-    }
-
-    /**
-     * The tensors are stored in one long row of 2x2 tensors in column major
-     * order.
-     *
-     * @param picRow The row of the pixel in the picture for which the tensor's
-     * index is desired.
-     * @param picCol The row of the column in the picture for which the tensor's
-     * image is desired.
-     * @return The index of the beginning of the tensor matrix for the requested
-     * pixel.
-     */
-    private int tensorFirstColIndex(int picRow, int picCol) {
-
-        int tensorSize = strctTensors.height * strctTensors.height;
-
-        return (picCol * orientation.getHeight() + picRow) * tensorSize;
+        orientation = grad.x().emptyCopyDimensions();
+        coherence = grad.x().emptyCopyDimensions();
     }
 
     /**
@@ -118,8 +97,8 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      *
      * @return The orientation matrix.
      */
-    public Matrix setOrientations() {
-        KernelManager.get("atan2").map(handle, orientation.size(),
+    public TensorOrd3Stride setOrientations() {
+        KernelManager.get("atan2").map(handle, orientation.dArray().length,
                 eigen.vectors.dArray(), eigen.vectors.getStrideSize(),
                 orientation.dArray(), 1);
         return orientation;
@@ -131,7 +110,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * @param workSpace Should be the size of the image.
      * @return The coherence matrix.
      */
-    public Matrix setCoherence(DArray workSpace) {
+    public TensorOrd3Stride setCoherence(DArray workSpace) {
         Vector[] l = eigen.values.vecPartition();
         Vector denom = new Vector(handle, workSpace, 1)
                 .setSum(1, l[0], 1, l[1]);
@@ -147,7 +126,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      *
      * @return The coherence matrix.
      */
-    public Matrix getCoherence() {
+    public TensorOrd3Stride getCoherence() {
         return coherence;
     }
 
@@ -156,76 +135,38 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      *
      * @return Thew matrix of orientations.
      */
-    public Matrix getOrientations() {
+    public TensorOrd3Stride getOrientations() {
         return orientation;
     }
 
-    /**
-     * Takes in a vector, in column major order for a matrix with orientation
-     * dimensions, and returns a double[][] representing the vector in
-     * [row][column] format.
-     *
-     * @param columnMajor A vector that is column major order of a matrix with
-     * height orientation.height.
-     * @param workSpace An auxillery workspace. It should be height in length.
-     * @return a cpu matrix.
-     */
-    private double[][] getRows(Vector columnMajor) {
-        return columnMajor.subVectors(1, orientation.getWidth(), orientation.colDist, orientation.getHeight())
-                .copyToCPURows();
-    }
 
 //        (R, G, B) = (256*cos(x), 256*cos(x + 120), 256*cos(x - 120))  <- this is for 360.  For 180 maybe:
 //    (R, G, B) = (256*cos(x), 256*cos(x + 60), 256*cos(x + 120))
-    /**
-     * Three matrices for red green blue color values.
-     *
-     * @return a column major array of colors. The first 3 elements are the RGB
-     * values for the first color, etc...
-     */
-    public IArray getRGBArray() {
-
-        setVecs0ToPi();
-        setCoherence(orientation.dArray());
-        setOrientations().multiply(2);
-
-        IArray colors = IArray.empty(orientation.size() * 3);
-
-        KernelManager.get("colorTriplet").map(handle, orientation.size(),
-                orientation.dArray(), 1,
-                colors, 3,
-                coherence.dArray().pToP(),
-                IArray.cpuPointer(1)
-        );
-
-        orientation.multiply(0.5);
-        return colors;
-
-    }
+    
 
     /**
      * An array of integers where each value represents a color for a
      * colum-major corresponding orientation.
      *
+     * @param single true to map colors to single values, and false to map them to color triplets.
      * @return a column major array of colors. The first 3 elements are the RGB
      * values for the first color, etc...
      */
-    public IArray getRGBs() {
+    public IArray getRGBs(boolean single) {
 
         setVecs0ToPi();
         setCoherence(orientation.dArray());
-        setOrientations().multiply(2);
+        setOrientations().dArray().multiply(handle, 2, 1);
+        IArray colors = IArray.empty(orientation.size()*(single?1:3));
 
-        IArray colors = IArray.empty(orientation.size());
-
-        KernelManager.get("colorSingle").map(handle, orientation.size(),
+        KernelManager.get(single?"colorSingle":"colorTriplet").map(handle, orientation.size(),
                 orientation.dArray(), 1,
                 colors, 3,
                 coherence.dArray().pToP(),
                 IArray.cpuPointer(1)
         );
 
-        orientation.multiply(0.5);
+        orientation.dArray().multiply(handle, 0.5, 1);
         return colors;
 
     }
@@ -243,7 +184,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
     @Override
     public int getColDist() {
-        return orientation.getHeight();
+        return orientation.colDist;
     }
 
     /**

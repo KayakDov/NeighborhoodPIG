@@ -5,9 +5,11 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.GenericDialog;
+import ij.plugin.ImagesToStack;
 import ij.plugin.PlugIn;
 import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
+import java.io.File;
 import jcuda.Pointer;
 import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaError;
@@ -20,7 +22,7 @@ import org.apache.commons.math3.complex.Complex;
 public class FijiPlugin implements PlugIn {
 
     private ImagePlus imp;
-    
+
     public static void sampleFijiCode() {//TODO: delte me
 
         IJ.showMessage("Hello, World! ", " Welcome Ahhhh! Fiji plugin development! ");
@@ -130,12 +132,50 @@ public class FijiPlugin implements PlugIn {
         if (!validParamaters(neighborhoodSize, tolerance)) return;
 
         NeighborhoodPIG np = new NeighborhoodPIG(imp, neighborhoodSize, tolerance);
-        
-        np.fijiDisplayOrientationHeatmap();        
+
+        np.fijiDisplayOrientationHeatmap();
 
         ij.IJ.showMessage("NeighborhoodPIG processing complete.");
     }
 
-    
-    
+    public static void main(String[] args) {
+
+        String imagePath = "images/input/test.jpeg";
+        ImagePlus imp = loadImageAsStack(imagePath);
+
+        int neighborhoodSize = 3; // Default neighborhood radius
+        double tolerance = 1e-10; // Default tolerance
+
+        NeighborhoodPIG np = new NeighborhoodPIG(imp, neighborhoodSize, tolerance);
+
+        np.fijiDisplayOrientationHeatmap();
+
+        System.out.println("NeighborhoodPIG processing complete.");
+    }
+
+    /**
+     * Loads an image from the given path, converts it to grayscale, and ensures
+     * it is of type 32-bit float.
+     *
+     * @param imagePath The path to the input image.
+     * @return An ImagePlus object containing a stack of the processed image.
+     */
+    private static ImagePlus loadImageAsStack(String imagePath) {
+
+        ImagePlus imp = new ImagePlus(imagePath);
+
+        if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32) 
+            imp = new ImagePlus("Grayscale", imp.getProcessor());
+        
+
+        // Ensure it is 32-bit float
+        ImageProcessor floatProcessor = imp.getProcessor().convertToFloat();
+
+        // Create a stack and add the processed slice
+        ImageStack stack = new ImageStack(floatProcessor.getWidth(), floatProcessor.getHeight());
+        stack.addSlice(floatProcessor);
+
+        return new ImagePlus("Generated Stack (32-bit Float)", stack);
+    }
+
 }

@@ -16,6 +16,7 @@ import JCudaWrapper.resourceManagement.Handle;
 public class Gradient implements AutoCloseable{
 
     private TensorOrd3Stride dX, dY, dZ;
+    public final int height, width, depth, batchSize;
 
     /**
      * Computemutty gradients of an image in both the x and y directions.
@@ -28,6 +29,8 @@ public class Gradient implements AutoCloseable{
      */
     public Gradient(TensorOrd3Stride pic, Handle hand) {
         
+        height = pic.height; width = pic.width; depth = pic.depth; batchSize = pic.batchSize;
+        
         dX = pic.emptyCopyDimensions();
         dY = pic.emptyCopyDimensions();
         dZ = pic.emptyCopyDimensions();
@@ -35,10 +38,10 @@ public class Gradient implements AutoCloseable{
         KernelManager.get("batchGradients").map(hand, 
                 3*pic.dArray().length, 
                 pic.dArray(),
-                IArray.cpuPointer(pic.height), 
-                IArray.cpuPointer(pic.width), 
-                IArray.cpuPointer(pic.depth), 
-                IArray.cpuPointer(pic.batchSize),
+                IArray.cpuPointer(height), 
+                IArray.cpuPointer(width), 
+                IArray.cpuPointer(depth), 
+                IArray.cpuPointer(batchSize),
                 dX.dArray().pToP(), 
                 dY.dArray().pToP(), 
                 dZ.dArray().pToP()
@@ -90,6 +93,14 @@ public class Gradient implements AutoCloseable{
         dX.close();
         dY.close();
         dZ.close();
+    }
+    
+    /**
+     * The number of pixels for which the gradient is calculated.
+     * @return The number of pixels for which the gradient is calculated.
+     */
+    public int size(){
+        return height*width*depth*batchSize;
     }
     
 }

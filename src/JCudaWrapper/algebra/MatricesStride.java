@@ -105,7 +105,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
      * @return A vector containing the elements at (i, j) for each submatrix in
      * the batch.
      */
-    public Vector elmntsAtMatInd(int i, int j) {
+    public Vector matIndices(int i, int j) {
         return new Vector(handle, data.subArray(index(i, j), (getBatchSize() - 1) * getStrideSize() + 1), data.stride);
     }
 
@@ -125,7 +125,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
         Vector[][] all = new Vector[height][width];
         for (int i = 0; i < height; i++) {
             int row = i;
-            Arrays.setAll(all[row], col -> elmntsAtMatInd(row, col));
+            Arrays.setAll(all[row], col -> matIndices(row, col));
         }
         return all;
     }
@@ -501,7 +501,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
      */
     private void computeVec(Vector eValue, VectorsStride eVector, double tolerance) {
 
-        for (int i = 0; i < height; i++) elmntsAtMatInd(i, i).add(-1, eValue);
+        for (int i = 0; i < height; i++) matIndices(i, i).add(-1, eValue);
 
         KernelManager.get("nullSpace1dBatch").map(handle, getBatchSize(),
                 data, colDist,

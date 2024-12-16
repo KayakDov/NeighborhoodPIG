@@ -104,8 +104,15 @@ extern "C" __global__ void neighborhoodSum3dKernel(
     pixel.targetValue() = rollingSum;
 
     int i = 1;
+    
+    for (; i <= neighborhoodSize; i++) {
+        pixel.move();
+        rollingSum += pixel.sourceValue(neighborhoodSize);
+        pixel.targetValue() = rollingSum;
+    }
+    
     for (; i < numSteps - neighborhoodSize; i++) {
-        pixel.move();    
+        pixel.move();
         rollingSum += pixel.sourceValue(neighborhoodSize) - pixel.sourceValue(-neighborhoodSize - 1);
         pixel.targetValue() = rollingSum;
     }

@@ -2,7 +2,6 @@ package fijiPlugin;
 
 import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.array.DArray;
-import JCudaWrapper.array.DStrideArray;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
@@ -10,9 +9,7 @@ import ij.ImageStack;
 import ij.process.ColorProcessor;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.IOException;
 import javax.imageio.ImageIO;
-import ij.process.ImageProcessor;
 import java.awt.image.WritableRaster;
 
 /**
@@ -39,13 +36,54 @@ public class NeighborhoodPIG implements AutoCloseable {
 
         handle = new Handle();
 
-        TensorOrd3Stride image = processImage(imp);
+        width = imp.getWidth();
+        height = imp.getHeight();
+        depth = imp.getNSlices() / imp.getNFrames();
+        duration = imp.getNFrames();
 
-        Gradient grad = new Gradient(imageMat, handle);
-//
-//        imageMat.close();
-//        stm = new StructureTensorMatrix(grad.x(), grad.y(), neighborhoodSize, tolerance);
-//        grad.close();
+        TensorOrd3Stride image = new TensorOrd3Stride(handle, height, width, depth, duration, processImage(imp));
+
+        Gradient grad = new Gradient(image, handle);
+
+        image.close();
+        stm = new StructureTensorMatrix(grad, neighborhoodSize, tolerance);
+        grad.close();
+    }
+
+    /**
+     * Converts a grayscale ImagePlus object into a single column-major gpu
+     * array of pixel values.
+     *
+     * @param imp The input grayscale ImagePlus object.
+     * @return A single column-major gpu array containing pixel values of all
+     * slices.
+     * @throws IllegalArgumentException If the input image is not grayscale.
+     */
+    /**
+     * Converts a grayscale ImagePlus object into a single column-major GPU
+     * array of pixel values.
+     *
+     * @param imp The input grayscale ImagePlus object.
+     * @return A single column-major GPU array containing pixel values of all
+     * slices.
+     * @throws IllegalArgumentException If the input image is not grayscale.
+     */
+    public final DArray processImage(ImagePlus imp) {
+
+        double[] columnMajorArray = new double[width * height * depth * duration];
+
+        int index = 0;
+
+        for (int slice = 1; slice <= imp.getNSlices(); slice++) {
+
+            float[] pixels = (float[]) imp.getStack().getProcessor(slice).getPixels();//row major  TODO: maybe system.array coppy would be faster and the array can be transposed in the gpu?
+
+            for (int col = 0; col < width; col++) 
+                for (int row = 0; row < height; row++) 
+                    columnMajorArray[index++] = pixels[row * width + col];
+        }
+        
+        return new DArray(handle, columnMajorArray);
     }
 
     /**
@@ -55,7 +93,7 @@ public class NeighborhoodPIG implements AutoCloseable {
      */
     public void orientationColored(String writeTo) {
 
-        try (IArray rgb = stm.getRGBArray()) {
+        try (IArray rgb = stm.getRGBs(false)) {
 
             BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             WritableRaster raster = image.getRaster();
@@ -85,18 +123,18 @@ public class NeighborhoodPIG implements AutoCloseable {
 
         ImageStack stack = new ImageStack(width, height);
 
-        try (IArray gpuColors = stm.getRGBs()) {
+        try (IArray gpuColors = stm.getRGBs(true)) {
 
             if ((long) width * height * depth * duration > Integer.MAX_VALUE)
                 throw new IllegalArgumentException("Image size exceeds array limit.");
 
             int[] colorsCPU = gpuColors.get(handle, 0, gpuColors.length);
             int[] slice = new int[height * width];
-            int colorsIndex = 0, layerSize = height*width;
+            int colorsIndex = 0, layerSize = height * width;
 
             for (int frameIndex = 0; frameIndex < duration; frameIndex++)
                 for (int layerIndex = 0; layerIndex < depth; layerIndex++) {
-                    System.arraycopy(colorsCPU, frameIndex*layerIndex*layerSize, slice, 0, layerSize);
+                    System.arraycopy(colorsCPU, frameIndex * layerIndex * layerSize, slice, 0, layerSize);
                     ColorProcessor sliceProcessor = new ColorProcessor(width, height, slice);
                     stack.addSlice("Frame " + frameIndex + " depth " + layerIndex, sliceProcessor);
                 }

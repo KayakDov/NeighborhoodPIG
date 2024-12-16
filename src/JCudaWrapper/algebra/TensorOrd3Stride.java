@@ -15,7 +15,7 @@ public class TensorOrd3Stride implements AutoCloseable{
 
     public final int height, width, depth, colDist, layerDist, strideSize, batchSize;
     protected final DStrideArray data;
-    protected Handle handle;
+    public Handle handle;
 
     /**
      * A set of order 3 tensors.
@@ -183,6 +183,13 @@ public class TensorOrd3Stride implements AutoCloseable{
     public DStrideArray dArray() {
         return data;
     }
-
     
+    /**
+     * The number of elements.
+     * @return The number of elements.
+     */
+    public int size(){
+        return height*width*depth*batchSize;
+    }
+
 }
