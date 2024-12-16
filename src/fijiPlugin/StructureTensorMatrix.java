@@ -159,9 +159,12 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         setOrientations().dArray().multiply(handle, 2, 1);
         IArray colors = IArray.empty(orientation.size()*(single?1:3));
 
-        KernelManager.get(single?"colorSingle":"colorTriplet").map(handle, orientation.size(),
-                orientation.dArray(), 1,
-                colors, 3,
+        KernelManager.get(single?"colorSingle":"colorTriplet").map(
+                handle, 
+                orientation.size(),
+                orientation.dArray(), 
+                IArray.cpuPointer(1),
+                colors.pToP(),
                 coherence.dArray().pToP(),
                 IArray.cpuPointer(1)
         );

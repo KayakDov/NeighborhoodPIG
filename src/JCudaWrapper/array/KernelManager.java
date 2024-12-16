@@ -156,7 +156,7 @@ public class KernelManager implements AutoCloseable {
      * @param additionalParmaters These should all be pointers to cpu arrays or
      * pointers to device pointers.
      */
-    public <T extends Array> void map(Handle handle, int numThreads, Array input, Pointer... additionalParmaters) {
+    public <T extends Array> void map(Handle handle, int numThreads, T input, Pointer... additionalParmaters) {
 
         
         NativePointerObject[] pointers = new NativePointerObject[additionalParmaters.length + 2];

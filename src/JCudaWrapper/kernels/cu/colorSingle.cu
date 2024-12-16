@@ -10,9 +10,16 @@ __device__ int up(int a, double theta) {
 
 // ldColor is no longer used since we store the result in a single integer.
 // Pass -1 for intensitiesInc if intensities are not to be used.
-extern "C" __global__
-void colorSingleKernel(int n, const double* angles, int anglesInc, int* colors, double* intensities, int intensitiesInc) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+extern "C" __global__ void colorSingleKernel(
+    int n, 
+    const double* angles, int anglesInc, 
+    int* colors, 
+    double* intensities, 
+    int intensitiesInc
+) {
+    
+
+int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= n) return;
 
