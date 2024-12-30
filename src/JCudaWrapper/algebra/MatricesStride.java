@@ -492,15 +492,15 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
         KernelManager.get("eigenVecBatch").map(handle, 
                 eValues.dim()*eValues.batchSize,                
                 data,
-                height,
-                eVectors.dArray(),
-                eVectors.width,
+                IArray.cpuPoint(height),
+                eVectors.dArray().pToP(),
+                IArray.cpuPoint(eVectors.width),
                 eValues.dArray().pToP(),
                 workSpaceDArray.pToP(),
                 workSpaceIArray.pToP(),
                 DArray.cpuPoint(tolerance)
         );
-        return this;
+        return eVectors;
     }
         /**
      * Computes the eigenvector for an eigenvalue. The matrices must be

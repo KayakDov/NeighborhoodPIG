@@ -244,8 +244,6 @@ __device__ void setMatrixMinusLambdaI( const double* source, Matrix& destination
             destination(row, col) = source[col * destination.height + row];
  
     for (int i = 0; i < destination.width; i++) destination(i, i) -= eigenvalue;
-    
-if(blockIdx.x * blockDim.x + threadIdx.x == 1) destination.print();
 }
 
 /**
@@ -294,32 +292,40 @@ extern "C" __global__ void eigenVecBatchKernel(
     int freeVariableID = idx % numFreeVariables; 
 
     // Initialize the column index to the last column.
-    int col = width - 1;
-    int pivotsPassed = 0;
-
+    int col = width - 1, pivotsPassed = 0;
     // Loop through the columns in reverse, starting from the last column.
     // All the values of the eigen vector after the free variable are set to 0.  
     // The value of the eigenvector that coresponds to the free vector is set to 1.
-    for (int idfv = freeVariableID; idfv >= 0 && col >= 0; col--) {
+    for (int idfv = freeVariableID; idfv >= 0; col--) {
 	if (!isPivot[col]) idfv--;
 	else pivotsPassed++;
 	eVec[col] = 0;
     }
-    eVec[col] = 1;
+    
+ 
+    eVec[++col] = 1;    
+    col--;
 
     // Loop through the rows, reducing the eigenvector components based on the row echelon form.
-    for (int row = width - numFreeVariables - pivotsPassed - 1; row >= 0; row--) {
+    for (int row = width - numFreeVariables - pivotsPassed - 1; row >= 0; row--, col--) {
+
+    	// Move to the next pivot column while the current column is not a pivot.
+        while (col >= 0 && !isPivot[col]) {
+    	    eVec[col] = 0;
+            col--;
+        }
+        if(col < 0) break;
+    
         // Initialize the eigenvector component for this row to 0.
-        eVec[row] = 0;
+        eVec[col] = 0;
 
         // Subtract the contributions from the columns to the right of the current column.
         // This corresponds to solving the system of equations from the row echelon form.
-        for (int i = col + 1; i <= width - freeVariableID; i++) eVec[row] -= eVec[i] * mat(row, i);
+        for (int i = col + 1; i < width - freeVariableID; i++) eVec[col] -= eVec[i] * mat(row, i);
 
         eVec[col] /= mat(row, col);
-
-        // Move to the next pivot column if the current column is not a pivot.
-        while (!isPivot[col]) col--;
     }
+    
+//if(idx == 1) printf("evec = (%f, %f, %f) \n", eVec[0], eVec[1], eVec[2]);
+    
 }
-

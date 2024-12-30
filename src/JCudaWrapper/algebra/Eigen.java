@@ -36,13 +36,16 @@ public class Eigen implements AutoCloseable {
     }
     
     public static void main(String[] args) {
-        try(Handle handle = new Handle(); DArray array = new DArray(handle, 1,0,0, 0,0,0, 0,0,0);){
-            MatricesStride mst = new MatricesStride(handle, array, 3, 3, 3, 9, 1);
-            Matrix m1 = new Matrix(handle, array, 3, 3);
+        try(Handle handle = new Handle(); DArray array = new DArray(handle, 1,0,0, 0,0,0, 0,0,0,  1,0,1, 0,2,1, 1,1,3);){
             
-            m1.power(2);
+            MatricesStride mst = new MatricesStride(handle, array, 3, 3, 3, 9, 2);
+            
+            mst.getMatrix(0).power(2);
+            mst.getMatrix(1).power(2);
+            
             
             System.out.println(mst.toString());
+            
             try(Eigen eig = new Eigen(mst, 1e-12)){
                 System.out.println("values \n" + eig.values.toString() + "\n\n");
                 System.out.println("vectors \n" + eig.vectors.toString());
