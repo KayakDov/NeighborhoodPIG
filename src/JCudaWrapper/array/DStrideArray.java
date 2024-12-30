@@ -32,7 +32,7 @@ public class DStrideArray extends DArray {
      * @param deallocateOnClose Dealocate gpu memory when this is closed or inaccessible.
      */
     protected DStrideArray(CUdeviceptr p, int strideSize, int subArrayLength, int batchSize, boolean deallocateOnClose) {
-        super(p, totalDataLength(strideSize, subArrayLength, batchSize), deallocateOnClose);
+        super(p, totalDataLength(strideSize, subArrayLength, batchSize));
         this.stride = strideSize;
         this.subArrayLength = subArrayLength;
         this.batchSize = batchSize;

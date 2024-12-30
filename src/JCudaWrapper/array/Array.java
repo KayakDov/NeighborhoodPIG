@@ -74,7 +74,7 @@ abstract class Array implements AutoCloseable {
      * @throws IllegalArgumentException if the pointer is null or length is
      * negative.
      */
-    protected Array(CUdeviceptr p, int length, PrimitiveType type, boolean deallocateOnClose) {
+    protected Array(CUdeviceptr p, int length, PrimitiveType type) {
         checkNull(p, type);
         checkPositive(length);
 
@@ -124,7 +124,7 @@ abstract class Array implements AutoCloseable {
         CUdeviceptr p = new CUdeviceptr();
         int error = JCuda.cudaMalloc(p, numElements * type.size);
         if (error != cudaError.cudaSuccess)
-            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
+            throw new RuntimeException("Opening a new array of type " + type  + " with " + numElements + " element.  cuda error " + cudaError.stringFor(error));
 
         return p;
     }

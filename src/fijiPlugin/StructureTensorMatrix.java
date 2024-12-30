@@ -60,8 +60,6 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         strctTensors.matIndices(2, 1).set(strctTensors.matIndices(1, 2));
 
         eigen = new Eigen(strctTensors, tolerance);
-
-//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() Eigen\n" + eigen.toString());
         
         orientation = grad.x().emptyCopyDimensions();
         coherence = grad.x().emptyCopyDimensions();

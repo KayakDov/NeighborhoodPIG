@@ -302,30 +302,18 @@ extern "C" __global__ void eigenVecBatchKernel(
 	eVec[col] = 0;
     }
     
- 
-    eVec[++col] = 1;    
+    if(col < width - 1) col++;
+    eVec[col] = 1;    
     col--;
-
-    // Loop through the rows, reducing the eigenvector components based on the row echelon form.
-    for (int row = width - numFreeVariables - pivotsPassed - 1; row >= 0; row--, col--) {
-
-    	// Move to the next pivot column while the current column is not a pivot.
-        while (col >= 0 && !isPivot[col]) {
-    	    eVec[col] = 0;
-            col--;
+    
+    for (int row = (width - numFreeVariables) - pivotsPassed - 1; row >= 0 && col >= 0; col--) {
+    	
+    	eVec[col] = 0;	
+	if(isPivot[col]){         
+            for (int i = col + 1; i < width - freeVariableID; i++) eVec[col] -= eVec[i] * mat(row, i);
+            eVec[col] /= mat(row, col);
+            row--;
         }
-        if(col < 0) break;
-    
-        // Initialize the eigenvector component for this row to 0.
-        eVec[col] = 0;
-
-        // Subtract the contributions from the columns to the right of the current column.
-        // This corresponds to solving the system of equations from the row echelon form.
-        for (int i = col + 1; i < width - freeVariableID; i++) eVec[col] -= eVec[i] * mat(row, i);
-
-        eVec[col] /= mat(row, col);
     }
-    
-//if(idx == 1) printf("evec = (%f, %f, %f) \n", eVec[0], eVec[1], eVec[2]);
     
 }

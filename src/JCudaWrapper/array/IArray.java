@@ -19,7 +19,7 @@ public class IArray extends Array {
      * @param length The length of the array.
      */
     private IArray(CUdeviceptr p, int length, boolean deallocateOnClose) {
-        super(p, length, PrimitiveType.INT, deallocateOnClose);
+        super(p, length, PrimitiveType.INT);
     }
 
     /**

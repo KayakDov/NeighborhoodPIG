@@ -488,6 +488,8 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
     public MatricesStride computeVecs(VectorsStride eValues, DArray workSpaceDArray, IArray workSpaceIArray, double tolerance) {
 
         MatricesStride eVectors = copyDimensions(DArray.empty(data.length));
+    
+        
         
         KernelManager.get("eigenVecBatch").map(handle, 
                 eValues.dim()*eValues.batchSize,                

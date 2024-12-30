@@ -33,7 +33,7 @@ public class DArray extends Array {
      * @throws IllegalArgumentException if the values array is null.
      */
     public DArray(Handle handle, double... values) {
-        this(Array.empty(values.length, PrimitiveType.DOUBLE), values.length, true);
+        this(Array.empty(values.length, PrimitiveType.DOUBLE), values.length);
         copy(handle, this, values, 0, 0, values.length);
     }
 
@@ -54,8 +54,8 @@ public class DArray extends Array {
      * @param length The length of the array.
      * @param dealocateOnClose True if the memory is to be deallocated when this method is inaccessible or close.
      */
-    protected DArray(CUdeviceptr p, int length, boolean dealocateOnClose) {
-        super(p, length, PrimitiveType.DOUBLE, dealocateOnClose);
+    protected DArray(CUdeviceptr p, int length) {
+        super(p, length, PrimitiveType.DOUBLE);
     }
 
     /**
@@ -67,7 +67,7 @@ public class DArray extends Array {
      */
     public static DArray empty(int size) {
         checkPositive(size);
-        return new DArray(Array.empty(size, PrimitiveType.DOUBLE), size, true);
+        return new DArray(Array.empty(size, PrimitiveType.DOUBLE), size);
     }
 
     /**
@@ -246,7 +246,7 @@ public class DArray extends Array {
         checkPositive(start, length);
         checkAgainstLength(start + length - 1, start);
 
-        return new DArray(pointer(start), length, false);
+        return new DArray(pointer(start), length);
     }
 
     /**

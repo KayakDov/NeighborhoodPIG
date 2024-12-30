@@ -23,7 +23,8 @@ public class Eigen implements AutoCloseable {
      * 
      */
     public Eigen(MatricesStride mats, double tolerance) {
-        try (DArray workSpaceD = DArray.empty(mats.width * mats.dArray().length); IArray workSpaceI = IArray.empty(mats.width*mats.batchSize)) {
+        try (DArray workSpaceD = DArray.empty(mats.width * mats.dArray().length); 
+                IArray workSpaceI = IArray.empty(mats.width*mats.width*mats.batchSize)) {
 
             values = mats.height == 2 ? 
                     mats.computeVals2x2(new Vector(mats.getHandle(), workSpaceD.subArray(0, mats.getBatchSize()), 1)):
