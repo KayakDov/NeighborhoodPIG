@@ -129,9 +129,9 @@ public class KernelManager implements AutoCloseable {
         
         Pointer[] pointers = new Pointer[additionalParmaters.length + 3];
         
-        pointers[0] = IArray.cpuPointer(incInput);
+        pointers[0] = IArray.cpuPoint(incInput);
         pointers[1] = output.pToP();
-        pointers[2] = IArray.cpuPointer(incOutput);
+        pointers[2] = IArray.cpuPoint(incOutput);
         
         
         if(additionalParmaters.length > 0) 
@@ -160,7 +160,7 @@ public class KernelManager implements AutoCloseable {
 
         
         NativePointerObject[] pointers = new NativePointerObject[additionalParmaters.length + 2];
-        pointers[0] = IArray.cpuPointer(numThreads);
+        pointers[0] = IArray.cpuPoint(numThreads);
         pointers[1] = input.pToP();
         
         
@@ -195,9 +195,9 @@ public class KernelManager implements AutoCloseable {
                 input.inc(), 
                 matrices.dArray(), 
                 matrices.height, 
-                IArray.cpuPointer(matrices.width),
-                IArray.cpuPointer(matrices.colDist),
-                IArray.cpuPointer(matrices.getStrideSize()));
+                IArray.cpuPoint(matrices.width),
+                IArray.cpuPoint(matrices.colDist),
+                IArray.cpuPoint(matrices.getStrideSize()));
     }
     /**
      * Runs the loaded CUDA kernel with the specified input and output arrays on
@@ -217,7 +217,7 @@ public class KernelManager implements AutoCloseable {
      * @return The {@code DArray} containing the processed results.
      */
     public <T extends Array> T map(Handle handle, T input, int incInput, T output, int incOutput, int n, int shift) {
-        return map(handle, n, input, incInput, output, incOutput, IArray.cpuPointer(shift));
+        return map(handle, n, input, incInput, output, incOutput, IArray.cpuPoint(shift));
     }
     
     

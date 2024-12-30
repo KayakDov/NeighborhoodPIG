@@ -71,12 +71,12 @@ public class NeighborhoodProductSums implements AutoCloseable {
                 n,
                 from,
                 to.pToP(),
-                IArray.cpuPointer(height),
-                IArray.cpuPointer(width),
-                IArray.cpuPointer(depth),
-                IArray.cpuPointer(toInc),
-                IArray.cpuPointer(nRad),
-                IArray.cpuPointer(dir)
+                IArray.cpuPoint(height),
+                IArray.cpuPoint(width),
+                IArray.cpuPoint(depth),
+                IArray.cpuPoint(toInc),
+                IArray.cpuPoint(nRad),
+                IArray.cpuPoint(dir)
         );
     }
 

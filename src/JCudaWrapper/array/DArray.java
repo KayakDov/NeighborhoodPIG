@@ -102,7 +102,7 @@ public class DArray extends Array {
      * @param d A double that needs a pointer.
      * @return A pointer to a singleton array containing d.
      */
-    public static Pointer cpuPointer(double d) {
+    public static Pointer cpuPoint(double d) {
         return Pointer.to(new double[]{d});
     }
 
@@ -328,7 +328,7 @@ public class DArray extends Array {
         checkLowerBound(1, incY, incX);
         checkAgainstLength(lda * cols - 1);
 
-        int result = JCublas2.cublasDger(handle.get(), rows, cols, cpuPointer(multProd), vecX.pointer, incX, vecY.pointer, incY, pointer, lda);
+        int result = JCublas2.cublasDger(handle.get(), rows, cols, cpuPoint(multProd), vecX.pointer, incX, vecY.pointer, incY, pointer, lda);
         if (result != cudaError.cudaSuccess)
             throw new RuntimeException("cuda error " + cudaError.stringFor(result));
     }
@@ -537,14 +537,13 @@ public class DArray extends Array {
         checkLowerBound(1, inc, incX);
         matA.checkAgainstLength(aRows * aCols - 1);
 
-        int error = JCublas2.cublasDgemv(
-                handle.get(),
+        int error = JCublas2.cublasDgemv(handle.get(),
                 transpose(transA),
                 aRows, aCols,
-                cpuPointer(timesAx),
+                cpuPoint(timesAx),
                 matA.pointer, lda,
                 vecX.pointer, incX,
-                cpuPointer(beta),
+                cpuPoint(beta),
                 pointer,
                 inc
         );
@@ -609,15 +608,14 @@ public class DArray extends Array {
      * and addition.
      */
     public DArray addProductBandMatVec(Handle handle, boolean transposeA, int rowsA, int colsA, int subDiagonalsA, int superDiagonalA, double timesA, DArray Ma, int ldm, DArray x, int incX, double timesThis, int inc) {
-        int error = JCublas2.cublasDgbmv(
-                handle.get(),
+        int error = JCublas2.cublasDgbmv(handle.get(),
                 transpose(transposeA),
                 rowsA, colsA,
                 subDiagonalsA, superDiagonalA,
-                cpuPointer(timesA),
+                cpuPoint(timesA),
                 Ma.pointer, ldm,
                 x.pointer, incX,
-                cpuPointer(timesThis), pointer, inc);
+                cpuPoint(timesThis), pointer, inc);
         if (error != cudaError.cudaSuccess)
             throw new RuntimeException("cuda error " + cudaError.stringFor(error));
 
@@ -752,16 +750,15 @@ public class DArray extends Array {
      * and addition.
      */
     public DArray addProductSymBandMatVec(Handle handle, boolean upper, int colA, int diagonals, double timesA, DArray Ma, int ldm, DArray x, int incX, double timesThis, int inc) {
-        int error = JCublas2.cublasDsbmv(
-                handle.get(),
+        int error = JCublas2.cublasDsbmv(handle.get(),
                 upper ? cublasFillMode.CUBLAS_FILL_MODE_UPPER : cublasFillMode.CUBLAS_FILL_MODE_LOWER,
                 colA,
                 diagonals,
-                cpuPointer(timesA),
+                cpuPoint(timesA),
                 Ma.pointer, ldm,
                 x.pointer,
                 incX,
-                cpuPointer(timesThis),
+                cpuPoint(timesThis),
                 pointer,
                 inc);
         if (error != cudaError.cudaSuccess)
@@ -919,14 +916,13 @@ public class DArray extends Array {
         a.checkAgainstLength(aColsBRows * lda - 1);
         checkAgainstLength(aRows * bThisCols - 1);
 
-        int error = JCublas2.cublasDgemm(
-                handle.get(), // cublas handle
+        int error = JCublas2.cublasDgemm(handle.get(), // cublas handle
                 transpose(transposeA), transpose(transposeB),
                 aRows, bThisCols, aColsBRows,
-                cpuPointer(timesAB),
+                cpuPoint(timesAB),
                 a.pointer, lda,
                 b.pointer, ldb,
-                cpuPointer(timesCurrent),
+                cpuPoint(timesCurrent),
                 pointer, ldc
         );
         if (error != cudaError.cudaSuccess)
@@ -961,10 +957,9 @@ public class DArray extends Array {
         if (incX != 0 && x.n(incX) != n(inc))
             throw new DimensionMismatchException(n(inc), x.n(incX));
 
-        int result = JCublas2.cublasDaxpy(
-                handle.get(),
+        int result = JCublas2.cublasDaxpy(handle.get(),
                 n(inc),
-                cpuPointer(timesX), x.pointer, incX,
+                cpuPoint(timesX), x.pointer, incX,
                 pointer, inc
         );
         if (result != cudaError.cudaSuccess) {
@@ -1010,12 +1005,11 @@ public class DArray extends Array {
         checkMemAllocation();
         a.checkMemAllocation();
 
-        int result = JCublas2.cublasDgeam(
-                handle.get(),
+        int result = JCublas2.cublasDgeam(handle.get(),
                 transpose(transA), transpose(transB),
                 height, width,
-                cpuPointer(alpha), a.pointer, lda,
-                cpuPointer(beta), b.pointer, ldb,
+                cpuPoint(alpha), a.pointer, lda,
+                cpuPoint(beta), b.pointer, ldb,
                 pointer, ldc
         );
         if (result != cudaError.cudaSuccess)
@@ -1042,7 +1036,7 @@ public class DArray extends Array {
     public DArray multiply(Handle handle, double mult, int inc) {
         checkNull(handle);
         checkLowerBound(1, inc);
-        int result = JCublas2.cublasDscal(handle.get(), n(inc), cpuPointer(mult), pointer, inc);
+        int result = JCublas2.cublasDscal(handle.get(), n(inc), cpuPoint(mult), pointer, inc);
         if (result != cudaError.cudaSuccess)
             throw new RuntimeException("cuda error " + cudaError.stringFor(result));
         return this;
@@ -1081,13 +1075,12 @@ public class DArray extends Array {
             double timesThis,
             int ldThis) {
 
-        int result = JCublas2.cublasDsyrk(
-                handle.get(),
+        int result = JCublas2.cublasDsyrk(handle.get(),
                 uplo,
                 transpose(transpose),
                 resultRowsCols, cols,
-                cpuPointer(alpha), a.pointer, lda,
-                cpuPointer(alpha),
+                cpuPoint(alpha), a.pointer, lda,
+                cpuPoint(alpha),
                 pointer, ldThis
         );
         if (result != cudaError.cudaSuccess)

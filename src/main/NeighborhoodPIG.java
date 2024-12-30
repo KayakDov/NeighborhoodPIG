@@ -12,8 +12,6 @@ import JCudaWrapper.resourceManagement.Handle;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.IArray;
 import java.awt.image.WritableRaster;
-import jcuda.Pointer;
-import jcuda.runtime.JCuda;
 
 /**
  * Each neighborhood pig has it's own handle.

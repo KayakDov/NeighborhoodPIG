@@ -35,7 +35,7 @@ public class TestStuff {
                 from.dArray(), 4,
                 to.dArray(), 1, 
                 IArray.cpuTrue(), 
-                IArray.cpuPointer(1)
+                IArray.cpuPoint(1)
             );
             
             System.out.println(to);

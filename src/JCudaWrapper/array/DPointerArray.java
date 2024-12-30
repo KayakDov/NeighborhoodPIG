@@ -195,10 +195,10 @@ public class DPointerArray extends Array {
                 DArray.transpose(transA),
                 DArray.transpose(transB),
                 aRows, bCols, aColsBRows, // Number of columns of A / rows of B
-                DArray.cpuPointer(timesAB),
+DArray.cpuPoint(timesAB),
                 A.pointer, lda, // Leading dimension of A
                 B.pointer, ldb, // Leading dimension of B
-                DArray.cpuPointer(timesResult), pointer, ldResult, // Leading dimension of result matrices
+DArray.cpuPoint(timesResult), pointer, ldResult, // Leading dimension of result matrices
                 batchCount // Number of matrices to multiply
         );
     }

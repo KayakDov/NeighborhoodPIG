@@ -192,4 +192,27 @@ public class TensorOrd3Stride implements AutoCloseable{
         return height*width*depth*batchSize;
     }
 
+    /**
+     * Gets the tensor at the given index.
+     * @param i The index of the desired tensor.
+     * @return The tensor at the given index.
+     */
+    public TensorOrd3 getTensor(int  i){
+        return new TensorOrd3(handle, 
+                data.subArray(
+                        i*strideSize, 
+                        i*strideSize + layerDist*(depth - 1) + colDist*(width - 1) + height), 
+                height, width, depth, colDist, layerDist
+        );
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for(int i = 0; i < batchSize; i++)
+            sb.append(getTensor(i).toString()).append("\n");
+        return sb.toString();
+    }
+    
+    
 }

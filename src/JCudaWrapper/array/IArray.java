@@ -95,7 +95,7 @@ public class IArray extends Array {
      * @param d A double that needs a pointer.
      * @return A pointer to a singleton array containing d.
      */
-    public static Pointer cpuPointer(int d) {
+    public static Pointer cpuPoint(int d) {
         return Pointer.to(new int[]{d});
     }
     
@@ -104,14 +104,14 @@ public class IArray extends Array {
      * @return A pointer to true;
      */
     public static Pointer cpuTrue(){
-        return cpuPointer(1);
+        return cpuPoint(1);
     }
     /**
      * Points to a false value.
      * @return A pointer to false.
      */
     public static Pointer cpuFalse(){
-        return cpuPointer(0);
+        return cpuPoint(0);
     }
 
     @Override

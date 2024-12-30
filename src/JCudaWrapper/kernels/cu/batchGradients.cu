@@ -121,7 +121,7 @@ public:
 
         if (loc == 0) return shift(1) - data[indices.flatIndex];
         else if (loc == 1 || loc == end - 2) return (shift(1) - shift(-1)) / 2.0;
-        else if (loc < end - 2) return (-shift(-2) / 12 + shift(-1) * 2.0 / 3 - shift(1) * 2.0 / 3 + shift(2) / 12);
+        else if (loc < end - 2) return (shift(-2) / 12 - shift(-1) * 2.0 / 3 + shift(1) * 2.0 / 3 - shift(2) / 12);
         else return data[indices.flatIndex] - shift(-1);
     }
 };

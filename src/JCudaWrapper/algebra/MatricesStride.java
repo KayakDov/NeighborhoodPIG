@@ -235,7 +235,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
      * Computes the eigenvalues for a set of symmetric 3x3 matrices. If this
      * batch is not such a set then this method should not be called.
      *
-     * @param workSpace Should have length equal to the width of this matrix.
+     * @param workSpace Should have length equal to 3*batchSize.
      * @return The eigenvalues.
      *
      */
@@ -243,33 +243,37 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
     //p := tr m = a + e + i
     //q := (p^2 - norm(m)^2)/2 where norm = a^2 + d^2 + g^2 + d^2 + ...
     // solve: lambda^3 - p lambda^2 + q lambda - det m        
-    public VectorsStride computeVals3x3(Vector workSpace) {
+    public VectorsStride computeVals3x3(double tolerance) {
 
         if (height != 3)
             throw new IllegalArgumentException("computeVals3x3 can only be called on a 3x3 matrix.  These matrices are " + height + "x" + width);
 
         VectorsStride vals = new VectorsStride(handle, height, getBatchSize(), height, 1);
-        Vector[] work = workSpace.parition(3);
-
-        Vector[][] m = parition();
-
-        Vector[][] minor = new Vector[3][3];
-
-        Vector negTrace = negativeTrace(work[0]);//val[0] is taken, but val[1] is free.
-
-        setDiagonalMinors(minor, m, vals);
-        Vector C = work[1].fill(0);
-        for (int i = 0; i < 3; i++) C.add(1, minor[i][i]);
-
-        setRow0Minors(minor, m, vals);
-        Vector det = work[2];
-        det.ebeSetProduct(m[0][0], minor[0][0]);
-        det.addEbeProduct(-1, m[0][1], minor[0][1], 1);
-        det.addEbeProduct(-1, m[0][2], minor[0][2], -1);
-
-        cubicRoots(negTrace, C, det, vals);
-
+        
+        KernelManager.get("eigenValsBatch").map(handle, batchSize, dArray(), vals.dArray().pToP(), DArray.cpuPoint(tolerance));
+        
         return vals;
+//        Vector[] work = workSpace.parition(3);
+//
+//        Vector[][] m = parition();
+//
+//        Vector[][] minor = new Vector[3][3];
+//
+//        Vector negTrace = negativeTrace(work[0]);//work[0] is taken
+//
+//        setDiagonalMinors(minor, m, vals); //vals are now all taken.
+//        Vector C = work[1].fill(0);
+//        for (int i = 0; i < 3; i++) C.add(1, minor[i][i]);
+//
+//        setRow0Minors(minor, m, vals);
+//        Vector det = work[2];
+//        det.ebeSetProduct(m[0][0], minor[0][0]);
+//        det.addEbeProduct(-1, m[0][1], minor[0][1], 1);
+//        det.addEbeProduct(-1, m[0][2], minor[0][2], -1);
+//
+//        cubicRoots(negTrace, C, det, vals);
+//
+//        return vals;
     }
 
     private static DArray negOnes3;
@@ -475,19 +479,66 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
      * it here!
      *
      * @param eValues The eigenvalues, organized by sets per matrix.
-     * @param workSpaceArray Should have as many elements as there are in this.
+     * @param workSpaceDArray Should have width * as many elements as there are in this.
+     * @param workSpaceIArray Should be of length batch size.
      * @param tolerance What is considered 0
      * @return The eigenvectors.
      *
      */
-    public MatricesStride computeVecs(VectorsStride eValues, DArray workSpaceArray, double tolerance) {
+    public MatricesStride computeVecs(VectorsStride eValues, DArray workSpaceDArray, IArray workSpaceIArray, double tolerance) {
 
         MatricesStride eVectors = copyDimensions(DArray.empty(data.length));
+        
+        KernelManager.get("eigenVecBatch").map(handle, 
+                eValues.dim()*eValues.batchSize,                
+                data,
+                height,
+                eVectors.dArray(),
+                eVectors.width,
+                eValues.dArray().pToP(),
+                workSpaceDArray.pToP(),
+                workSpaceIArray.pToP(),
+                DArray.cpuPoint(tolerance)
+        );
+        return this;
+    }
+        /**
+     * Computes the eigenvector for an eigenvalue. The matrices must be
+     * symmetric positive definite. TODO: If any extra memory is available, pass
+     * it here!
+     *
+     * @param eValues The eigenvalues, organized by sets per matrix.
+     * @param workSpaceArray Should have 3* as many elements as there are in this.
+     * @param tolerance What is considered 0
+     * @return The eigenvectors.
+     *
+     */        /**
+     * Computes the eigenvector for an eigenvalue. The matrices must be
+     * symmetric positive definite. TODO: If any extra memory is available, pass
+     * it here!
+     *
+     * @param eValues The eigenvalues, organized by sets per matrix.
+     * @param workSpaceArray Should have 3* as many elements as there are in this.
+     * @param tolerance What is considered 0
+     * @return The eigenvectors.
+     *
+     */
+    public MatricesStride computeVecs3x3(VectorsStride eValues, DArray workSpaceArray, double tolerance) {
 
-        for (int i = 0; i < height; i++) {
-            MatricesStride workSpace = copy(workSpaceArray);
-            workSpace.computeVec(eValues.getElement(i), eVectors.column(i), tolerance);
-        }
+        MatricesStride eVectors = copyDimensions(DArray.empty(data.length));
+        
+        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVecs3x3() " + batchSize*3);
+        
+        KernelManager.get("eigenVecBatch3x3").map(handle,
+                batchSize*3,
+                data,
+                IArray.cpuPoint(colDist),
+                eVectors.dArray().pToP(),
+                IArray.cpuPoint(eVectors.colDist),
+                eValues.dArray().pToP(),
+                workSpaceArray.pToP(),
+                DArray.cpuPoint(tolerance)
+        );
 
         return eVectors;
     }
@@ -502,11 +553,13 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
     private void computeVec(Vector eValue, VectorsStride eVector, double tolerance) {
 
         for (int i = 0; i < height; i++) matIndices(i, i).add(-1, eValue);
-
-        KernelManager.get("nullSpace1dBatch").map(handle, getBatchSize(),
+        
+        KernelManager.get("nullSpace1dBatch").map(handle, 
+                getBatchSize(),
                 data, colDist,
                 eVector.data, eVector.getStrideSize(),
-                IArray.cpuPointer(width), DArray.cpuPointer(tolerance)
+                IArray.cpuPoint(width), 
+                DArray.cpuPoint(tolerance)
         );
 
     }

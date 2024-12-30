@@ -1,19 +1,11 @@
 package fijiPlugin;
 
-import JCudaWrapper.array.IArray;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.GenericDialog;
-import ij.plugin.ImagesToStack;
 import ij.plugin.PlugIn;
-import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
-import java.io.File;
-import jcuda.Pointer;
-import jcuda.runtime.JCuda;
-import jcuda.runtime.cudaError;
-import org.apache.commons.math3.complex.Complex;
 
 /**
  *
@@ -141,15 +133,17 @@ public class FijiPlugin implements PlugIn {
     public static void main(String[] args) {
 
         String imagePath = "images/input/test.jpeg";
+//        String imagePath = "images/input/debug.jpeg";
         ImagePlus imp = loadImageAsStack(imagePath);
 
         int neighborhoodSize = 3; // Default neighborhood radius
-        double tolerance = 1e-10; // Default tolerance
+        double tolerance = 1e-9; // Default tolerance
 
         NeighborhoodPIG np = new NeighborhoodPIG(imp, neighborhoodSize, tolerance);
 
         np.fijiDisplayOrientationHeatmap();
 
+        np.close();
         System.out.println("NeighborhoodPIG processing complete.");
     }
 

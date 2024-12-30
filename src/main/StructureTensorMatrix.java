@@ -196,7 +196,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
                 orientation.dArray(), 1, 
                 colors, 3,
                 coherence.dArray().pToP(),
-                IArray.cpuPointer(1)
+                IArray.cpuPoint(1)
                 );
 
         orientation.multiply(0.5);

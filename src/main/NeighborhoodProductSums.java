@@ -72,7 +72,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
                 sumLocalRowElements.dArray(),
                 1,
                 IArray.cpuTrue(),
-                IArray.cpuPointer(nRad)
+                IArray.cpuPoint(nRad)
         );
 
         KernelManager.get("neighborhoodSum").map(hand, width,
@@ -81,7 +81,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
                 result.dArray(),
                 result.inc(),
                 IArray.cpuFalse(),
-                IArray.cpuPointer(nRad)
+                IArray.cpuPoint(nRad)
         );
 //       Uses library methods instead of kernel.  The library methods are thought to be slower on account of repeated calls to the gpu. 
 //        sumLocalRowElementsEdge();

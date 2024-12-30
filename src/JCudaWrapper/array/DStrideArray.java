@@ -1,7 +1,6 @@
 package JCudaWrapper.array;
 
 import static JCudaWrapper.array.Array.checkNull;
-import static JCudaWrapper.array.DArray.cpuPointer;
 import jcuda.driver.CUdeviceptr;
 import jcuda.jcublas.JCublas2;
 import jcuda.jcusolver.JCusolverDn;
@@ -11,6 +10,8 @@ import JCudaWrapper.resourceManagement.Handle;
 import static JCudaWrapper.array.Array.checkPositive;
 import jcuda.driver.JCudaDriver;
 import jcuda.runtime.cudaError;
+import static JCudaWrapper.array.DArray.cpuPoint;
+import jcuda.jcusolver.syevjInfo;
 
 /**
  * A class for a batch of consecutive arrays.
@@ -50,46 +51,46 @@ public class DStrideArray extends DArray {
     public int batchCount() {
         return batchSize;
     }
-//
-//    /* Doesn't work because Jacobiparms doesn't work.
-//     * 
-//     * Creates an auxiliary workspace for cusolverDnDsyevjBatched using
-//     * cusolverDnDsyevjBatched_bufferSize.
-//     *
-//     * @param handle The cusolverDn handle.
-//     * @param height The size of the matrices (nxn).
-//     * @param input The device pointer to the input matrices.
-//     * @param ldInput The leading dimension of the matrix A.
-//     * @param resultValues The device pointer to the eigenvalue array.
-//     * @param batchSize The number of matrices in the batch.
-//     * @param fill How is the matrix stored.
-//     * @param params The syevjInfo_t structure for additional parameters.
-//     * @return A Pointer array where the first element is the workspace size,
-//     * and the second element is the device pointer to the workspace.
-//     */
-//    public int eigenWorkspaceSize(Handle handle,
-//            int height,
-//            int ldInput,
-//            DArray resultValues,
-//            MySyevjInfo params,
-//            DPointerArray.Fill fill) {
-//        int[] lwork = new int[1];
-//
-//        JCusolverDn.cusolverDnDsyevjBatched_bufferSize(
-//                handle.solverHandle(),
-//                cusolverEigMode.CUSOLVER_EIG_MODE_VECTOR,
-//                fill.getFillMode(),
-//                height,
-//                pointer,
-//                ldInput,
-//                resultValues.pointer,
-//                lwork,
-//                params.getParams(),
-//                batchCount()
-//        );
-//
-//        return lwork[0];
-//    }
+
+    /* Doesn't work because Jacobiparms doesn't work.
+     * 
+     * Creates an auxiliary workspace for cusolverDnDsyevjBatched using
+     * cusolverDnDsyevjBatched_bufferSize.
+     *
+     * @param handle The cusolverDn handle.
+     * @param height The size of the matrices (nxn).
+     * @param input The device pointer to the input matrices.
+     * @param ldInput The leading dimension of the matrix A.
+     * @param resultValues The device pointer to the eigenvalue array.
+     * @param batchSize The number of matrices in the batch.
+     * @param fill How is the matrix stored.
+     * @param params The syevjInfo_t structure for additional parameters.
+     * @return A Pointer array where the first element is the workspace size,
+     * and the second element is the device pointer to the workspace.
+     */
+    public int eigenWorkspaceSize(Handle handle,
+            int height,
+            int ldInput,
+            DArray resultValues,
+            syevjInfo params,
+            DPointerArray.Fill fill) {
+        int[] lwork = new int[1];
+
+        JCusolverDn.cusolverDnDsyevjBatched_bufferSize(
+                handle.solverHandle(),
+                cusolverEigMode.CUSOLVER_EIG_MODE_VECTOR,
+                fill.getFillMode(),
+                height,
+                pointer,
+                ldInput,
+                resultValues.pointer,
+                lwork,
+                params,
+                batchCount()
+        );
+
+        return lwork[0];
+    }
 
 //    /**
 //     * If each sub array is square matrix data,then this is the height and width
@@ -204,14 +205,13 @@ public class DStrideArray extends DArray {
         checkPositive(aRows, bCols, ldb, ldResult);
         checkAgainstLength(aRows * bCols * batchCount() - 1);
 
-        int result = JCublas2.cublasDgemmStridedBatched(
-                handle.get(),
+        int result = JCublas2.cublasDgemmStridedBatched(handle.get(),
                 DArray.transpose(transA), DArray.transpose(transB),
                 aRows, bCols, aColsBRows,
-                cpuPointer(timesAB),
+                cpuPoint(timesAB),
                 matA.pointer, lda, matA.stride,
                 matB.pointer, ldb, matB.stride,
-                cpuPointer(timesResult), pointer, ldResult, stride,
+                cpuPoint(timesResult), pointer, ldResult, stride,
                 batchCount()
         );
         if(result != cudaError.cudaSuccess)

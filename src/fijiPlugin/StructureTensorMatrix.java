@@ -56,11 +56,13 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         }
 
         strctTensors.matIndices(1, 0).set(strctTensors.matIndices(0, 1));
-        strctTensors.matIndices(2, 0).set(strctTensors.matIndices(0, 2)); //engage for 3x3.
+        strctTensors.matIndices(2, 0).set(strctTensors.matIndices(0, 2)); 
         strctTensors.matIndices(2, 1).set(strctTensors.matIndices(1, 2));
 
         eigen = new Eigen(strctTensors, tolerance);
 
+//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() Eigen\n" + eigen.toString());
+        
         orientation = grad.x().emptyCopyDimensions();
         coherence = grad.x().emptyCopyDimensions();
     }
@@ -163,10 +165,10 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
                 handle, 
                 orientation.size(),
                 orientation.dArray(), 
-                IArray.cpuPointer(1),
+                IArray.cpuPoint(1),
                 colors.pToP(),
                 coherence.dArray().pToP(),
-                IArray.cpuPointer(1)
+                IArray.cpuPoint(1)
         );
 
         orientation.dArray().multiply(handle, 0.5, 1);
