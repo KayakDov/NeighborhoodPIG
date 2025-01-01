@@ -5,7 +5,8 @@ import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.IArray;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
 
 /**
@@ -35,16 +36,16 @@ public class Gradient implements AutoCloseable{
         dY = pic.emptyCopyDimensions();
         dZ = pic.emptyCopyDimensions();
 
-        KernelManager.get("batchGradients").map(hand, 
+        Kernel.run("batchGradients", hand, 
                 3*pic.dArray().length, 
                 pic.dArray(),
-                IArray.cpuPoint(height), 
-                IArray.cpuPoint(width), 
-                IArray.cpuPoint(depth), 
-                IArray.cpuPoint(batchSize),
-                dX.dArray().pToP(), 
-                dY.dArray().pToP(), 
-                dZ.dArray().pToP()
+                P.to(height), 
+                P.to(width), 
+                P.to(depth), 
+                P.to(batchSize),
+                P.to(dX), 
+                P.to(dY),
+                P.to(dZ)
         );
         
     }
@@ -54,9 +55,7 @@ public class Gradient implements AutoCloseable{
             TensorOrd3Stride tenStr = new Matrix(hand, array, 3, 5).repeating(1);
             
             try(Gradient grad = new Gradient(tenStr, hand)){
-                
                 System.out.println("dX: " + grad.dX.dArray().toString());
-                
             }
         }
     }

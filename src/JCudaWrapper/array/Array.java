@@ -1,7 +1,5 @@
 package JCudaWrapper.array;
 
-import JCudaWrapper.resourceManagement.ResourceDealocator;
-import java.lang.ref.Cleaner;
 import java.util.Arrays;
 import jcuda.Pointer;
 import jcuda.Sizeof;
@@ -404,14 +402,5 @@ abstract class Array implements AutoCloseable {
      */
     static int transpose(boolean t) {
         return t ? cublasOperation.CUBLAS_OP_T : cublasOperation.CUBLAS_OP_N;
-    }
-
-    /**
-     * A pointer to this pointer.
-     *
-     * @return A pointer to this pointer.
-     */
-    public Pointer pToP() {
-        return Pointer.to(pointer);
     }
 }

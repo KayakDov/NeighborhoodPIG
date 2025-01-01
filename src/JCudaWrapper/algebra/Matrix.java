@@ -10,7 +10,8 @@ import org.apache.commons.math3.exception.*;
 import org.apache.commons.math3.linear.*;
 import JCudaWrapper.array.DSingleton;
 import JCudaWrapper.array.IArray;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
 
 /**
  * Represents a matrix stored on the GPU. For more information on jcuda
@@ -328,7 +329,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      */
     public Matrix add(double d) {
         try (DSingleton sing = new DSingleton(handle, d)) {
-            KernelManager.get("addScalarToMatrix").map(handle, size(), sing, colDist, data, height);
+            Kernel.run("addScalarToMatrix", handle, size(), sing, P.to(colDist), P.to(data), P.to(height));
             return this;
         }
     }

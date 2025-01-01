@@ -2,7 +2,8 @@ package JCudaWrapper.algebra;
 
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.DStrideArray;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
 import java.util.Arrays;
 import JCudaWrapper.resourceManagement.Handle;
 
@@ -77,7 +78,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      * @return The number of elements in each sub array.
      */
     public int getSubVecDim() {
-        return Math.ceilDiv(data.subArrayLength, colDist);
+        return (int)Math.ceil(data.subArrayLength/ colDist);
     }
 
     /**
@@ -232,7 +233,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
     public Vector norms(DArray normsGoHere) {
         Vector norms = new Vector(handle, normsGoHere, 1);
         norms.addBatchVecVecMult(1, this, this, 0);
-        KernelManager.get("sqrt").mapToSelf(handle, norms);
+        Kernel.run("sqrt", handle, norms.dim(), norms.dArray(), P.to(norms.inc()), P.to(norms), P.to(norms.inc()));
         return norms;
     }
 

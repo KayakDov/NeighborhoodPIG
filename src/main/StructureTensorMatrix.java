@@ -7,7 +7,8 @@ import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.Vector;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.IArray;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
 
 /**
@@ -106,9 +107,13 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      */
     public MatricesStride setVecs0ToPi() {
         MatricesStride eVecs = eigen.vectors;
-        KernelManager.get("vecToNematic").mapToSelf(handle,
-                eVecs.dArray(), eVecs.colDist,
-                eVecs.getBatchSize() * eVecs.width
+        Kernel.run("vecToNematic", handle,
+                eVecs.getBatchSize() * eVecs.width,
+                eVecs.dArray(), 
+                P.to(eVecs.colDist),
+                P.to(eVecs),
+                P.to(eVecs.colDist)
+                
         );
         return eVecs;
     }
@@ -119,9 +124,13 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * @return The orientation matrix.
      */
     public Matrix setOrientations() {
-        KernelManager.get("atan2").map(handle, orientation.size(),
-                eigen.vectors.dArray(), eigen.vectors.getStrideSize(),
-                orientation.dArray(), 1);
+        Kernel.run("atan2", handle, 
+                orientation.size(),
+                eigen.vectors.dArray(), 
+                P.to(eigen.vectors.getStrideSize()),
+                P.to(orientation), 
+                P.to(1)
+        );
         return orientation;
     }
 
@@ -192,12 +201,15 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
         IArray colors = IArray.empty(orientation.size() * 3);
 
-        KernelManager.get("color").map(handle, orientation.size(), 
-                orientation.dArray(), 1, 
-                colors, 3,
-                coherence.dArray().pToP(),
-                IArray.cpuPoint(1)
-                );
+        Kernel.run("colors", handle, 
+                orientation.size(), 
+                orientation.dArray(), 
+                P.to(1), 
+                P.to(colors), 
+                P.to(3),
+                P.to(coherence),
+                P.to(1)
+        );
 
         orientation.multiply(0.5);
         return colors;

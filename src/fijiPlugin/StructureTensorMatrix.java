@@ -6,10 +6,13 @@ import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.algebra.Vector;
+import JCudaWrapper.array.ByteArray;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.IArray;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.Arrays;
 
 /**
  *
@@ -56,11 +59,11 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         }
 
         strctTensors.matIndices(1, 0).set(strctTensors.matIndices(0, 1));
-        strctTensors.matIndices(2, 0).set(strctTensors.matIndices(0, 2)); 
+        strctTensors.matIndices(2, 0).set(strctTensors.matIndices(0, 2));
         strctTensors.matIndices(2, 1).set(strctTensors.matIndices(1, 2));
 
         eigen = new Eigen(strctTensors, tolerance);
-        
+
         orientation = grad.x().emptyCopyDimensions();
         coherence = grad.x().emptyCopyDimensions();
     }
@@ -85,9 +88,12 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      */
     public MatricesStride setVecs0ToPi() {
         MatricesStride eVecs = eigen.vectors;
-        KernelManager.get("vecToNematic").mapToSelf(handle,
-                eVecs.dArray(), eVecs.colDist,
-                eVecs.getBatchSize() * eVecs.width
+        Kernel.run("vecToNematic", handle,
+                eVecs.getBatchSize() * eVecs.width,
+                eVecs.dArray(), 
+                P.to(eVecs.colDist),
+                P.to(eVecs),
+                P.to(eVecs.colDist)                
         );
         return eVecs;
     }
@@ -98,9 +104,13 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * @return The orientation matrix.
      */
     public TensorOrd3Stride setOrientations() {
-        KernelManager.get("atan2").map(handle, orientation.dArray().length,
-                eigen.vectors.dArray(), eigen.vectors.getStrideSize(),
-                orientation.dArray(), 1);
+        Kernel.run("atan2", handle, 
+                orientation.dArray().length,
+                eigen.vectors.dArray(), 
+                P.to(eigen.vectors.getStrideSize()),
+                P.to(orientation), 
+                P.to(1)
+        );
         return orientation;
     }
 
@@ -139,39 +149,57 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         return orientation;
     }
 
+    public class RGB {
 
-//        (R, G, B) = (256*cos(x), 256*cos(x + 120), 256*cos(x - 120))  <- this is for 360.  For 180 maybe:
-//    (R, G, B) = (256*cos(x), 256*cos(x + 60), 256*cos(x + 120))
-    
+        private final int[] cpuColors;
+
+        /**
+         * An array of integers where each value represents a color for a
+         * column-major corresponding orientation.
+         */
+        public RGB() {
+            setVecs0ToPi();
+            setCoherence(orientation.dArray());
+            setOrientations().dArray().multiply(handle, 2, 1);
+            try (IArray gpuColors = IArray.empty(orientation.dArray().length)) {
+
+                Kernel.run("colors", handle,
+                        orientation.size(),
+                        orientation.dArray(),
+                        P.to(1),
+                        P.to(gpuColors),
+                        P.to(1),
+                        P.to(coherence),
+                        P.to(1)
+                );
+                cpuColors = gpuColors.get(handle);
+            }
+
+            orientation.dArray().multiply(handle, 0.5, 1);
+        }
+  
+
+        /**
+         * The colors at a specific coordinate.
+         *
+         * @param frame The frame of the coordinate.
+         * @param layer The layer of the coordinate.
+         * @param x The x value of the coordinate.
+         * @param y The y value of the coordinate.
+         */
+        public int getPixel(int frame, int layer, int x, int y) {
+            
+            return cpuColors[frame * coherence.layerDist * coherence.depth + layer * coherence.layerDist + x * coherence.colDist + y];
+        }
+    }
 
     /**
-     * An array of integers where each value represents a color for a
-     * colum-major corresponding orientation.
+     * Gets an object describing the colors of the orientations.
      *
-     * @param single true to map colors to single values, and false to map them to color triplets.
-     * @return a column major array of colors. The first 3 elements are the RGB
-     * values for the first color, etc...
+     * @return
      */
-    public IArray getRGBs(boolean single) {
-
-        setVecs0ToPi();
-        setCoherence(orientation.dArray());
-        setOrientations().dArray().multiply(handle, 2, 1);
-        IArray colors = IArray.empty(orientation.size()*(single?1:3));
-
-        KernelManager.get(single?"colorSingle":"colorTriplet").map(
-                handle, 
-                orientation.size(),
-                orientation.dArray(), 
-                IArray.cpuPoint(1),
-                colors.pToP(),
-                coherence.dArray().pToP(),
-                IArray.cpuPoint(1)
-        );
-
-        orientation.dArray().multiply(handle, 0.5, 1);
-        return colors;
-
+    public RGB getRGB() {
+        return new RGB();
     }
 
     /**

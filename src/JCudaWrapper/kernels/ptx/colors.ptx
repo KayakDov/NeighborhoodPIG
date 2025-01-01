@@ -10,16 +10,16 @@
 .target sm_52
 .address_size 64
 
-	// .globl	colorSingleKernel
+	// .globl	colorsKernel
 
-.visible .entry colorSingleKernel(
-	.param .u32 colorSingleKernel_param_0,
-	.param .u64 colorSingleKernel_param_1,
-	.param .u32 colorSingleKernel_param_2,
-	.param .u64 colorSingleKernel_param_3,
-	.param .u32 colorSingleKernel_param_4,
-	.param .u64 colorSingleKernel_param_5,
-	.param .u32 colorSingleKernel_param_6
+.visible .entry colorsKernel(
+	.param .u32 colorsKernel_param_0,
+	.param .u64 colorsKernel_param_1,
+	.param .u32 colorsKernel_param_2,
+	.param .u64 colorsKernel_param_3,
+	.param .u32 colorsKernel_param_4,
+	.param .u64 colorsKernel_param_5,
+	.param .u32 colorsKernel_param_6
 )
 {
 	.reg .pred 	%p<27>;
@@ -28,13 +28,13 @@
 	.reg .b64 	%rd<13>;
 
 
-	ld.param.u32 	%r23, [colorSingleKernel_param_0];
-	ld.param.u64 	%rd2, [colorSingleKernel_param_1];
-	ld.param.u32 	%r20, [colorSingleKernel_param_2];
-	ld.param.u64 	%rd3, [colorSingleKernel_param_3];
-	ld.param.u32 	%r21, [colorSingleKernel_param_4];
-	ld.param.u64 	%rd4, [colorSingleKernel_param_5];
-	ld.param.u32 	%r22, [colorSingleKernel_param_6];
+	ld.param.u32 	%r23, [colorsKernel_param_0];
+	ld.param.u64 	%rd2, [colorsKernel_param_1];
+	ld.param.u32 	%r20, [colorsKernel_param_2];
+	ld.param.u64 	%rd3, [colorsKernel_param_3];
+	ld.param.u32 	%r21, [colorsKernel_param_4];
+	ld.param.u64 	%rd4, [colorsKernel_param_5];
+	ld.param.u32 	%r22, [colorsKernel_param_6];
 	mov.u32 	%r24, %ntid.x;
 	mov.u32 	%r25, %ctaid.x;
 	mov.u32 	%r26, %tid.x;

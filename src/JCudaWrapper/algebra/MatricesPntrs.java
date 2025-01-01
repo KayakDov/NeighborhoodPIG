@@ -8,7 +8,8 @@ import org.apache.commons.math3.exception.DimensionMismatchException;
 import JCudaWrapper.resourceManagement.Handle;
 import JCudaWrapper.array.DPointerArray;
 import JCudaWrapper.array.IArray;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
 
 /**
  * A class representing a batch of matrices stored in GPU memory, allowing
@@ -368,12 +369,13 @@ public class MatricesPntrs implements AutoCloseable {
      * @param down The distance to shift them down.
      */
     public void shiftPointers(Handle handle, int right, int down) {
-        KernelManager.get("pointerShift").map(
+        Kernel.run("pointerShift",
                 handle,
-                arrays, 1,
-                arrays, 1,
                 arrays.length,
-                down + right * colDist
+                arrays, P.to(1),
+                P.to(arrays), 
+                P.to(1),
+                P.to(down + right * colDist)                
         );
     }
 

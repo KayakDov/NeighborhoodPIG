@@ -86,15 +86,10 @@ public class FijiPlugin implements PlugIn {
      * @param tol The tolerance.
      * @return true if the parameters are valid, false otherwise.
      */
-    private static boolean validParamaters(int nRad, double tol) {
+    private static boolean validParamaters(int nRad) {
 
         if (nRad <= 0) {
             ij.IJ.showMessage("Neighborhood size must be a positive number.");
-            return false;
-        }
-
-        if (tol < 0) {
-            ij.IJ.showMessage("Tolerance must be non-negative.");
             return false;
         }
 
@@ -109,26 +104,25 @@ public class FijiPlugin implements PlugIn {
         if (!validImage(imp)) return;
 
         int defaultNeighborhoodRadius = 3;
-        double defaultTolerance = 1e-10;
+        double defaultTolerance = 1e-11;
 
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
-        gd.addNumericField("Neighborhood raqdius:", defaultNeighborhoodRadius, 0);
-        gd.addNumericField("Tolerance:", defaultTolerance, 2);
+        gd.addNumericField("Neighborhood radius:", defaultNeighborhoodRadius, 0);        
         gd.showDialog();
 
         if (gd.wasCanceled()) return;
 
-        int neighborhoodSize = (int) gd.getNextNumber();
-        double tolerance = gd.getNextNumber();
+        int neighborhoodSize = (int) gd.getNextNumber();        
 
-        if (!validParamaters(neighborhoodSize, tolerance)) return;
+        if (!validParamaters(neighborhoodSize)) return;
 
-        NeighborhoodPIG np = new NeighborhoodPIG(imp, neighborhoodSize, tolerance);
+        NeighborhoodPIG np = new NeighborhoodPIG(imp, neighborhoodSize, defaultTolerance);
 
         np.fijiDisplayOrientationHeatmap();
 
         ij.IJ.showMessage("NeighborhoodPIG processing complete.");
     }
+    
 
     public static void main(String[] args) {
 
@@ -136,11 +130,12 @@ public class FijiPlugin implements PlugIn {
 //        String imagePath = "images/input/debug.jpeg";
         ImagePlus imp = loadImageAsStack(imagePath);
 
-        int neighborhoodSize = 3; // Default neighborhood radius
-        double tolerance = 1e-9; // Default tolerance
+        int neighborhoodSize = 10; // Default neighborhood radius
+        double tolerance = 1e-10; // Default tolerance
 
         NeighborhoodPIG np = new NeighborhoodPIG(imp, neighborhoodSize, tolerance);
 
+//        np.orientationColored("images/output/test2.jpeg");
         np.fijiDisplayOrientationHeatmap();
 
         np.close();

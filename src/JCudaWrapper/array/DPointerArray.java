@@ -35,7 +35,8 @@ public class DPointerArray extends Array {
      * @param lengthOfArrays The length of the arrays.
      * @param numberOfArrays The number of arrays stored in this array. The
      * length of this array of arrays.
-     * @param dealocateOnCLose dealocate the memory when this object is closed or no longer accessible.
+     * @param dealocateOnCLose dealocate the memory when this object is closed
+     * or no longer accessible.
      */
     private DPointerArray(CUdeviceptr p, int lengthOfArrays, int numberOfArrays, boolean dealocateOnCLose) {
         super(p, numberOfArrays, PrimitiveType.POINTER);
@@ -195,10 +196,10 @@ public class DPointerArray extends Array {
                 DArray.transpose(transA),
                 DArray.transpose(transB),
                 aRows, bCols, aColsBRows, // Number of columns of A / rows of B
-DArray.cpuPoint(timesAB),
+                P.to(timesAB),
                 A.pointer, lda, // Leading dimension of A
                 B.pointer, ldb, // Leading dimension of B
-DArray.cpuPoint(timesResult), pointer, ldResult, // Leading dimension of result matrices
+                P.to(timesResult), pointer, ldResult, // Leading dimension of result matrices
                 batchCount // Number of matrices to multiply
         );
     }
@@ -228,7 +229,6 @@ DArray.cpuPoint(timesResult), pointer, ldResult, // Leading dimension of result 
         }
 
     }
-
 
     /**
      * Performs batched eigenvector computation for symmetric matrices.
@@ -344,7 +344,7 @@ DArray.cpuPoint(timesResult), pointer, ldResult, // Leading dimension of result 
         checkPositive(colsAndRowsA, colsB, ldThis, ldb);
 
         int success = JCublas2.cublasDgetrsBatched(
-                handle.get(), 
+                handle.get(),
                 DArray.transpose(transposeA),
                 colsAndRowsA, colsB,
                 pointer, ldThis,
@@ -358,7 +358,6 @@ DArray.cpuPoint(timesResult), pointer, ldResult, // Leading dimension of result 
                     "solveWithLUFactorizationBatched didn't work. Here's the info array: " + info.toString());
         }
     }
-
 
     /**
      * Solves a symmetric positive definite system of linear equations A * x =
@@ -436,8 +435,7 @@ DArray.cpuPoint(timesResult), pointer, ldResult, // Leading dimension of result 
         int rows = 2, cols = 2;
 
         try (
-                Handle handle = new Handle();
-                IArray pivot = IArray.empty(2);
+                Handle handle = new Handle(); IArray pivot = IArray.empty(2);
                 IArray info = IArray.empty(1);
                 DArray array = new DArray(handle, 1, 2, -1, 2);
                 DPointerArray a2d = new DPointerArray(handle, new DArray[]{array});
@@ -447,46 +445,37 @@ DArray.cpuPoint(timesResult), pointer, ldResult, // Leading dimension of result 
             a2d.luFactor(handle, rows, cols, pivot, info);
             a2d.solveWithLUFactored(handle, false, rows, 1, rows, rows, pivot,
                     b2d, info);
-            
+
             System.out.println(a2d);
             System.out.println(b2d);
 
         }
     }
-    
+
     /**
      * Fills this arrays with pointers to the given array.
+     *
      * @param handle
      * @param source The array pointed to,
      * @param inc The distance between the pointer targets.
      * @return this
      */
-    public DPointerArray fill(Handle handle, DArray source, int inc){
-        KernelManager.get("genPtrs").map(handle, length, 
-                source, inc, 
-                this, 1);
+    public DPointerArray fill(Handle handle, DArray source, int inc) {
+        Kernel.run("genPtrs", handle, length, source, P.to(inc), P.to(this), P.to(1));
         return this;
     }
-    
-    
+
     /**
      * Fills this arrays with pointers to the given array.
+     *
      * @param handle
      * @param source The array pointed to,
      * @return this
      */
-    public DPointerArray fill(Handle handle, DStrideArray source){
-       return fill(handle, source, source.stride);
+    public DPointerArray fill(Handle handle, DStrideArray source) {
+        return fill(handle, source, source.stride);
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     public static void main(String[] args) {
         testLuFactorAndSolve();
     }

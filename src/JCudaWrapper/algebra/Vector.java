@@ -31,7 +31,7 @@ public class Vector extends Matrix {
      * @param handle The JCublas handle for GPU operations.
      */
     public Vector(Handle handle, DArray data, int inc) {
-        super(handle, data, 1, Math.ceilDiv(data.length, inc), inc);
+        super(handle, data, 1, (int)Math.ceil(data.length / inc), inc);
     }
 
     /**
@@ -82,7 +82,7 @@ public class Vector extends Matrix {
      * @return The dimension of the vector. The number of elements in it.
      */
     public int dim() {
-        return inc() == 0 ? 1 : Math.ceilDiv(data.length, inc());
+        return inc() == 0 ? 1 : (int)Math.ceil(data.length/ inc());
     }
 
     /**

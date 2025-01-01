@@ -1,14 +1,12 @@
 package fijiPlugin;
 
-import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.algebra.Vector;
-import JCudaWrapper.algebra.VectorsStride;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.IArray;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
-import java.awt.image.Kernel;
 
 /**
  * This class implements element-by-element multiplication (EBEM) for
@@ -27,7 +25,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
     private final TensorOrd3Stride workSpace1, workSpace2;
     private final int nRad, height, width, depth, batchSize;
     private Handle hand;
-    private KernelManager nSum;
+    private Kernel nSum;
 
     /**
      * Constructs a {@code NeighborhoodProductSums} instance to compute the sum
@@ -54,7 +52,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
         workSpace2 = new TensorOrd3Stride(handle, height, width, depth, batchSize);
         workSpace1 = new TensorOrd3Stride(handle, height, width, depth, batchSize);
 
-        nSum = KernelManager.get("neighborhoodSum3d");
+        nSum = new Kernel("neighborhoodSum3d");
     }
 
     /**
@@ -70,13 +68,13 @@ public class NeighborhoodProductSums implements AutoCloseable {
         nSum.map(hand,
                 n,
                 from,
-                to.pToP(),
-                IArray.cpuPoint(height),
-                IArray.cpuPoint(width),
-                IArray.cpuPoint(depth),
-                IArray.cpuPoint(toInc),
-                IArray.cpuPoint(nRad),
-                IArray.cpuPoint(dir)
+                P.to(to),
+                P.to(height),
+                P.to(width),
+                P.to(depth),
+                P.to(toInc),
+                P.to(nRad),
+                P.to(dir)
         );
     }
 
@@ -115,5 +113,6 @@ public class NeighborhoodProductSums implements AutoCloseable {
 
         workSpace1.close();
         workSpace2.close();
+        nSum.close();
     }
 }

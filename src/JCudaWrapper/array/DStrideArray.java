@@ -8,9 +8,7 @@ import jcuda.jcusolver.cusolverEigMode;
 import jcuda.jcusolver.gesvdjInfo;
 import JCudaWrapper.resourceManagement.Handle;
 import static JCudaWrapper.array.Array.checkPositive;
-import jcuda.driver.JCudaDriver;
 import jcuda.runtime.cudaError;
-import static JCudaWrapper.array.DArray.cpuPoint;
 import jcuda.jcusolver.syevjInfo;
 
 /**
@@ -208,10 +206,10 @@ public class DStrideArray extends DArray {
         int result = JCublas2.cublasDgemmStridedBatched(handle.get(),
                 DArray.transpose(transA), DArray.transpose(transB),
                 aRows, bCols, aColsBRows,
-                cpuPoint(timesAB),
+                P.to(timesAB),
                 matA.pointer, lda, matA.stride,
                 matB.pointer, ldb, matB.stride,
-                cpuPoint(timesResult), pointer, ldResult, stride,
+                P.to(timesResult), pointer, ldResult, stride,
                 batchCount()
         );
         if(result != cudaError.cudaSuccess)

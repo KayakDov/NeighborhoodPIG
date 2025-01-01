@@ -1,6 +1,5 @@
 package JCudaWrapper.resourceManagement;
 
-import java.lang.ref.Cleaner;
 import jcuda.driver.CUstream;
 import jcuda.driver.CUstream_flags;
 import jcuda.driver.JCudaDriver;
@@ -38,18 +37,6 @@ import jcuda.runtime.cudaStream_t;
 public class Handle implements AutoCloseable {
 
     /**
-     * Cleanable resource for the CUBLAS handle, used to ensure the handle is
-     * destroyed when no longer needed.
-     */
-    private final Cleaner.Cleanable cleanableHandle;
-
-    /**
-     * Cleanable resource for the CUDA stream, used to ensure the stream is
-     * destroyed when no longer needed.
-     */
-    private final Cleaner.Cleanable cleanableStream;
-
-    /**
      * The CUBLAS handle for managing CUBLAS operations.
      */
     private cublasHandle handle;
@@ -60,7 +47,6 @@ public class Handle implements AutoCloseable {
     private cudaStream_t stream;
 
     private CUstream cuStream;
-    private Cleaner.Cleanable cleanableCUStream;
 
     /**
      * Constructs a new {@code Handle}, creating a CUBLAS handle and associating
@@ -78,10 +64,6 @@ public class Handle implements AutoCloseable {
 
         // Associate the CUBLAS handle with the CUDA stream
         JCublas2.cublasSetStream(handle, stream);
-
-        // Register the handle and stream for cleanup using a cleaner
-        cleanableHandle = ResourceDealocator.register(this, hand -> JCublas2.cublasDestroy(hand), handle);
-        cleanableStream = ResourceDealocator.register(this, str -> JCuda.cudaStreamDestroy(str), stream);
     }
 
     /**
@@ -119,8 +101,6 @@ public class Handle implements AutoCloseable {
         if (cuStream != null) JCudaDriver.cuStreamSynchronize(cuStream);
     }
 
-    private Cleaner.Cleanable cleanableSolverHandle;
-
     /**
      * The cuSolver handle for managing cuSolver operations.
      */
@@ -136,9 +116,7 @@ public class Handle implements AutoCloseable {
         if (solverHandle == null) {
             solverHandle = new cusolverDnHandle();
             JCusolverDn.cusolverDnCreate(solverHandle);
-            JCusolverDn.cusolverDnSetStream(solverHandle, stream);
-            cleanableSolverHandle = ResourceDealocator.register(this,
-                    hand -> JCusolverDn.cusolverDnDestroy(hand), solverHandle);
+            JCusolverDn.cusolverDnSetStream(solverHandle, stream);            
 
         }
         return solverHandle;
@@ -154,9 +132,7 @@ public class Handle implements AutoCloseable {
     public CUstream cuStream() {
         if (cuStream == null) {
             cuStream = new CUstream();
-            JCudaDriver.cuStreamCreate(cuStream, CUstream_flags.CU_STREAM_DEFAULT);
-            cleanableCUStream = ResourceDealocator.register(this,
-                    cuStream -> JCudaDriver.cuStreamDestroy(cuStream), cuStream);
+            JCudaDriver.cuStreamCreate(cuStream, CUstream_flags.CU_STREAM_DEFAULT);            
         }
         
         JCuda.cudaStreamSynchronize(stream);
@@ -174,12 +150,12 @@ public class Handle implements AutoCloseable {
     @Override
     public void close() {
         synch();
-        cleanableHandle.clean();  // Clean up the CUBLAS handle
-        cleanableStream.clean();  // Clean up the CUDA stream
+        JCublas2.cublasDestroy(handle);
+        JCuda.cudaStreamDestroy(stream);
         isOpen = false;
 
-        if (solverHandle != null) cleanableSolverHandle.clean();
-        if (cuStream != null) cleanableCUStream.clean();
+        if (solverHandle != null) JCusolverDn.cusolverDnDestroy(solverHandle);
+        if (cuStream != null) JCudaDriver.cuStreamDestroy(cuStream);
 
     }
 }

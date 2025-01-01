@@ -4,7 +4,8 @@ import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.Vector;
 import JCudaWrapper.algebra.VectorsStride;
 import JCudaWrapper.array.IArray;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
 
 /**
@@ -66,22 +67,24 @@ public class NeighborhoodProductSums implements AutoCloseable {
                         new Vector(hand, b.dArray(), 1)
                 );
 
-        KernelManager.get("neighborhoodSum").map(hand, height,//TODO: run these in a single kernel instead of two to reduce kernel calls.
+        Kernel.run("neighborhoodSum", hand, 
+                height,//TODO: run these in a single kernel instead of two to reduce kernel calls.
                 ebeStorage.dArray(),
-                width,
-                sumLocalRowElements.dArray(),
-                1,
-                IArray.cpuTrue(),
-                IArray.cpuPoint(nRad)
+                P.to(width),
+                P.to(sumLocalRowElements.dArray()),
+                P.to(1),
+                P.to(true),
+                P.to(nRad)
         );
 
-        KernelManager.get("neighborhoodSum").map(hand, width,
+        Kernel.run("neighborhoodSum", hand, 
+                width,
                 sumLocalRowElements.dArray(),
-                height,
-                result.dArray(),
-                result.inc(),
-                IArray.cpuFalse(),
-                IArray.cpuPoint(nRad)
+                P.to(height),
+                P.to(result.dArray()),
+                P.to(result.inc()),
+                P.to(false),
+                P.to(nRad)
         );
 //       Uses library methods instead of kernel.  The library methods are thought to be slower on account of repeated calls to the gpu. 
 //        sumLocalRowElementsEdge();

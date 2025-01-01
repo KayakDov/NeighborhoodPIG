@@ -5,7 +5,8 @@ import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.DStrideArray;
 import JCudaWrapper.array.DPointerArray;
 import JCudaWrapper.array.IArray;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
 import java.util.Arrays;
 import org.apache.commons.math3.exception.DimensionMismatchException;
 import JCudaWrapper.resourceManagement.Handle;
@@ -63,7 +64,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
      * @param batchSize The number of matrices in this batch.
      */
     public MatricesStride(Handle handle, DArray data, int height, int width, int colDist, int strideSize, int batchSize) {
-        super(handle, height, width, 1, colDist, height*width, strideSize, batchSize, data);
+        super(handle, height, width, 1, colDist, height * width, strideSize, batchSize, data);
     }
 
     /**
@@ -176,9 +177,18 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
      * @throws DimensionMismatchException if the dimensions of matrices
      * {@code a} and {@code b} are incompatible for multiplication.
      */
-    public MatricesStride multiply(Vector scalars) {
+    public MatricesStride multiply(Vector scalars) {//int n, double *scalars, int inc, double *to, int height, int width, int colDist, int stride
 
-        KernelManager.get("prodScalarMatrixBatch").vectorBatchMatrix(handle, scalars, this);
+        Kernel.run("prodScalarMatrixBatch", handle,
+                batchSize * height * width, 
+                scalars.data,
+                P.to(scalars.inc()),
+                P.to(data),
+                P.to(height),
+                P.to(width),
+                P.to(colDist),
+                P.to(strideSize)
+        );
 
         return this;
     }
@@ -220,7 +230,13 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
 
         eVal[0].ebeSetProduct(trace, trace).add(-4, eVal[1]);//=(d + a)^2 - 4(ad - c^2)
 
-        KernelManager.get("sqrt").mapToSelf(handle, eVal[0]);//sqrt((d + a)^2 - 4(ad - c^2))
+        Kernel.run("sqrt", handle,
+                eVal[0].dim(),
+                eVal[0].data,
+                P.to(eVal[0].inc()),
+                P.to(data),
+                P.to(eVal[0].inc())
+        );//sqrt((d + a)^2 - 4(ad - c^2))
 
         eVal[1].set(trace);
         eVal[1].add(-1, eVal[0]);
@@ -249,9 +265,9 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
             throw new IllegalArgumentException("computeVals3x3 can only be called on a 3x3 matrix.  These matrices are " + height + "x" + width);
 
         VectorsStride vals = new VectorsStride(handle, height, getBatchSize(), height, 1);
-        
-        KernelManager.get("eigenValsBatch").map(handle, batchSize, dArray(), vals.dArray().pToP(), DArray.cpuPoint(tolerance));
-        
+
+        Kernel.run("eigenValsBatch", handle, batchSize, dArray(), P.to(vals), P.to(tolerance));
+
         return vals;
 //        Vector[] work = workSpace.parition(3);
 //
@@ -365,40 +381,42 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
      * @param roots An array of Vectors where the roots will be stored.
      */
     private static void cubicRoots(Vector b, Vector c, Vector d, VectorsStride roots) {
-        KernelManager cos = KernelManager.get("cos"),
-                acos = KernelManager.get("acos"),
-                sqrt = KernelManager.get("sqrt");
+        try (Kernel cos = new Kernel("cos"); Kernel acos = new Kernel("acos");
+                Kernel sqrt = new Kernel("sqrt")) {
 
-        Vector[] root = roots.vecPartition();
+            Vector[] root = roots.vecPartition();
 
-        Vector q = root[0];
-        q.ebeSetProduct(b, b);
-        q.addEbeProduct(2.0 / 27, q, b, 0);
-        q.addEbeProduct(-1.0 / 3, b, c, 1);
-        q.add(1, d);
+            Vector q = root[0];
+            q.ebeSetProduct(b, b);
+            q.addEbeProduct(2.0 / 27, q, b, 0);
+            q.addEbeProduct(-1.0 / 3, b, c, 1);
+            q.add(1, d);
 
-        Vector p = d;
-        p.addEbeProduct(1.0 / 9, b, b, 0);
-        p.add(-1.0 / 3, c); //This is actually p/-3 from wikipedia.
+            Vector p = d;
+            p.addEbeProduct(1.0 / 9, b, b, 0);
+            p.add(-1.0 / 3, c); //This is actually p/-3 from wikipedia.
 
-        //c is free for now.  
-        Vector theta = c;
-        Vector pInverse = root[1].fill(1).ebeDivide(p); //c is now taken               
-        sqrt.map(b.getHandle(), pInverse, theta);
+            //c is free for now.  
+            Vector theta = c;
+            Vector pInverse = root[1].fill(1).ebeDivide(p); //c is now taken               
+            sqrt.map(b.getHandle(), pInverse.dim(), pInverse.data, P.to(pInverse.inc()), P.to(theta), P.to(theta.inc()));
 
-        theta.addEbeProduct(-0.5, q, theta, 0);//root[0] is now free (all roots).
-        theta.ebeSetProduct(theta, pInverse); //c is now free.
-        acos.mapToSelf(b.getHandle(), theta);
+            theta.addEbeProduct(-0.5, q, theta, 0);//root[0] is now free (all roots).
+            theta.ebeSetProduct(theta, pInverse); //c is now free.
+            acos.map(b.getHandle(), theta.dim(), theta.dArray(), 
+                    P.to(theta.inc()), P.to(theta), P.to(theta.inc()));
 
-        for (int k = 0; k < 3; k++) root[k].set(theta).add(-2 * Math.PI * k);
+            for (int k = 0; k < 3; k++)
+                root[k].set(theta).add(-2 * Math.PI * k);
 
-        roots.data.multiply(b.getHandle(), 1.0 / 3, 1);
-        cos.mapToSelf(b.getHandle(), roots.data);
+            roots.data.multiply(b.getHandle(), 1.0 / 3, 1);
+            cos.map(b.getHandle(), roots.data.length, roots.data, P.to(1), P.to(roots.data), P.to(1));
 
-        sqrt.mapToSelf(b.getHandle(), p);
-        for (Vector r : root) {
-            r.addEbeProduct(2, p, r, 0);
-            r.add(-1.0 / 3, b);
+            sqrt.map(b.getHandle(), p.dim(), p.data, P.to(p.inc()), P.to(p), P.to(p.inc()));
+            for (Vector r : root) {
+                r.addEbeProduct(2, p, r, 0);
+                r.add(-1.0 / 3, b);
+            }
         }
     }
 
@@ -479,7 +497,8 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
      * it here!
      *
      * @param eValues The eigenvalues, organized by sets per matrix.
-     * @param workSpaceDArray Should have width * as many elements as there are in this.
+     * @param workSpaceDArray Should have width * as many elements as there are
+     * in this.
      * @param workSpaceIArray Should be of length batch size.
      * @param tolerance What is considered 0
      * @return The eigenvectors.
@@ -488,39 +507,41 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
     public MatricesStride computeVecs(VectorsStride eValues, DArray workSpaceDArray, IArray workSpaceIArray, double tolerance) {
 
         MatricesStride eVectors = copyDimensions(DArray.empty(data.length));
-    
-        
-        
-        KernelManager.get("eigenVecBatch").map(handle, 
-                eValues.dim()*eValues.batchSize,                
+
+        Kernel.run("eigenVecBatch", handle,
+                eValues.dim() * eValues.batchSize,
                 data,
-                IArray.cpuPoint(height),
-                eVectors.dArray().pToP(),
-                IArray.cpuPoint(eVectors.width),
-                eValues.dArray().pToP(),
-                workSpaceDArray.pToP(),
-                workSpaceIArray.pToP(),
-                DArray.cpuPoint(tolerance)
+                P.to(height),
+                P.to(eVectors),
+                P.to(eVectors.width),
+                P.to(eValues),
+                P.to(workSpaceDArray),
+                P.to(workSpaceIArray),
+                P.to(tolerance)
         );
         return eVectors;
     }
-        /**
+
+    /**
      * Computes the eigenvector for an eigenvalue. The matrices must be
      * symmetric positive definite. TODO: If any extra memory is available, pass
      * it here!
      *
      * @param eValues The eigenvalues, organized by sets per matrix.
-     * @param workSpaceArray Should have 3* as many elements as there are in this.
+     * @param workSpaceArray Should have 3* as many elements as there are in
+     * this.
      * @param tolerance What is considered 0
      * @return The eigenvectors.
      *
-     */        /**
+     */
+    /**
      * Computes the eigenvector for an eigenvalue. The matrices must be
      * symmetric positive definite. TODO: If any extra memory is available, pass
      * it here!
      *
      * @param eValues The eigenvalues, organized by sets per matrix.
-     * @param workSpaceArray Should have 3* as many elements as there are in this.
+     * @param workSpaceArray Should have 3* as many elements as there are in
+     * this.
      * @param tolerance What is considered 0
      * @return The eigenvectors.
      *
@@ -528,18 +549,18 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
     public MatricesStride computeVecs3x3(VectorsStride eValues, DArray workSpaceArray, double tolerance) {
 
         MatricesStride eVectors = copyDimensions(DArray.empty(data.length));
-        
-        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVecs3x3() " + batchSize*3);
-        
-        KernelManager.get("eigenVecBatch3x3").map(handle,
-                batchSize*3,
+
+        System.out.println("JCudaWrapper.algebra.MatricesStride.computeVecs3x3() " + batchSize * 3);
+
+        Kernel.run("eigenVecBatch3x3", handle,
+                batchSize * 3,
                 data,
-                IArray.cpuPoint(colDist),
-                eVectors.dArray().pToP(),
-                IArray.cpuPoint(eVectors.colDist),
-                eValues.dArray().pToP(),
-                workSpaceArray.pToP(),
-                DArray.cpuPoint(tolerance)
+                P.to(colDist),
+                P.to(eVectors),
+                P.to(eVectors.colDist),
+                P.to(eValues),
+                P.to(workSpaceArray),
+                P.to(tolerance)
         );
 
         return eVectors;
@@ -555,13 +576,15 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
     private void computeVec(Vector eValue, VectorsStride eVector, double tolerance) {
 
         for (int i = 0; i < height; i++) matIndices(i, i).add(-1, eValue);
-        
-        KernelManager.get("nullSpace1dBatch").map(handle, 
+
+        Kernel.run("nullSpace1dBatch", handle,
                 getBatchSize(),
-                data, colDist,
-                eVector.data, eVector.getStrideSize(),
-                IArray.cpuPoint(width), 
-                DArray.cpuPoint(tolerance)
+                data, 
+                P.to(colDist),
+                P.to(eVector), 
+                P.to(eVector.getStrideSize()),
+                P.to(width),
+                P.to(tolerance)
         );
 
     }
@@ -788,7 +811,6 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
         }
         return this;
     }
-
 
     /**
      * The handle used for this's operations.

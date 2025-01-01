@@ -89,30 +89,6 @@ public class IArray extends Array {
         return toCPUArray;
     }
 
-    /**
-     * A pointer to a singleton array containing d.
-     *
-     * @param d A double that needs a pointer.
-     * @return A pointer to a singleton array containing d.
-     */
-    public static Pointer cpuPoint(int d) {
-        return Pointer.to(new int[]{d});
-    }
-    
-    /**
-     * Points to a true value.
-     * @return A pointer to true;
-     */
-    public static Pointer cpuTrue(){
-        return cpuPoint(1);
-    }
-    /**
-     * Points to a false value.
-     * @return A pointer to false.
-     */
-    public static Pointer cpuFalse(){
-        return cpuPoint(0);
-    }
 
     @Override
     public String toString() {
