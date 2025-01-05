@@ -6,13 +6,10 @@ import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.algebra.Vector;
-import JCudaWrapper.array.ByteArray;
 import JCudaWrapper.array.DArray;
-import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
-import java.util.Arrays;
 
 /**
  *
@@ -30,7 +27,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     private final MatricesStride strctTensors;
 
     private final Eigen eigen;
-    private final TensorOrd3Stride orientation, coherence;
+    private final TensorOrd3Stride orientationXY, orientationYZ, coherence;
     private Handle handle;
 
     /**
@@ -64,8 +61,13 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
         eigen = new Eigen(strctTensors, tolerance);
 
-        orientation = grad.x().emptyCopyDimensions();
+        orientationXY = grad.x().emptyCopyDimensions();
+        orientationYZ = grad.x().emptyCopyDimensions();
         coherence = grad.x().emptyCopyDimensions();
+        
+        setVecs0ToPi();
+        setCoherence(orientationXY.dArray());
+        setOrientations();
     }
 
     /**
@@ -86,14 +88,14 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      *
      * @return The eigenvectors.
      */
-    public MatricesStride setVecs0ToPi() {
+    public final MatricesStride setVecs0ToPi() {
         MatricesStride eVecs = eigen.vectors;
         Kernel.run("vecToNematic", handle,
                 eVecs.getBatchSize() * eVecs.width,
-                eVecs.dArray(), 
+                eVecs.dArray(),
                 P.to(eVecs.colDist),
                 P.to(eVecs),
-                P.to(eVecs.colDist)                
+                P.to(eVecs.colDist)
         );
         return eVecs;
     }
@@ -103,15 +105,21 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      *
      * @return The orientation matrix.
      */
-    public TensorOrd3Stride setOrientations() {
-        Kernel.run("atan2", handle, 
-                orientation.dArray().length,
-                eigen.vectors.dArray(), 
+    public final void setOrientations() {
+        Kernel.run("atan2", handle,
+                orientationXY.dArray().length,
+                eigen.vectors.dArray(),
                 P.to(eigen.vectors.getStrideSize()),
-                P.to(orientation), 
+                P.to(orientationXY),
                 P.to(1)
         );
-        return orientation;
+        Kernel.run("atan2", handle,
+                orientationXY.dArray().length,
+                eigen.vectors.dArray().subArray(1),
+                P.to(eigen.vectors.getStrideSize()),
+                P.to(orientationYZ),
+                P.to(1)
+        );
     }
 
     /**
@@ -120,10 +128,12 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * @param workSpace Should be the size of the image.
      * @return The coherence matrix.
      */
-    public TensorOrd3Stride setCoherence(DArray workSpace) {
+    public final TensorOrd3Stride setCoherence(DArray workSpace) {
         Vector[] l = eigen.values.vecPartition();
         Vector denom = new Vector(handle, workSpace, 1)
-                .setSum(1, l[0], 1, l[1]);
+                .setSum(1, l[0], 1, l[1])
+                .add(1, l[2]);
+        
         Vector coherenceVec = new Vector(handle, coherence.dArray(), 1)
                 .setSum(1, l[0], -1, l[1])
                 .ebeDivide(denom);
@@ -145,62 +155,20 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      *
      * @return Thew matrix of orientations.
      */
-    public TensorOrd3Stride getOrientations() {
-        return orientation;
+    public TensorOrd3Stride getOrientationXY() {
+        return orientationXY;
     }
-
-    public class RGB {
-
-        private final int[] cpuColors;
-
-        /**
-         * An array of integers where each value represents a color for a
-         * column-major corresponding orientation.
-         */
-        public RGB() {
-            setVecs0ToPi();
-            setCoherence(orientation.dArray());
-            setOrientations().dArray().multiply(handle, 2, 1);
-            try (IArray gpuColors = IArray.empty(orientation.dArray().length)) {
-
-                Kernel.run("colors", handle,
-                        orientation.size(),
-                        orientation.dArray(),
-                        P.to(1),
-                        P.to(gpuColors),
-                        P.to(1),
-                        P.to(coherence),
-                        P.to(1)
-                );
-                cpuColors = gpuColors.get(handle);
-            }
-
-            orientation.dArray().multiply(handle, 0.5, 1);
-        }
-  
-
-        /**
-         * The colors at a specific coordinate.
-         *
-         * @param frame The frame of the coordinate.
-         * @param layer The layer of the coordinate.
-         * @param x The x value of the coordinate.
-         * @param y The y value of the coordinate.
-         */
-        public int getPixel(int frame, int layer, int x, int y) {
-            
-            return cpuColors[frame * coherence.layerDist * coherence.depth + layer * coherence.layerDist + x * coherence.colDist + y];
-        }
-    }
-
+    
     /**
-     * Gets an object describing the colors of the orientations.
+     * Gets the matrix of orientations.
      *
-     * @return
+     * @return Thew matrix of orientations.
      */
-    public RGB getRGB() {
-        return new RGB();
+    public TensorOrd3Stride getOrientationYZ() {
+        return orientationYZ;
     }
+
+    
 
     /**
      * {@inheritDoc}
@@ -209,13 +177,14 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     public void close() {
         strctTensors.close();
         eigen.close();
-        orientation.close();
+        orientationXY.close();
+        orientationYZ.close();
         coherence.close();
     }
 
     @Override
     public int getColDist() {
-        return orientation.colDist;
+        return orientationXY.colDist;
     }
 
     /**
@@ -225,6 +194,15 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      */
     public Eigen getEigen() {
         return eigen;
+    }
+
+    /**
+     * The data for the array of structure tensors.
+     * @return 
+     */
+    @Override
+    public DArray dArray() {
+        return strctTensors.dArray();
     }
 
 }

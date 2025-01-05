@@ -11,9 +11,8 @@ import JCudaWrapper.resourceManagement.Handle;
  *
  * @author Dov Neimand
  */
-public class TensorOrd3Stride implements AutoCloseable{
-
-    public final int height, width, depth, colDist, layerDist, strideSize, batchSize;
+public class TensorOrd3Stride extends TensorOrd3dStrideDim implements AutoCloseable, ColumnMajor {
+        
     protected final DStrideArray data;
     public Handle handle;
 
@@ -33,14 +32,8 @@ public class TensorOrd3Stride implements AutoCloseable{
      * @param data The underlying data.
      */
     public TensorOrd3Stride(Handle handle, int height, int width, int depth, int colDist, int layerDist, int strideSize, int batchSize, DArray data) {
-        this.height = height;
-        this.width = width;
-        this.depth = depth;
-        this.colDist = colDist;
-        this.layerDist = layerDist;
-        this.strideSize = strideSize;
-        this.batchSize = batchSize;
-        this.data = data.getAsBatch(strideSize, layerDist*(depth - 1) + colDist*(width-1) + height, batchSize);
+        super(height, width, depth, colDist, layerDist, strideSize, batchSize);
+        this.data = data.getAsBatch(strideSize, layerDist * (depth - 1) + colDist * (width - 1) + height, batchSize);
         this.handle = handle;
     }
 
@@ -57,7 +50,7 @@ public class TensorOrd3Stride implements AutoCloseable{
     public TensorOrd3Stride(Handle handle, int height, int width, int depth, int batchSize, DArray data) {
         this(handle, height, width, depth, height, height * width, height * width * depth, batchSize, data);
     }
-    
+
     /**
      * A set of order 3 tensors.
      *
@@ -68,21 +61,22 @@ public class TensorOrd3Stride implements AutoCloseable{
      * @param batchSize The number of tensors.
      */
     public TensorOrd3Stride(Handle handle, int height, int width, int depth, int batchSize) {
-        this(handle, height, width, depth, height, 
-                height * width, height * width * depth, batchSize, 
-                DArray.empty(height*width*depth*batchSize)
-                        .getAsBatch(height*width*depth, batchSize)
+        this(handle, height, width, depth, height,
+                height * width, height * width * depth, batchSize,
+                DArray.empty(height * width * depth * batchSize)
+                        .getAsBatch(height * width * depth, batchSize)
         );
     }
 
     /**
      * Copies the dimensions of this, but leaves the data empty.
+     *
      * @return An empty TensorOrd3Stride with the same dimensions as this.
      */
-    public TensorOrd3Stride emptyCopyDimensions(){
+    public TensorOrd3Stride emptyCopyDimensions() {
         return new TensorOrd3Stride(handle, height, width, depth, batchSize);
     }
-    
+
     /**
      * Finds the row of the column-major index.
      *
@@ -109,8 +103,7 @@ public class TensorOrd3Stride implements AutoCloseable{
     public int layerFromInd(int index) {
         return (index % strideSize) / layerDist;
     }
-    
-    
+
     /**
      * Finds the tensor of the column-major index.
      *
@@ -122,54 +115,56 @@ public class TensorOrd3Stride implements AutoCloseable{
 
     /**
      * A sequence of sets of consecutive slices orthogonal to depth.
+     *
      * @param firstLayerInd The index of the slices in each tensor.
      * @param numConsecutiveSlices The number of slices taken from each matrix.
      * @return A sequence of slices at the desired depth.
      */
-    public TensorOrd3Stride layerSequence(int firstLayerInd, int numConsecutiveSlices){
-        return new TensorOrd3Stride(handle, 
-                height, width, numConsecutiveSlices, 
-                colDist, layerDist, strideSize, 
-                batchSize, 
-                data.subArray(layerDist*firstLayerInd)
+    public TensorOrd3Stride layerSequence(int firstLayerInd, int numConsecutiveSlices) {
+        return new TensorOrd3Stride(handle,
+                height, width, numConsecutiveSlices,
+                colDist, layerDist, strideSize,
+                batchSize,
+                data.subArray(layerDist * firstLayerInd)
         );
     }
-    
-    
+
     /**
      * A sequence of sets of consecutive slices orthogonal to a row.
+     *
      * @param firstColInd The index of the slices in each tensor.
      * @param numConsecutiveSlices The number of slices in each set.
      * @return A sequence of slices at the desired column.
      */
-    public TensorOrd3Stride depthXColSequence(int firstColInd, int numConsecutiveSlices){
-        return new TensorOrd3Stride(handle, 
-                height, numConsecutiveSlices, depth, 
-                colDist, layerDist, strideSize, 
-                batchSize, 
-                data.subArray(colDist*firstColInd)
+    public TensorOrd3Stride depthXColSequence(int firstColInd, int numConsecutiveSlices) {
+        return new TensorOrd3Stride(handle,
+                height, numConsecutiveSlices, depth,
+                colDist, layerDist, strideSize,
+                batchSize,
+                data.subArray(colDist * firstColInd)
         );
     }
-    
+
     /**
      * A sequence of sets of sets of consecutive slices orthogonal to a column.
+     *
      * @param firstRowInd The index of the slices in each tensor.
      * @param numConsecutiveSlices The number of slices in each set.
      * @return A sequence of slices at the desired row.
      */
-    public TensorOrd3Stride rowXDepthSequence(int firstRowInd, int numConsecutiveSlices){
-        return new TensorOrd3Stride(handle, 
-                numConsecutiveSlices, width, depth, 
-                colDist, 
-                layerDist, 
-                strideSize, 
-                batchSize, 
+    public TensorOrd3Stride rowXDepthSequence(int firstRowInd, int numConsecutiveSlices) {
+        return new TensorOrd3Stride(handle,
+                numConsecutiveSlices, width, depth,
+                colDist,
+                layerDist,
+                strideSize,
+                batchSize,
                 data.subArray(firstRowInd)
         );
     }
-    
+
     /**
-     * Closes the underlying data. 
+     * Closes the underlying data.
      */
     @Override
     public void close() {
@@ -178,30 +173,33 @@ public class TensorOrd3Stride implements AutoCloseable{
 
     /**
      * The underlying data behind this object.
+     *
      * @return The underlying data behind this object.
      */
     public DStrideArray dArray() {
         return data;
     }
-    
+
     /**
      * The number of elements.
+     *
      * @return The number of elements.
      */
-    public int size(){
-        return height*width*depth*batchSize;
+    public int size() {
+        return height * width * depth * batchSize;
     }
 
     /**
      * Gets the tensor at the given index.
+     *
      * @param i The index of the desired tensor.
      * @return The tensor at the given index.
      */
-    public TensorOrd3 getTensor(int  i){
-        return new TensorOrd3(handle, 
+    public TensorOrd3 getTensor(int i) {
+        return new TensorOrd3(handle,
                 data.subArray(
-                        i*strideSize, 
-                        i*strideSize + layerDist*(depth - 1) + colDist*(width - 1) + height), 
+                        i * strideSize,
+                        i * strideSize + layerDist * (depth - 1) + colDist * (width - 1) + height),
                 height, width, depth, colDist, layerDist
         );
     }
@@ -209,10 +207,14 @@ public class TensorOrd3Stride implements AutoCloseable{
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        for(int i = 0; i < batchSize; i++)
+        for (int i = 0; i < batchSize; i++)
             sb.append(getTensor(i).toString()).append("\n");
         return sb.toString();
     }
-    
-    
+
+    @Override
+    public int getColDist() {
+        return colDist;
+    }
+
 }

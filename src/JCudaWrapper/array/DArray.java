@@ -1126,7 +1126,7 @@ public class DArray extends Array {
      * @return The number of times is can be done
      */
     private int n(int inc) {
-        return (int)Math.ceil(length/ inc);
+        return (int)Math.ceil((double)length/ inc);
     }
 
 //    public static void main(String[] args) {

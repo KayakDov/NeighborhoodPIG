@@ -76,9 +76,11 @@ public:
                (*this)(0, 2) * ((*this)(1, 0) * (*this)(2, 1) - (*this)(1, 1) * (*this)(2, 0));
     }
     
-    __device__ void printMatrix() const {
-        for (int i = 0; i < DIM; i++) {
-            for (int j = 0; j < DIM; j++) printf("%f ", (*this)(i, j));           
+    __device__ void print() const {
+        printf("matrix:\n");
+        for (int i = 0; i < DIM; i++){ 
+            for (int j = 0; j < DIM; j++)
+                printf("%f ", (*this)(i, j));           
             printf("\n");
         }
     }
@@ -96,28 +98,91 @@ __device__ static void sortDescending(double* values) {
     if(values[1] < values[2]) swap(values[1], values[2]);
 }
 
-//variable names and solutions with higher than 1 mulitplicity are taken from "Multiple x" at https://en.wikipedia.org/wiki/Cubic_equation trignometric solutions and aditional variable names are taken from https://www.scribd.com/document/355163848/Real-Roots-of-Cubic-Equation
-__device__ void cubicRoot(const double& b, const double& c, const double& d, const double tolerance, double* x){
+
+/**
+ * Represents a mathematical line defined by the equation y = ax + b,
+ * where 'a' is the slope and 'b' is the y-intercept.
+ * 
+ * This class provides methods to compute the y-value of the line for a given x-value
+ * and to map multiple x-values to their corresponding y-values.
+ */
+class Affine {
+private:
+    /**
+     * The slope of the line.
+     */
+    double a;
+
+    /**
+     * The y-intercept of the line.
+     */
+    double b;
+
+public:
+    /**
+     * Constructs a new Line object with the specified slope and y-intercept.
+     * 
+     * @param a The slope of the line.
+     * @param b The y-intercept of the line.
+     */
+    __device__ Affine(double a, double b) : a(a), b(b) {}
+
+    /**
+     * Evaluates the line equation y = ax + b for a given x-value.
+     * 
+     * @param x The x-value at which to evaluate the line.
+     * @return The y-value of the line at the specified x-value.
+     */
+    __device__ double operator()(double x) {
+        return a * x + b;
+    }
+
+    /**
+     * Maps multiple x-values to their corresponding y-values using the line equation y = ax + b.
+     * 
+     * @param x1 The first x-value.
+     * @param x2 The second x-value.
+     * @param x3 The third x-value.
+     * @param y  Pointer to an array of size 3 to store the computed y-values.
+     */
+    __device__ void map(double x1, double x2, double x3, double* y) {
+        y[0] = (*this)(x1);
+        y[1] = (*this)(x2);
+        y[2] = (*this)(x3);
+    }
     
-    double p = (3*c - b*b)/3;
+    /**
+     * @return The slope of the line.
+     */
+    __device__ double getSlope(){
+        return a;
+    }
+    
+    __device__ void print(){
+    	printf("a = %lf and b = %lf\n\n", a, b);
+    }
+};
+
+
+
+// variable names are taken from https://www.scribd.com/document/355163848/Real-Roots-of-Cubic-Equation
+__device__ void cubicRoot(const double& b, const double& c, const double& d, const double tolerance, double* x, int idx){//todo: remove idx from paramters
+    
+    double p = (3*c - b*b)/9;
     double q = (2*b*b*b - 9*b*c + 27*d)/27;
-    double B = -b/3;
     
-    //double disc = 18*b*c*d - 4*b*b*b*d + b*b*c*c - 4*c*c*c - 27*d*d;
+    Affine line(2 * sqrt(-p), -b/3);
     
-    /*if(fabs(disc) < tolerance)
-        if(fabs(p) < tolerance) x[0] = x[1] = x[2] = B;
-	else {
-            x[1] = x[2] =  -(B*c + 3*d)/(2*p);
-            x[0] = (9*d - 4*b*c + b*b*b)/(3*p);
-        }
-    else{*/ 
-        double A = 2 * sqrt(-p/3);
-        double phi = acos(3*q/(A*p));        
-       
-        for(int i = 0; i < 3; i++) 
-            x[i] = A*cos((phi + i*2*M_PI)/3)+B;
-    //}
+    double inACos = q/(line.getSlope() * p);
+    double phi;
+    
+    if(inACos > 1 - tolerance) line.map(1, -0.5, -0.5, x);
+    else if(inACos < -1 + tolerance) line.map(-1, 0.5, 0.5, x);
+    else {
+        phi = acos(inACos);
+        for(int i = 0; i < 3; i++) x[i] = line(cos((phi + i*2*M_PI)/3));
+    }
+        
 }
 
 /**
@@ -133,7 +198,7 @@ extern "C" __global__ void eigenValsBatchKernel(const int n, const double* input
     if (idx >= n) return;
     
     Matrix3x3 matrix(input + idx*MATRIX_SIZE);
-	
+    
     double coeficiant[3];
     coeficiant[0] = -matrix.determinant();
     coeficiant[1] = matrix.minor(0,0) + matrix.minor(1,1) + matrix.minor(2,2);
@@ -141,8 +206,9 @@ extern "C" __global__ void eigenValsBatchKernel(const int n, const double* input
 
     double* eigenvalues = output + idx * DIM;
     
-    cubicRoot(coeficiant[2], coeficiant[1], coeficiant[0], tolerance, eigenvalues);    
+    cubicRoot(coeficiant[2], coeficiant[1], coeficiant[0], tolerance, eigenvalues, idx);
 
-    sortDescending(eigenvalues);
+    sortDescending(eigenvalues);//TODO: see if you can get a correct order without sorting them.
 }
+
 

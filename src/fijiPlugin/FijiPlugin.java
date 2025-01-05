@@ -15,44 +15,6 @@ public class FijiPlugin implements PlugIn {
 
     private ImagePlus imp;
 
-    public static void sampleFijiCode() {//TODO: delte me
-
-        IJ.showMessage("Hello, World! ", " Welcome Ahhhh! Fiji plugin development! ");
-
-        ImagePlus imp = ij.WindowManager.getCurrentImage();
-        if (imp == null) {
-            ij.IJ.showMessage("No image open.");
-            return;
-        }
-
-        if (imp.getType() != ImagePlus.COLOR_RGB) {
-            ij.IJ.showMessage("No image open.");
-            IJ.run(imp, "RGB Color", ""); // Convert to RGB
-        }
-
-        int width = imp.getWidth();
-        int height = imp.getHeight();
-        int depth = imp.getStackSize();
-
-        ij.IJ.showMessage("There is an open image.");
-        for (int z = 1; z <= depth; z++) {
-            ImageProcessor ip = imp.getStack().getProcessor(z);
-
-            // Iterate through each pixel in the slice
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    // Check if the pixel is "every other" pixel based on a pattern (x + y)
-                    if ((x + y) % 2 == 0) {
-                        // Change pixel color to blue (in RGB format)
-                        ip.putPixel(x, y, (255 << 16) | (255 << 8)); // Blue with full intensity, red and green are zero
-                    }
-                }
-            }
-        }
-
-        imp.updateAndDraw();
-        imp.show();
-    }
 
     /**
      * Checks that the image is selected and gray scale.
@@ -118,7 +80,8 @@ public class FijiPlugin implements PlugIn {
 
         NeighborhoodPIG np = new NeighborhoodPIG(imp, neighborhoodSize, defaultTolerance);
 
-        np.fijiDisplayOrientationHeatmap();
+        np.getImageOrientationXY().printToFiji();
+        np.getImageOrientationYZ().printToFiji();
 
         ij.IJ.showMessage("NeighborhoodPIG processing complete.");
     }
@@ -126,8 +89,8 @@ public class FijiPlugin implements PlugIn {
 
     public static void main(String[] args) {
 
-        String imagePath = "images/input/test.jpeg";
-//        String imagePath = "images/input/debug.jpeg";
+//        String imagePath = "images/input/test.jpeg";
+        String imagePath = "images/input/debug.jpeg";
         ImagePlus imp = loadImageAsStack(imagePath);
 
         int neighborhoodSize = 10; // Default neighborhood radius
@@ -135,8 +98,8 @@ public class FijiPlugin implements PlugIn {
 
         NeighborhoodPIG np = new NeighborhoodPIG(imp, neighborhoodSize, tolerance);
 
-//        np.orientationColored("images/output/test2.jpeg");
-        np.fijiDisplayOrientationHeatmap();
+
+        np.getImageOrientationXY().printToFile("images/output/test2/");
 
         np.close();
         System.out.println("NeighborhoodPIG processing complete.");

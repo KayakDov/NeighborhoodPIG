@@ -4,8 +4,6 @@ import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.resourceManagement.Handle;
 
-
-
 /**
  * The eigen values and vectors for a 3x3 batch matrix.
  *
@@ -18,41 +16,46 @@ public class Eigen implements AutoCloseable {
 
     /**
      * Computes the eigenvalues and vectors of the matrices.
+     *
      * @param mats A set of 2x2 or 3x3 matrices.
      * @param tolerance Used to say values are essentially 0.
-     * 
+     *
      */
     public Eigen(MatricesStride mats, double tolerance) {
-        try (DArray workSpaceD = DArray.empty(mats.width * mats.dArray().length); 
-                IArray workSpaceI = IArray.empty(mats.width*mats.width*mats.batchSize)) {
 
-            values = mats.height == 2 ? 
-                    mats.computeVals2x2(new Vector(mats.getHandle(), workSpaceD.subArray(0, mats.getBatchSize()), 1)):
-                    mats.computeVals3x3(tolerance);
+        try (DArray workSpaceD = DArray.empty(mats.width * mats.dArray().length);
+                IArray workSpaceI = IArray.empty(mats.width * mats.width * mats.batchSize)) {
+
+            values = mats.height == 2
+                    ? mats.computeVals2x2(new Vector(mats.getHandle(), workSpaceD.subArray(0, mats.getBatchSize()), 1))
+                    : mats.computeVals3x3(tolerance);
+
+            vectors = mats.computeVecs(values, workSpaceD, workSpaceI, tolerance);
             
-            vectors =  mats.computeVecs(values, workSpaceD, workSpaceI, tolerance);
+            System.out.println("JCudaWrapper.algebra.Eigen.<init>() \nvalues = \n" + values + "\nvectors = \n" + vectors);
 
         }
 
+        
     }
-    
+
     public static void main(String[] args) {
-        try(Handle handle = new Handle(); DArray array = new DArray(handle, 1,0,0, 0,0,0, 0,0,0,  1,0,1, 0,2,1, 1,1,3);){
-            
-            MatricesStride mst = new MatricesStride(handle, array, 3, 3, 3, 9, 2);
-            
+        try (Handle handle = new Handle();
+                DArray array = new DArray(handle, 6, 0, 0,   0, 0, 0,   0, 0, 0, 1, 0, 1, 0, 2, 1, 1, 1, 3);) {
+
+            MatricesStride mst = new MatricesStride(handle, array, 3, 3, 3, 9, 1);
+
             mst.getMatrix(0).power(2);
-            mst.getMatrix(1).power(2);
-            
-            
+//            mst.getMatrix(1).power(2);
+
             System.out.println(mst.toString());
-            
-            try(Eigen eig = new Eigen(mst, 1e-12)){
+
+            try (Eigen eig = new Eigen(mst, 1e-12)) {
                 System.out.println("values \n" + eig.values.toString() + "\n\n");
                 System.out.println("vectors \n" + eig.vectors.toString());
             }
-           
             
+
         }
     }
 
@@ -61,10 +64,8 @@ public class Eigen implements AutoCloseable {
         return "values \n" + values.toString() + "\nvectors \n" + vectors.toString();
     }
 
-    
-    
     @Override
-    public void close(){
+    public void close() {
         values.close();
         vectors.close();
     }

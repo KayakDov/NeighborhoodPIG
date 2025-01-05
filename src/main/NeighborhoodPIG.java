@@ -49,34 +49,6 @@ public class NeighborhoodPIG implements AutoCloseable {
 
     }
 
-    /**
-     * Writes a heat map orientation picture to the given file.
-     *
-     * @param writeTo The new orientation image.
-     */
-    public void orientationColored(String writeTo) {
-
-        try (IArray rgb = stm.getRGB()) {
-
-            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-            WritableRaster raster = image.getRaster();
-
-            int[] cpuRGB = rgb.get(handle);
-            int[] pixelRGB = new int[3];
-            for (int row = 0; row < height; row++)
-                for (int col = 0; col < width; col++){
-                    System.arraycopy(cpuRGB, (col * height + row) * 3, pixelRGB, 0, 3);
-                    raster.setPixel(col, row, pixelRGB);
-                }
-
-            try {
-                ImageIO.write(image, "png", new File(writeTo));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-    }
 
     /**
      * Method to load a .tif image and convert it into a single-dimensional
@@ -144,7 +116,7 @@ public class NeighborhoodPIG implements AutoCloseable {
 //        }
         
         try (NeighborhoodPIG np = new NeighborhoodPIG("images/input/test.jpeg", 10, D2, 1e-11)) {
-            np.orientationColored("images/output/test.png");
+//            np.orientationColored("images/output/test.png");
         }
     }
 

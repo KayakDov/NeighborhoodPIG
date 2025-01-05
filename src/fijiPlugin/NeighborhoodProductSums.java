@@ -65,6 +65,25 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param toInc The increment of the the destination matrices.
      */
     private void mapNeighborhoodSum(int n, DArray from, DArray to, int dir, int toInc) {
+        
+        int stepSize, numSteps;
+        switch (dir) {
+            case 0:             
+                stepSize = height;
+                numSteps = width;
+                break;
+            case 1: 
+                stepSize = 1;
+                numSteps = height;
+                break;
+            case 2: 
+                stepSize = height * width;
+                numSteps = depth;
+                break;
+            default:
+                throw new RuntimeException("Direction must be 1, 2, or 3.  However, dir = " + dir);
+        }
+
         nSum.map(hand,
                 n,
                 from,
@@ -72,8 +91,10 @@ public class NeighborhoodProductSums implements AutoCloseable {
                 P.to(height),
                 P.to(width),
                 P.to(depth),
+                P.to(stepSize),
+                P.to(numSteps),
                 P.to(toInc),
-                P.to(nRad),
+                P.to(Math.min(nRad, numSteps)),
                 P.to(dir)
         );
     }
@@ -101,8 +122,9 @@ public class NeighborhoodProductSums implements AutoCloseable {
         if (depth > 1) {
             mapNeighborhoodSum(depth * width, workSpace2.dArray(), workSpace1.dArray(), 1, 1);
             mapNeighborhoodSum(height * width, workSpace1.dArray(), result.dArray(), 2, result.inc());
-        }else mapNeighborhoodSum(width, workSpace1.dArray(), result.dArray(), 1, result.inc());
-        
+        } else
+            mapNeighborhoodSum(width, workSpace1.dArray(), result.dArray(), 1, result.inc());
+
     }
 
     /**

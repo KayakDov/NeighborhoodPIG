@@ -76,7 +76,7 @@ public:
  *                      Pass -1 if intensities are not used.
  */
 extern "C" __global__ void colorsKernel(
-    int n, 
+    const int n, 
     const double* angles, 
     const int anglesInc, 
     int* colors,

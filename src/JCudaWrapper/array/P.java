@@ -1,5 +1,6 @@
 package JCudaWrapper.array;
 
+import JCudaWrapper.algebra.ColumnMajor;
 import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.TensorOrd3Stride;
@@ -53,33 +54,13 @@ public class P {
     public static <T extends Array> Pointer to(T a) {
         return Pointer.to(a.pointer);
     }
-    
+        
     /**
-     * Pointer to the data underlying a vector.
-     * @param d
-     * @return 
+     * Points to anything with underlying data.
+     * @param d The thing with data.
+     * @return A pointer to the thing with data.
      */
-    public static Pointer to(Vector d) {
-        return to(d.dArray());
-    }
-    
-    /**
-     * Pointer to the data underlying a vectorsStride.
-     * @param d
-     * @return 
-     */
-    public static Pointer to(VectorsStride d) {
-        return to(d.dArray());
-    }
-    
-    public static Pointer to(MatricesStride d) {
-        return to(d.dArray());
-    }
-    
-    public static Pointer to(TensorOrd3Stride d) {
-        return to(d.dArray());
-    }
-    public static Pointer to(Matrix d) {
+    public static Pointer to(ColumnMajor d) {
         return to(d.dArray());
     }
     

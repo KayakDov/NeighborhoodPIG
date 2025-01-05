@@ -5,10 +5,10 @@
  */
 class Pixel {
 private:
-    double* sourceMat;   /**< Pointer to the source matrix. */
+    const double* sourceMat;   /**< Pointer to the source matrix. */
     double* targetMat;   /**< Pointer to the target matrix. */
-    int stepSize;        /**< Step size for moving along the specified direction. */
-    int toInc;           /**< Increment multiplier for accessing the target matrix. */
+    const int stepSize;        /**< Step size for moving along the specified direction. */
+    const int toInc;           /**< Increment multiplier for accessing the target matrix. */
 
 public:
     /**
@@ -19,7 +19,7 @@ public:
      * @param stepSize The step size for moving along a direction in the matrix.
      * @param toInc The stride multiplier for accessing the target matrix.
      */
-    __device__ Pixel(double* sourceMat, double* targetMat, int stepSize, int toInc)
+    __device__ Pixel(const double* sourceMat, double* targetMat, const int stepSize, const int toInc)
         : sourceMat(sourceMat), targetMat(targetMat), stepSize(stepSize), toInc(toInc) {}
 
     /**
@@ -60,39 +60,31 @@ public:
  * @param width The width of the matrix.
  * @param depth The depth of the matrix (3rd dimension).
  * @param toInc The stride multiplier for accessing the target matrix.
+ * @param stepSize The size of each step in the 1d array to move through the relivant tensor dimension.
+ * @param numSteps The number of steps to be taken in the desired dimension.
  * @param neighborhoodSize The size of the neighborhood window for summation.
  * @param dir Direction of operation: 0 (row), 1 (column), or 2 (depth).
  */
 extern "C" __global__ void neighborhoodSum3dKernel(
-    int n,
-    double* sourceMat,
+    const int n,
+    const double* sourceMat,
     double* targetMat,
-    int height, int width, int depth,
-    int toInc,
-    int neighborhoodSize,
-    int dir
+    const int height, const int width, const int depth,
+    const int stepSize, const int numSteps,
+    const int toInc,
+    const int neighborhoodSize,
+    const int dir
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= n) return; // Out-of-bounds thread
 
     // Initialize starting position and step sizes
-    int startIdx, stepSize, numSteps;
+    int startIdx;
     switch (dir) {
-        case 0: // Row-wise
-            startIdx = (idx % height) + (idx / height) * (height * width);
-            stepSize = height;
-            numSteps = width;
-            break;
-        case 1: // Column-wise
-            startIdx = idx * height;
-            stepSize = 1;
-            numSteps = height;
-            break;
-        case 2: // Depth-wise
-            startIdx = idx;
-            stepSize = height * width;
-            numSteps = depth;
+        case 0: startIdx = (idx % height) + (idx / height) * (height * width); break;  // Row-wise
+        case 1: startIdx = idx * height; break; // Column-wise            
+        case 2: startIdx = idx; //depth-wise
     }
 
     Pixel pixel(sourceMat + startIdx, targetMat + startIdx * toInc, stepSize, toInc);

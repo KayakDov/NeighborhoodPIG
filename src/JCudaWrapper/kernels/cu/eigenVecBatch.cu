@@ -278,20 +278,17 @@ extern "C" __global__ void eigenVecBatchKernel(
     // Set up the pivot flags for the current matrix.
     int* isPivot = workspacePivotFlags + width * idx;
 
-    // Creates a matrix equal to A - lambda * I.
+    const double* sourceMat = sourceMatrices + (idx/width) * height * width;
+    
     Matrix mat(workspaceMatrices + idx * height * width, width, height, isPivot);
-    setMatrixMinusLambdaI(sourceMatrices + (idx/width) * height * width, mat, eigenValues[idx]);
+    setMatrixMinusLambdaI(sourceMat, mat, eigenValues[idx]);
 
-    // Create an array to store the eigenvector for this matrix.
     double* eVec = eVectors + height * idx;    
 
-    // Perform row echelon reduction to reduce the matrix to row echelon form.
     int numFreeVariables = mat.rowEchelon(tolerance);
 
-    // Every thread chooses a different free variable for the threads eigenvector.
     int freeVariableID = idx % numFreeVariables; 
 
-    // Initialize the column index to the last column.
     int col = width - 1, pivotsPassed = 0;
     // Loop through the columns in reverse, starting from the last column.
     // All the values of the eigen vector after the free variable are set to 0.  
@@ -303,11 +300,10 @@ extern "C" __global__ void eigenVecBatchKernel(
     }
     
     if(col < width - 1) col++;
-    eVec[col] = 1;    
+    eVec[col] = 1;
     col--;
     
-    for (int row = (width - numFreeVariables) - pivotsPassed - 1; row >= 0 && col >= 0; col--) {
-    	
+    for (int row = (width - numFreeVariables) - pivotsPassed - 1; row >= 0 && col >= 0; col--) {	
     	eVec[col] = 0;	
 	if(isPivot[col]){         
             for (int i = col + 1; i < width - freeVariableID; i++) eVec[col] -= eVec[i] * mat(row, i);

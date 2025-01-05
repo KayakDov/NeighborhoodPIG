@@ -43,7 +43,7 @@ public class NeighborhoodPIG implements AutoCloseable {
         height = imp.getHeight();
         depth = imp.getNSlices() / imp.getNFrames();
         duration = imp.getNFrames();
-
+        
         TensorOrd3Stride image = new TensorOrd3Stride(handle, height, width, depth, duration, processImage(imp));
 
         Gradient grad = new Gradient(image, handle);
@@ -96,63 +96,24 @@ public class NeighborhoodPIG implements AutoCloseable {
         return new DArray(handle, columnMajorArray);
     }
 
-//    /**
-//     * Writes a heat map orientation picture to the given file.
-//     *
-//     * @param writeTo The new orientation image.
-//     */
-//    public void orientationColored(String writeTo) {
-//
-//        try (IArray rgb = stm.getRGBs(false)) {
-//
-//            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-//            WritableRaster raster = image.getRaster();
-//
-//            int[] cpuRGB = rgb.get(handle);
-//            int[] pixelRGB = new int[3];
-//            for (int row = 0; row < height; row++)
-//                for (int col = 0; col < width; col++) {
-//                    System.arraycopy(cpuRGB, (col * height + row) * 3, pixelRGB, 0, 3);
-//                    raster.setPixel(col, row, pixelRGB);
-//                }
-//
-//            try {
-//                ImageIO.write(image, "png", new File(writeTo));
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//        }
-//
-//    }
+    
     /**
-     * Processes the given ImagePlus object and converts it into a 3D tensor
-     * with GPU strides.
+     * A heat map of the orientation in the xy plane.
+     * @return A heat map of the orientation in the xy plane.
      */
-    public final void fijiDisplayOrientationHeatmap() {
-
-        if ((long) width * height * depth * duration > Integer.MAX_VALUE)
-            throw new IllegalArgumentException("Image size exceeds array limit.");
-
-        ImageStack stack = new ImageStack(width, height);
-
-        int layerSize = height * width;
-
-        StructureTensorMatrix.RGB rgb = stm.getRGB();
-
-        for (int frameIndex = 0; frameIndex < duration; frameIndex++)
-            for (int layerIndex = 0; layerIndex < depth; layerIndex++) {
-
-                ColorProcessor cp = new ColorProcessor(width, height);
-                for (int x = 0; x < width; x++) for (int y = 0; y < height; y++)
-                        cp.set(x, y, rgb.getPixel(frameIndex, layerIndex, x, y));
-                stack.addSlice("Frame " + frameIndex + " depth " + layerIndex, cp);
-            }
-
-        ImagePlus imagePlus = new ImagePlus("Orientation Colored Images", stack);
-
-        imagePlus.show();
+    public ImageCreator getImageOrientationXY(){
+        return new ImageCreator(handle, stm.getOrientationXY(), stm.getCoherence());
     }
-
+    
+    
+    /**
+     * A heat map of the orientation in the yz plane.
+     * @return A heat map of the orientation in the yz plane.
+     */
+    public ImageCreator getImageOrientationYZ(){
+        return new ImageCreator(handle, stm.getOrientationXY(), stm.getCoherence());
+    }
+    
     @Override
     public void close() {
         stm.close();

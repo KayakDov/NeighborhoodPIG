@@ -20,7 +20,7 @@ public class Gradient implements AutoCloseable{
     public final int height, width, depth, batchSize;
 
     /**
-     * Computemutty gradients of an image in both the x and y directions.
+     * Compute gradients of an image in both the x and y directions.
      * Gradients are computed using central differences for interior points and
      * forward/backward differences for boundary points.
      *

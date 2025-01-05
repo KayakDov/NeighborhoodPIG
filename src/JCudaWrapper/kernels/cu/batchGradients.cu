@@ -139,8 +139,11 @@ public:
  * @param dZ Output gradients along Z direction.
  */
 extern "C" __global__ void batchGradientsKernel(
-    int n, const double *mat, int height, int width, int depth, int numTensors,
-    double *dX, double *dY, double *dZ) {
+    const int n, 
+    const double *mat, 
+    const int height, const int width, const int depth, const int numTensors,
+    double *dX, double *dY, double *dZ
+) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= n) return;

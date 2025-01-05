@@ -78,7 +78,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      * @return The number of elements in each sub array.
      */
     public int getSubVecDim() {
-        return (int)Math.ceil(data.subArrayLength/ colDist);
+        return (int)Math.ceil((double)data.subArrayLength/ colDist);
     }
 
     /**
@@ -160,7 +160,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      * @return An array, a such that a_j is the ith element of the jth array.
      */
     public Vector elmntsAtVecInd(int i) {
-        return new Vector(handle, data.subArray(i * colDist), data.stride);
+        return new Vector(handle, data.subArray(i * inc(), (batchSize - 1)* strideSize + dim()*inc()), data.stride);
     }
 
     /**

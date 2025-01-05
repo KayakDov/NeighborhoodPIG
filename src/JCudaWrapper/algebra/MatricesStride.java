@@ -64,7 +64,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
      * @param batchSize The number of matrices in this batch.
      */
     public MatricesStride(Handle handle, DArray data, int height, int width, int colDist, int strideSize, int batchSize) {
-        super(handle, height, width, 1, colDist, height * width, strideSize, batchSize, data);
+        super(handle, height, width, 1, colDist, colDist * width, strideSize, batchSize, data);
     }
 
     /**
@@ -251,7 +251,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
      * Computes the eigenvalues for a set of symmetric 3x3 matrices. If this
      * batch is not such a set then this method should not be called.
      *
-     * @param workSpace Should have length equal to 3*batchSize.
+     * @param tolerance A number closer to 0 than this is considered 0.
      * @return The eigenvalues.
      *
      */
@@ -267,7 +267,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
         VectorsStride vals = new VectorsStride(handle, height, getBatchSize(), height, 1);
 
         Kernel.run("eigenValsBatch", handle, batchSize, dArray(), P.to(vals), P.to(tolerance));
-
+        
         return vals;
 //        Vector[] work = workSpace.parition(3);
 //
@@ -455,13 +455,13 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
     /**
      * Adds dimensions like batchsize and width to the given data.
      *
-     * @param addDimensions data in need of batch dimensions.
+     * @param underlyingData data in need of batch dimensions.
      * @return The given data with this's dimensions.
      */
-    public MatricesStride copyDimensions(DArray addDimensions) {
+    public MatricesStride copyDimensions(DArray underlyingData) {
         return new MatricesStride(
                 handle,
-                addDimensions,
+                underlyingData,
                 height,
                 width,
                 colDist,

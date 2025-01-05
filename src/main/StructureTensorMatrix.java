@@ -239,6 +239,15 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     public Eigen getEigen() {
         return eigen;
     }
+
+    /**
+     * The data for the structure tensors.
+     * @return 
+     */
+    @Override
+    public DArray dArray() {
+        return strctTensors.dArray();
+    }
     
     
 
