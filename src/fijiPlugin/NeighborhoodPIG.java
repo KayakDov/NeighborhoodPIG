@@ -284,19 +284,18 @@ public class NeighborhoodPIG extends TensorOrd3dStrideDim implements AutoCloseab
 
         ImagePlus img = opener.openImage(files[0].getAbsolutePath());
 
-        ImageStack frameStack = new ImageStack(img.getWidth(), img.getHeight());
-        ImageStack frame = new ImageStack(img.getWidth(), img.getHeight());
-
+        ImageStack frames = new ImageStack(img.getWidth(), img.getHeight());
+        
         for (int frameIndex = 0; frameIndex < files.length/depth; frameIndex++) {
-            for (int layer = 0; layer < depth; layer++) {
-                img = opener.openImage(files[frameIndex].getAbsolutePath());
-                frame.addSlice(img.getProcessor());
+            ImageStack layers = new ImageStack(img.getWidth(), img.getHeight());
+            for (int layerIndex = 0; layerIndex < depth; layerIndex++) {
+                img = opener.openImage(files[frameIndex*depth + layerIndex].getAbsolutePath());
+                layers.addSlice(img.getProcessor());
             }
-            frameStack.addSlice("frame " + frameIndex, frame.getProcessor(1)); // Add the completed frame
+            frames.addSlice("frame " + frameIndex, layers.getProcessor(1)); // Add the completed frame
 
         }
-
-        return new ImagePlus("Combined Image Stack", frameStack);
+        return new ImagePlus("Combined Image Stack", frames);
     }
 
     /**

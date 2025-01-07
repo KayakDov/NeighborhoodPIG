@@ -95,17 +95,17 @@ public class FijiPlugin implements PlugIn {
 
         try (Handle handle = new Handle()) {
 
-//            String imagePath = "images/input/test/";
-            String imagePath = "images/input/debug/";
+            String imagePath = "images/input/test/";
+//            String imagePath = "images/input/debug/";
 
             int neighborhoodSize = 15; // Default neighborhood radius
-            double tolerance = 1e-12; // Default tolerance
+            double tolerance = 1e-11; // Default tolerance
             int depth = 1;
 
             try (NeighborhoodPIG np = NeighborhoodPIG.getWithIJ(handle, imagePath, depth, neighborhoodSize, tolerance)) {
 
-                np.getImageOrientationXY().printToFile("images/output/test2/");
-//                np.getImageOrientationXY().printToFiji();
+//                np.getImageOrientationXY().printToFile("images/output/test2/");
+                np.getImageOrientationXY().printToFiji();
 
             }
             System.out.println("NeighborhoodPIG processing complete.");

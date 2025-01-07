@@ -95,22 +95,24 @@ public class ImageCreator extends TensorOrd3dStrideDim {
      * Displays the tensor data as a heatmap in Fiji.
      */
     public final void printToFiji() {
-        ImageStack stack = new ImageStack(width, height);
+        
+        ImageStack frames = new ImageStack(width, height);
 
-        for (int frame = 0; frame < batchSize; frame++) {
-            for (int layer = 0; layer < depth; layer++) {
+        for (int frameIndex = 0; frameIndex < batchSize; frameIndex++) {
+            ImageStack layers = new ImageStack(width, height);
+            for (int layerIndex = 0; layerIndex < depth; layerIndex++) {
                 ColorProcessor cp = new ColorProcessor(width, height);
-                for (int x = 0; x < width; x++) {
-                    for (int y = 0; y < height; y++) {
-                        cp.set(x, y, getPixelInt(frame, layer, x, y));
-                    }
-                }
-                stack.addSlice("Frame " + frame + " Layer " + layer, cp);
+                for (int x = 0; x < width; x++) 
+                    for (int y = 0; y < height; y++)
+                        cp.set(x, y, getPixelInt(frameIndex, layerIndex, x, y));
+                    
+                
+                layers.addSlice("Frame " + frameIndex + " Layer " + layerIndex, cp);
             }
+            frames.addSlice("frame " + frameIndex, layers.getProcessor(1)); // Add the completed frame
         }
 
-        ImagePlus imagePlus = new ImagePlus("Orientation Heatmap", stack);
-        imagePlus.show();
+        new ImagePlus("Orientation Heatmap", frames).show();
     }
 
     /**
