@@ -22,7 +22,7 @@ public class GenDebugFile {
             {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
             {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
             {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
-            {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
+            {0.1, 0.2, 0.3, 0.4, 0.5, 0.6}
         };
     
     public static double[][] white = new double[][]{
@@ -34,6 +34,22 @@ public class GenDebugFile {
         {1,1,1,1,1,1},
         {1,1,1,1,1,1}
     };
+    
+    public static double[][] blackWithWhiteBorder(){
+        int size = 15;
+        double[][] black = new double[size][size];
+        for(int i = 0; i < size; i++)
+            for(int j = 0; j < size; j++)
+                black[i][j] = 0;
+        for(int i = 0; i < size; i++){
+            black[i][0] = 1; //top 
+//            black[0][i] = 1; //left
+            black[i][size - 1] = 1; //bottom
+//            black[size - 1][i] = 1; //right
+            
+        }
+        return black;
+    }
     
     
     public static double[][] random(int height, int width){
@@ -47,7 +63,7 @@ public class GenDebugFile {
         
         // Define pixel values for each point in a 7x7 grid
         // We use values from 0.1, 0.2, ... to 0.7
-        double[][] pixelValues = xGrad1;
+        double[][] pixelValues = blackWithWhiteBorder();
 
         int width = pixelValues[0].length;
         int height = pixelValues.length;

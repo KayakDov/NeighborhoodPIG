@@ -30,9 +30,7 @@ public class Eigen implements AutoCloseable {
                     ? mats.computeVals2x2(new Vector(mats.getHandle(), workSpaceD.subArray(0, mats.getBatchSize()), 1))
                     : mats.computeVals3x3(tolerance);
 
-            vectors = mats.computeVecs(values, workSpaceD, workSpaceI, tolerance);
-            
-            System.out.println("JCudaWrapper.algebra.Eigen.<init>() \nvalues = \n" + values + "\nvectors = \n" + vectors);
+            vectors = mats.computeVecs(values, workSpaceD, workSpaceI, tolerance);            
 
         }
 

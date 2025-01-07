@@ -1,5 +1,7 @@
 package JCudaWrapper.algebra;
 
+import JCudaWrapper.resourceManagement.Handle;
+
 /**
  * Represents the dimensions and strides of a 3D tensor with additional stride
  * and batch size information.
@@ -50,11 +52,14 @@ public class TensorOrd3dStrideDim {
      * The batch size (number of tensors in a batch).
      */
     public final int batchSize;
+    
+    public final Handle handle;
 
     /**
      * Constructs a new TensorOrd3dStrideDim with the specified dimensions,
      * strides, and batch size.
      *
+     * @param handle The handle.
      * @param height The height (number of rows) of the tensor.
      * @param width The width (number of columns) of the tensor.
      * @param depth The depth (number of layers) of the tensor.
@@ -63,7 +68,8 @@ public class TensorOrd3dStrideDim {
      * @param strideSize The stride size (distance between elements in memory).
      * @param batchSize The number of tensors in a batch.
      */
-    public TensorOrd3dStrideDim(int height, int width, int depth, int colDist, int layerDist, int strideSize, int batchSize) {
+    public TensorOrd3dStrideDim(Handle handle, int height, int width, int depth, int colDist, int layerDist, int strideSize, int batchSize) {
+        this.handle = handle;
         this.height = height;
         this.width = width;
         this.depth = depth;
@@ -76,6 +82,23 @@ public class TensorOrd3dStrideDim {
             throw new IllegalArgumentException("Image size exceeds array limit.");
 
     }
+    
+    
+    /**
+     * Constructs a new TensorOrd3dStrideDim with the specified dimensions,
+     * strides, and batch size.
+     *
+     * @param handle The handle.
+     * @param height The height (number of rows) of the tensor.
+     * @param width The width (number of columns) of the tensor.
+     * @param depth The depth (number of layers) of the tensor.
+     * @param batchSize The number of tensors in a batch.
+     */
+    public TensorOrd3dStrideDim(Handle handle, int height, int width, int depth, int batchSize) {
+        this(handle, height, width, depth, height, height*width, height*width*depth, batchSize);
+    }
+    
+    
 
     /**
      * Copy constructor.
@@ -83,7 +106,7 @@ public class TensorOrd3dStrideDim {
      * @param copyFrom The item being copied.
      */
     public TensorOrd3dStrideDim(TensorOrd3dStrideDim copyFrom) {
-        this(copyFrom.height, copyFrom.width, copyFrom.depth, copyFrom.colDist, copyFrom.layerDist, copyFrom.strideSize, copyFrom.batchSize);
+        this(copyFrom.handle, copyFrom.height, copyFrom.width, copyFrom.depth, copyFrom.colDist, copyFrom.layerDist, copyFrom.strideSize, copyFrom.batchSize);
     }
 
     /**

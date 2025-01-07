@@ -64,9 +64,9 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         orientationXY = grad.x().emptyCopyDimensions();
         orientationYZ = grad.x().emptyCopyDimensions();
         coherence = grad.x().emptyCopyDimensions();
-        
+
         setVecs0ToPi();
-        setCoherence(orientationXY.dArray());
+        setCoherence(tolerance);
         setOrientations();
     }
 
@@ -103,41 +103,43 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     /**
      * Sets the orientations from the eigenvectors.
      *
-     * @return The orientation matrix.
      */
     public final void setOrientations() {
-        Kernel.run("atan2", handle,
-                orientationXY.dArray().length,
-                eigen.vectors.dArray(),
-                P.to(eigen.vectors.getStrideSize()),
-                P.to(orientationXY),
-                P.to(1)
-        );
-        Kernel.run("atan2", handle,
-                orientationXY.dArray().length,
-                eigen.vectors.dArray().subArray(1),
-                P.to(eigen.vectors.getStrideSize()),
-                P.to(orientationYZ),
-                P.to(1)
-        );
+
+        try (Kernel atan2 = new Kernel("atan2")) {
+
+            atan2.map(handle,
+                    orientationXY.dArray().length,
+                    eigen.vectors.dArray(),
+                    P.to(eigen.vectors.getStrideSize()),
+                    P.to(orientationXY),
+                    P.to(1)
+            );
+            atan2.map(handle,
+                    orientationXY.dArray().length,
+                    eigen.vectors.dArray().subArray(1),
+                    P.to(eigen.vectors.getStrideSize()),
+                    P.to(orientationYZ),
+                    P.to(1)
+            );
+        }
     }
 
     /**
      * Sets and returns the coherence matrix.
      *
-     * @param workSpace Should be the size of the image.
+     * @param tolerance Numbers closer to 0 than may be considered 0.
      * @return The coherence matrix.
      */
-    public final TensorOrd3Stride setCoherence(DArray workSpace) {
-        Vector[] l = eigen.values.vecPartition();
-        Vector denom = new Vector(handle, workSpace, 1)
-                .setSum(1, l[0], 1, l[1])
-                .add(1, l[2]);
-        
-        Vector coherenceVec = new Vector(handle, coherence.dArray(), 1)
-                .setSum(1, l[0], -1, l[1])
-                .ebeDivide(denom);
-        coherenceVec.ebeSetProduct(coherenceVec, coherenceVec);
+    public final TensorOrd3Stride setCoherence(double tolerance) {
+        Kernel.run("coherence", handle, 
+                coherence.size(), 
+                eigen.values.dArray(), 
+                P.to(eigen.values.strideSize),
+                P.to(coherence),
+                P.to(eigen.values.dim() == 3),
+                P.to(tolerance)
+        );
         return coherence;
     }
 
@@ -158,7 +160,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     public TensorOrd3Stride getOrientationXY() {
         return orientationXY;
     }
-    
+
     /**
      * Gets the matrix of orientations.
      *
@@ -167,8 +169,6 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     public TensorOrd3Stride getOrientationYZ() {
         return orientationYZ;
     }
-
-    
 
     /**
      * {@inheritDoc}
@@ -198,7 +198,8 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
     /**
      * The data for the array of structure tensors.
-     * @return 
+     *
+     * @return
      */
     @Override
     public DArray dArray() {

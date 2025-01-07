@@ -119,6 +119,10 @@ public class ImageCreator extends TensorOrd3dStrideDim {
      * @param writeToFolder The folder where images will be saved.
      */
     public void printToFile(String writeToFolder) {
+        // Ensure the folder exists, create it if it doesn't.
+        File directory = new File(writeToFolder);
+        if (!directory.exists()) directory.mkdirs();
+
         int[] pixelRGB = new int[3];
 
         for (int frame = 0; frame < batchSize; frame++) {
@@ -128,6 +132,7 @@ public class ImageCreator extends TensorOrd3dStrideDim {
 
                 try {
                     ImageIO.write(image, "png", outputFile);
+                    System.out.println("Image printed to " + outputFile);
                 } catch (Exception e) {
                     System.err.println("Error writing image to file: " + outputFile.getAbsolutePath());
                     e.printStackTrace();

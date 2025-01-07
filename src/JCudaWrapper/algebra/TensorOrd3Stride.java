@@ -13,8 +13,7 @@ import JCudaWrapper.resourceManagement.Handle;
  */
 public class TensorOrd3Stride extends TensorOrd3dStrideDim implements AutoCloseable, ColumnMajor {
         
-    protected final DStrideArray data;
-    public Handle handle;
+    protected final DStrideArray data;    
 
     /**
      * A set of order 3 tensors.
@@ -32,9 +31,8 @@ public class TensorOrd3Stride extends TensorOrd3dStrideDim implements AutoClosea
      * @param data The underlying data.
      */
     public TensorOrd3Stride(Handle handle, int height, int width, int depth, int colDist, int layerDist, int strideSize, int batchSize, DArray data) {
-        super(height, width, depth, colDist, layerDist, strideSize, batchSize);
+        super(handle, height, width, depth, colDist, layerDist, strideSize, batchSize);
         this.data = data.getAsBatch(strideSize, layerDist * (depth - 1) + colDist * (width - 1) + height, batchSize);
-        this.handle = handle;
     }
 
     /**

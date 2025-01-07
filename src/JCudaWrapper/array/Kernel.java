@@ -45,7 +45,7 @@ public class Kernel implements AutoCloseable {
      */
     private final static int BLOCK_SIZE = 256;
 
-    private CUmodule module;
+    private CUmodule module;//TODO: set this up so that multiple kernels can use the same module.
 
     /**
      * Constructs a {@code Kernel} object that loads a CUDA module from a given
@@ -59,19 +59,17 @@ public class Kernel implements AutoCloseable {
         String fileName = name + ".ptx", functionName = name + "Kernel";
         this.module = new CUmodule();
 
-        // Load the resource from the JAR
         try (InputStream resourceStream = getClass().getClassLoader()
                 .getResourceAsStream("JCudaWrapper/kernels/ptx/" + fileName)) {
-            if (resourceStream == null) {
-                throw new RuntimeException("Kernel file not found in JAR: " + fileName);
-            }
-
-            // Copy the resource to a temporary file
+            
+            if (resourceStream == null) throw new RuntimeException("Kernel file not found in JAR: " + fileName);
+            
             File tempFile = File.createTempFile("kernel_", ".ptx");
             tempFile.deleteOnExit(); // Clean up after the program ends
-            Files.copy(resourceStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(resourceStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);  //TODO: copying the file seems ineficiant.  Can this be made faster?
 
             JCudaDriver.cuModuleLoad(module, tempFile.getAbsolutePath());
+            
         } catch (Exception e) {
             throw new RuntimeException("Failed to load kernel file", e);
         }

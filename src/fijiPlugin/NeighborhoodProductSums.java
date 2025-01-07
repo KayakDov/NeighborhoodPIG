@@ -83,7 +83,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
             default:
                 throw new RuntimeException("Direction must be 1, 2, or 3.  However, dir = " + dir);
         }
-
+        
         nSum.map(hand,
                 n,
                 from,

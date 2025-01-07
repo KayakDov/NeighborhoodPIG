@@ -160,7 +160,7 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
      * @return An array, a such that a_j is the ith element of the jth array.
      */
     public Vector elmntsAtVecInd(int i) {
-        return new Vector(handle, data.subArray(i * inc(), (batchSize - 1)* strideSize + dim()*inc()), data.stride);
+        return new Vector(handle, data.subArray(i * inc(), (batchSize - 1)* strideSize + 1), data.stride);
     }
 
     /**

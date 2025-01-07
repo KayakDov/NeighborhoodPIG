@@ -1,5 +1,8 @@
 package fijiPlugin;
 
+import JCudaWrapper.algebra.TensorOrd3Stride;
+import JCudaWrapper.array.DArray;
+import JCudaWrapper.resourceManagement.Handle;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -14,7 +17,6 @@ import ij.process.ImageProcessor;
 public class FijiPlugin implements PlugIn {
 
     private ImagePlus imp;
-
 
     /**
      * Checks that the image is selected and gray scale.
@@ -69,65 +71,45 @@ public class FijiPlugin implements PlugIn {
         double defaultTolerance = 1e-11;
 
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
-        gd.addNumericField("Neighborhood radius:", defaultNeighborhoodRadius, 0);        
+        gd.addNumericField("Neighborhood radius:", defaultNeighborhoodRadius, 0);
         gd.showDialog();
 
         if (gd.wasCanceled()) return;
 
-        int neighborhoodSize = (int) gd.getNextNumber();        
+        int neighborhoodSize = (int) gd.getNextNumber();
 
         if (!validParamaters(neighborhoodSize)) return;
 
-        NeighborhoodPIG np = new NeighborhoodPIG(imp, neighborhoodSize, defaultTolerance);
+        try (
+                Handle handle = new Handle();
+                NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, neighborhoodSize, defaultTolerance)) {
 
-        np.getImageOrientationXY().printToFiji();
-        np.getImageOrientationYZ().printToFiji();
+            np.getImageOrientationXY().printToFiji();
+            np.getImageOrientationYZ().printToFiji();
 
-        ij.IJ.showMessage("NeighborhoodPIG processing complete.");
+            ij.IJ.showMessage("NeighborhoodPIG processing complete.");
+        }
     }
-    
 
     public static void main(String[] args) {
 
-//        String imagePath = "images/input/test.jpeg";
-        String imagePath = "images/input/debug.jpeg";
-        ImagePlus imp = loadImageAsStack(imagePath);
+        try (Handle handle = new Handle()) {
 
-        int neighborhoodSize = 10; // Default neighborhood radius
-        double tolerance = 1e-10; // Default tolerance
+//            String imagePath = "images/input/test/";
+            String imagePath = "images/input/debug/";
 
-        NeighborhoodPIG np = new NeighborhoodPIG(imp, neighborhoodSize, tolerance);
+            int neighborhoodSize = 15; // Default neighborhood radius
+            double tolerance = 1e-12; // Default tolerance
+            int depth = 1;
 
+            try (NeighborhoodPIG np = NeighborhoodPIG.getWithIJ(handle, imagePath, depth, neighborhoodSize, tolerance)) {
 
-        np.getImageOrientationXY().printToFile("images/output/test2/");
+                np.getImageOrientationXY().printToFile("images/output/test2/");
+//                np.getImageOrientationXY().printToFiji();
 
-        np.close();
-        System.out.println("NeighborhoodPIG processing complete.");
-    }
-
-    /**
-     * Loads an image from the given path, converts it to grayscale, and ensures
-     * it is of type 32-bit float.
-     *
-     * @param imagePath The path to the input image.
-     * @return An ImagePlus object containing a stack of the processed image.
-     */
-    private static ImagePlus loadImageAsStack(String imagePath) {
-
-        ImagePlus imp = new ImagePlus(imagePath);
-
-        if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32) 
-            imp = new ImagePlus("Grayscale", imp.getProcessor());
-        
-
-        // Ensure it is 32-bit float
-        ImageProcessor floatProcessor = imp.getProcessor().convertToFloat();
-
-        // Create a stack and add the processed slice
-        ImageStack stack = new ImageStack(floatProcessor.getWidth(), floatProcessor.getHeight());
-        stack.addSlice(floatProcessor);
-
-        return new ImagePlus("Generated Stack (32-bit Float)", stack);
+            }
+            System.out.println("NeighborhoodPIG processing complete.");
+        }
     }
 
 }

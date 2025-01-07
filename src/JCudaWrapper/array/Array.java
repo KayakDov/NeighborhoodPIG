@@ -307,13 +307,19 @@ abstract class Array implements AutoCloseable {
     protected boolean isOpen = true;
 
     /**
-     * Frees the GPU memory allocated for this array. This method is invoked
-     * automatically when the object is closed.
+     * Default of true, and set to false when the memory is dealocated.
+     */
+    public boolean isOpen() {
+        return isOpen;
+    }
+    
+
+    /**
+     * Frees the GPU memory allocated for this array if it has not already been freed. 
      */
     @Override
     public void close() {
-//        if(cleanable != null) cleanable.clean();
-        JCuda.cudaFree(pointer);
+        if(isOpen) JCuda.cudaFree(pointer);
         isOpen = false;
     }
 
