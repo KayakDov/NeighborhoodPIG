@@ -123,6 +123,8 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
                     P.to(1)
             );
         }
+        
+        
     }
 
     /**

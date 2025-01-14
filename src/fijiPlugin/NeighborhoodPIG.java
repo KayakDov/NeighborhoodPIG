@@ -13,8 +13,6 @@ import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -26,7 +24,7 @@ import javax.imageio.ImageIO;
  */
 public class NeighborhoodPIG extends TensorOrd3dStrideDim implements AutoCloseable {
 
-    private StructureTensorMatrix stm;
+    public final StructureTensorMatrix stm; //TODO: this should probably be made private
 
     public final static boolean D3 = true, D2 = false;
 
@@ -37,11 +35,10 @@ public class NeighborhoodPIG extends TensorOrd3dStrideDim implements AutoCloseab
      * square.
      * @param tolerance How close must a number be to 0 to be considered 0.
      */
-    public NeighborhoodPIG(TensorOrd3Stride image, int neighborhoodSize, double tolerance) {
+    private NeighborhoodPIG(TensorOrd3Stride image, int neighborhoodSize, double tolerance) {
         super(image);
 
         try (Gradient grad = new Gradient(image, handle)) {
-            //        image.close();
             stm = new StructureTensorMatrix(grad, neighborhoodSize, tolerance);
         }
     }
@@ -52,6 +49,7 @@ public class NeighborhoodPIG extends TensorOrd3dStrideDim implements AutoCloseab
      * @return A heat map of the orientation in the xy plane.
      */
     public ImageCreator getImageOrientationXY() {
+
         return new ImageCreator(handle, stm.getOrientationXY(), stm.getCoherence());
     }
 
@@ -115,7 +113,8 @@ public class NeighborhoodPIG extends TensorOrd3dStrideDim implements AutoCloseab
 
             BufferedImage firstImage = ImageIO.read(imageFiles[0]);
 
-            try (DArray gpuImage = processImages(handle, imageFiles)) {
+            try (
+                    DArray gpuImage = processImages(handle, imageFiles, firstImage.getHeight() * firstImage.getWidth() * imageFiles.length);) {
 
                 return new NeighborhoodPIG(
                         new TensorOrd3Stride(handle,
@@ -211,9 +210,10 @@ public class NeighborhoodPIG extends TensorOrd3dStrideDim implements AutoCloseab
      * @throws IllegalArgumentException If no valid images are found in the
      * folder.
      */
-    public final static DArray processImages(Handle handle, File[] pics) {
+    public final static DArray processImages(Handle handle, File[] pics, int numPixels) {
 
-        List<Double> pixelValues = new ArrayList<>();
+        double[] pixelsColMaj = new double[numPixels];
+        int pixelInd = 0;
 
         for (File file : pics) {
             try {
@@ -223,22 +223,21 @@ public class NeighborhoodPIG extends TensorOrd3dStrideDim implements AutoCloseab
                     throw new IllegalArgumentException("Could not open image file: " + file.getName());
 
                 Raster raster = image.getData();
+
                 int width = image.getWidth();
                 int height = image.getHeight();
 
                 for (int col = 0; col < width; col++)
                     for (int row = 0; row < height; row++)
-                        pixelValues.add((double) raster.getSample(col, row, 0));
+                        pixelsColMaj[pixelInd++] = raster.getSample(col, row, 0);
 
             } catch (IOException e) {
                 throw new IllegalArgumentException("Error reading image file: " + file.getName(), e);
             }
         }
 
-        double[] columnMajorArray = pixelValues.stream().mapToDouble(Double::doubleValue).toArray();
-
         // Create and return the GPU array
-        return new DArray(handle, columnMajorArray);
+        return new DArray(handle, pixelsColMaj);
     }
 
     /**
@@ -285,11 +284,11 @@ public class NeighborhoodPIG extends TensorOrd3dStrideDim implements AutoCloseab
         ImagePlus img = opener.openImage(files[0].getAbsolutePath());
 
         ImageStack frames = new ImageStack(img.getWidth(), img.getHeight());
-        
-        for (int frameIndex = 0; frameIndex < files.length/depth; frameIndex++) {
+
+        for (int frameIndex = 0; frameIndex < files.length / depth; frameIndex++) {
             ImageStack layers = new ImageStack(img.getWidth(), img.getHeight());
             for (int layerIndex = 0; layerIndex < depth; layerIndex++) {
-                img = opener.openImage(files[frameIndex*depth + layerIndex].getAbsolutePath());
+                img = opener.openImage(files[frameIndex * depth + layerIndex].getAbsolutePath());
                 layers.addSlice(img.getProcessor());
             }
             frames.addSlice("frame " + frameIndex, layers.getProcessor(1)); // Add the completed frame
@@ -323,4 +322,5 @@ public class NeighborhoodPIG extends TensorOrd3dStrideDim implements AutoCloseab
 
         return imageFiles;
     }
+
 }

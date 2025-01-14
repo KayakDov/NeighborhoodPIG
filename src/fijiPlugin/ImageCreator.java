@@ -45,6 +45,7 @@ public class ImageCreator extends TensorOrd3dStrideDim {
         orientation.dArray().multiply(handle, 2, 1); // Scale orientations.
 
         try (IArray gpuColors = IArray.empty(orientation.dArray().length)) {
+
             Kernel.run("colors", handle,
                     orientation.size(),
                     orientation.dArray(),
@@ -95,18 +96,17 @@ public class ImageCreator extends TensorOrd3dStrideDim {
      * Displays the tensor data as a heatmap in Fiji.
      */
     public final void printToFiji() {
-        
+
         ImageStack frames = new ImageStack(width, height);
 
         for (int frameIndex = 0; frameIndex < batchSize; frameIndex++) {
             ImageStack layers = new ImageStack(width, height);
             for (int layerIndex = 0; layerIndex < depth; layerIndex++) {
                 ColorProcessor cp = new ColorProcessor(width, height);
-                for (int x = 0; x < width; x++) 
+                for (int x = 0; x < width; x++)
                     for (int y = 0; y < height; y++)
                         cp.set(x, y, getPixelInt(frameIndex, layerIndex, x, y));
-                    
-                
+
                 layers.addSlice("Frame " + frameIndex + " Layer " + layerIndex, cp);
             }
             frames.addSlice("frame " + frameIndex, layers.getProcessor(1)); // Add the completed frame

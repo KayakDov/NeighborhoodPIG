@@ -23,6 +23,18 @@ public class IArray extends Array {
     }
 
     /**
+     * 
+     * @param handle
+     * @param values The values to be stored in the cpu array,
+     */
+    public IArray(Handle handle, int ... values) {
+        super(Array.empty(values.length, PrimitiveType.INT), values.length, PrimitiveType.INT);
+        set(handle, Pointer.to(values), 0, 0, values.length);
+    }
+
+    
+    
+    /**
      * @see DArray#empty(int)
      * @param length The length of the array.
      * @return An empty asrray.

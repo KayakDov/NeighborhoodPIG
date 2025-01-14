@@ -1,22 +1,15 @@
 package fijiPlugin;
 
-import JCudaWrapper.algebra.TensorOrd3Stride;
-import JCudaWrapper.array.DArray;
 import JCudaWrapper.resourceManagement.Handle;
-import ij.IJ;
 import ij.ImagePlus;
-import ij.ImageStack;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
-import ij.process.ImageProcessor;
 
 /**
  *
  * @author dov
  */
 public class FijiPlugin implements PlugIn {
-
-    private ImagePlus imp;
 
     /**
      * Checks that the image is selected and gray scale.
@@ -63,7 +56,7 @@ public class FijiPlugin implements PlugIn {
     @Override
     public void run(String string) {
 
-        imp = ij.WindowManager.getCurrentImage();
+        ImagePlus imp = ij.WindowManager.getCurrentImage();
 
         if (!validImage(imp)) return;
 
@@ -99,13 +92,13 @@ public class FijiPlugin implements PlugIn {
 //            String imagePath = "images/input/debug/";
 
             int neighborhoodSize = 15; // Default neighborhood radius
-            double tolerance = 1e-11; // Default tolerance
+            double tolerance = 1e-4; // Default tolerance
             int depth = 1;
 
-            try (NeighborhoodPIG np = NeighborhoodPIG.getWithIJ(handle, imagePath, depth, neighborhoodSize, tolerance)) {
+            try (NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, neighborhoodSize, tolerance)) {
 
-//                np.getImageOrientationXY().printToFile("images/output/test2/");
-                np.getImageOrientationXY().printToFiji();
+                np.getImageOrientationXY().printToFile("images/output/test2/");
+//                np.getImageOrientationXY().printToFiji();
 
             }
             System.out.println("NeighborhoodPIG processing complete.");

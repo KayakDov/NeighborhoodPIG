@@ -168,6 +168,13 @@ public class TensorOrd3Stride extends TensorOrd3dStrideDim implements AutoClosea
     public void close() {
         data.close();
     }
+    
+    /**
+     * Closes the underlying data.
+     */
+    public void freeMemory() {
+        data.freeMemory();
+    }
 
     /**
      * The underlying data behind this object.

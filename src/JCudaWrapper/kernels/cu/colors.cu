@@ -8,7 +8,7 @@
  * @return The calculated intensity value (0-255) for the downward transition.
  */
 __device__ int down(int a, double theta) {
-    return static_cast<int>(std::round(255 * (1 + a - 3 * theta / CUDART_PI)));
+    return static_cast<int>(rint(255 * (1 + a - 3 * theta / CUDART_PI)));
 }
 
 /**
@@ -18,7 +18,7 @@ __device__ int down(int a, double theta) {
  * @return The calculated intensity value (0-255) for the upward transition.
  */
 __device__ int up(int a, double theta) {
-    return static_cast<int>(std::round(255 * (3 * theta / CUDART_PI - a)));
+    return static_cast<int>(rint(255 * (3 * theta / CUDART_PI - a)));
 }
 
 /**
@@ -48,17 +48,17 @@ public:
      * @param b Blue component (0-255).
      */
     __device__ void setColor(int r, int g, int b) {
-        int scaledR = std::round(r * intensity);
-        int scaledG = std::round(g * intensity);
-        int scaledB = std::round(b * intensity);
+        int scaledR = static_cast<int>(rint(r * intensity));
+	int scaledG = static_cast<int>(rint(g * intensity));
+	int scaledB = static_cast<int>(rint(b * intensity));
+
 
         if (isTriplet) {
             writeTo[0] = scaledR;
             writeTo[1] = scaledG;
             writeTo[2] = scaledB;
-        } else {
-            *writeTo = (scaledR << 16) | (scaledG << 8) | scaledB;
-        }
+        } else *writeTo = (scaledR << 16) | (scaledG << 8) | scaledB;
+        
     }
 };
 
@@ -84,29 +84,28 @@ extern "C" __global__ void colorsKernel(
     const double* intensities, 
     int intensitiesInc
 ) {
+
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= n) return;
 
     // Load the angle and intensity
     double angle = angles[idx * anglesInc];
-    double intensity = (intensitiesInc != -1) ? intensities[idx * intensitiesInc] : 1.0;
 
     // Create a Writer object for the current thread
-    Writer writer(ldColors == 3, colors + idx * ldColors, intensity);
+    Writer writer(ldColors == 3, colors + idx * ldColors, (intensitiesInc != -1) ? intensities[idx * intensitiesInc] : 1.0);
 
     // Determine the RGB color based on the angle
-    if (0 <= angle && angle < CUDART_PI / 3)
-        writer.setColor(255, up(0, angle), 0);
-    else if (CUDART_PI / 3 <= angle && angle < 2 * CUDART_PI / 3)
-        writer.setColor(down(1, angle), 255, 0);
-    else if (2 * CUDART_PI / 3 <= angle && angle < CUDART_PI)
-        writer.setColor(0, 255, up(2, angle));
-    else if (CUDART_PI <= angle && angle < 4 * CUDART_PI / 3)
-        writer.setColor(0, down(3, angle), 255);
-    else if (4 * CUDART_PI / 3 <= angle && angle < 5 * CUDART_PI / 3)
-        writer.setColor(up(4, angle), 0, 255);
-    else if (5 * CUDART_PI / 3 <= angle && angle < 2 * CUDART_PI)
-        writer.setColor(255, 0, down(5, angle));
+    if (0 <= angle && angle < CUDART_PI / 3) writer.setColor(255, up(0, angle), 0);
+    
+    else if (CUDART_PI / 3 <= angle && angle < 2 * CUDART_PI / 3) writer.setColor(down(1, angle), 255, 0);
+    
+    else if (2 * CUDART_PI / 3 <= angle && angle < CUDART_PI) writer.setColor(0, 255, up(2, angle));
+    
+    else if (CUDART_PI <= angle && angle < 4 * CUDART_PI / 3) writer.setColor(0, down(3, angle), 255);
+    
+    else if (4 * CUDART_PI / 3 <= angle && angle < 5 * CUDART_PI / 3) writer.setColor(up(4, angle), 0, 255);
+    
+    else if (5 * CUDART_PI / 3 <= angle && angle < 2 * CUDART_PI) writer.setColor(255, 0, down(5, angle));
 }
 

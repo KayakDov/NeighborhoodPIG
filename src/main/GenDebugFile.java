@@ -1,94 +1,104 @@
 package main;
 
-import java.awt.image.BufferedImage;
-import java.awt.image.WritableRaster;
+import ij.ImagePlus;
+import ij.process.ByteProcessor;
+import ij.process.ImageProcessor;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Random;
-import javax.imageio.ImageIO;
+import ij.io.FileSaver;
+import ij.io.Opener;
 
 /**
- * This file generates a jpeg to use for debugging purposes.
+ * This file generates a JPEG to use for debugging purposes using the ImageJ
+ * library.
  *
  * @author dov
  */
 public class GenDebugFile {
 
-    
-    public static double[][] xGrad1 = new double[][]{
-            {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
-            {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
-            {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
-            {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
-            {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
-            {0.1, 0.2, 0.3, 0.4, 0.5, 0.6},
-            {0.1, 0.2, 0.3, 0.4, 0.5, 0.6}
-        };
-    
-    public static double[][] white = new double[][]{
-        {1,1,1,1,1,1},
-        {1,1,1,1,1,1},
-        {1,1,1,1,1,1},
-        {1,1,1,1,1,1},
-        {1,1,1,1,1,1},
-        {1,1,1,1,1,1},
-        {1,1,1,1,1,1}
-    };
-    
-    public static double[][] blackWithWhiteBorder(){
+
+    public static int[][] blackWithWhiteBorder() {
         int size = 15;
-        double[][] black = new double[size][size];
-        for(int i = 0; i < size; i++)
-            for(int j = 0; j < size; j++)
+        int[][] black = new int[size][size];
+        for (int i = 0; i < size; i++)
+            for (int j = 0; j < size; j++)
                 black[i][j] = 0;
-        for(int i = 0; i < size; i++){
-            black[i][0] = 1; //top 
-//            black[0][i] = 1; //left
-            black[i][size - 1] = 1; //bottom
-//            black[size - 1][i] = 1; //right
-            
+
+        for (int i = 0; i < size; i++) {
+            black[i][0] = 255; // left
+            black[i][size - 1] = 255; // right
         }
         return black;
     }
-    
-    
-    public static double[][] random(int height, int width){
-        Random rand = new Random();
-        double[][] random = new double[height][width];
-        for(double[] row: random)
-            Arrays.setAll(row, i -> rand.nextDouble());
-        return random;
-    }
+
     public static void main(String[] args) {
-        
-        // Define pixel values for each point in a 7x7 grid
-        // We use values from 0.1, 0.2, ... to 0.7
-        double[][] pixelValues = blackWithWhiteBorder();
+        // Define pixel values for each point in a grid
+        int[][] pixelValues = blackWithWhiteBorder();
 
         int width = pixelValues[0].length;
         int height = pixelValues.length;
-        
-        // Create a grayscale BufferedImage
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        WritableRaster raster = image.getRaster();
 
-        // Set each pixel to a grayscale value based on pixelValues
+        // Create an ImageProcessor for an 8-bit grayscale image
+        ImageProcessor processor = new ByteProcessor(width, height);
+
+        // Set pixel values in the ImageProcessor
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                // Scale the pixel value to the range 0-255
-                int grayValue = (int) (pixelValues[y][x] * 255);
-                raster.setSample(x, y, 0, grayValue);
+                int grayValue = pixelValues[y][x];
+                processor.putPixel(x, y, grayValue);
             }
         }
 
+        // Create an ImagePlus object
+        ImagePlus image = new ImagePlus("Debug Image", processor);
+
         // Save the image as a JPEG file
         try {
-            String saveTo = "images/input/debug.jpeg";
-            File outputFile = new File(saveTo);
-            ImageIO.write(image, "jpeg", outputFile);
-            System.out.println("Image saved as:" + saveTo + ": "+ height + "x" + width);
+            String saveTo = "images/input/debug/debug.png";
+
+            FileSaver saver = new FileSaver(image);
+            saver.saveAsPng(saveTo);
+            System.out.println("Image saved as: " + saveTo + ": " + height + "x" + width);
+            
+//            printPixels(new File(saveTo));
         } catch (Exception e) {
             e.printStackTrace();
+        }
+        
+        
+    }
+    
+    
+    
+    /**
+     * 
+     * TODO: delete this method.  It is only for debugging.
+     * @brief Reads an image and prints the pixel intensities to the standard
+     * output.
+     *
+     * @param imagePath The path to the image file.
+     * @throws IllegalArgumentException If the image cannot be opened or the
+     * path is invalid.
+     */
+    public static void printPixels(File file) {
+        // Use the Opener class to open the image
+        Opener opener = new Opener();
+        ImagePlus image = opener.openImage(file.getPath());
+
+        // Get the ImageProcessor to access pixel data
+        ImageProcessor processor = image.getProcessor();
+
+        int width = processor.getWidth();
+        int height = processor.getHeight();
+
+        System.out.println("Pixel Intensities:");
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int intensity = processor.getPixel(x, y);
+                System.out.print(intensity + " ");
+            }
+            System.out.println(); // Newline after each row
         }
     }
 }
