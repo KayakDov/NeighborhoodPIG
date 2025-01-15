@@ -10,6 +10,7 @@ import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.stream.IntStream;
 
 /**
  *
@@ -60,6 +61,13 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         strctTensors.matIndices(2, 1).set(strctTensors.matIndices(1, 2));
 
         eigen = new Eigen(strctTensors, tolerance);
+        
+        
+        
+//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() " + eigen.values.firstTensorIndexOfNaN());
+//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>()\n" + strctTensors.getTensor(eigen.values.firstTensorIndexOfNaN()));
+        
+
 
         orientationXY = grad.x().emptyCopyDimensions();
         orientationYZ = grad.x().emptyCopyDimensions();

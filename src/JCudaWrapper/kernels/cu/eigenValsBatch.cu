@@ -166,23 +166,30 @@ public:
 
 
 // variable names are taken from https://www.scribd.com/document/355163848/Real-Roots-of-Cubic-Equation
-__device__ void cubicRoot(const double& b, const double& c, const double& d, const double tolerance, double* x, int idx){//todo: remove idx from paramters
-    
+__device__ void cubicRoot(const double& b, const double& c, const double& d, const double tolerance, double* val, int idx){//TODO: remove idx from paramters
+
+    //if(idx == 352) printf("\ncoeficiants b = %lf, c = %lf, d = %lf\n" , b, c, d);
+
     double p = (3*c - b*b)/9;
     double q = (2*b*b*b - 9*b*c + 27*d)/27;
-    
+
+    if (p > -tolerance) {
+        val[0] = val[1] = val[2] = -b / 3;
+      //  if(idx == 352) printf("\nsetting all eigenvals to %f\n", -b/3);
+        return;
+    }
+
     Affine line(2 * sqrt(-p), -b/3);
     
     double inACos = q/(line.getSlope() * p);
     double phi;
     
-    if(inACos > 1 - tolerance) line.map(1, -0.5, -0.5, x);
-    else if(inACos < -1 + tolerance) line.map(-1, 0.5, 0.5, x);
+    if(inACos > 1 - tolerance) line.map(1, -0.5, -0.5, val);
+    else if(inACos < -1 + tolerance) line.map(-1, 0.5, 0.5, val);
     else {
         phi = acos(inACos);
-        for(int i = 0; i < 3; i++) x[i] = line(cos((phi + i*2*M_PI)/3));
+        for(int i = 0; i < 3; i++) val[i] = line(cos((phi + i*2*M_PI)/3));
     }
-        
 }
 
 /**
@@ -199,7 +206,9 @@ extern "C" __global__ void eigenValsBatchKernel(const int n, const double* input
     
     Matrix3x3 matrix(input + idx*MATRIX_SIZE);
     
-    double coeficiant[3];
+    //if(idx == 352) matrix.print();
+    
+    double coeficiant[3]; //TODO: remove memory allocation and pass directly into cubic root method.
     coeficiant[0] = -matrix.determinant();
     coeficiant[1] = matrix.minor(0,0) + matrix.minor(1,1) + matrix.minor(2,2);
     coeficiant[2] = -matrix.trace();
@@ -209,6 +218,8 @@ extern "C" __global__ void eigenValsBatchKernel(const int n, const double* input
     cubicRoot(coeficiant[2], coeficiant[1], coeficiant[0], tolerance, eigenvalues, idx);
 
     sortDescending(eigenvalues);//TODO: see if you can get a correct order without sorting them.
+    
+ //   if(idx == 352) printf("\neigenvalues %lf, %lf, %lf\n" , eigenvalues[0], eigenvalues[1], eigenvalues[2]);
 }
 
 

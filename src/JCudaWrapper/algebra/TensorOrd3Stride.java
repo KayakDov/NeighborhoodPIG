@@ -3,6 +3,8 @@ package JCudaWrapper.algebra;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.DStrideArray;
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.Arrays;
+import java.util.stream.IntStream;
 
 /**
  * This stack of matrices is stored by default as follows: A group of columns
@@ -222,4 +224,17 @@ public class TensorOrd3Stride extends TensorOrd3dStrideDim implements AutoClosea
         return colDist;
     }
 
+    
+    /**
+     * Finds the index of the first tensor with a NaN value.  This is meant to be a debugging tool.
+     * @return Finds the index of the first tensor with a NaN value.
+     */
+    public int firstTensorIndexOfNaN(){
+        double[] cpuData = data.get(handle);
+        
+        int arrayIndexOfFirstNaN = IntStream.range(0, cpuData.length).filter(i -> Double.isNaN(cpuData[i])).findFirst().getAsInt();
+        
+        return arrayIndexOfFirstNaN / strideSize;
+    }
+    
 }

@@ -36,7 +36,7 @@ public class Eigen implements AutoCloseable {
 
         
     }
-
+    
     public static void main(String[] args) {
         try (Handle handle = new Handle();
                 DArray array = new DArray(handle, 6, 0, 0,   0, 0, 0,   0, 0, 0, 1, 0, 1, 0, 2, 1, 1, 1, 3);) {
