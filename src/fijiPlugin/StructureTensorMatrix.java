@@ -47,7 +47,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
         strctTensors = new MatricesStride(handle, 3, grad.size());
 
-        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, neighborhoodRad, grad.height, grad.width, grad.depth, grad.batchSize)) {
+        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, neighborhoodRad, grad.x())) {
             nps.set(grad.x(), grad.x(), strctTensors.matIndices(0, 0));
             nps.set(grad.x(), grad.y(), strctTensors.matIndices(0, 1));
             nps.set(grad.y(), grad.y(), strctTensors.matIndices(1, 1));
@@ -61,12 +61,13 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         strctTensors.matIndices(2, 1).set(strctTensors.matIndices(1, 2));
 
         eigen = new Eigen(strctTensors, tolerance);
+               
         
-        
-        
-//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() " + eigen.values.firstTensorIndexOfNaN());
-//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>()\n" + strctTensors.getTensor(eigen.values.firstTensorIndexOfNaN()));
-        
+//        int problemMat = eigen.vectors.firstTensorIndexOfNaN();
+//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() " + problemMat);
+//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() matrix\n" + strctTensors.getTensor(problemMat));
+//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() values\n" + eigen.values.getTensor(problemMat));
+//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() vectors\n" + eigen.vectors.getTensor(problemMat));
 
 
         orientationXY = grad.x().emptyCopyDimensions();
@@ -76,6 +77,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         setVecs0ToPi();
         setCoherence(tolerance);
         setOrientations();
+        
     }
 
     /**
@@ -84,11 +86,13 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      *
      * @param row The row of the desired pixel.
      * @param col The column of the desired pixel.
+     * @param layer The desired layer of the tensor.
+     * @param frame The desired frame of the tensor.
      * @return The structure tensor for the given row and column.
      */
-    public Matrix getTensor(int row, int col) {
+    public Matrix getTensor(int row, int col, int layer, int frame) {
 
-        return strctTensors.getMatrix(index(row, col));
+        return strctTensors.getMatrix(index(row, col) + layer*orientationXY.layerDist + frame*orientationXY.strideSize);
     }
 
     /**

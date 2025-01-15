@@ -1,7 +1,7 @@
 package fijiPlugin;
 
 import JCudaWrapper.algebra.TensorOrd3Stride;
-import JCudaWrapper.algebra.TensorOrd3dStrideDim;
+import JCudaWrapper.algebra.TensorOrd3StrideDim;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.IJ;
@@ -22,7 +22,7 @@ import javax.imageio.ImageIO;
  *
  * @author E. Dov Neimand
  */
-public class NeighborhoodPIG extends TensorOrd3dStrideDim implements AutoCloseable {
+public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseable {
 
     public final StructureTensorMatrix stm; //TODO: this should probably be made private
 
@@ -113,8 +113,7 @@ public class NeighborhoodPIG extends TensorOrd3dStrideDim implements AutoCloseab
 
             BufferedImage firstImage = ImageIO.read(imageFiles[0]);
 
-            try (
-                    DArray gpuImage = processImages(handle, imageFiles, firstImage.getHeight() * firstImage.getWidth() * imageFiles.length);) {
+            try (DArray gpuImage = processImages(handle, imageFiles, firstImage.getHeight() * firstImage.getWidth() * imageFiles.length)) {
 
                 return new NeighborhoodPIG(
                         new TensorOrd3Stride(handle,

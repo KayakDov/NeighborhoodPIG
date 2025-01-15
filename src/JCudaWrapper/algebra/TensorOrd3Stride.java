@@ -13,7 +13,7 @@ import java.util.stream.IntStream;
  *
  * @author Dov Neimand
  */
-public class TensorOrd3Stride extends TensorOrd3dStrideDim implements AutoCloseable, ColumnMajor {
+public class TensorOrd3Stride extends TensorOrd3StrideDim implements AutoCloseable, ColumnMajor {
         
     protected final DStrideArray data;    
 
@@ -232,7 +232,7 @@ public class TensorOrd3Stride extends TensorOrd3dStrideDim implements AutoClosea
     public int firstTensorIndexOfNaN(){
         double[] cpuData = data.get(handle);
         
-        int arrayIndexOfFirstNaN = IntStream.range(0, cpuData.length).filter(i -> Double.isNaN(cpuData[i])).findFirst().getAsInt();
+        int arrayIndexOfFirstNaN = IntStream.range(0, cpuData.length).filter(i -> Double.isNaN(cpuData[i]) || !Double.isFinite(cpuData[i])).findFirst().getAsInt();
         
         return arrayIndexOfFirstNaN / strideSize;
     }

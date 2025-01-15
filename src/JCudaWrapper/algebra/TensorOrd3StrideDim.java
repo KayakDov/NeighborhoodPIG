@@ -16,7 +16,7 @@ import JCudaWrapper.resourceManagement.Handle;
  *
  * @author E.Dov Neimand
  */
-public class TensorOrd3dStrideDim {
+public class TensorOrd3StrideDim {
 
     /**
      * The height (number of rows) of the tensor.
@@ -68,7 +68,7 @@ public class TensorOrd3dStrideDim {
      * @param strideSize The stride size (distance between elements in memory).
      * @param batchSize The number of tensors in a batch.
      */
-    public TensorOrd3dStrideDim(Handle handle, int height, int width, int depth, int colDist, int layerDist, int strideSize, int batchSize) {
+    public TensorOrd3StrideDim(Handle handle, int height, int width, int depth, int colDist, int layerDist, int strideSize, int batchSize) {
         this.handle = handle;
         this.height = height;
         this.width = width;
@@ -94,7 +94,7 @@ public class TensorOrd3dStrideDim {
      * @param depth The depth (number of layers) of the tensor.
      * @param batchSize The number of tensors in a batch.
      */
-    public TensorOrd3dStrideDim(Handle handle, int height, int width, int depth, int batchSize) {
+    public TensorOrd3StrideDim(Handle handle, int height, int width, int depth, int batchSize) {
         this(handle, height, width, depth, height, height*width, height*width*depth, batchSize);
     }
     
@@ -105,7 +105,7 @@ public class TensorOrd3dStrideDim {
      *
      * @param copyFrom The item being copied.
      */
-    public TensorOrd3dStrideDim(TensorOrd3dStrideDim copyFrom) {
+    public TensorOrd3StrideDim(TensorOrd3StrideDim copyFrom) {
         this(copyFrom.handle, copyFrom.height, copyFrom.width, copyFrom.depth, copyFrom.colDist, copyFrom.layerDist, copyFrom.strideSize, copyFrom.batchSize);
     }
 

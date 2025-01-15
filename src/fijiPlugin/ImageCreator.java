@@ -1,7 +1,7 @@
 package fijiPlugin;
 
 import JCudaWrapper.algebra.TensorOrd3Stride;
-import JCudaWrapper.algebra.TensorOrd3dStrideDim;
+import JCudaWrapper.algebra.TensorOrd3StrideDim;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.Kernel;
@@ -24,7 +24,7 @@ import javax.imageio.ImageIO;
  *
  * @author E. Dov Neimand
  */
-public class ImageCreator extends TensorOrd3dStrideDim {
+public class ImageCreator extends TensorOrd3StrideDim {
 
     /**
      * Array storing color data for each tensor element.

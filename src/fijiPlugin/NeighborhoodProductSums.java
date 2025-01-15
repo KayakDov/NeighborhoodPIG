@@ -1,6 +1,7 @@
 package fijiPlugin;
 
 import JCudaWrapper.algebra.TensorOrd3Stride;
+import JCudaWrapper.algebra.TensorOrd3StrideDim;
 import JCudaWrapper.algebra.Vector;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.IArray;
@@ -19,12 +20,11 @@ import JCudaWrapper.resourceManagement.Handle;
  *
  * @author E. Dov Neimand
  */
-public class NeighborhoodProductSums implements AutoCloseable {
+public class NeighborhoodProductSums extends TensorOrd3StrideDim implements AutoCloseable {
 
 //    private final Vector halfNOnes;
     private final TensorOrd3Stride workSpace1, workSpace2;
-    private final int nRad, height, width, depth, batchSize;
-    private Handle hand;
+    private final int nRad;
     private Kernel nSum;
 
     /**
@@ -34,23 +34,15 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param handle A resource handle for creating internal matrices.
      * @param nRad Neighborhood radius; the distance from the center of a
      * neighborhood to its edge.
-     * @param height The height of expected matrices. That is, matrices that
-     * will be passed to the set method.
-     * @param width The width of expected matrices.
-     * @param depth The depth of the matrices.
-     * @param batchSize The batchSize of the matrices.
+     * @param dim Dimensions from this will be copied.
      *
      */
-    public NeighborhoodProductSums(Handle handle, int nRad, int height, int width, int depth, int batchSize) {
+    public NeighborhoodProductSums(Handle handle, int nRad, TensorOrd3Stride dim) {
+        super(dim);
         this.nRad = nRad;
-        this.height = height;
-        this.batchSize = batchSize;
-        this.depth = depth;
-        this.width = width;
-        hand = handle;
-
-        workSpace2 = new TensorOrd3Stride(handle, height, width, depth, batchSize);
-        workSpace1 = new TensorOrd3Stride(handle, height, width, depth, batchSize);
+        
+        workSpace2 = dim.emptyCopyDimensions();
+        workSpace1 = dim.emptyCopyDimensions();
 
         nSum = new Kernel("neighborhoodSum3d");
     }
@@ -84,7 +76,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
                 throw new RuntimeException("Direction must be 1, 2, or 3.  However, dir = " + dir);
         }
         
-        nSum.map(hand,
+        nSum.map(handle,
                 n,
                 from,
                 P.to(to),
@@ -112,18 +104,21 @@ public class NeighborhoodProductSums implements AutoCloseable {
      */
     public void set(TensorOrd3Stride a, TensorOrd3Stride b, Vector result) {
 
-        new Vector(hand, workSpace1.dArray(), 1)
+        
+        
+        new Vector(handle, workSpace1.dArray(), 1)
                 .ebeSetProduct(
-                        new Vector(hand, a.dArray(), 1),
-                        new Vector(hand, b.dArray(), 1)
+                        new Vector(handle, a.dArray(), 1),
+                        new Vector(handle, b.dArray(), 1)
                 );
-
-        mapNeighborhoodSum(height * depth, workSpace1.dArray(), workSpace2.dArray(), 0, 1);
+        
+        mapNeighborhoodSum(height * depth, workSpace1.dArray(), workSpace2.dArray(), 0, 1);        
+        
         if (depth > 1) {
             mapNeighborhoodSum(depth * width, workSpace2.dArray(), workSpace1.dArray(), 1, 1);
             mapNeighborhoodSum(height * width, workSpace1.dArray(), result.dArray(), 2, result.inc());
-        } else
-            mapNeighborhoodSum(width, workSpace1.dArray(), result.dArray(), 1, result.inc());
+        } else mapNeighborhoodSum(width, workSpace2.dArray(), result.dArray(), 1, result.inc());
+        
 
     }
 

@@ -3,7 +3,7 @@ package fijiPlugin;
 import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.TensorOrd3Stride;
-import JCudaWrapper.algebra.TensorOrd3dStrideDim;
+import JCudaWrapper.algebra.TensorOrd3StrideDim;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.Kernel;
@@ -16,9 +16,9 @@ import jcuda.Pointer;
  *
  * @author E. Dov Neimand
  */
-public class Gradient extends TensorOrd3dStrideDim implements AutoCloseable {
+public class Gradient extends TensorOrd3StrideDim implements AutoCloseable {
 
-    private TensorOrd3Stride dX, dY, dZ;
+    private TensorOrd3Stride x, y, z;
 
     /**
      * Compute gradients of an image in both the x and y directions. Gradients
@@ -32,9 +32,9 @@ public class Gradient extends TensorOrd3dStrideDim implements AutoCloseable {
     public Gradient(TensorOrd3Stride pic, Handle hand) {
         super(pic);
 
-        dX = pic.emptyCopyDimensions();
-        dY = pic.emptyCopyDimensions();
-        dZ = pic.emptyCopyDimensions();
+        x = pic.emptyCopyDimensions();
+        y = pic.emptyCopyDimensions();
+        z = pic.emptyCopyDimensions();
 
         try (IArray dim = new IArray(handle, height, width, depth, batchSize, layerDist, tensorSize(), tensorSize() * batchSize)) {
 
@@ -42,7 +42,7 @@ public class Gradient extends TensorOrd3dStrideDim implements AutoCloseable {
                     3 * pic.dArray().length,
                     pic.dArray(),
                     P.to(dim),
-                    P.to(dX), P.to(dY), P.to(dZ)
+                    P.to(x), P.to(y), P.to(z)
             );
         }
 
@@ -54,7 +54,7 @@ public class Gradient extends TensorOrd3dStrideDim implements AutoCloseable {
             TensorOrd3Stride tenStr = new Matrix(hand, array, 3, 5).repeating(1);
 
             try (Gradient grad = new Gradient(tenStr, hand)) {
-                System.out.println("dX: " + grad.dX.dArray().toString());
+                System.out.println("dX: " + grad.x.dArray().toString());
             }
         }
     }
@@ -65,7 +65,7 @@ public class Gradient extends TensorOrd3dStrideDim implements AutoCloseable {
      * @return An x gradient matrix.
      */
     public TensorOrd3Stride x() {
-        return dX;
+        return x;
     }
 
     /**
@@ -74,7 +74,7 @@ public class Gradient extends TensorOrd3dStrideDim implements AutoCloseable {
      * @return A y gradient matrix.
      */
     public TensorOrd3Stride y() {
-        return dY;
+        return y;
     }
 
     /**
@@ -83,14 +83,14 @@ public class Gradient extends TensorOrd3dStrideDim implements AutoCloseable {
      * @return A y gradient matrix.
      */
     public TensorOrd3Stride z() {
-        return dZ;
+        return z;
     }
 
     @Override
     public void close() {
-        dX.close();
-        dY.close();
-        dZ.close();
+        x.close();
+        y.close();
+        z.close();
     }
 
     /**
