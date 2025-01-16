@@ -265,7 +265,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
             throw new IllegalArgumentException("computeVals3x3 can only be called on a 3x3 matrix.  These matrices are " + height + "x" + width);
 
         VectorsStride vals = new VectorsStride(handle, height, getBatchSize(), height, 1);
-
+        
         Kernel.run("eigenValsBatch", handle, batchSize, dArray(), P.to(vals), P.to(tolerance));
         
         return vals;

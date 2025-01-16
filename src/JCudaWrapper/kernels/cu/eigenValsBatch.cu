@@ -166,7 +166,7 @@ public:
 
 
 // variable names are taken from https://www.scribd.com/document/355163848/Real-Roots-of-Cubic-Equation
-__device__ void cubicRoot(const double& b, const double& c, const double& d, const double tolerance, double* val){//TODO: remove idx from paramters
+__device__ void cubicRoot(const double& b, const double& c, const double& d, const double tolerance, double* val){
 
     double p = (3*c - b*b)/9;
     double q = (2*b*b*b - 9*b*c + 27*d)/27;
@@ -177,8 +177,8 @@ __device__ void cubicRoot(const double& b, const double& c, const double& d, con
     
         double inACos = q/(line.getSlope() * p);        
     
-        if(inACos > 1 - tolerance) line.map(1, -0.5, -0.5, val);
-        else if(inACos < -1 + tolerance) line.map(-1, 0.5, 0.5, val);
+        if(inACos > 1 - 1e-10) line.map(1, -0.5, -0.5, val); //this tolerance needs to be much smaller than the other one, so it's just hard coded in.
+        else if(inACos < -1 + 1e-10) line.map(-1, 0.5, 0.5, val);
         else {
 	    double phi = acos(inACos);
 	    for(int i = 0; i < 3; i++) val[i] = line(cos((phi + i*2*M_PI)/3));

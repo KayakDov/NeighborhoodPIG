@@ -940,8 +940,6 @@ public class DArray extends Array {
         checkNull(handle, x);
         checkLowerBound(1, inc);
         checkAgainstLength((n(inc) - 1) * inc);
-        checkMemAllocation();
-        x.checkMemAllocation();
 
         if (incX != 0 && x.n(incX) != n(inc))
             throw new DimensionMismatchException(n(inc), x.n(incX));
@@ -991,9 +989,7 @@ public class DArray extends Array {
         checkNull(handle, a, b);
         checkPositive(height, width);
         checkAgainstLength(height * width - 1);
-        checkMemAllocation();
-        a.checkMemAllocation();
-
+        
         int result = JCublas2.cublasDgeam(handle.get(),
                 transpose(transA), transpose(transB),
                 height, width,

@@ -89,7 +89,7 @@ extern "C" __global__ void neighborhoodSum3dKernel(
 
     Pixel pixel(sourceMat + startIdx, targetMat + startIdx * toInc, stepSize, toInc);
 
-    int rollingSum = 0;
+    double rollingSum = 0;
     for (int i = 0; i <= neighborhoodSize; i++)
         rollingSum += pixel.sourceValue(i);
     

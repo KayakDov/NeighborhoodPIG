@@ -79,18 +79,18 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      * @return A neighborhoodPIG.
      */
     public static NeighborhoodPIG get(Handle handle, ImagePlus imp, int neighborhoodR, double tolerance) {
-        try (DArray gpuImage = processImages(handle, imp)) {
-            return new NeighborhoodPIG(
-                    new TensorOrd3Stride(handle,
-                            imp.getHeight(),
-                            imp.getWidth(),
-                            imp.getNSlices() / imp.getNFrames(),
-                            imp.getNFrames()
-                    ),
-                    neighborhoodR,
-                    tolerance
-            );
-        }
+
+        return new NeighborhoodPIG(
+                new TensorOrd3Stride(handle,
+                        imp.getHeight(),
+                        imp.getWidth(),
+                        imp.getNSlices() / imp.getNFrames(),
+                        imp.getNFrames()
+                ),
+                neighborhoodR,
+                tolerance
+        );
+
     }
 
     /**

@@ -1,7 +1,5 @@
 package JCudaWrapper.array;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import jcuda.NativePointerObject;
 import jcuda.Pointer;
 import jcuda.driver.CUfunction;
@@ -11,7 +9,6 @@ import jcuda.driver.JCudaDriver;
 import JCudaWrapper.resourceManagement.Handle;
 import java.io.File;
 import java.io.InputStream;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 

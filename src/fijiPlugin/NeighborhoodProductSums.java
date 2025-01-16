@@ -103,8 +103,6 @@ public class NeighborhoodProductSums extends TensorOrd3StrideDim implements Auto
      * increment of this vector is probably not one.
      */
     public void set(TensorOrd3Stride a, TensorOrd3Stride b, Vector result) {
-
-        
         
         new Vector(handle, workSpace1.dArray(), 1)
                 .ebeSetProduct(

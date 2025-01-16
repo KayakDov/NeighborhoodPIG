@@ -170,13 +170,6 @@ public class TensorOrd3Stride extends TensorOrd3StrideDim implements AutoCloseab
     public void close() {
         data.close();
     }
-    
-    /**
-     * Closes the underlying data.
-     */
-    public void freeMemory() {
-        data.freeMemory();
-    }
 
     /**
      * The underlying data behind this object.
@@ -232,7 +225,7 @@ public class TensorOrd3Stride extends TensorOrd3StrideDim implements AutoCloseab
     public int firstTensorIndexOfNaN(){
         double[] cpuData = data.get(handle);
         
-        int arrayIndexOfFirstNaN = IntStream.range(0, cpuData.length).filter(i -> Double.isNaN(cpuData[i]) || !Double.isFinite(cpuData[i])).findFirst().getAsInt();
+        int arrayIndexOfFirstNaN = IntStream.range(0, cpuData.length).filter(i -> Double.isNaN(cpuData[i]) || !Double.isFinite(cpuData[i])).findFirst().orElse(-1);
         
         return arrayIndexOfFirstNaN / strideSize;
     }

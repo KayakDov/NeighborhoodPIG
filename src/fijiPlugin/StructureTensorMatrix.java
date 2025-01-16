@@ -5,12 +5,10 @@ import JCudaWrapper.algebra.Eigen;
 import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.TensorOrd3Stride;
-import JCudaWrapper.algebra.Vector;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
-import java.util.stream.IntStream;
 
 /**
  *
@@ -29,7 +27,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
     private final Eigen eigen;
     private final TensorOrd3Stride orientationXY, orientationYZ, coherence;
-    private Handle handle;
+    private final Handle handle;
 
     /**
      * Finds the structure tensor for every pixel in the image and stores them
@@ -61,10 +59,11 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         strctTensors.matIndices(2, 1).set(strctTensors.matIndices(1, 2));
 
         eigen = new Eigen(strctTensors, tolerance);
-               
         
-//        int problemMat = eigen.vectors.firstTensorIndexOfNaN();
-//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() " + problemMat);
+        
+//        int problemMat = eigen.vectors.firstTensorIndexOfNaN();//TODO: delete this
+//        if(problemMat == -1) System.out.println("clean eigenvectors");
+//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() matrix index " + problemMat);
 //        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() matrix\n" + strctTensors.getTensor(problemMat));
 //        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() values\n" + eigen.values.getTensor(problemMat));
 //        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() vectors\n" + eigen.vectors.getTensor(problemMat));
@@ -77,7 +76,6 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         setVecs0ToPi();
         setCoherence(tolerance);
         setOrientations();
-        
     }
 
     /**
@@ -154,6 +152,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
                 P.to(eigen.values.dim() == 3),
                 P.to(tolerance)
         );
+        
         return coherence;
     }
 

@@ -74,7 +74,7 @@ public:
 class MaxAbs {
 private:
     int arg; ///< The argument corresponding to the maximum absolute value.
-    double val; ///< The maximum absolute value encountered so far.
+    double val; ///< The maximum absolute value encountered so far.    
 
 public:
     /**
@@ -132,6 +132,8 @@ class Matrix {
 private:
     double* data; ///< Pointer to the matrix data.    
     int* isPivot; ///< Pointer to an array indicating pivot columns.
+    const double tolerance;
+    
 
 public:
      const int width; ///< Number of columns in the matrix.
@@ -143,8 +145,8 @@ public:
      * @param height Number of rows in the matrix.
      * @param isPivot Pointer to an array indicating pivot columns.
      */
-    __device__ Matrix(double* data, int width, int height, int* isPivot) 
-        : data(data), width(width), height(height), isPivot(isPivot) {}
+    __device__ Matrix(double* data, int width, int height, int* isPivot, double tolerance) 
+        : data(data), width(width), height(height), isPivot(isPivot), tolerance(tolerance) {}
 
     /**
      * @brief Access an element in the matrix by row and column index.
@@ -165,20 +167,19 @@ public:
     __device__ MatrixRow getRow(int rowIndex) {
         return MatrixRow(data + rowIndex, width, height);
     }
-
+    
     /**
      * @brief Perform row echelon work for a specific row and column.
      * @param rowInd Current row index.
      * @param col Current column index.
-     * @param tolerance Tolerance for considering a pivot.
      * @return True if a pivot was found, false otherwise.
      */
-    __device__ bool reduceToRowEchelon(int rowInd, int col, double tolerance) {
+    __device__ bool reduceToRowEchelon(int rowInd, int col) {
         
         MatrixRow row = getRow(rowInd);
         
         MaxAbs maxPivot(rowInd, fabs((*this)(rowInd, col)));
-	for (int i = rowInd + 1; i < height; i++) maxPivot.challenge(i, (*this)(i, col));    
+	for (int i = rowInd + 1; i < height; i++) maxPivot.challenge(i, (*this)(i, col));
 
         if (maxPivot.getVal() <= tolerance) return false;
 
@@ -192,15 +193,14 @@ public:
 
     /**
      * @brief Perform row echelon reduction on the matrix.
-     * @param tolerance Tolerance for considering a pivot.
      * @return Number of free variables found during the reduction.
      */
-    __device__ int rowEchelon(double tolerance) {
+    __device__ int rowEchelon() {
         int numFreeVariables = 0;
         int row = 0;
 
-        for (int col = 0; col < width; col++) {
-            if (reduceToRowEchelon(row, col, tolerance)) {
+        for (int col = 0; col < width; col++) {            
+            if (reduceToRowEchelon(row, col)) {
                 row++;
                 isPivot[col] = 1;
             } else {
@@ -280,19 +280,17 @@ extern "C" __global__ void eigenVecBatchKernel(
 
     const double* sourceMat = sourceMatrices + (idx/width) * height * width;
     
-    Matrix mat(workspaceMatrices + idx * height * width, width, height, isPivot);
+    Matrix mat(workspaceMatrices + idx * height * width, width, height, isPivot, tolerance);
     setMatrixMinusLambdaI(sourceMat, mat, eigenValues[idx]);
 
-    double* eVec = eVectors + height * idx;    
-
-    int numFreeVariables = mat.rowEchelon(tolerance);
-
+    double* eVec = eVectors + height * idx;
+    int numFreeVariables = mat.rowEchelon();
     int freeVariableID = idx % numFreeVariables; 
 
     int col = width - 1, pivotsPassed = 0;
     // Loop through the columns in reverse, starting from the last column.
-    // All the values of the eigen vector after the free variable are set to 0.  
-    // The value of the eigenvector that coresponds to the free vector is set to 1.
+    // All the values of the eigenvector after the free variable are set to 0.  
+    // The value of the eigenvector that corresponds to the free vector is set to 1.
     for (int idfv = freeVariableID; idfv >= 0; col--) {
 	if (!isPivot[col]) idfv--;
 	else pivotsPassed++;
@@ -310,6 +308,5 @@ extern "C" __global__ void eigenVecBatchKernel(
             eVec[col] /= mat(row, col);
             row--;
         }
-    }
-    
+    }    
 }
