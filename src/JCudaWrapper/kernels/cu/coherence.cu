@@ -56,7 +56,5 @@ extern "C" __global__ void coherenceKernel(
     if (e[0] <=  tolerance) result = 0;
     
     else result = (e[0] - e[1]) / (e[0] + e[1] + (is3d? e[2]:0));
-    
-    if(idx == 0) printf("e = (%lf, %lf, %lf)\n tolerance = %lf\nreuslt = %lf", e[0], e[1], e[2], tolerance, result);
 }
 

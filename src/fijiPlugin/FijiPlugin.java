@@ -89,10 +89,11 @@ public class FijiPlugin implements PlugIn {
         try (Handle handle = new Handle()) {
 
 //            String imagePath = "images/input/test/";
-            String imagePath = "images/input/debug/";
+            String imagePath = "images/input/5debugs/";
+//            String imagePath = "images/input/debug/";
 
-            int neighborhoodSize = 3; // Default neighborhood radius
-            double tolerance = 1e-10; // Default tolerance
+            int neighborhoodSize = 2; // Default neighborhood radius
+            double tolerance = 1; // Default tolerance
             int depth = 1;
 
             try (NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, neighborhoodSize, tolerance)) {

@@ -30,18 +30,20 @@ public class ImageCreator extends TensorOrd3StrideDim {
      * Array storing color data for each tensor element.
      */
     private final int[] cpuColors;
+    private final String[] sliceNames;
 
     /**
      * Constructs an ImageCreator with the given orientations and coherence
      * tensors.
      *
      * @param handle The GPU computation context.
+     * @param sliceNames The names of the slices.
      * @param orientation The tensor representing orientations.
      * @param coherence The tensor representing coherence values.
      */
-    public ImageCreator(Handle handle, TensorOrd3Stride orientation, TensorOrd3Stride coherence) {
+    public ImageCreator(Handle handle, String[] sliceNames, TensorOrd3Stride orientation, TensorOrd3Stride coherence) {
         super(orientation);
-
+        this.sliceNames = sliceNames;
         orientation.dArray().multiply(handle, 2, 1); // Scale orientations.
 
         try (IArray gpuColors = IArray.empty(orientation.dArray().length)) {
@@ -107,7 +109,7 @@ public class ImageCreator extends TensorOrd3StrideDim {
                     for (int y = 0; y < height; y++)
                         cp.set(x, y, getPixelInt(frameIndex, layerIndex, x, y));
 
-                layers.addSlice("Frame " + frameIndex + " Layer " + layerIndex, cp);
+                layers.addSlice(sliceNames[frameIndex*depth + layerIndex], cp);
             }
             frames.addSlice("frame " + frameIndex, layers.getProcessor(1)); // Add the completed frame
         }
@@ -130,10 +132,14 @@ public class ImageCreator extends TensorOrd3StrideDim {
         for (int frame = 0; frame < batchSize; frame++) {
             for (int layer = 0; layer < depth; layer++) {
                 BufferedImage image = createImage(frame, layer, pixelRGB);
-                File outputFile = new File(writeToFolder, "frame_" + frame + "_layer_" + layer + ".png");
+                
+                String fileName = sliceNames[frame*depth + layer],
+                        fileType = fileName.substring(fileName.lastIndexOf('.') + 1);
+                
+                File outputFile = new File(writeToFolder, fileName);
 
                 try {
-                    ImageIO.write(image, "png", outputFile);
+                    ImageIO.write(image, fileType, outputFile);
                     System.out.println("Image printed to " + outputFile);
                 } catch (Exception e) {
                     System.err.println("Error writing image to file: " + outputFile.getAbsolutePath());

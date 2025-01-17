@@ -13,9 +13,11 @@ import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+
 
 /**
  * Each neighborhood pig has it's own handle.
@@ -27,6 +29,8 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
     public final StructureTensorMatrix stm; //TODO: this should probably be made private
 
     public final static boolean D3 = true, D2 = false;
+    
+    private String[] sourceFileNames;
 
     /**
      *
@@ -35,9 +39,10 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      * square.
      * @param tolerance How close must a number be to 0 to be considered 0.
      */
-    private NeighborhoodPIG(TensorOrd3Stride image, int neighborhoodSize, double tolerance) {
+    private NeighborhoodPIG(TensorOrd3Stride image, String[] sourceFileNames, int neighborhoodSize, double tolerance) {
         super(image);
-
+        this.sourceFileNames = sourceFileNames;
+        
         try (Gradient grad = new Gradient(image, handle)) {
             stm = new StructureTensorMatrix(grad, neighborhoodSize, tolerance);
         }
@@ -50,7 +55,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      */
     public ImageCreator getImageOrientationXY() {
 
-        return new ImageCreator(handle, stm.getOrientationXY(), stm.getCoherence());
+        return new ImageCreator(handle, concat(sourceFileNames, " XY orientation"), stm.getOrientationXY(), stm.getCoherence());
     }
 
     /**
@@ -59,7 +64,19 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      * @return A heat map of the orientation in the yz plane.
      */
     public ImageCreator getImageOrientationYZ() {
-        return new ImageCreator(handle, stm.getOrientationXY(), stm.getCoherence());
+        return new ImageCreator(handle, concat(sourceFileNames, " YZ orientation"), stm.getOrientationXY(), stm.getCoherence());
+    }
+    
+    /**
+     * Concatenates the concatenation onto each of the Strings provided.
+     * @param needsConcat Strings that will be copied and have something added on to them.
+     * @return An array of strings copied from the input, each one with concatenation added.
+     */
+    private String[] concat(String[] needsConcat, String concatination){
+        return Arrays.stream(needsConcat).map(nc -> {
+            int dotIndex = nc.lastIndexOf('.');
+            return nc.substring(0, dotIndex) + concatination + nc.substring(dotIndex);
+        }).toArray(String[]::new);
     }
 
     @Override
@@ -87,6 +104,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
                         imp.getNSlices() / imp.getNFrames(),
                         imp.getNFrames()
                 ),
+                imp.getFileInfo().sliceLabels,
                 neighborhoodR,
                 tolerance
         );
@@ -123,6 +141,10 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
                                 imageFiles.length / depth,
                                 gpuImage
                         ),
+                        Arrays.stream(imageFiles)
+                                .filter(fileName -> isPicture(fileName))
+                                .map(file -> file.getName())
+                                .toArray(String[]::new),
                         neighborhoodR,
                         tolerance
                 );
@@ -159,6 +181,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
                             ip.getNFrames(),
                             gpuImage
                     ),
+                    new File(folderPath).list(),
                     neighborhoodR,
                     tolerance
             );
@@ -211,7 +234,8 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      */
     public final static DArray processImages(Handle handle, File[] pics, int numPixels) {
 
-        double[] pixelsColMaj = new double[numPixels];
+        DArray pixelsGPU = DArray.empty(numPixels);
+        
         int pixelInd = 0;
 
         for (File file : pics) {
@@ -226,9 +250,16 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
                 int width = image.getWidth();
                 int height = image.getHeight();
 
+                int size = width*height;
+                
+                double[] pixelsColMaj = new double[size];
+                
                 for (int col = 0; col < width; col++)
                     for (int row = 0; row < height; row++)
-                        pixelsColMaj[pixelInd++] = raster.getSample(col, row, 0);
+                        pixelsColMaj[col*height + row] = raster.getSample(col, row, 0);
+                
+                pixelsGPU.set(handle, pixelsColMaj, (pixelInd/size)*size);
+                pixelInd += size;
 
             } catch (IOException e) {
                 throw new IllegalArgumentException("Error reading image file: " + file.getName(), e);
@@ -236,7 +267,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
         }
 
         // Create and return the GPU array
-        return new DArray(handle, pixelsColMaj);
+        return pixelsGPU;
     }
 
     /**
@@ -297,6 +328,25 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
     }
 
     /**
+     * Uses the suffix of the string to determine if it describes a picture file.
+     * Recognized suffixes include .tif, .jpg, .jpeg, and .png.
+     * @param fileName The name of the file.
+     * @return True if the suffix is for a picture file and false otherwise.
+     */
+    private static boolean isPicture(File fileName){
+        String suffix = fileName.getName()
+                .toLowerCase()
+                .substring(
+                        fileName.getName().lastIndexOf(".")
+                );
+        
+        return suffix.equals(".tif")
+                || suffix.equals(".jpg")
+                || suffix.equals(".jpeg")
+                || suffix.equals(".png");
+    }
+    
+    /**
      * Gets all the image files in the proffered directory.
      *
      * @param parentDirectory The directory with the desired image files.
@@ -308,11 +358,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
         if (!folder.exists() || !folder.isDirectory())
             throw new IllegalArgumentException("The provided path is not a valid folder.");
 
-        File[] imageFiles = folder.listFiles((dir, name)
-                -> name.toLowerCase().endsWith(".tif")
-                || name.toLowerCase().endsWith(".jpg")
-                || name.toLowerCase().endsWith(".jpeg")
-                || name.toLowerCase().endsWith(".png"));
+        File[] imageFiles = folder.listFiles(name -> isPicture(name));
 
         if (imageFiles == null || imageFiles.length == 0)
             throw new IllegalArgumentException("No image files found in the specified folder.");
