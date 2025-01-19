@@ -61,21 +61,22 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
 
     /**
      * A heat map of the orientation in the xy plane.
-     *
+     * @param useCoherence True if pixel intensity should be tied to orientation confidence (coherence)
      * @return A heat map of the orientation in the xy plane.
      */
-    public ImageCreator getImageOrientationXY() {
+    public ImageCreator getImageOrientationXY(boolean useCoherence) {
 
-        return new ImageCreator(handle, concat(sourceFileNames, " XY orientation"), stm.getOrientationXY(), stm.getCoherence());
+        return new ImageCreator(handle, concat(sourceFileNames, " XY orientation"), stm.getOrientationXY(), useCoherence? stm.getCoherence(): null);
     }
 
     /**
      * A heat map of the orientation in the yz plane.
      *
+     * @param useCoherence True if pixel intensity should be tied to orientation confidence (coherence)
      * @return A heat map of the orientation in the yz plane.
      */
-    public ImageCreator getImageOrientationYZ() {
-        return new ImageCreator(handle, concat(sourceFileNames, " YZ orientation"), stm.getOrientationXY(), stm.getCoherence());
+    public ImageCreator getImageOrientationYZ(boolean useCoherence) {
+        return new ImageCreator(handle, concat(sourceFileNames, " YZ orientation"), stm.getOrientationXY(), useCoherence? stm.getCoherence(): null);
     }
 
     /**

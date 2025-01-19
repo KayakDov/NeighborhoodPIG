@@ -39,7 +39,7 @@ public class ImageCreator extends TensorOrd3StrideDim {
      * @param handle The GPU computation context.
      * @param sliceNames The names of the slices.
      * @param orientation The tensor representing orientations.
-     * @param coherence The tensor representing coherence values.
+     * @param coherence The tensor representing coherence values. pass null if coherence should not be used
      */
     public ImageCreator(Handle handle, String[] sliceNames, TensorOrd3Stride orientation, TensorOrd3Stride coherence) {
         super(orientation);
@@ -54,8 +54,8 @@ public class ImageCreator extends TensorOrd3StrideDim {
                     P.to(1),
                     P.to(gpuColors),
                     P.to(1),
-                    P.to(coherence),
-                    P.to(1)
+                    P.to(coherence == null ? new TensorOrd3Stride(handle, 0, 0, 0, 0):coherence),
+                    P.to(coherence == null?-1:1)
             );
             cpuColors = gpuColors.get(handle); // Transfer GPU results to CPU.
         }
