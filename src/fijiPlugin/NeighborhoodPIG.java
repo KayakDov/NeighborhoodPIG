@@ -41,12 +41,22 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
     private NeighborhoodPIG(TensorOrd3Stride image, String[] sourceFileNames, int neighborhoodSize, double tolerance) {
         super(image);
 
-        this.sourceFileNames = sourceFileNames;
+        this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
 
         try (Gradient grad = new Gradient(image, handle)) {
-            
+
             stm = new StructureTensorMatrix(grad, neighborhoodSize, tolerance);
         }
+    }
+
+    public String[] defaultNames() {
+        String[] names = new String[depth * batchSize];
+        int nameIndex = 0;
+        for (int frameInd = 0; frameInd < batchSize; frameInd++)
+            for (int layerInd = 0; layerInd < depth; layerInd++)
+                names[nameIndex++] = "Frame " + frameInd + " Layer " + layerInd;
+        return names;
+
     }
 
     /**
@@ -78,8 +88,9 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      */
     private String[] concat(String[] needsConcat, String concatination) {
         return Arrays.stream(needsConcat).map(nc -> {
+            if (nc == null) return concatination;
             int dotIndex = nc.lastIndexOf('.');
-            return nc.substring(0, dotIndex) + concatination + nc.substring(dotIndex);
+            return dotIndex == -1 ? nc + concatination : nc.substring(0, dotIndex) + concatination + nc.substring(dotIndex);
         }).toArray(String[]::new);
     }
 
@@ -99,19 +110,23 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      * @param tolerance Close enough to 0.
      * @return A neighborhoodPIG.
      */
-    public static NeighborhoodPIG get(Handle handle, ImagePlus imp, int neighborhoodR, double tolerance) {
+    public static NeighborhoodPIG get(Handle handle, ImagePlus imp, int neighborhoodR, double tolerance) {//TODO: get image names
 
-        return new NeighborhoodPIG(
-                new TensorOrd3Stride(handle,
-                        imp.getHeight(),
-                        imp.getWidth(),
-                        imp.getNSlices() / imp.getNFrames(),
-                        imp.getNFrames()
-                ),
-                imp.getFileInfo().sliceLabels,
-                neighborhoodR,
-                tolerance
-        );
+        try (DArray gpuImmage = processImages(handle, imp)) {
+
+            return new NeighborhoodPIG(
+                    new TensorOrd3Stride(handle,
+                            imp.getHeight(),
+                            imp.getWidth(),
+                            imp.getNSlices() / imp.getNFrames(),
+                            imp.getNFrames(), 
+                            gpuImmage
+                    ),
+                    imp.getImageStack().getSliceLabels(),
+                    neighborhoodR,
+                    tolerance
+            );
+        }
 
     }
 

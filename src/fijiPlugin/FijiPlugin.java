@@ -57,11 +57,13 @@ public class FijiPlugin implements PlugIn {
     public void run(String string) {
 
         ImagePlus imp = ij.WindowManager.getCurrentImage();
+        
+        
 
         if (!validImage(imp)) return;
 
         int defaultNeighborhoodRadius = 3;
-        double defaultTolerance = 1e-11;
+        double defaultTolerance = 1;
 
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
         gd.addNumericField("Neighborhood radius:", defaultNeighborhoodRadius, 0);
@@ -77,8 +79,8 @@ public class FijiPlugin implements PlugIn {
                 Handle handle = new Handle();
                 NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, neighborhoodSize, defaultTolerance)) {
 
-            np.getImageOrientationXY().printToFiji();
-            np.getImageOrientationYZ().printToFiji();
+            np.getImageOrientationXY().printToFiji();            
+            if(imp.getNSlices() > imp.getNFrames()) np.getImageOrientationYZ().printToFiji();
 
             ij.IJ.showMessage("NeighborhoodPIG processing complete.");
         }
@@ -96,8 +98,8 @@ public class FijiPlugin implements PlugIn {
         try (Handle handle = new Handle();
                 NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, neighborhoodSize, tolerance)) {
 
-            np.getImageOrientationXY().printToFile("images/output/test2/");
-//                np.getImageOrientationXY().printToFiji();
+//            np.getImageOrientationXY().printToFile("images/output/test2/");
+                np.getImageOrientationXY().printToFiji();
 
         }
         System.out.println("NeighborhoodPIG processing complete.");

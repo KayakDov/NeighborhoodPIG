@@ -109,7 +109,7 @@ public class ImageCreator extends TensorOrd3StrideDim {
                     for (int y = 0; y < height; y++)
                         cp.set(x, y, getPixelInt(frameIndex, layerIndex, x, y));
 
-                layers.addSlice(sliceNames[frameIndex*depth + layerIndex], cp);
+                layers.addSlice(sliceNames[frameIndex * depth + layerIndex], cp);
             }
             frames.addSlice("frame " + frameIndex, layers.getProcessor(1)); // Add the completed frame
         }
@@ -117,11 +117,11 @@ public class ImageCreator extends TensorOrd3StrideDim {
         new ImagePlus("Orientation Heatmap", frames).show();
     }
 
-    /**
-     * Saves orientation heatmaps as images in the specified folder.
-     *
-     * @param writeToFolder The folder where images will be saved.
-     */
+        /**
+         * Saves orientation heatmaps as images in the specified folder.
+         *
+         * @param writeToFolder The folder where images will be saved.
+         */
     public void printToFile(String writeToFolder) {
         // Ensure the folder exists, create it if it doesn't.
         File directory = new File(writeToFolder);
@@ -132,10 +132,10 @@ public class ImageCreator extends TensorOrd3StrideDim {
         for (int frame = 0; frame < batchSize; frame++) {
             for (int layer = 0; layer < depth; layer++) {
                 BufferedImage image = createImage(frame, layer, pixelRGB);
-                
-                String fileName = sliceNames[frame*depth + layer],
+
+                String fileName = sliceNames[frame * depth + layer],
                         fileType = fileName.substring(fileName.lastIndexOf('.') + 1);
-                
+
                 File outputFile = new File(writeToFolder, fileName);
 
                 try {

@@ -26,7 +26,8 @@ public class NeighborhoodProductSums extends TensorOrd3StrideDim implements Auto
     private final TensorOrd3Stride workSpace1, workSpace2;
     private final int nRad;
     private Kernel nSum;
-
+    private final Dir X, Y, Z;
+    
     /**
      * Constructs a {@code NeighborhoodProductSums} instance to compute the sum
      * of element-by-element products for neighborhoods within two matrices.
@@ -39,21 +40,24 @@ public class NeighborhoodProductSums extends TensorOrd3StrideDim implements Auto
      */
     public NeighborhoodProductSums(Handle handle, int nRad, TensorOrd3Stride dim) {
         super(dim);
-        this.nRad = nRad;
+        Z = new Dir(depth, layerDist, 2, height * width * batchSize);
+        Y = new Dir(height, 1, 1, depth * width * batchSize);
+        X = new Dir(width, colDist, 0, depth * height * batchSize);
         
+        this.nRad = nRad;
+
         workSpace2 = dim.emptyCopyDimensions();
         workSpace1 = dim.emptyCopyDimensions();
 
         nSum = new Kernel("neighborhoodSum3d");
     }
 
-    public Dir X = new Dir(width, colDist, 0, depth*height*batchSize), 
-            Y = new Dir(height, 1, 1, depth*width*batchSize), 
-            Z = new Dir(depth,layerDist, 2, height*width*batchSize);
     /**
-     * A class to manage data for computing neighborhood sums in a specifif dimension.
+     * A class to manage data for computing neighborhood sums in a specifif
+     * dimension.
      */
-    private class Dir{
+    private class Dir {
+
         public final int numSteps, stepSize, dir, numThreads;
 
         public Dir(int numSteps, int stepSize, int dir, int numThreads) {
@@ -62,33 +66,33 @@ public class NeighborhoodProductSums extends TensorOrd3StrideDim implements Auto
             this.dir = dir;
             this.numThreads = numThreads;
         }
-        
-    }
-    
-    /**
-     * Maps the neighborhood sums in the given dimension.
-     *
-     * @param n The number of threads.
-     * @param from The source matrix.
-     * @param to The destination matrix.
-     * @param dir The dimension, 0 for X, 1 for Y, and 2 for Z.
-     * @param toInc The increment of the the destination matrices.
-     */
-    private void mapNeighborhoodSum(DArray from, DArray to, Dir dir, int toInc) {
-        
-        nSum.map(handle,
-                dir.numThreads,
-                from,
-                P.to(to),
-                P.to(height),
-                P.to(width),
-                P.to(depth),
-                P.to(dir.stepSize),
-                P.to(dir.numSteps),
-                P.to(toInc),
-                P.to(Math.min(nRad, dir.numSteps)),
-                P.to(dir.dir)
-        );
+
+        /**
+         * Maps the neighborhood sums in the given dimension.
+         *
+         * @param n The number of threads.
+         * @param from The source matrix.
+         * @param to The destination matrix.
+         * @param dir The dimension, 0 for X, 1 for Y, and 2 for Z.
+         * @param toInc The increment of the the destination matrices.
+         */
+        public void mapNeighborhoodSum(DArray from, DArray to, int toInc) {
+
+            nSum.map(handle,
+                    numThreads,
+                    from,
+                    P.to(to),
+                    P.to(height),
+                    P.to(width),
+                    P.to(depth),
+                    P.to(stepSize),
+                    P.to(numSteps),
+                    P.to(toInc),
+                    P.to(Math.min(nRad, numSteps)),
+                    P.to(dir)
+            );
+        }
+
     }
 
     /**
@@ -103,20 +107,20 @@ public class NeighborhoodProductSums extends TensorOrd3StrideDim implements Auto
      * increment of this vector is probably not one.
      */
     public void set(TensorOrd3Stride a, TensorOrd3Stride b, Vector result) {
-        
+
         new Vector(handle, workSpace1.dArray(), 1)
                 .ebeSetProduct(
                         new Vector(handle, a.dArray(), 1),
                         new Vector(handle, b.dArray(), 1)
-                );
-        
-        mapNeighborhoodSum(workSpace1.dArray(), workSpace2.dArray(), X, 1);
-        
+                );        
+
+        X.mapNeighborhoodSum(workSpace1.dArray(), workSpace2.dArray(), 1);
+
         if (depth > 1) {
-            mapNeighborhoodSum(workSpace2.dArray(), workSpace1.dArray(), Y, 1);
-            mapNeighborhoodSum(workSpace1.dArray(), result.dArray(),Z, result.inc());
-        } else mapNeighborhoodSum(workSpace2.dArray(), result.dArray(), Y, result.inc());
-        
+            Y.mapNeighborhoodSum(workSpace2.dArray(), workSpace1.dArray(), 1);
+            Z.mapNeighborhoodSum(workSpace1.dArray(), result.dArray(), result.inc());
+        } else
+            Y.mapNeighborhoodSum(workSpace2.dArray(), result.dArray(), result.inc());
 
     }
 
