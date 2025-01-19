@@ -102,4 +102,10 @@ public class Gradient extends TensorOrd3StrideDim implements AutoCloseable {
         return height * width * depth * batchSize;
     }
 
+    @Override
+    public String toString() {
+        return super.toString() + "\nd\\dx =\n" + x.toString() + "\nd\\dy = \n" + y.toString() + "\nd\\dz = \n" + z.toString();
+    }
+    
+
 }

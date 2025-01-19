@@ -24,7 +24,6 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * second tensor corresponds to the pixel at column 0 row 1, etc...
      */
     private final MatricesStride strctTensors;
-
     private final Eigen eigen;
     private final TensorOrd3Stride orientationXY, orientationYZ, coherence;
     private final Handle handle;

@@ -5,7 +5,7 @@ import JCudaWrapper.array.IArray;
 import JCudaWrapper.resourceManagement.Handle;
 
 /**
- * The eigen values and vectors for a 3x3 batch matrix.
+ * The eigenvalues and vectors for a 3x3 batch matrix.
  *
  * @author E. Dov Neimand
  */

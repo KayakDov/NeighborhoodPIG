@@ -18,7 +18,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 
-
 /**
  * Each neighborhood pig has it's own handle.
  *
@@ -29,8 +28,8 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
     public final StructureTensorMatrix stm; //TODO: this should probably be made private
 
     public final static boolean D3 = true, D2 = false;
-    
-    private String[] sourceFileNames;
+
+    private final String[] sourceFileNames;
 
     /**
      *
@@ -41,9 +40,11 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      */
     private NeighborhoodPIG(TensorOrd3Stride image, String[] sourceFileNames, int neighborhoodSize, double tolerance) {
         super(image);
+
         this.sourceFileNames = sourceFileNames;
-        
+
         try (Gradient grad = new Gradient(image, handle)) {
+            
             stm = new StructureTensorMatrix(grad, neighborhoodSize, tolerance);
         }
     }
@@ -66,13 +67,16 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
     public ImageCreator getImageOrientationYZ() {
         return new ImageCreator(handle, concat(sourceFileNames, " YZ orientation"), stm.getOrientationXY(), stm.getCoherence());
     }
-    
+
     /**
      * Concatenates the concatenation onto each of the Strings provided.
-     * @param needsConcat Strings that will be copied and have something added on to them.
-     * @return An array of strings copied from the input, each one with concatenation added.
+     *
+     * @param needsConcat Strings that will be copied and have something added
+     * on to them.
+     * @return An array of strings copied from the input, each one with
+     * concatenation added.
      */
-    private String[] concat(String[] needsConcat, String concatination){
+    private String[] concat(String[] needsConcat, String concatination) {
         return Arrays.stream(needsConcat).map(nc -> {
             int dotIndex = nc.lastIndexOf('.');
             return nc.substring(0, dotIndex) + concatination + nc.substring(dotIndex);
@@ -131,7 +135,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
 
             BufferedImage firstImage = ImageIO.read(imageFiles[0]);
 
-            try (DArray gpuImage = processImages(handle, imageFiles, firstImage.getHeight() * firstImage.getWidth() * imageFiles.length)) {
+            try (DArray gpuImage = processImages(handle, imageFiles, firstImage.getHeight(), firstImage.getWidth())) {
 
                 return new NeighborhoodPIG(
                         new TensorOrd3Stride(handle,
@@ -141,10 +145,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
                                 imageFiles.length / depth,
                                 gpuImage
                         ),
-                        Arrays.stream(imageFiles)
-                                .filter(fileName -> isPicture(fileName))
-                                .map(file -> file.getName())
-                                .toArray(String[]::new),
+                        new File(folderPath).list(),
                         neighborhoodR,
                         tolerance
                 );
@@ -221,51 +222,55 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
     }
 
     /**
+     * Copies the raster to an array in column major order.
+     *
+     * @param raster The raster being written from.
+     * @param writeTo The array being written to.
+     */
+    private static void toColMjr(Raster raster, double[] writeTo) {
+        for (int col = 0; col < raster.getWidth(); col++)
+            for (int row = 0; row < raster.getHeight(); row++)
+                writeTo[col * raster.getHeight() + row] = raster.getSample(col, row, 0);
+    }
+
+    /**
      * Converts grayscale or RGB image files in a folder into a single
      * column-major GPU array of pixel values. RGB images are converted to
      * grayscale first.
      *
      * @param handle Context.
      * @param pics Path to the folder containing image files.
+     * @param height The height of the pictures.
+     * @param width The width of the pictures.
+     *
      * @return A single column-major GPU array containing pixel values of all
      * images.
      * @throws IllegalArgumentException If no valid images are found in the
      * folder.
      */
-    public final static DArray processImages(Handle handle, File[] pics, int numPixels) {
+    public final static DArray processImages(Handle handle, File[] pics, int height, int width) {
 
+        int numPixels = height * width * pics.length;
         DArray pixelsGPU = DArray.empty(numPixels);
-        
+
+        int imgSize = width * height;
+        double[] imgPixelsColMaj = new double[imgSize];
+
         int pixelInd = 0;
 
         for (File file : pics) {
             try {
-                BufferedImage image = grayScale(ImageIO.read(file));
 
-                if (image == null)
-                    throw new IllegalArgumentException("Could not open image file: " + file.getName());
+                toColMjr(grayScale(ImageIO.read(file)).getData(), imgPixelsColMaj);
 
-                Raster raster = image.getData();
+                pixelsGPU.set(handle, imgPixelsColMaj, (pixelInd / imgSize) * imgSize);
 
-                int width = image.getWidth();
-                int height = image.getHeight();
-
-                int size = width*height;
-                
-                double[] pixelsColMaj = new double[size];
-                
-                for (int col = 0; col < width; col++)
-                    for (int row = 0; row < height; row++)
-                        pixelsColMaj[col*height + row] = raster.getSample(col, row, 0);
-                
-                pixelsGPU.set(handle, pixelsColMaj, (pixelInd/size)*size);
-                pixelInd += size;
+                pixelInd += imgSize;
 
             } catch (IOException e) {
                 throw new IllegalArgumentException("Error reading image file: " + file.getName(), e);
             }
         }
-
         // Create and return the GPU array
         return pixelsGPU;
     }
@@ -278,6 +283,9 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      * is not.
      */
     private static BufferedImage grayScale(BufferedImage image) {
+        if (image == null)
+            throw new IllegalArgumentException("Could not open image file.");
+
         if (image.getType() != BufferedImage.TYPE_BYTE_GRAY) {
             BufferedImage grayscaleImage = new BufferedImage(
                     image.getWidth(),
@@ -286,6 +294,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
             grayscaleImage.getGraphics().drawImage(image, 0, 0, null);
             image = grayscaleImage;
         }
+
         return image;
     }
 
@@ -328,24 +337,25 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
     }
 
     /**
-     * Uses the suffix of the string to determine if it describes a picture file.
-     * Recognized suffixes include .tif, .jpg, .jpeg, and .png.
+     * Uses the suffix of the string to determine if it describes a picture
+     * file. Recognized suffixes include .tif, .jpg, .jpeg, and .png.
+     *
      * @param fileName The name of the file.
      * @return True if the suffix is for a picture file and false otherwise.
      */
-    private static boolean isPicture(File fileName){
+    private static boolean isPicture(File fileName) {
         String suffix = fileName.getName()
                 .toLowerCase()
                 .substring(
                         fileName.getName().lastIndexOf(".")
                 );
-        
+
         return suffix.equals(".tif")
                 || suffix.equals(".jpg")
                 || suffix.equals(".jpeg")
                 || suffix.equals(".png");
     }
-    
+
     /**
      * Gets all the image files in the proffered directory.
      *

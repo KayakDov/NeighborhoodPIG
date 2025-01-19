@@ -197,9 +197,7 @@ public class TensorOrd3Stride extends TensorOrd3StrideDim implements AutoCloseab
      */
     public TensorOrd3 getTensor(int i) {
         return new TensorOrd3(handle,
-                data.subArray(
-                        i * strideSize,
-                        i * strideSize + layerDist * (depth - 1) + colDist * (width - 1) + height),
+                data.getBatchArray(i),
                 height, width, depth, colDist, layerDist
         );
     }

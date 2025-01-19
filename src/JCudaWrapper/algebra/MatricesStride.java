@@ -25,7 +25,7 @@ import java.awt.Dimension;
  *
  * @author E. Dov Neimand
  */
-public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, AutoCloseable {
+public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
 
     /**
      * Constructor for creating a batch of strided matrices. Each matrix is
@@ -615,11 +615,6 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor, Aut
 
         return new MatricesPntrs(height, width, colDist, putPointersHere.fill(handle, data));
 
-    }
-
-    @Override
-    public void close() {
-        data.close();
     }
 
     /**

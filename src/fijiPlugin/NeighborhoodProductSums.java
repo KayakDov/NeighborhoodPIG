@@ -47,6 +47,24 @@ public class NeighborhoodProductSums extends TensorOrd3StrideDim implements Auto
         nSum = new Kernel("neighborhoodSum3d");
     }
 
+    public Dir X = new Dir(width, colDist, 0, depth*height*batchSize), 
+            Y = new Dir(height, 1, 1, depth*width*batchSize), 
+            Z = new Dir(depth,layerDist, 2, height*width*batchSize);
+    /**
+     * A class to manage data for computing neighborhood sums in a specifif dimension.
+     */
+    private class Dir{
+        public final int numSteps, stepSize, dir, numThreads;
+
+        public Dir(int numSteps, int stepSize, int dir, int numThreads) {
+            this.numSteps = numSteps;
+            this.stepSize = stepSize;
+            this.dir = dir;
+            this.numThreads = numThreads;
+        }
+        
+    }
+    
     /**
      * Maps the neighborhood sums in the given dimension.
      *
@@ -56,38 +74,20 @@ public class NeighborhoodProductSums extends TensorOrd3StrideDim implements Auto
      * @param dir The dimension, 0 for X, 1 for Y, and 2 for Z.
      * @param toInc The increment of the the destination matrices.
      */
-    private void mapNeighborhoodSum(int n, DArray from, DArray to, int dir, int toInc) {
-        
-        int stepSize, numSteps;
-        switch (dir) {
-            case 0:             
-                stepSize = height;
-                numSteps = width;
-                break;
-            case 1: 
-                stepSize = 1;
-                numSteps = height;
-                break;
-            case 2: 
-                stepSize = height * width;
-                numSteps = depth;
-                break;
-            default:
-                throw new RuntimeException("Direction must be 1, 2, or 3.  However, dir = " + dir);
-        }
+    private void mapNeighborhoodSum(DArray from, DArray to, Dir dir, int toInc) {
         
         nSum.map(handle,
-                n,
+                dir.numThreads,
                 from,
                 P.to(to),
                 P.to(height),
                 P.to(width),
                 P.to(depth),
-                P.to(stepSize),
-                P.to(numSteps),
+                P.to(dir.stepSize),
+                P.to(dir.numSteps),
                 P.to(toInc),
-                P.to(Math.min(nRad, numSteps)),
-                P.to(dir)
+                P.to(Math.min(nRad, dir.numSteps)),
+                P.to(dir.dir)
         );
     }
 
@@ -110,12 +110,12 @@ public class NeighborhoodProductSums extends TensorOrd3StrideDim implements Auto
                         new Vector(handle, b.dArray(), 1)
                 );
         
-        mapNeighborhoodSum(height * depth, workSpace1.dArray(), workSpace2.dArray(), 0, 1);        
+        mapNeighborhoodSum(workSpace1.dArray(), workSpace2.dArray(), X, 1);
         
         if (depth > 1) {
-            mapNeighborhoodSum(depth * width, workSpace2.dArray(), workSpace1.dArray(), 1, 1);
-            mapNeighborhoodSum(height * width, workSpace1.dArray(), result.dArray(), 2, result.inc());
-        } else mapNeighborhoodSum(width, workSpace2.dArray(), result.dArray(), 1, result.inc());
+            mapNeighborhoodSum(workSpace2.dArray(), workSpace1.dArray(), Y, 1);
+            mapNeighborhoodSum(workSpace1.dArray(), result.dArray(),Z, result.inc());
+        } else mapNeighborhoodSum(workSpace2.dArray(), result.dArray(), Y, result.inc());
         
 
     }

@@ -11,7 +11,7 @@ import JCudaWrapper.resourceManagement.Handle;
  *
  * @author E. Dov Neimand
  */
-public class VectorsStride extends MatricesStride implements AutoCloseable {
+public class VectorsStride extends MatricesStride {
 
     /**
      * The constructor.
@@ -197,11 +197,6 @@ public class VectorsStride extends MatricesStride implements AutoCloseable {
                 data.stride,
                 length
         );
-    }
-
-    @Override
-    public void close() {
-        data.close();
     }
 
     /**

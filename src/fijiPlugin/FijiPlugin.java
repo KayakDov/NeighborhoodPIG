@@ -86,24 +86,22 @@ public class FijiPlugin implements PlugIn {
 
     public static void main(String[] args) {
 
-        try (Handle handle = new Handle()) {
+            String imagePath = "images/input/5Tests/";
+//        String imagePath = "images/input/5debugs/";
 
-//            String imagePath = "images/input/test/";
-            String imagePath = "images/input/5debugs/";
-//            String imagePath = "images/input/debug/";
+        int neighborhoodSize = 2; // Default neighborhood radius
+        double tolerance = 1; // Default tolerance
+        int depth = 1;
 
-            int neighborhoodSize = 2; // Default neighborhood radius
-            double tolerance = 1; // Default tolerance
-            int depth = 1;
+        try (Handle handle = new Handle();
+                NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, neighborhoodSize, tolerance)) {
 
-            try (NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, neighborhoodSize, tolerance)) {
-
-                np.getImageOrientationXY().printToFile("images/output/test2/");
+            np.getImageOrientationXY().printToFile("images/output/test2/");
 //                np.getImageOrientationXY().printToFiji();
 
-            }
-            System.out.println("NeighborhoodPIG processing complete.");
         }
+        System.out.println("NeighborhoodPIG processing complete.");
+
     }
 
 }
