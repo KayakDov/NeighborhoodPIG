@@ -67,7 +67,7 @@ public class FijiPlugin implements PlugIn {
 
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
         gd.addNumericField("Neighborhood radius:", defaultNeighborhoodRadius, 0);
-        gd.addCheckbox("use coherence", true);
+        gd.addCheckbox("use coherence", false);
         gd.showDialog();
 
         if (gd.wasCanceled()) return;
@@ -81,9 +81,11 @@ public class FijiPlugin implements PlugIn {
                 Handle handle = new Handle();
                 NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, neighborhoodSize, defaultTolerance)) {
 
-            np.getImageOrientationXY(useCoherence).printToFiji();
+            ImageCreator ic = np.getImageOrientationXY(useCoherence);
+            ic.printToFiji(useCoherence);
+            ic.printToFile("images/output/test2/");
             
-            if(imp.getNSlices() > imp.getNFrames()) np.getImageOrientationYZ(useCoherence).printToFiji();
+            if(imp.getNSlices() > imp.getNFrames()) np.getImageOrientationYZ(useCoherence).printToFiji(false);
 
             ij.IJ.showMessage("NeighborhoodPIG processing complete.");
         }
@@ -101,8 +103,8 @@ public class FijiPlugin implements PlugIn {
         try (Handle handle = new Handle();
                 NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, neighborhoodSize, tolerance)) {
 
-//            np.getImageOrientationXY().printToFile("images/output/test2/");
-                np.getImageOrientationXY(true).printToFiji();
+            np.getImageOrientationXY(true).printToFile("images/output/test2/");
+//                np.getImageOrientationXY(true).printToFiji(true);
 
         }
         System.out.println("NeighborhoodPIG processing complete.");

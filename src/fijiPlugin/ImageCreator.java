@@ -7,6 +7,7 @@ import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
+import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.ColorProcessor;
@@ -39,7 +40,8 @@ public class ImageCreator extends TensorOrd3StrideDim {
      * @param handle The GPU computation context.
      * @param sliceNames The names of the slices.
      * @param orientation The tensor representing orientations.
-     * @param coherence The tensor representing coherence values. pass null if coherence should not be used
+     * @param coherence The tensor representing coherence values. pass null if
+     * coherence should not be used
      */
     public ImageCreator(Handle handle, String[] sliceNames, TensorOrd3Stride orientation, TensorOrd3Stride coherence) {
         super(orientation);
@@ -54,8 +56,8 @@ public class ImageCreator extends TensorOrd3StrideDim {
                     P.to(1),
                     P.to(gpuColors),
                     P.to(1),
-                    P.to(coherence == null ? new TensorOrd3Stride(handle, 0, 0, 0, 0):coherence),
-                    P.to(coherence == null?-1:1)
+                    P.to(coherence == null ? new TensorOrd3Stride(handle, 0, 0, 0, 0) : coherence),
+                    P.to(coherence == null ? -1 : 1)
             );
             cpuColors = gpuColors.get(handle); // Transfer GPU results to CPU.
         }
@@ -95,33 +97,46 @@ public class ImageCreator extends TensorOrd3StrideDim {
     }
 
     /**
-     * Displays the tensor data as a heatmap in Fiji.
+     * Displays the tensor data as a heatmap in Fiji, supporting multiple frames
+     * and depths.
      */
-    public final void printToFiji() {
+    public final void printToFiji(boolean initImageJ) {
+
+        if (initImageJ) {
+            System.out.println("fijiPlugin.ImageCreator.printToFiji() initiating ImageJ");
+            new ImageJ();
+        }
 
         ImageStack frames = new ImageStack(width, height);
 
+        // Iterate through frames and depth layers to add all slices to the stack
         for (int frameIndex = 0; frameIndex < batchSize; frameIndex++) {
-            ImageStack layers = new ImageStack(width, height);
             for (int layerIndex = 0; layerIndex < depth; layerIndex++) {
                 ColorProcessor cp = new ColorProcessor(width, height);
-                for (int x = 0; x < width; x++)
-                    for (int y = 0; y < height; y++)
-                        cp.set(x, y, getPixelInt(frameIndex, layerIndex, x, y));
 
-                layers.addSlice(sliceNames[frameIndex * depth + layerIndex], cp);
+                // Populate the current slice with pixel data
+                for (int x = 0; x < width; x++) {
+                    for (int y = 0; y < height; y++) {
+                        cp.set(x, y, getPixelInt(frameIndex, layerIndex, x, y));
+                    }
+                }
+
+                // Add the slice to the stack with an appropriate label
+                String sliceLabel = "Frame " + frameIndex + ", Layer " + layerIndex;
+                frames.addSlice(sliceLabel, cp);
             }
-            frames.addSlice("frame " + frameIndex, layers.getProcessor(1)); // Add the completed frame
         }
 
-        new ImagePlus("Orientation Heatmap", frames).show();
+        // Create an ImagePlus object with the stack and display it
+        ImagePlus imagePlus = new ImagePlus("Orientation Heatmap", frames);
+        imagePlus.show();
     }
 
-        /**
-         * Saves orientation heatmaps as images in the specified folder.
-         *
-         * @param writeToFolder The folder where images will be saved.
-         */
+    /**
+     * Saves orientation heatmaps as images in the specified folder.
+     *
+     * @param writeToFolder The folder where images will be saved.
+     */
     public void printToFile(String writeToFolder) {
         // Ensure the folder exists, create it if it doesn't.
         File directory = new File(writeToFolder);

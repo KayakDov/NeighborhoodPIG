@@ -207,7 +207,7 @@ public class TensorOrd3Stride extends TensorOrd3StrideDim implements AutoCloseab
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < batchSize; i++)
             sb.append(getTensor(i).toString()).append("\n");
-        return sb.toString();
+        return super.toString() + sb.toString();
     }
 
     @Override

@@ -43,8 +43,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
 
         this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
 
-        try (Gradient grad = new Gradient(image, handle)) {
-
+        try (Gradient grad = new Gradient(image, handle)) {            
             stm = new StructureTensorMatrix(grad, neighborhoodSize, tolerance);
         }
     }
@@ -217,13 +216,18 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      */
     public final static DArray processImages(Handle handle, ImagePlus imp) {
 
-        if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32)
+        if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32){
+            System.out.println("fijiPlugin.NeighborhoodPIG.processImages(): Converting image to grayscale.");
             IJ.run(imp, "32-bit", "");
+        }
 
         ImageStack stack = imp.getStack();
-        double[] columnMajorArray = new double[stack.getWidth() * stack.getHeight() * stack.getSize()];
-
-        int index = 0;
+        
+        DArray processedImage = DArray.empty(stack.getWidth() * stack.getHeight() * stack.getSize());
+        
+        int imgSize = stack.getHeight()*stack.getWidth();
+        
+        double[] columnMajorSlice = new double[imgSize];
 
         for (int slice = 1; slice <= stack.getSize(); slice++) {
             ImageProcessor ip = stack.getProcessor(slice);
@@ -231,10 +235,12 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
 
             for (int col = 0; col < imp.getWidth(); col++)
                 for (int row = 0; row < imp.getHeight(); row++)
-                    columnMajorArray[index++] = pixels[col][row];
+                    columnMajorSlice[col*stack.getHeight() + row] = pixels[col][row];
+            
+            processedImage.set(handle, columnMajorSlice, (slice - 1)*imgSize);
         }
 
-        return new DArray(handle, columnMajorArray);
+        return processedImage;
     }
 
     /**

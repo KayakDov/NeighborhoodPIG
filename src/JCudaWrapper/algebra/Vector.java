@@ -8,6 +8,8 @@ import org.apache.commons.math3.exception.NotPositiveException;
 import JCudaWrapper.resourceManagement.Handle;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.DSingleton;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
 import jcuda.runtime.JCuda;
 
 /**
@@ -223,12 +225,25 @@ public class Vector extends Matrix {
      */
     public Vector addEbeProduct(double timesAB, Vector a, Vector b, double timesThis) {
 
-        data.addProductSymBandMatVec(handle, true,
-                dim(), 0,
-                timesAB,
-                a.data, a.inc(),
-                b.data, b.inc(),
-                timesThis, inc()
+//        data.addProductSymBandMatVec(handle, true,
+//                dim(), 0,
+//                timesAB,
+//                a.data, a.inc(),
+//                b.data, b.inc(),
+//                timesThis, inc()
+//        );
+
+        Kernel.run("addEBEProduct", 
+                handle, 
+                dim(),
+                data,
+                P.to(inc()),
+                P.to(timesAB),
+                P.to(a),
+                P.to(a.inc()),
+                P.to(b),
+                P.to(b.inc()),
+                P.to(timesThis)
         );
 
         return this;
