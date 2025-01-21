@@ -8,6 +8,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.io.Opener;
+import ij.plugin.HyperStackConverter;
 import ij.process.ImageProcessor;
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
@@ -43,7 +44,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
 
         this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
 
-        try (Gradient grad = new Gradient(image, handle)) {            
+        try (Gradient grad = new Gradient(image, handle)) {
             stm = new StructureTensorMatrix(grad, neighborhoodSize, tolerance);
         }
     }
@@ -60,22 +61,25 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
 
     /**
      * A heat map of the orientation in the xy plane.
-     * @param useCoherence True if pixel intensity should be tied to orientation confidence (coherence)
+     *
+     * @param useCoherence True if pixel intensity should be tied to orientation
+     * confidence (coherence)
      * @return A heat map of the orientation in the xy plane.
      */
     public ImageCreator getImageOrientationXY(boolean useCoherence) {
 
-        return new ImageCreator(handle, concat(sourceFileNames, " XY orientation"), stm.getOrientationXY(), useCoherence? stm.getCoherence(): null);
+        return new ImageCreator(handle, concat(sourceFileNames, " XY orientation"), stm.getOrientationXY(), useCoherence ? stm.getCoherence() : null);
     }
 
     /**
      * A heat map of the orientation in the yz plane.
      *
-     * @param useCoherence True if pixel intensity should be tied to orientation confidence (coherence)
+     * @param useCoherence True if pixel intensity should be tied to orientation
+     * confidence (coherence)
      * @return A heat map of the orientation in the yz plane.
      */
     public ImageCreator getImageOrientationYZ(boolean useCoherence) {
-        return new ImageCreator(handle, concat(sourceFileNames, " YZ orientation"), stm.getOrientationXY(), useCoherence? stm.getCoherence(): null);
+        return new ImageCreator(handle, concat(sourceFileNames, " YZ orientation"), stm.getOrientationXY(), useCoherence ? stm.getCoherence() : null);
     }
 
     /**
@@ -112,14 +116,18 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      */
     public static NeighborhoodPIG get(Handle handle, ImagePlus imp, int neighborhoodR, double tolerance) {//TODO: get image names
 
+        if (imp.hasImageStack() && imp.getNSlices() > 1 && imp.getNFrames() == 1)
+            HyperStackConverter.toHyperStack(imp, 1, 1, imp.getNSlices());            
+        
+
         try (DArray gpuImmage = processImages(handle, imp)) {
 
             return new NeighborhoodPIG(
                     new TensorOrd3Stride(handle,
                             imp.getHeight(),
                             imp.getWidth(),
-                            imp.getNSlices() / imp.getNFrames(),
-                            imp.getNFrames(), 
+                            imp.getNSlices(),
+                            imp.getNFrames(),
                             gpuImmage
                     ),
                     imp.getImageStack().getSliceLabels(),
@@ -206,38 +214,50 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
     }
 
     /**
-     * Converts a grayscale or RGB ImagePlus object into a single column-major
-     * GPU array of pixel values. RGB images are converted to grayscale first.
+     * Processes a hyperstack and returns a DArray containing the processed
+     * image data.
      *
-     * @param imp The input ImagePlus object.
-     * @param handle Context.
-     * @return A single column-major GPU array containing pixel values of all
-     * slices.
+     * @param handle The handle used for DArray operations.
+     * @param imp The ImagePlus object representing the hyperstack.
+     * @return A DArray containing the image data in column-major order for all
+     * frames, slices, and channels.
      */
     public final static DArray processImages(Handle handle, ImagePlus imp) {
-
-        if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32){
+        // Convert the image to grayscale if necessary
+        if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32) {
             System.out.println("fijiPlugin.NeighborhoodPIG.processImages(): Converting image to grayscale.");
             IJ.run(imp, "32-bit", "");
         }
 
-        ImageStack stack = imp.getStack();
-        
-        DArray processedImage = DArray.empty(stack.getWidth() * stack.getHeight() * stack.getSize());
-        
-        int imgSize = stack.getHeight()*stack.getWidth();
-        
+        int width = imp.getWidth();
+        int height = imp.getHeight();
+        int channels = imp.getNChannels();
+        int slices = imp.getNSlices();
+        int frames = imp.getNFrames();
+        int imgSize = width * height;
+
+        // Create an empty DArray to hold the data
+        DArray processedImage = DArray.empty(imgSize * slices * channels * frames);
+
         double[] columnMajorSlice = new double[imgSize];
 
-        for (int slice = 1; slice <= stack.getSize(); slice++) {
-            ImageProcessor ip = stack.getProcessor(slice);
-            float[][] pixels = ip.getFloatArray();
+        // Iterate over frames, slices, and channels
+        for (int frame = 1; frame <= frames; frame++) {
+            for (int slice = 1; slice <= slices; slice++) {
+                for (int channel = 1; channel <= channels; channel++) {
+                    imp.setPosition(channel, slice, frame);
+                    ImageProcessor ip = imp.getProcessor();
+                    float[][] pixels = ip.getFloatArray();
 
-            for (int col = 0; col < imp.getWidth(); col++)
-                for (int row = 0; row < imp.getHeight(); row++)
-                    columnMajorSlice[col*stack.getHeight() + row] = pixels[col][row];
-            
-            processedImage.set(handle, columnMajorSlice, (slice - 1)*imgSize);
+                    for (int col = 0; col < width; col++) 
+                        for (int row = 0; row < height; row++) 
+                            columnMajorSlice[col * height + row] = pixels[col][row];
+                    
+                    int globalIndex = ((frame - 1) * slices * channels + (slice - 1) * channels + (channel - 1)) * imgSize;
+                    
+                    processedImage.set(handle, columnMajorSlice, globalIndex);
+                }
+            }
         }
 
         return processedImage;

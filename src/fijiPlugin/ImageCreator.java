@@ -10,6 +10,7 @@ import JCudaWrapper.resourceManagement.Handle;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
+import ij.plugin.HyperStackConverter;
 import ij.process.ColorProcessor;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
@@ -107,29 +108,30 @@ public class ImageCreator extends TensorOrd3StrideDim {
             new ImageJ();
         }
 
-        ImageStack frames = new ImageStack(width, height);
+        ImageStack stack = new ImageStack(width, height);
 
-        // Iterate through frames and depth layers to add all slices to the stack
         for (int frameIndex = 0; frameIndex < batchSize; frameIndex++) {
             for (int layerIndex = 0; layerIndex < depth; layerIndex++) {
                 ColorProcessor cp = new ColorProcessor(width, height);
 
-                // Populate the current slice with pixel data
-                for (int x = 0; x < width; x++) {
-                    for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++)
+                    for (int y = 0; y < height; y++)
                         cp.set(x, y, getPixelInt(frameIndex, layerIndex, x, y));
-                    }
-                }
 
-                // Add the slice to the stack with an appropriate label
-                String sliceLabel = "Frame " + frameIndex + ", Layer " + layerIndex;
-                frames.addSlice(sliceLabel, cp);
+                stack.addSlice(sliceNames[frameIndex * depth + layerIndex], cp);
             }
         }
 
-        // Create an ImagePlus object with the stack and display it
-        ImagePlus imagePlus = new ImagePlus("Orientation Heatmap", frames);
-        imagePlus.show();
+        ImagePlus imp = new ImagePlus("Orientation Heatmap", stack);
+
+        if (depth > 1) 
+            imp = HyperStackConverter.toHyperStack(
+                    imp,
+                    1,
+                    depth,
+                    batchSize
+            );
+        imp.show();
     }
 
     /**

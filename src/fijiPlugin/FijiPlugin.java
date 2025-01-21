@@ -1,5 +1,6 @@
 package fijiPlugin;
 
+import JCudaWrapper.algebra.Vector;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
@@ -24,7 +25,7 @@ public class FijiPlugin implements PlugIn {
             ij.IJ.showMessage("No image open.");
             return false;
         }
-
+        
         // Ensure the image is grayscale
         if (imp.getType() != ImagePlus.GRAY32
                 && imp.getType() != ImagePlus.GRAY16
@@ -83,7 +84,7 @@ public class FijiPlugin implements PlugIn {
 
             ImageCreator ic = np.getImageOrientationXY(useCoherence);
             ic.printToFiji(useCoherence);
-            ic.printToFile("images/output/test2/");
+//            ic.printToFile("images/output/test2/");
             
             if(imp.getNSlices() > imp.getNFrames()) np.getImageOrientationYZ(useCoherence).printToFiji(false);
 
