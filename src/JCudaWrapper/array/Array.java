@@ -9,6 +9,7 @@ import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaError;
 import jcuda.runtime.cudaMemcpyKind;
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.HashSet;
 
 /**
  * Abstract class representing a GPU array that stores data on the GPU. This
@@ -62,6 +63,10 @@ abstract class Array implements AutoCloseable {
         }
     }
 
+    private static int arrayCount = 0;
+    public final int ID;
+    public static HashSet<Integer> alocatedArrays = new HashSet<>(100);
+
     /**
      * Constructs an Array with the given GPU pointer, length, and element type.
      *
@@ -72,16 +77,34 @@ abstract class Array implements AutoCloseable {
      * @throws IllegalArgumentException if the pointer is null or length is
      * negative.
      */
-    protected Array(CUdeviceptr p, int length, PrimitiveType type) {
-        checkNull(p, type);
-        checkPositive(length);
-
-        this.pointer = p;
+    protected Array(int length, PrimitiveType type) {
+        this.pointer = new CUdeviceptr();
         this.length = length;
         this.type = type;
 
-        // Register cleanup of GPU memory
-//        cleanable = deallocateOnClose?ResourceDealocator.register(this, point -> JCuda.cudaFree(point), pointer):null; 
+        int error = JCuda.cudaMalloc(pointer, length * type.size);
+
+        if (error == cudaError.cudaSuccess) {
+            ID = arrayCount++;
+            alocatedArrays.add(ID);
+//            throw new RuntimeException("3 does not get closed.");
+        } else
+            throw new RuntimeException("Opening a new array of type " + type + " with " + length + " element.  cuda error " + cudaError.stringFor(error));
+    }
+
+    /**
+     * Constructs a sub array.
+     *
+     * @param from The array this one is to be a sub array of.
+     * @param offset How far from the beggining of the other array does this one
+     * start.
+     * @param length The length of this array.
+     */
+    protected Array(Array from, int offset, int length) {
+        this.pointer = from.pointer(offset);
+        this.length = length;
+        this.type = from.type;
+        ID = from.ID;
     }
 
     /**
@@ -101,30 +124,7 @@ abstract class Array implements AutoCloseable {
      * @throws ArrayIndexOutOfBoundsException if the index is out of bounds.
      */
     protected CUdeviceptr pointer(int index) {
-        checkPositive(index);
-        checkAgainstLength(index);
-
         return pointer.withByteOffset(index * type.size);
-    }
-
-    /**
-     * Allocates GPU memory for an array of the specified size and type.
-     *
-     * @param numElements The number of elements to allocate space for.
-     * @param type The type of the array elements.
-     * @return A CUdeviceptr pointing to the allocated memory.
-     *
-     * @throws IllegalArgumentException if numElements is negative.
-     */
-    protected static CUdeviceptr empty(int numElements, PrimitiveType type) {
-        checkPositive(numElements);
-
-        CUdeviceptr p = new CUdeviceptr();
-        int error = JCuda.cudaMalloc(p, numElements * type.size);
-        if (error != cudaError.cudaSuccess)
-            throw new RuntimeException("Opening a new array of type " + type  + " with " + numElements + " element.  cuda error " + cudaError.stringFor(error));
-
-        return p;
     }
 
     /**
@@ -302,13 +302,16 @@ abstract class Array implements AutoCloseable {
     }
 
     /**
-     * Frees the GPU memory allocated for this array if it has not already been freed. 
+     * Frees the GPU memory allocated for this array if it has not already been
+     * freed.
      */
     @Override
     public void close() {
+                
         JCuda.cudaFree(pointer);
+        if(!alocatedArrays.remove(ID)) throw new RuntimeException("Trying to delet array # " + ID +", but it has already been deleted.");
+//        else new RuntimeException("You're closing something that does not need to be closed.").printStackTrace();
     }
-        
 
     /**
      * Sets the contents of this array to 0.

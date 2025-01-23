@@ -53,7 +53,7 @@ public class Vector extends Matrix {
      * @param handle The JCublas handle for GPU operations.
      */
     public Vector(Handle handle, int length) {
-        this(handle, DArray.empty(length), 1);
+        this(handle, new DArray(length), 1);
     }
 
     /**

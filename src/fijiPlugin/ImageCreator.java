@@ -2,7 +2,6 @@ package fijiPlugin;
 
 import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.algebra.TensorOrd3StrideDim;
-import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
@@ -49,7 +48,7 @@ public class ImageCreator extends TensorOrd3StrideDim {
         this.sliceNames = sliceNames;
         orientation.dArray().multiply(handle, 2, 1); // Scale orientations.
 
-        try (IArray gpuColors = IArray.empty(orientation.dArray().length)) {
+        try (IArray gpuColors = new IArray(orientation.dArray().length)) {
 
             Kernel.run("colors", handle,
                     orientation.size(),
@@ -98,8 +97,9 @@ public class ImageCreator extends TensorOrd3StrideDim {
     }
 
     /**
-     * Displays the tensor data as a heatmap in Fiji, supporting multiple frames
+     * Displays the tensor data as a heat map in Fiji, supporting multiple frames
      * and depths.
+     * @param initImageJ Does imageJ need to be initiated.
      */
     public final void printToFiji(boolean initImageJ) {
 
@@ -124,7 +124,7 @@ public class ImageCreator extends TensorOrd3StrideDim {
 
         ImagePlus imp = new ImagePlus("Orientation Heatmap", stack);
 
-        if (depth > 1) 
+        if (depth > 1)
             imp = HyperStackConverter.toHyperStack(
                     imp,
                     1,
@@ -146,7 +146,7 @@ public class ImageCreator extends TensorOrd3StrideDim {
 
         int[] pixelRGB = new int[3];
 
-        for (int frame = 0; frame < batchSize; frame++) {
+        for (int frame = 0; frame < batchSize; frame++)
             for (int layer = 0; layer < depth; layer++) {
                 BufferedImage image = createImage(frame, layer, pixelRGB);
 
@@ -163,7 +163,6 @@ public class ImageCreator extends TensorOrd3StrideDim {
                     e.printStackTrace();
                 }
             }
-        }
     }
 
     /**
@@ -178,12 +177,11 @@ public class ImageCreator extends TensorOrd3StrideDim {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         WritableRaster raster = image.getRaster();
 
-        for (int row = 0; row < height; row++) {
+        for (int row = 0; row < height; row++)
             for (int col = 0; col < width; col++) {
                 getPixelArray(frame, layer, col, row, pixelRGB);
                 raster.setPixel(col, row, pixelRGB);
             }
-        }
 
         return image;
     }

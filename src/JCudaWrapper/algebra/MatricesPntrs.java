@@ -390,15 +390,6 @@ public class MatricesPntrs implements AutoCloseable {
         arrays.close();
     }
 
-    /**
-     * Gets the i'th matrix in this batch.
-     *
-     * @param i The index of the desired matrix.
-     * @return The matrix at the proffered index.
-     */
-    private Matrix get(Handle handle, int i) {
-        return new Matrix(handle, arrays.get(handle, i), height, width);
-    }
 
     /**
      * Replaces this matrix with the lu factorization. L has unit diagonal so
@@ -430,19 +421,6 @@ public class MatricesPntrs implements AutoCloseable {
                 pivotArray, b.arrays,
                 info
         );
-    }
-
-    @Override
-    public String toString() {
-        try (Handle handle = new Handle()) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < arrays.length; i++)
-                sb.append(arrays.get(handle, i).toString());
-            handle.synch();
-            sb.append("\n").append(arrays.toString());
-            return sb.toString();
-        }
-
     }
 
 }

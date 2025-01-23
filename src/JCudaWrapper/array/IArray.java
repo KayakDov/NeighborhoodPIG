@@ -15,11 +15,22 @@ public class IArray extends Array {
     /**
      * Constructs an empty array.
      *
-     * @param p A pointer to the first element of the array.
+     * @param from An array containing this array.
+     * @param offset The start position of this subarray.
      * @param length The length of the array.
      */
-    private IArray(CUdeviceptr p, int length, boolean deallocateOnClose) {
-        super(p, length, PrimitiveType.INT);
+    public IArray(Array from, int offset, int length) {
+        super(from, offset, length);
+    }
+    
+    
+    /**
+     * Constructs an empty array.
+     *
+     * @param length The length of the array.
+     */
+    public IArray(int length) {
+        super(length, PrimitiveType.INT);
     }
 
     /**
@@ -28,19 +39,8 @@ public class IArray extends Array {
      * @param values The values to be stored in the cpu array,
      */
     public IArray(Handle handle, int ... values) {
-        super(Array.empty(values.length, PrimitiveType.INT), values.length, PrimitiveType.INT);
+        super(values.length, PrimitiveType.INT);
         set(handle, Pointer.to(values), 0, 0, values.length);
-    }
-
-    
-    
-    /**
-     * @see DArray#empty(int)
-     * @param length The length of the array.
-     * @return An empty asrray.
-     */
-    public static IArray empty(int length) {
-        return new IArray(empty(length, PrimitiveType.INT), length, true);
     }
 
     /**
@@ -51,7 +51,7 @@ public class IArray extends Array {
      */
     @Override
     public IArray copy(Handle handle) {
-        IArray copy = empty(length);
+        IArray copy = new IArray(length);
         copy.set(handle, pointer, length);
         return copy;
     }

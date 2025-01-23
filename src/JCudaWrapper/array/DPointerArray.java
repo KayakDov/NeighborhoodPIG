@@ -31,15 +31,12 @@ public class DPointerArray extends Array {
     /**
      * An array of Arrays.
      *
-     * @param p The pointer to this array.
      * @param lengthOfArrays The length of the arrays.
      * @param numberOfArrays The number of arrays stored in this array. The
      * length of this array of arrays.
-     * @param dealocateOnCLose dealocate the memory when this object is closed
-     * or no longer accessible.
      */
-    private DPointerArray(CUdeviceptr p, int lengthOfArrays, int numberOfArrays, boolean dealocateOnCLose) {
-        super(p, numberOfArrays, PrimitiveType.POINTER);
+    public DPointerArray(int lengthOfArrays, int numberOfArrays) {
+        super(numberOfArrays, PrimitiveType.POINTER);
         this.lengthOfArrays = lengthOfArrays;
     }
 
@@ -51,8 +48,7 @@ public class DPointerArray extends Array {
      * nonempty.
      */
     public DPointerArray(Handle handle, DArray[] arrays) {
-        super(empty(arrays.length, PrimitiveType.POINTER), arrays.length,
-                PrimitiveType.POINTER);
+        super(arrays.length, PrimitiveType.POINTER);
 
         CUdeviceptr[] pointers = new CUdeviceptr[length];
         Arrays.setAll(pointers, i -> arrays[i].pointer);
@@ -61,19 +57,6 @@ public class DPointerArray extends Array {
         lengthOfArrays = arrays[0].length;
     }
 
-    /**
-     * Creates an empty DArray with the specified size.
-     *
-     * @param length The number of elements in the array.
-     * @param lengthOfArrays The length of the DArrays stored in the new array.
-     * @return A new DArray with the specified size.
-     * @throws ArrayIndexOutOfBoundsException if size is negative.
-     */
-    public static DPointerArray empty(int length, int lengthOfArrays) {
-        checkPositive(length);
-        return new DPointerArray(Array.empty(length, PrimitiveType.POINTER),
-                lengthOfArrays, length, true);
-    }
 
     /**
      * Sets an index of this array.
@@ -102,24 +85,6 @@ public class DPointerArray extends Array {
         return array;
     }
 
-    /**
-     * Gets the array at the given index from GPU and transfers it to CPU
-     * memory.
-     *
-     * @param handle The handle.
-     * @param index The index of the desired array.
-     * @return The array at the given index.
-     */
-    public DArray get(Handle handle, int index) {
-        checkPositive(index);
-        checkAgainstLength(index);
-
-        CUdeviceptr[] hostPointer = emptyHostArray(1);
-
-        get(handle, Pointer.to(hostPointer), 0, index, 1);
-
-        return new DArray(hostPointer[0], lengthOfArrays);
-    }
 
     /**
      * Sets the elements of this array to be pointers to sub sections of the
@@ -143,7 +108,7 @@ public class DPointerArray extends Array {
      */
     @Override
     public DPointerArray copy(Handle handle) {
-        DPointerArray copy = empty(length, lengthOfArrays);
+        DPointerArray copy = new DPointerArray(length, lengthOfArrays);
         get(handle, copy, 0, 0, length);
         return copy;
     }
@@ -403,7 +368,7 @@ public class DPointerArray extends Array {
 
         boolean cleanInfo = false;
         if (info == null) {
-            info = IArray.empty(length);
+            info = new IArray(length);
             cleanInfo = true;
         }
         JCusolverDn.cusolverDnDpotrsBatched(
@@ -435,11 +400,11 @@ public class DPointerArray extends Array {
         int rows = 2, cols = 2;
 
         try (
-                Handle handle = new Handle(); IArray pivot = IArray.empty(2);
-                IArray info = IArray.empty(1);
+                Handle handle = new Handle(); IArray pivot = new IArray(2);
+                IArray info = new IArray(1);
                 DArray array = new DArray(handle, 1, 2, -1, 2);
                 DPointerArray a2d = new DPointerArray(handle, new DArray[]{array});
-                DArray b = DArray.empty(2);
+                DArray b = new DArray(2);
                 DPointerArray b2d = new DPointerArray(handle, new DArray[]{b})) {
 
             a2d.luFactor(handle, rows, cols, pivot, info);

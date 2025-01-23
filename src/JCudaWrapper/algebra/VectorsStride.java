@@ -40,7 +40,7 @@ public class VectorsStride extends MatricesStride {
     public VectorsStride(Handle handle, int strideSize, int batchSize, int subVecDim, int inc) {
         this(
                 handle,
-                DArray.empty(DStrideArray.totalDataLength(strideSize, inc * subVecDim, batchSize)),
+                new DArray(DStrideArray.totalDataLength(strideSize, inc * subVecDim, batchSize)),
                 inc,
                 subVecDim,
                 strideSize,

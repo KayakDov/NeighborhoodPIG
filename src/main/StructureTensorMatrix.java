@@ -199,7 +199,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         setCoherence(orientation.dArray());
         setOrientations().multiply(2);
 
-        IArray colors = IArray.empty(orientation.size() * 3);
+        IArray colors = new IArray(orientation.size() * 3);
 
         Kernel.run("colors", handle, 
                 orientation.size(), 

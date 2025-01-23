@@ -44,11 +44,16 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
 
         this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
 
-        try (Gradient grad = new Gradient(image, handle)) {
-            stm = new StructureTensorMatrix(grad, neighborhoodSize, tolerance);
-        }
+        Gradient grad = new Gradient(image, handle);
+        stm = new StructureTensorMatrix(grad, neighborhoodSize, tolerance);
+        grad.close();
     }
 
+    
+    /**
+     * Names chosen for these layers when none are provided.
+     * @return A set of default names for the layers.
+     */
     public String[] defaultNames() {
         String[] names = new String[depth * batchSize];
         int nameIndex = 0;
@@ -117,8 +122,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
     public static NeighborhoodPIG get(Handle handle, ImagePlus imp, int neighborhoodR, double tolerance) {//TODO: get image names
 
         if (imp.hasImageStack() && imp.getNSlices() > 1 && imp.getNFrames() == 1)
-            HyperStackConverter.toHyperStack(imp, 1, 1, imp.getNSlices());            
-        
+            HyperStackConverter.toHyperStack(imp, 1, 1, imp.getNSlices());
 
         try (DArray gpuImmage = processImages(handle, imp)) {
 
@@ -236,8 +240,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
         int frames = imp.getNFrames();
         int imgSize = width * height;
 
-        // Create an empty DArray to hold the data
-        DArray processedImage = DArray.empty(imgSize * slices * channels * frames);
+        DArray processedImage = new DArray(imgSize * slices * channels * frames);
 
         double[] columnMajorSlice = new double[imgSize];
 
@@ -249,12 +252,12 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
                     ImageProcessor ip = imp.getProcessor();
                     float[][] pixels = ip.getFloatArray();
 
-                    for (int col = 0; col < width; col++) 
-                        for (int row = 0; row < height; row++) 
+                    for (int col = 0; col < width; col++)
+                        for (int row = 0; row < height; row++)
                             columnMajorSlice[col * height + row] = pixels[col][row];
-                    
+
                     int globalIndex = ((frame - 1) * slices * channels + (slice - 1) * channels + (channel - 1)) * imgSize;
-                    
+
                     processedImage.set(handle, columnMajorSlice, globalIndex);
                 }
             }
@@ -293,7 +296,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
     public final static DArray processImages(Handle handle, File[] pics, int height, int width) {
 
         int numPixels = height * width * pics.length;
-        DArray pixelsGPU = DArray.empty(numPixels);
+        DArray pixelsGPU = new DArray(numPixels);
 
         int imgSize = width * height;
         double[] imgPixelsColMaj = new double[imgSize];

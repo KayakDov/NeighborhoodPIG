@@ -109,6 +109,7 @@ public class FijiPlugin implements PlugIn {
 
         }
         System.out.println("NeighborhoodPIG processing complete.");
+//        System.out.println("fijiPlugin.FijiPlugin.main() not deleted " + JCudaWrapper.array.DArray.alocatedArrays);
 
     }
 

@@ -84,7 +84,7 @@ extern "C" __global__ void batchGradientsKernel(
     const int n, 
     const double* mat, 
     const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
-    double* dX, double* dY, double* dZ
+    double* grad
 ) {
     
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -93,13 +93,6 @@ extern "C" __global__ void batchGradientsKernel(
 
     const Indices indices(idx, dim, mat);
 
-    // Compute gradient and store in the corresponding output array.
-    double gradValue = indices.grad();
-
-    switch (indices.gradient) {
-        case 0: dX[idx] = gradValue; break;
-        case 1: dY[idx % dim[6]] = gradValue; break;
-        case 2: dZ[idx % dim[6]] = gradValue; break;
-    }
+    grad[idx] = indices.grad();
 }
 

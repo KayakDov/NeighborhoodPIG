@@ -14,8 +14,8 @@ import java.util.stream.IntStream;
  * @author Dov Neimand
  */
 public class TensorOrd3Stride extends TensorOrd3StrideDim implements AutoCloseable, ColumnMajor {
-        
-    protected final DStrideArray data;    
+
+    protected final DStrideArray data;
 
     /**
      * A set of order 3 tensors.
@@ -63,7 +63,7 @@ public class TensorOrd3Stride extends TensorOrd3StrideDim implements AutoCloseab
     public TensorOrd3Stride(Handle handle, int height, int width, int depth, int batchSize) {
         this(handle, height, width, depth, height,
                 height * width, height * width * depth, batchSize,
-                DArray.empty(height * width * depth * batchSize)
+                new DArray(height * width * depth * batchSize)
                         .getAsBatch(height * width * depth, batchSize)
         );
     }
@@ -74,7 +74,18 @@ public class TensorOrd3Stride extends TensorOrd3StrideDim implements AutoCloseab
      * @return An empty TensorOrd3Stride with the same dimensions as this.
      */
     public TensorOrd3Stride emptyCopyDimensions() {
-        return new TensorOrd3Stride(handle, height, width, depth, batchSize);
+        return copyDimensions(new DArray(size()));
+    }
+
+    /**
+     * Imposes the dimensions of this onto the proffered data.
+     *
+     * @param array The data that will be fit into these dimensions. Make sure
+     * the array is long enough to receive these dimensions.
+     * @return An empty TensorOrd3Stride with the same dimensions as this.
+     */
+    public TensorOrd3Stride copyDimensions(DArray array) {
+        return new TensorOrd3Stride(handle, height, width, depth, batchSize, array);
     }
 
     /**
@@ -215,17 +226,18 @@ public class TensorOrd3Stride extends TensorOrd3StrideDim implements AutoCloseab
         return colDist;
     }
 
-    
     /**
-     * Finds the index of the first tensor with a NaN value.  This is meant to be a debugging tool.
+     * Finds the index of the first tensor with a NaN value. This is meant to be
+     * a debugging tool.
+     *
      * @return Finds the index of the first tensor with a NaN value.
      */
-    public int firstTensorIndexOfNaN(){
+    public int firstTensorIndexOfNaN() {
         double[] cpuData = data.get(handle);
-        
+
         int arrayIndexOfFirstNaN = IntStream.range(0, cpuData.length).filter(i -> Double.isNaN(cpuData[i]) || !Double.isFinite(cpuData[i])).findFirst().orElse(-1);
-        
+
         return arrayIndexOfFirstNaN / strideSize;
     }
-    
+
 }

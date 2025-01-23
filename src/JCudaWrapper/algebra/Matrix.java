@@ -128,7 +128,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param width The number of columns in the matrix.
      */
     public Matrix(Handle handle, int height, int width) {
-        this(handle, DArray.empty(height * width), height, width);
+        this(handle, new DArray(height * width), height, width);
     }
 
     /**
@@ -665,7 +665,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return The identity matrix.
      */
     public static Matrix identity(Handle hand, int n) {
-        return identity(hand, n, DArray.empty(n * n));
+        return identity(hand, n, new DArray(n * n));
     }
 
     /**
@@ -919,43 +919,6 @@ public class Matrix implements AutoCloseable, ColumnMajor {
                     .set(getColumn(i).getSubVector(0, i + 1));
 
         return u;
-    }
-
-    public static void main(String[] args) {
-        try (Handle hand = new Handle();
-                DArray a = new DArray(hand, -1, 2, 3, 2, 4, 5, 3, 5, 6);
-                DArray l = DArray.empty(9); DArray u = DArray.empty(9);
-                IArray info = IArray.empty(1); IArray pivot = IArray.empty(3);) {
-
-            Matrix m = new Matrix(hand, a, 3, 3);
-
-            m.power(2);
-            MatricesStride ms = m.repeating(1);
-
-            System.out.println("m = \n" + m.toString() + "\n");
-
-            Eigen eigen = new Eigen(ms, 1e-13);
-
-            for (int i = 0; i < m.height; i++) {
-                double eVal = eigen.values.elmntsAtVecInd(i).get(0);
-                Vector eVec = eigen.vectors.getMatrix(0).getColumn(i);
-
-                System.out.println("\nEigen value " + i + ":\n " + eVal);
-                System.out.println("Eigen vector " + i + ":\n " + eVec);
-
-                System.out.println("m = \n" + m);
-
-                System.out.println("Checking: is the vector = \n"
-                        + eVec.addProduct(
-                                false,
-                                1 / eVal,
-                                m,
-                                eVec,
-                                0
-                        )
-                );
-            }
-        }
     }
 
     /**

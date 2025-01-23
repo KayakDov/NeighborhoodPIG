@@ -33,8 +33,17 @@ public class DArray extends Array {
      * @throws IllegalArgumentException if the values array is null.
      */
     public DArray(Handle handle, double... values) {
-        this(Array.empty(values.length, PrimitiveType.DOUBLE), values.length);
+        this(values.length);
         copy(handle, this, values, 0, 0, values.length);
+    }
+
+    /**
+     * Creates an empty array.
+     *
+     * @param length The length of the array.
+     */
+    public DArray(int length) {
+        super(length, PrimitiveType.DOUBLE);
     }
 
     /**
@@ -42,7 +51,7 @@ public class DArray extends Array {
      */
     @Override
     public DArray copy(Handle handle) {
-        DArray copy = DArray.empty(length);
+        DArray copy = new DArray(length);
         get(handle, copy, 0, 0, length);
         return copy;
     }
@@ -50,24 +59,14 @@ public class DArray extends Array {
     /**
      * Constructs an array with a given GPU pointer and length.
      *
-     * @param p A pointer to the first element of the array on the GPU.
+     * @param array The array this one will be a subset of.
+     * @param offset The amount which this array is offset from the beginning of
+     * array.
      * @param length The length of the array.
-     * @param dealocateOnClose True if the memory is to be deallocated when this method is inaccessible or close.
-     */
-    protected DArray(CUdeviceptr p, int length) {
-        super(p, length, PrimitiveType.DOUBLE);
-    }
-
-    /**
-     * Creates an empty DArray with the specified size.
      *
-     * @param size The number of elements in the array.
-     * @return A new DArray with the specified size.
-     * @throws ArrayIndexOutOfBoundsException if size is negative.
      */
-    public static DArray empty(int size) {
-        checkPositive(size);
-        return new DArray(Array.empty(size, PrimitiveType.DOUBLE), size);
+    protected DArray(DArray array, int offset, int length) {
+        super(array, offset, length);
     }
 
     /**
@@ -233,10 +232,7 @@ public class DArray extends Array {
      * @return A sub Array.
      */
     public DArray subArray(int start, int length) {
-        checkPositive(start, length);
-        checkAgainstLength(start + length - 1, start);
-
-        return new DArray(pointer(start), length);
+        return new DArray(this, start, length);
     }
 
     /**
@@ -989,7 +985,7 @@ public class DArray extends Array {
         checkNull(handle, a, b);
         checkPositive(height, width);
         checkAgainstLength(height * width - 1);
-        
+
         int result = JCublas2.cublasDgeam(handle.get(),
                 transpose(transA), transpose(transB),
                 height, width,
@@ -1081,10 +1077,9 @@ public class DArray extends Array {
      * @return A representation of this array as a set of sub arrays.
      */
     public DStrideArray getAsBatch(int strideSize, int subArrayLength, int batchSize) {
-        return new DStrideArray(pointer, strideSize, subArrayLength, batchSize, false);
+        return new DStrideArray(this, strideSize, subArrayLength, batchSize, false);
     }
-    
-    
+
     /**
      * Breaks this array into a a set of sub arrays, one after the other.
      *
@@ -1092,7 +1087,7 @@ public class DArray extends Array {
      * @param subArrayLength The number of elements in each subArray.
      * @return A representation of this array as a set of sub arrays.
      */
-    public DStrideArray getAsBatch(int subArrayLength, int batchSize) {
+    public DStrideArray getAsBatch(int subArrayLength, int batchSize) {        
         return getAsBatch(subArrayLength, subArrayLength, batchSize);
     }
 
@@ -1107,8 +1102,8 @@ public class DArray extends Array {
     public DPointerArray getPointerArray(Handle handle, int strideSize) {
         DPointerArray dPoint;
 
-        if (strideSize == 0) dPoint = DPointerArray.empty(1, strideSize);
-        else dPoint = DPointerArray.empty(length / strideSize, strideSize);
+        if (strideSize == 0) dPoint = new DPointerArray(1, strideSize);
+        else dPoint = new DPointerArray(length / strideSize, strideSize);
 
         return dPoint.fill(handle, this, strideSize);
     }
@@ -1122,7 +1117,7 @@ public class DArray extends Array {
      * @return The number of times is can be done
      */
     private int n(int inc) {
-        return (int)Math.ceil((double)length/ inc);
+        return (int) Math.ceil((double) length / inc);
     }
 
 //    public static void main(String[] args) {
@@ -1157,5 +1152,4 @@ public class DArray extends Array {
 //            JCuda.cudaStreamDestroy(stream);
 //        }
 //    }
-
 }

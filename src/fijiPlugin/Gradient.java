@@ -5,6 +5,7 @@ import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.algebra.TensorOrd3StrideDim;
 import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.DStrideArray;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
@@ -18,6 +19,7 @@ import jcuda.Pointer;
  */
 public class Gradient extends TensorOrd3StrideDim implements AutoCloseable {
 
+    private DArray data;
     private TensorOrd3Stride x, y, z;
 
     /**
@@ -32,17 +34,20 @@ public class Gradient extends TensorOrd3StrideDim implements AutoCloseable {
     public Gradient(TensorOrd3Stride pic, Handle hand) {
         super(pic);
 
-        x = pic.emptyCopyDimensions();
-        y = pic.emptyCopyDimensions();
-        z = pic.emptyCopyDimensions();
+        data = new DArray(pic.size() * 3);
+        DStrideArray thirds = data.getAsBatch(pic.size(), 3);
+        
+        x = pic.copyDimensions(thirds.getBatchArray(0));
+        y = pic.copyDimensions(thirds.getBatchArray(1));
+        z = pic.copyDimensions(thirds.getBatchArray(2));
 
         try (IArray dim = new IArray(handle, height, width, depth, batchSize, layerDist, tensorSize(), tensorSize() * batchSize)) {
-
+            
             Kernel.run("batchGradients", hand,
-                    3 * pic.dArray().length,
+                    data.length,
                     pic.dArray(),
                     P.to(dim),
-                    P.to(x), P.to(y), P.to(z)
+                    P.to(data)
             );
         }
 
@@ -88,9 +93,7 @@ public class Gradient extends TensorOrd3StrideDim implements AutoCloseable {
 
     @Override
     public void close() {
-        x.close();
-        y.close();
-        z.close();
+        data.close();
     }
 
     /**

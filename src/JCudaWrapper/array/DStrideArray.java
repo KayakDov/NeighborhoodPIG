@@ -21,16 +21,31 @@ public class DStrideArray extends DArray {
     public final int stride, batchSize, subArrayLength;
 
     /**
-     * The constructor. Make sure batchSize * strideSize is less than length 
-     * @param p A pointer to the first element. 
-     * from the first element of one subsequence to the first element of the next.      
+     * The constructor. Make sure batchSize * strideSize is less than length      
+     * @param from The array to be subdivided.
      * @param strideSize The number of elements between the first element of each subarray. 
      * @param batchSize The number of strides. @param subArrayLength The length of e
      * @param subArrayLength The length of each sub arrau/
      * @param deallocateOnClose Dealocate gpu memory when this is closed or inaccessible.
      */
-    protected DStrideArray(CUdeviceptr p, int strideSize, int subArrayLength, int batchSize, boolean deallocateOnClose) {
-        super(p, totalDataLength(strideSize, subArrayLength, batchSize));
+    protected DStrideArray(DArray from, int strideSize, int subArrayLength, int batchSize, boolean deallocateOnClose) {
+        super(from, 0, totalDataLength(strideSize, subArrayLength, batchSize));
+        this.stride = strideSize;
+        this.subArrayLength = subArrayLength;
+        this.batchSize = batchSize;
+    }
+    
+    
+    /**
+     * The constructor. Make sure batchSize * strideSize is less than length      
+     * @param from The array to be subdivided.
+     * @param strideSize The number of elements between the first element of each subarray. 
+     * @param batchSize The number of strides. @param subArrayLength The length of e
+     * @param subArrayLength The length of each sub arrau/
+     * @param deallocateOnClose Dealocate gpu memory when this is closed or inaccessible.
+     */
+    protected DStrideArray(int strideSize, int subArrayLength, int batchSize, boolean deallocateOnClose) {
+        super(totalDataLength(strideSize, subArrayLength, batchSize));
         this.stride = strideSize;
         this.subArrayLength = subArrayLength;
         this.batchSize = batchSize;
@@ -227,23 +242,6 @@ public class DStrideArray extends DArray {
      */
     public static int totalDataLength(int strideSize, int subArrayLength, int batchSize) {
         return strideSize * (batchSize - 1) + subArrayLength;
-    }
-
-    /**
-     * An empty batch array.
-     *
-     * @param batchSize The number of subsequences.
-     * @param strideSize The size of each subsequence.
-     * @param subArrayLength The length of each sub arrays.
-     * @return An empty batch array.
-     */
-    public static DStrideArray empty(int batchSize, int strideSize, int subArrayLength) {
-
-        return new DStrideArray(
-                Array.empty(totalDataLength(strideSize, subArrayLength, batchSize), PrimitiveType.DOUBLE),
-                strideSize,
-                subArrayLength, batchSize, true
-        );
     }
     
     /**

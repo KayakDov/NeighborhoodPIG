@@ -43,7 +43,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
     public MatricesStride(Handle handle, int height, int width, int stride, int batchSize) {
         this(
                 handle,
-                DArray.empty(DStrideArray.totalDataLength(stride, width * height, batchSize)),
+                new DArray(DStrideArray.totalDataLength(stride, width * height, batchSize)),
                 height,
                 width,
                 height,
@@ -300,7 +300,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
      * @return A vector of 3 negative ones.
      */
     private static VectorsStride negOnes3(Handle handle, int batchSize) {
-        if (negOnes3 == null) negOnes3 = DArray.empty(3).fill(handle, -1, 1);
+        if (negOnes3 == null) negOnes3 = new DArray(3).fill(handle, -1, 1);
         return new VectorsStride(handle, negOnes3, 1, 3, 0, batchSize);
     }
 
@@ -506,7 +506,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
      */
     public MatricesStride computeVecs(VectorsStride eValues, DArray workSpaceDArray, IArray workSpaceIArray, double tolerance) {
 
-        MatricesStride eVectors = copyDimensions(DArray.empty(data.length));
+        MatricesStride eVectors = copyDimensions(new DArray(data.length));
 
         Kernel.run("eigenVecBatch", handle,
                 eValues.dim() * eValues.batchSize,
@@ -548,7 +548,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
      */
     public MatricesStride computeVecs3x3(VectorsStride eValues, DArray workSpaceArray, double tolerance) {
 
-        MatricesStride eVectors = copyDimensions(DArray.empty(data.length));
+        MatricesStride eVectors = copyDimensions(new DArray(data.length));
 
         System.out.println("JCudaWrapper.algebra.MatricesStride.computeVecs3x3() " + batchSize * 3);
 
@@ -797,7 +797,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
             else if (height == 1) data.fill(handle, scalar, colDist);
             else data.fillMatrix(handle, height, totalWidth(), colDist, scalar);
         } else {
-            try (DArray workSpace = DArray.empty(width * width)) {
+            try (DArray workSpace = new DArray(width * width)) {
 
                 MatricesStride empty = new Matrix(handle, workSpace, height, width).repeating(data.batchSize);
 
