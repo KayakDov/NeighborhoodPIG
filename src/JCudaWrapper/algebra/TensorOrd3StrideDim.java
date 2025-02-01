@@ -16,7 +16,7 @@ import JCudaWrapper.resourceManagement.Handle;
  *
  * @author E.Dov Neimand
  */
-public class TensorOrd3StrideDim {
+public abstract class TensorOrd3StrideDim implements ColumnMajor, AutoCloseable{
 
     /**
      * The height (number of rows) of the tensor.
@@ -83,7 +83,6 @@ public class TensorOrd3StrideDim {
 
     }
     
-    
     /**
      * Constructs a new TensorOrd3dStrideDim with the specified dimensions,
      * strides, and batch size.
@@ -97,8 +96,6 @@ public class TensorOrd3StrideDim {
     public TensorOrd3StrideDim(Handle handle, int height, int width, int depth, int batchSize) {
         this(handle, height, width, depth, height, height*width, height*width*depth, batchSize);
     }
-    
-    
 
     /**
      * Copy constructor.
@@ -151,6 +148,11 @@ public class TensorOrd3StrideDim {
                 + ", tensorSize =" + tensorSize()
                 + ", totalSize= " + size()
                 + '}';
+    }
+    
+    @Override
+    public int getColDist() {
+        return colDist;
     }
 
 }

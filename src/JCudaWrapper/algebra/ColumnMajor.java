@@ -1,5 +1,6 @@
 package JCudaWrapper.algebra;
 
+import JCudaWrapper.array.Array3d;
 import JCudaWrapper.array.DArray;
 
 /**
@@ -9,9 +10,6 @@ import JCudaWrapper.array.DArray;
 public interface ColumnMajor {
     
     public int getColDist();
-    
-    public DArray dArray();
-    
     
     /**
      * Returns the column-major vector index of the given row and column.
@@ -23,6 +21,12 @@ public interface ColumnMajor {
     default public int index(int row, int col){
         return col*getColDist() + row;
     }
+    
+    /**
+     * Gets the underlying array for this data structure.
+     * @return The GPU array.
+     */
+    public Array3d array();
     
     
 }

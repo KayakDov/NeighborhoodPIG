@@ -204,7 +204,7 @@ public class VectorsStride extends MatricesStride {
      *
      * @return The data underlying these vectors.
      */
-    public DStrideArray dArray() {
+    public DStrideArray array() {
         return data;
     }
 
@@ -228,7 +228,7 @@ public class VectorsStride extends MatricesStride {
     public Vector norms(DArray normsGoHere) {
         Vector norms = new Vector(handle, normsGoHere, 1);
         norms.addBatchVecVecMult(1, this, this, 0);
-        Kernel.run("sqrt", handle, norms.dim(), norms.dArray(), P.to(norms.inc()), P.to(norms), P.to(norms.inc()));
+        Kernel.run("sqrt", handle, norms.dim(), norms.array(), P.to(norms.inc()), P.to(norms), P.to(norms.inc()));
         return norms;
     }
 

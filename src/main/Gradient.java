@@ -97,7 +97,7 @@ public class Gradient implements AutoCloseable{
 
         VectorsStride diffVecs = new VectorsStride(hand, diff, 1, diff.length, 0, numBlocks);
 
-        MatricesStride blocks = new MatricesStride(hand, pic.dArray(), blockHeight, blockWidth, pic.colDist, blockStride, numBlocks);
+        MatricesStride blocks = new MatricesStride(hand, pic.array(), blockHeight, blockWidth, pic.colDist, blockStride, numBlocks);
         
         target = target.subBatch(2, numBlocks);
 

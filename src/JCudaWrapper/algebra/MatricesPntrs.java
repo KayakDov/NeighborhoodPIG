@@ -160,7 +160,7 @@ public class MatricesPntrs implements AutoCloseable {
 
         for (int i = 0; i < batchSize; i++, step.accept(p))
             arrays[i] = contains.getSubMatrix(p.y, p.y + height, p.x,
-                    p.x + width).dArray();
+                    p.x + width).array();
 
         return new DPointerArray(contains.getHandle(), arrays);
     }

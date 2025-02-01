@@ -109,7 +109,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         MatricesStride eVecs = eigen.vectors;
         Kernel.run("vecToNematic", handle,
                 eVecs.getBatchSize() * eVecs.width,
-                eVecs.dArray(), 
+                eVecs.array(), 
                 P.to(eVecs.colDist),
                 P.to(eVecs),
                 P.to(eVecs.colDist)
@@ -126,7 +126,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     public Matrix setOrientations() {
         Kernel.run("atan2", handle, 
                 orientation.size(),
-                eigen.vectors.dArray(), 
+                eigen.vectors.array(), 
                 P.to(eigen.vectors.getStrideSize()),
                 P.to(orientation), 
                 P.to(1)
@@ -144,7 +144,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         Vector[] l = eigen.values.vecPartition();
         Vector denom = new Vector(handle, workSpace, 1)
                 .setSum(1, l[0], 1, l[1]);
-        Vector coherenceVec = new Vector(handle, coherence.dArray(), 1)
+        Vector coherenceVec = new Vector(handle, coherence.array(), 1)
                 .setSum(1, l[0], -1, l[1])
                 .ebeDivide(denom);
         coherenceVec.ebeSetProduct(coherenceVec, coherenceVec);
@@ -196,14 +196,14 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     public IArray getRGB() {
 
         setVecs0ToPi();
-        setCoherence(orientation.dArray());
+        setCoherence(orientation.array());
         setOrientations().multiply(2);
 
         IArray colors = new IArray(orientation.size() * 3);
 
         Kernel.run("colors", handle, 
                 orientation.size(), 
-                orientation.dArray(), 
+                orientation.array(), 
                 P.to(1), 
                 P.to(colors), 
                 P.to(3),
@@ -245,8 +245,8 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * @return 
      */
     @Override
-    public DArray dArray() {
-        return strctTensors.dArray();
+    public DArray array() {
+        return strctTensors.array();
     }
     
     

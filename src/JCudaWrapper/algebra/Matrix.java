@@ -703,14 +703,14 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @throws MatrixDimensionMismatchException
      */
     public void setColumnVector(int column, Vector vector) throws OutOfRangeException, MatrixDimensionMismatchException {
-        data.set(handle, vector.dArray(), index(0, column), 0, 0, vector.colDist, Math.min(height, vector.dim()));
+        data.set(handle, vector.array(), index(0, column), 0, 0, vector.colDist, Math.min(height, vector.dim()));
     }
 
     /**
      * @see Matrix#setRowVector(int, org.apache.commons.math3.linear.RealVector)
      */
     public void setRowVector(int row, Vector vector) throws OutOfRangeException, MatrixDimensionMismatchException {
-        data.set(handle, vector.dArray(), index(row, 0), 0, colDist, vector.colDist, Math.min(width, vector.dim()));
+        data.set(handle, vector.array(), index(row, 0), 0, colDist, vector.colDist, Math.min(width, vector.dim()));
     }
 
     /**
@@ -788,7 +788,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      */
     public Matrix addOuterProduct(Vector a, Vector b) {
 
-        data.outerProd(handle, height, width, 1, a.dArray(), a.colDist, b.dArray(), b.colDist, colDist);
+        data.outerProd(handle, height, width, 1, a.array(), a.colDist, b.array(), b.colDist, colDist);
 
         return this;
     }
@@ -798,7 +798,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      *
      * @return The underlying column major data.
      */
-    public DArray dArray() {
+    public DArray array() {
         return data;
     }
 
@@ -873,7 +873,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * column major order.
      */
     public double[] colMajor() {
-        return dArray().get(handle);
+        return array().get(handle);
     }
 
     /**

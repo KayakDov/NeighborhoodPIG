@@ -61,17 +61,17 @@ public class NeighborhoodProductSums implements AutoCloseable {
 
         Handle hand = a.getHandle();
 
-        new Vector(hand, ebeStorage.dArray(), 1)
+        new Vector(hand, ebeStorage.array(), 1)
                 .ebeSetProduct(
-                        new Vector(hand, a.dArray(), 1),
-                        new Vector(hand, b.dArray(), 1)
+                        new Vector(hand, a.array(), 1),
+                        new Vector(hand, b.array(), 1)
                 );
 
         Kernel.run("neighborhoodSum", hand, 
                 height,//TODO: run these in a single kernel instead of two to reduce kernel calls.
-                ebeStorage.dArray(),
+ebeStorage.array(),
                 P.to(width),
-                P.to(sumLocalRowElements.dArray()),
+                P.to(sumLocalRowElements.array()),
                 P.to(1),
                 P.to(true),
                 P.to(nRad)
@@ -79,9 +79,9 @@ public class NeighborhoodProductSums implements AutoCloseable {
 
         Kernel.run("neighborhoodSum", hand, 
                 width,
-                sumLocalRowElements.dArray(),
+                sumLocalRowElements.array(),
                 P.to(height),
-                P.to(result.dArray()),
+                P.to(result.array()),
                 P.to(result.inc()),
                 P.to(false),
                 P.to(nRad)

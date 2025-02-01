@@ -101,7 +101,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         MatricesStride eVecs = eigen.vectors;
         Kernel.run("vecToNematic", handle,
                 eVecs.getBatchSize() * eVecs.width,
-                eVecs.dArray(),
+                eVecs.array(),
                 P.to(eVecs.colDist),
                 P.to(eVecs),
                 P.to(eVecs.colDist)
@@ -118,15 +118,15 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
         try (Kernel atan2 = new Kernel("atan2")) {
 
             atan2.map(handle,
-                    orientationXY.dArray().length,
-                    eigen.vectors.dArray(),
+                    orientationXY.array().length,
+                    eigen.vectors.array(),
                     P.to(eigen.vectors.getStrideSize()),
                     P.to(orientationXY),
                     P.to(1)
             );
             atan2.map(handle,
-                    orientationXY.dArray().length,
-                    eigen.vectors.dArray().subArray(1),
+                    orientationXY.array().length,
+                    eigen.vectors.array().subArray(1),
                     P.to(eigen.vectors.getStrideSize()),
                     P.to(orientationYZ),
                     P.to(1)
@@ -145,7 +145,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     public final TensorOrd3Stride setCoherence(double tolerance) {
         Kernel.run("coherence", handle, 
                 coherence.size(), 
-                eigen.values.dArray(), 
+                eigen.values.array(), 
                 P.to(eigen.values.strideSize),
                 P.to(coherence),
                 P.to(eigen.values.dim() == 3),
@@ -214,8 +214,8 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * @return
      */
     @Override
-    public DArray dArray() {
-        return strctTensors.dArray();
+    public DArray array() {
+        return strctTensors.array();
     }
 
 }

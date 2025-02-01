@@ -1,11 +1,6 @@
 package JCudaWrapper.array;
 
 import JCudaWrapper.algebra.ColumnMajor;
-import JCudaWrapper.algebra.MatricesStride;
-import JCudaWrapper.algebra.Matrix;
-import JCudaWrapper.algebra.TensorOrd3Stride;
-import JCudaWrapper.algebra.Vector;
-import JCudaWrapper.algebra.VectorsStride;
 import jcuda.Pointer;
 
 /**
@@ -51,7 +46,7 @@ public class P {
      * @param a A double that needs a pointer.
      * @return A pointer to a singleton array containing d.
      */
-    public static <T extends Array> Pointer to(T a) {
+    public static <T extends Array3d> Pointer to(T a) {
         return Pointer.to(a.pointer);
     }
         
@@ -61,7 +56,7 @@ public class P {
      * @return A pointer to the thing with data.
      */
     public static Pointer to(ColumnMajor d) {
-        return to(d.dArray());
+        return to(d.array());
     }
     
 }

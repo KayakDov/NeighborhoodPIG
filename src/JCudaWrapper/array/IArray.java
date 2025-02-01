@@ -10,7 +10,7 @@ import JCudaWrapper.resourceManagement.Handle;
  *
  * @author E. Dov Neimand
  */
-public class IArray extends Array {
+public class IArray extends Array3d {
 
     /**
      * Constructs an empty array.
@@ -19,7 +19,7 @@ public class IArray extends Array {
      * @param offset The start position of this subarray.
      * @param length The length of the array.
      */
-    public IArray(Array from, int offset, int length) {
+    public IArray(Array3d from, int offset, int length) {
         super(from, offset, length);
     }
     

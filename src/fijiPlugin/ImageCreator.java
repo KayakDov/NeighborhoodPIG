@@ -2,6 +2,7 @@ package fijiPlugin;
 
 import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.algebra.TensorOrd3StrideDim;
+import JCudaWrapper.array.Array3d;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
@@ -46,13 +47,13 @@ public class ImageCreator extends TensorOrd3StrideDim {
     public ImageCreator(Handle handle, String[] sliceNames, TensorOrd3Stride orientation, TensorOrd3Stride coherence) {
         super(orientation);
         this.sliceNames = sliceNames;
-        orientation.dArray().multiply(handle, 2, 1); // Scale orientations.
+        orientation.array().multiply(handle, 2, 1); // Scale orientations.
 
-        try (IArray gpuColors = new IArray(orientation.dArray().length)) {
+        try (IArray gpuColors = new IArray(orientation.array().length)) {
 
             Kernel.run("colors", handle,
                     orientation.size(),
-                    orientation.dArray(),
+                    orientation.array(),
                     P.to(1),
                     P.to(gpuColors),
                     P.to(1),
@@ -62,7 +63,7 @@ public class ImageCreator extends TensorOrd3StrideDim {
             cpuColors = gpuColors.get(handle); // Transfer GPU results to CPU.
         }
 
-        orientation.dArray().multiply(handle, 0.5, 1); // Restore original scale.
+        orientation.array().multiply(handle, 0.5, 1); // Restore original scale.
     }
 
     /**
@@ -97,8 +98,9 @@ public class ImageCreator extends TensorOrd3StrideDim {
     }
 
     /**
-     * Displays the tensor data as a heat map in Fiji, supporting multiple frames
-     * and depths.
+     * Displays the tensor data as a heat map in Fiji, supporting multiple
+     * frames and depths.
+     *
      * @param initImageJ Does imageJ need to be initiated.
      */
     public final void printToFiji(boolean initImageJ) {
@@ -184,5 +186,15 @@ public class ImageCreator extends TensorOrd3StrideDim {
             }
 
         return image;
+    }
+
+    @Override
+    public Array3d array() {
+        throw new UnsupportedOperationException("This object has no data.");
+    }
+
+    @Override
+    public void close() throws Exception {
+        throw new UnsupportedOperationException("This object has no data.");
     }
 }

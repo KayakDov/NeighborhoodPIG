@@ -4,6 +4,7 @@ import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.algebra.TensorOrd3StrideDim;
+import JCudaWrapper.array.Array3d;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.DStrideArray;
 import JCudaWrapper.array.IArray;
@@ -19,7 +20,7 @@ import jcuda.Pointer;
  */
 public class Gradient extends TensorOrd3StrideDim implements AutoCloseable {
 
-    private DArray data;
+    private DStrideArray data;
     private TensorOrd3Stride x, y, z;
 
     /**
@@ -34,18 +35,17 @@ public class Gradient extends TensorOrd3StrideDim implements AutoCloseable {
     public Gradient(TensorOrd3Stride pic, Handle hand) {
         super(pic);
 
-        data = new DArray(pic.size() * 3);
-        DStrideArray thirds = data.getAsBatch(pic.size(), 3);
+        data = new DArray(pic.size() * 3).getAsBatch(pic.size(), 3);
         
-        x = pic.copyDimensions(thirds.getBatchArray(0));
-        y = pic.copyDimensions(thirds.getBatchArray(1));
-        z = pic.copyDimensions(thirds.getBatchArray(2));
+        x = pic.copyDimensions(data.getBatchArray(0));
+        y = pic.copyDimensions(data.getBatchArray(1));
+        z = pic.copyDimensions(data.getBatchArray(2));
 
         try (IArray dim = new IArray(handle, height, width, depth, batchSize, layerDist, tensorSize(), tensorSize() * batchSize)) {
             
             Kernel.run("batchGradients", hand,
                     data.length,
-                    pic.dArray(),
+                    pic.array(),
                     P.to(dim),
                     P.to(data)
             );
@@ -59,7 +59,7 @@ public class Gradient extends TensorOrd3StrideDim implements AutoCloseable {
             TensorOrd3Stride tenStr = new Matrix(hand, array, 3, 5).repeating(1);
 
             try (Gradient grad = new Gradient(tenStr, hand)) {
-                System.out.println("dX: " + grad.x.dArray().toString());
+                System.out.println("dX: " + grad.x.array().toString());
             }
         }
     }
@@ -108,6 +108,11 @@ public class Gradient extends TensorOrd3StrideDim implements AutoCloseable {
     @Override
     public String toString() {
         return super.toString() + "\nd\\dx =\n" + x.toString() + "\nd\\dy = \n" + y.toString() + "\nd\\dz = \n" + z.toString();
+    }
+
+    @Override
+    public Array3d array() {
+        return data;
     }
     
 

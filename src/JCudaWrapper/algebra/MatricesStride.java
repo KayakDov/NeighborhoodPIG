@@ -266,7 +266,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
 
         VectorsStride vals = new VectorsStride(handle, height, getBatchSize(), height, 1);
         
-        Kernel.run("eigenValsBatch", handle, batchSize, dArray(), P.to(vals), P.to(tolerance));
+        Kernel.run("eigenValsBatch", handle, batchSize, array(), P.to(vals), P.to(tolerance));
         
         return vals;
 //        Vector[] work = workSpace.parition(3);
@@ -403,7 +403,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
 
             theta.addEbeProduct(-0.5, q, theta, 0);//root[0] is now free (all roots).
             theta.ebeSetProduct(theta, pInverse); //c is now free.
-            acos.map(b.getHandle(), theta.dim(), theta.dArray(), 
+            acos.map(b.getHandle(), theta.dim(), theta.array(), 
                     P.to(theta.inc()), P.to(theta), P.to(theta.inc()));
 
             for (int k = 0; k < 3; k++)

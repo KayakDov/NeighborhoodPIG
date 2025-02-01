@@ -3,6 +3,7 @@ package fijiPlugin;
 import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.algebra.TensorOrd3StrideDim;
 import JCudaWrapper.algebra.Vector;
+import JCudaWrapper.array.Array3d;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.Kernel;
@@ -50,6 +51,11 @@ public class NeighborhoodProductSums extends TensorOrd3StrideDim implements Auto
         workSpace1 = dim.emptyCopyDimensions();
 
         nSum = new Kernel("neighborhoodSum3d");
+    }
+
+    @Override
+    public Array3d array() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
     /**
@@ -108,19 +114,19 @@ public class NeighborhoodProductSums extends TensorOrd3StrideDim implements Auto
      */
     public void set(TensorOrd3Stride a, TensorOrd3Stride b, Vector result) {
 
-        new Vector(handle, workSpace1.dArray(), 1)
+        new Vector(handle, workSpace1.array(), 1)
                 .ebeSetProduct(
-                        new Vector(handle, a.dArray(), 1),
-                        new Vector(handle, b.dArray(), 1)
+                        new Vector(handle, a.array(), 1),
+                        new Vector(handle, b.array(), 1)
                 );        
 
-        X.mapNeighborhoodSum(workSpace1.dArray(), workSpace2.dArray(), 1);
+        X.mapNeighborhoodSum(workSpace1.array(), workSpace2.array(), 1);
 
         if (depth > 1) {
-            Y.mapNeighborhoodSum(workSpace2.dArray(), workSpace1.dArray(), 1);
-            Z.mapNeighborhoodSum(workSpace1.dArray(), result.dArray(), result.inc());
+            Y.mapNeighborhoodSum(workSpace2.array(), workSpace1.array(), 1);
+            Z.mapNeighborhoodSum(workSpace1.array(), result.array(), result.inc());
         } else
-            Y.mapNeighborhoodSum(workSpace2.dArray(), result.dArray(), result.inc());
+            Y.mapNeighborhoodSum(workSpace2.array(), result.array(), result.inc());
 
     }
 

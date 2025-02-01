@@ -7,13 +7,13 @@ import jcuda.driver.CUdeviceptr;
 import jcuda.jcublas.JCublas2;
 import org.apache.commons.math3.exception.DimensionMismatchException;
 import JCudaWrapper.resourceManagement.Handle;
-import static JCudaWrapper.array.Array.checkNull;
+import static JCudaWrapper.array.Array3d.checkNull;
 import jcuda.jcublas.cublasFillMode;
 import jcuda.jcublas.cublasStatus;
 import jcuda.jcusolver.JCusolverDn;
 import jcuda.jcusolver.cusolverStatus;
 
-import static JCudaWrapper.array.Array.checkPositive;
+import static JCudaWrapper.array.Array3d.checkPositive;
 
 /**
  * Class for managing a batched 2D array of arrays (DArrays) on the GPU and
@@ -24,7 +24,7 @@ import static JCudaWrapper.array.Array.checkPositive;
  *
  * @author E. Dov Neimand
  */
-public class DPointerArray extends Array {
+public class DPointerArray extends Array3d {
 
     private final int lengthOfArrays;
 

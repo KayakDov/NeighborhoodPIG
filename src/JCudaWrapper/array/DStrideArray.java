@@ -1,13 +1,13 @@
 package JCudaWrapper.array;
 
-import static JCudaWrapper.array.Array.checkNull;
+import static JCudaWrapper.array.Array3d.checkNull;
 import jcuda.driver.CUdeviceptr;
 import jcuda.jcublas.JCublas2;
 import jcuda.jcusolver.JCusolverDn;
 import jcuda.jcusolver.cusolverEigMode;
 import jcuda.jcusolver.gesvdjInfo;
 import JCudaWrapper.resourceManagement.Handle;
-import static JCudaWrapper.array.Array.checkPositive;
+import static JCudaWrapper.array.Array3d.checkPositive;
 import jcuda.runtime.cudaError;
 import jcuda.jcusolver.syevjInfo;
 

@@ -8,7 +8,10 @@ import jcuda.driver.CUdeviceptr;
 import jcuda.jcublas.JCublas2;
 import jcuda.jcublas.cublasDiagType;
 import jcuda.jcublas.cublasFillMode;
+import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaError;
+import jcuda.runtime.cudaExtent;
+import jcuda.runtime.cudaPitchedPtr;
 import org.apache.commons.math3.exception.DimensionMismatchException;
 
 /**
@@ -22,7 +25,7 @@ import org.apache.commons.math3.exception.DimensionMismatchException;
  *
  * @author E. Dov Neimand
  */
-public class DArray extends Array {
+public class DArray extends Array3d {
 
     /**
      * Creates a GPU array from a CPU array.
@@ -84,7 +87,7 @@ public class DArray extends Array {
     public static void copy(Handle handle, DArray to, double[] fromArray, int toIndex, int fromIndex, int length) {
         checkNull(fromArray, to);
 
-        Array.copy(
+        Array3d.copy(
                 handle,
                 to,
                 Pointer.to(fromArray),
@@ -1087,7 +1090,7 @@ public class DArray extends Array {
      * @param subArrayLength The number of elements in each subArray.
      * @return A representation of this array as a set of sub arrays.
      */
-    public DStrideArray getAsBatch(int subArrayLength, int batchSize) {        
+    public DStrideArray getAsBatch(int subArrayLength, int batchSize) {
         return getAsBatch(subArrayLength, subArrayLength, batchSize);
     }
 
@@ -1120,36 +1123,22 @@ public class DArray extends Array {
         return (int) Math.ceil((double) length / inc);
     }
 
-//    public static void main(String[] args) {
+    //360_185_670
+    public static void main(String[] args) {
+
+        int size = 1_000;
+        int width = size, height = size, depth = size;
+        cudaExtent extent = new cudaExtent(width * Sizeof.DOUBLE, height, depth);
+        cudaPitchedPtr pitchedPtr = new cudaPitchedPtr();
+        JCuda.cudaMalloc3D(pitchedPtr, extent);
+
+//        int i = 0;
+//        while ((i += 100) > -1)
+//            try (DArray test = new DArray(i)) {
+//            System.out.println(i);
+//        } catch (Exception e) {
 //
-//        int size = 1;
-//
-//        cudaStream_t stream = new cudaStream_t();
-//        JCuda.cudaStreamCreate(stream);
-//
-//        Pointer p = new Pointer();
-//        JCuda.cudaMalloc(p, size);
-//
-//        for (int i = 0; i < 10_000_000; i++) {
-//
-//            System.out.println("\ni = " + i);
-//
-//            Pointer da = p.withByteOffset(0);
-//
-//            double[] export = new double[1];
-//
-//            int error = JCuda.cudaMemcpyAsync(
-//                    Pointer.to(export).withByteOffset(0),
-//                    p.withByteOffset(0),
-//                    1 * Sizeof.DOUBLE,
-//                    cudaMemcpyKind.cudaMemcpyDeviceToHost,
-//                    stream
-//            );
-//            if (error != cudaError.cudaSuccess)
-//                throw new RuntimeException("cuda error " + error + " " + cudaError.stringFor(error));
-//
-//            JCuda.cudaFree(p);
-//            JCuda.cudaStreamDestroy(stream);
+//            System.out.println(i);
 //        }
-//    }
+    }
 }

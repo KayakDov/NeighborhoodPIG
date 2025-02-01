@@ -177,7 +177,6 @@ public class TensorOrd3Stride extends TensorOrd3StrideDim implements AutoCloseab
     /**
      * Closes the underlying data.
      */
-    @Override
     public void close() {
         data.close();
     }
@@ -187,7 +186,7 @@ public class TensorOrd3Stride extends TensorOrd3StrideDim implements AutoCloseab
      *
      * @return The underlying data behind this object.
      */
-    public DStrideArray dArray() {
+    public DStrideArray array() {
         return data;
     }
 

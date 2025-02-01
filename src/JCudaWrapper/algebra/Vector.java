@@ -522,7 +522,7 @@ public class Vector extends Matrix {
      *
      * @return The underlying data from this vector.
      */
-    public DArray dArray() {
+    public DArray array() {
         return data;
     }
 
@@ -662,7 +662,7 @@ public class Vector extends Matrix {
         data.addProduct(handle, transposeMat,
                 mat.getHeight(), mat.getWidth(),
                 timesAB, mat.data, mat.getColDist(),
-                vec.dArray(), vec.inc(),
+                vec.array(), vec.inc(),
                 timesCurrent, inc()
         );
 

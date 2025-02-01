@@ -2,6 +2,7 @@ package fijiPlugin;
 
 import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.algebra.TensorOrd3StrideDim;
+import JCudaWrapper.array.Array3d;
 import JCudaWrapper.array.DArray;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.IJ;
@@ -421,6 +422,11 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
         java.util.Arrays.sort(imageFiles);
 
         return imageFiles;
+    }
+
+    @Override
+    public Array3d array() {
+        throw new UnsupportedOperationException("This object has no data. You may want stm.array().");
     }
 
 }
