@@ -1,15 +1,9 @@
 package JCudaWrapper.array;
 
-import java.util.Arrays;
 import jcuda.Pointer;
-import jcuda.Sizeof;
-import jcuda.jcublas.cublasOperation;
 import jcuda.runtime.JCuda;
-import jcuda.runtime.cudaError;
 import jcuda.runtime.cudaMemcpyKind;
 import JCudaWrapper.resourceManagement.Handle;
-import MathSupport.Cube;
-import java.util.HashSet;
 import jcuda.runtime.cudaExtent;
 import jcuda.runtime.cudaMemcpy3DParms;
 import jcuda.runtime.cudaPitchedPtr;
@@ -37,274 +31,241 @@ import jcuda.runtime.cudaPitchedPtr;
  *
  * @author E. Dov Neimand
  */
-public abstract class Array3d implements Array {
+public abstract class Array3d extends LineArray implements Array {
 
-//    private final Cleaner.Cleanable cleanable; TODO: Self cleaning removed since sub arrays may be intended to linger after parent arrays are destroyed or vice versa. A more nuanced approach is required.
-    /**
-     * The pointer to the array in gpu memory.
-     */
-    protected final cudaPitchedPtr pointer;
     /**
      * The length of the array.
      */
-    public final int width, height, depth;
-    public final int bytesPerEntry;
-
-    private static int arrayCount = 0;
-    public final int ID;
-    public static HashSet<Integer> alocatedArrays = new HashSet<>(100);
-
-    /**
-     * Constructs an Array with the given GPU pointer, length, and element type.
-     *
-     * @param length The length of the array.
-     * @param bytesPerEntry The type of elements in the array.
-     *
-     * @throws IllegalArgumentException if the pointer is null or length is
-     * negative.
-     */
-    protected Array3d(int length, int bytesPerEntry) {
-        this(1, length, 1, bytesPerEntry);
-    }
+    public final int numLayers;
 
     /**
      * Constructs a 3d array.
      *
-     * @param height The height of the memory to be allocated.
-     * @param width The width of the memory to be allocated.
-     * @param depth The depth of the memory to be allocated.
+     * @param linesPerLayer The height of the memory to be allocated.
+     * @param entriesPerLine The width of the memory to be allocated.
+     * @param numLayers The depth of the memory to be allocated.
      * @param bytesPerEntry The memory size in bytes of elements stored in this
      * array.
      */
-    protected Array3d(int height, int width, int depth, int bytesPerEntry) {
+    protected Array3d(int entriesPerLine, int linesPerLayer, int numLayers, int bytesPerEntry) {
 
-        this.bytesPerEntry = bytesPerEntry;
-        alocatedArrays.add(ID = arrayCount++);
+        super(entriesPerLine, linesPerLayer, bytesPerEntry);
 
-        this.height = height;
-        this.width = width;
-        this.depth = depth;
+        this.numLayers = numLayers;
+        cudaExtent extent = new cudaExtent(entriesPerLine * bytesPerEntry, linesPerLayer, numLayers);
 
-        cudaExtent extent = new cudaExtent(width * bytesPerEntry, height, depth);
-        cudaPitchedPtr pitchedPtr = new cudaPitchedPtr();
-        pointer = pitchedPtr;
-        int error = JCuda.cudaMalloc3D(pitchedPtr, extent);
-
-        if (error != cudaError.cudaSuccess)
-            throw new RuntimeException("Opening a new array of type " + bytesPerEntry + " with " + height * width * depth + " elements.  cuda error " + cudaError.stringFor(error));
+        opCheck(JCuda.cudaMalloc3D(pointer, extent));
     }
 
     /**
      * Constructs a sub array.
      *
      * @param from The array this one is to be a sub array of.
-     * @param cube The indices of the sub array.
-     * @param index The index of the desired row, column, or layer. start.
+     * @param startLine The index of first line on each layer to start this 3d
+     * array.
+     * @param numLines The number of lines on each layer.
+     * @param startEntry The index of the first entry on each line.
+     * @param numEntryPerLine The number of entries on each line.
+     * @param startLayer The index of the first layer.
+     * @param numLayers The number of layers.
      */
-    protected Array3d(Array3d from, Cube cube, int index) {
+    protected Array3d(LineArray from, int startLine, int numLines, int startEntry, int numEntryPerLine, int startLayer, int numLayers) {
+        super(from, startLine, numLines, startEntry, numEntryPerLine);
 
-        this.pointer = new cudaPitchedPtr();
-        this.pointer.ptr = from.pointer(cube.minX, cube.minY, cube.minZ);
+        this.numLayers = numLayers;
 
-        pointer.pitch = from.pointer.pitch;
-        pointer.xsize = width = Math.min(cube.maxX - cube.minX, from.width - cube.minX);
-        pointer.ysize = height = Math.min(cube.maxY - cube.minY, from.height - cube.minY);
-        depth = Math.min(cube.maxZ - cube.minZ, from.depth - cube.minZ);
-        this.bytesPerEntry = from.bytesPerEntry;
-        ID = from.ID;
+        this.pointer.ptr = from.pointer(startEntry + (startLine + startLayer * linesPerLayer()) * entriesPerLine());
+    }
+    
+    /**
+     * Constructs this array from a 1d array.
+     * @param src The src array which shares memory with this array.
+     * @param entriesPerLine The number of entries in each line.
+     * @param linesPerLayer The number of lines in each layer.
+     */
+    public Array3d(Array src, int entriesPerLine, int linesPerLayer){
+        this(src, entriesPerLine, entriesPerLine, linesPerLayer);
+    }
+        
+    /**
+     * Constructs this array from a 1d array.
+     * @param src The src array which shares memory with this array.
+     * @param entriesPerLine The number of entries in each line.
+     * @param ld The number of elements that could be fit between the first 
+     * element of each line.
+     * @param linesPerLayer The number of lines in each layer.
+     */
+    public Array3d(Array src, int entriesPerLine, int ld, int linesPerLayer){
+        super(src, entriesPerLine, ld, linesPerLayer);
+        numLayers = src.size()/(ld * linesPerLayer);
+    }
+    
+
+    private cudaExtent extent;
+    private cudaMemcpy3DParms getParams;
+    private cudaMemcpy3DParms setParams;
+
+    /**
+     * Computes the extent, necessary for get and set parameters.
+     *
+     * @return The extent.
+     */
+    private cudaExtent extent() {
+        if (extent == null)
+            extent = new cudaExtent(
+                    entriesPerLine() * bytesPerEntry(),
+                    linesPerLayer(),
+                    numLayers
+            );
+        return extent;
+    }
+
+    /**
+     * Sets memoryParms if it needs to be set, along with its fields srcPointer,
+     * and extent.
+     */
+    private cudaMemcpy3DParms getParams() {
+        if (getParams == null) {
+            getParams = new cudaMemcpy3DParms();
+            getParams.srcPtr = pitchedPointer();
+            getParams.extent = extent();
+            return getParams;
+        } else return getParams;
+    }
+
+    /**
+     * Sets memoryParms if it needs to be set, along with its fields dstPointer,
+     * and extent.
+     */
+    private cudaMemcpy3DParms setParams() {
+        if (setParams == null) {
+            setParams = new cudaMemcpy3DParms();
+            setParams.dstPtr = pitchedPointer();
+            setParams.extent = extent();
+            return setParams;
+        } else return setParams;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void get(Handle handle, Array dst) {
+        getParams = getParams();
+
+        getParams.kind = cudaMemcpyKind.cudaMemcpyDeviceToDevice;
+        getParams.dstPtr = dst.pitchedPointer();
+
+        opCheck(JCuda.cudaMemcpy3DAsync(getParams, handle.getStream()));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void get(Handle handle, Pointer dstCPUArray) {
+
+        getParams = getParams();
+
+        getParams.kind = cudaMemcpyKind.cudaMemcpyDeviceToHost;
+        getParams.dstPtr = arrayPitchedPointer(dstCPUArray);
+
+        opCheck(JCuda.cudaMemcpy3DAsync(getParams, handle.getStream()));
+    }
+
+    /**
+     * Creates a pitched pointer for copying between this and a cpu array.
+     *
+     * @param cpuArray A pointer to the cpu array.
+     * @return A pitched pointer for copying between this and a cpu array.
+     */
+    private cudaPitchedPtr arrayPitchedPointer(Pointer cpuArray) {
+        cudaPitchedPtr pptr = new cudaPitchedPtr();
+        pptr.ptr = cpuArray;
+        pptr.pitch = (long) entriesPerLine() * bytesPerEntry();
+        pptr.xsize = entriesPerLine() * bytesPerEntry();
+        pptr.ysize = linesPerLayer();
+        return pptr;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Array3d set(Handle handle, Pointer srcCPUArray) {
+
+        setParams = setParams();
+
+        setParams.kind = cudaMemcpyKind.cudaMemcpyHostToDevice;
+        setParams.srcPtr = arrayPitchedPointer(srcCPUArray);
+
+        opCheck(JCuda.cudaMemcpy3DAsync(setParams, handle.getStream()));
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int size() {
+        return super.size() * numLayers;
     }
 
     /**
      * Returns a pointer to the element at the specified 3D coordinates in the
      * pitched memory.
      *
-     * @param x The x-coordinate.
-     * @param y The y-coordinate.
-     * @param z The z-coordinate.
+     * @param entry The index of the entry in the desired line.
+     * @param line The index of the desired line.
+     * @param layer The index of the desired layer.
      * @return A Pointer pointing to the specified element in the pitched
      * memory.
      *
      * @throws ArrayIndexOutOfBoundsException if the coordinates are out of
      * bounds.
      */
-    private Pointer pointer(int x, int y, int z) {
-        return pointer.ptr.withByteOffset(z * pointer.pitch * height + y * pointer.pitch + x * bytesPerEntry);
+    private Singleton get(int entry, int line, int layer) {
+        return get(layer * linesPerLayer() * entriesPerLine() + line * entriesPerLine() + entry);
     }
-
-    private cudaMemcpy3DParms copyFromParams;
-    private cudaMemcpy3DParms copyToParams;
+    
 
     /**
-     * Sets memoryParms if it needs to be set, along with its fields srcPointer,
-     * and extent.
+     * The number of layers.
+     * @return The number of layers.
      */
-    private cudaMemcpy3DParms copyFromParams() {
-        if (copyFromParams == null) {
-            copyFromParams = new cudaMemcpy3DParms();
-            copyFromParams.srcPtr = pointer;
-            copyFromParams.extent = new cudaExtent(width * bytesPerEntry, height, depth);
-            return copyFromParams;
-        } else return copyFromParams;
-    }
-
-
-    /**
-     * Sets memoryParms if it needs to be set, along with its fields dstPointer,
-     * and extent.
-     */    
-    private cudaMemcpy3DParms copyToParams(){
-        if (copyToParams == null) {
-            copyToParams = new cudaMemcpy3DParms();
-            copyToParams.dstPtr = pointer;
-            copyToParams.extent = new cudaExtent(width * bytesPerEntry, height, depth);
-            return copyToParams;
-        } else return copyToParams;
-    }
-
-    /**
-     * Copies data from this GPU array to another GPU array. It is assumed that
-     * the array being copied to and from are of the same dimensions. It may be
-     * necessary to construct a new sub array to ensure this condition is met.
-     *
-     * @param to The destination GPU array.
-     * @param handle The handle.
-     *
-     * @throws IllegalArgumentException if any index is out of bounds or length
-     * is negative.
-     */
-    @Override
-    public void get(Handle handle, Array to) {
-        copyFromParams = copyFromParams();
-
-        copyFromParams.kind = cudaMemcpyKind.cudaMemcpyDeviceToDevice;
-        copyFromParams.dstPtr = to.pitchedPointer();
-
-        int error = JCuda.cudaMemcpy3DAsync(copyFromParams, handle.getStream());
-        if (error != cudaError.cudaSuccess)
-            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
+    public int numLayers() {
+        return numLayers;
     }
     
     /**
-     * Copies data from this GPU array to a CPU array.
+     * Constructs a sub array.
      *
-     * @param toCPUArray The destination CPU array.
-     * @param handle The handle.
-     *
-     * @throws IllegalArgumentException if any index is out of bounds or length
-     * is negative.
+     * @param startLine The index of first line on each layer to start this 3d
+     * array.
+     * @param numLines The number of lines on each layer.
+     * @param startEntry The index of the first entry on each line.
+     * @param numEntryPerLine The number of entries on each line.
+     * @param startLayer The index of the first layer.
+     * @param numLayers The number of layers.
+     * @return A sub array of this array.
      */
-    @Override
-    public void get(Handle handle, Pointer toCPUArray) {
-
-        copyFromParams = copyFromParams();
-
-        copyFromParams.kind = cudaMemcpyKind.cudaMemcpyDeviceToHost;
-        copyFromParams.dstPtr = arrayPitchedPointer(toCPUArray);
-
-        int error = JCuda.cudaMemcpy3DAsync(copyFromParams, handle.getStream());
-        if (error != cudaError.cudaSuccess)
-            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
-    }
-
+    abstract public Array3d sub(int startEntry, int numEntryPerLine, int startLine, int numLines, int startLayer, int numLayers);
+    
     /**
-     * Creates a pitched pointer for copying between this and a cpu array.
-     * @param cpuArray A pointer to the cpu array.
-     * @return A pitched pointer for copying between this and a cpu array.
+     * The layer at the given index.
+     * @param index The index of the desired layer.
+     * @return The layer at the given index.
      */
-    private cudaPitchedPtr arrayPitchedPointer(Pointer cpuArray){
-        cudaPitchedPtr pptr = new cudaPitchedPtr();
-        pptr.ptr = cpuArray;
-        pptr.pitch = (long) width * bytesPerEntry;
-        pptr.xsize = width*bytesPerEntry;
-        pptr.ysize = height;
-        return pptr;
+    public Array2d layer(int index){
+        return sub(0, entriesPerLine(), 0, linesPerLayer(), index, index + 1).as2d();
     }
     
     /**
-     * Copies data from a CPU array to this GPU array starting from the
-     * beginning.
-     *
-     * @param fromCPUArray The source CPU array.
-     * @param length The number of elements to copy.
-     * @param handle The handle.
-     * @throws ArrayIndexOutOfBoundsException if length is negative.
+     * The index on each layer at the given entry and line index.
+     * @param entryIndex The entry index in each line.
+     * @param lineIndex The line index on each layer.
+     * @return The index on each layer at the given entry and line index.
      */
-    protected void set(Handle handle, Pointer fromCPUArray, int length) {
-
-        copyToParams = copyToParams();
-
-        copyToParams.kind = cudaMemcpyKind.cudaMemcpyHostToDevice;
-        copyFromParams.srcPtr = arrayPitchedPointer(fromCPUArray);
-
-        int error = JCuda.cudaMemcpy3DAsync(copyFromParams, handle.getStream());
-        if (error != cudaError.cudaSuccess)
-            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
-
-    }
-
-
-    /**
-     * Checks that all the numbers are positive. An exception is thrown if not.
-     *
-     * @param maybePos A number that might be positive.
-     */
-    protected static void checkPositive(int... maybePos) {
-        checkLowerBound(0, maybePos);
-    }
-
-    /**
-     * Checks that all the numbers are greater than or equal to the lower bound.
-     * An exception is thrown if not.
-     *
-     * @param bound The lower bound.
-     * @param needsCheck A number that might be greater than the lower bound.
-     */
-    protected static void checkLowerBound(int bound, int... needsCheck) {
-        if (Arrays.stream(needsCheck).anyMatch(l -> bound > l))
-            throw new ArrayIndexOutOfBoundsException();
-    }
-
-    /**
-     * Checks if any of the indeces are out of bounds, that is, greater than or
-     * equal to the length.
-     *
-     * @param maybeInBounds A number that might or might not be out of bounds.
-     */
-    protected void checkAgainstLength(int... maybeInBounds) {
-        checkUpperBound(width, maybeInBounds);
-    }
-
-    /**
-     * Checks if any of the indeces are out of bounds, that is, greater than or
-     * equal to the upper bound
-     *
-     * @param bound ALl elements passed must be less than this element..
-     * @param maybeInBounds A number that might or might not be out of bounds.
-     */
-    protected void checkUpperBound(int bound, int... maybeInBounds) {
-        for (int needsChecking : maybeInBounds)
-            if (needsChecking >= bound)
-                throw new ArrayIndexOutOfBoundsException(needsChecking + " is greater than the bound " + bound);
-    }
-
-    /**
-     * Checks if any of the objects are null. If they are a NullPointerException
-     * is thrown.
-     *
-     * @param maybeNull Objects that might be null.
-     */
-    protected static void checkNull(Object... maybeNull) {
-        if (Arrays.stream(maybeNull).anyMatch(l -> l == null))
-            throw new NullPointerException();
-    }
-
-    /**
-     * A mapping from boolean transpose to the corresponding cuda integer.
-     *
-     * @param t True for transpose and false to not transpose.
-     * @return An integer representing yes or no on a transpose operation.
-     */
-    static int transpose(boolean t) {
-        return t ? cublasOperation.CUBLAS_OP_T : cublasOperation.CUBLAS_OP_N;
-    }
+    abstract public Array1d depth(int entryIndex, int lineIndex);
+    
 }

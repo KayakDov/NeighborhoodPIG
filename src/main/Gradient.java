@@ -3,7 +3,7 @@ package main;
 import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.VectorsStride;
-import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.DArray3d;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.function.IntFunction;
 
@@ -65,11 +65,11 @@ public class Gradient implements AutoCloseable{
     /**
      * An array used for differentiation.
      */
-    private static final DArray diff;
+    private static final DArray3d diff;
 
     static {
         try (Handle hand = new Handle()) {
-            diff = new DArray(hand, 1.0 / 12, -2.0 / 3, 0, 2.0 / 3, -1.0 / 12);
+            diff = new DArray3d(hand, 1.0 / 12, -2.0 / 3, 0, 2.0 / 3, -1.0 / 12);
         }
     }
 

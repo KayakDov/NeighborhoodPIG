@@ -1,5 +1,6 @@
 package JCudaWrapper.algebra;
 
+import JCudaWrapper.array.DStrideArray3d;
 import JCudaWrapper.resourceManagement.Handle;
 
 /**
@@ -34,11 +35,6 @@ public abstract class TensorOrd3StrideDim implements ColumnMajor, AutoCloseable{
     public final int depth;
 
     /**
-     * The distance between consecutive columns in memory.
-     */
-    public final int colDist;
-
-    /**
      * The distance between consecutive layers in memory.
      */
     public final int layerDist;
@@ -63,17 +59,15 @@ public abstract class TensorOrd3StrideDim implements ColumnMajor, AutoCloseable{
      * @param height The height (number of rows) of the tensor.
      * @param width The width (number of columns) of the tensor.
      * @param depth The depth (number of layers) of the tensor.
-     * @param colDist The distance between consecutive columns in memory.
      * @param layerDist The distance between consecutive layers in memory.
      * @param strideSize The stride size (distance between elements in memory).
      * @param batchSize The number of tensors in a batch.
      */
-    public TensorOrd3StrideDim(Handle handle, int height, int width, int depth, int colDist, int layerDist, int strideSize, int batchSize) {
+    public TensorOrd3StrideDim(Handle handle, int height, int width, int depth, int layerDist, int strideSize, int batchSize) {
         this.handle = handle;
         this.height = height;
         this.width = width;
         this.depth = depth;
-        this.colDist = colDist;
         this.layerDist = layerDist;
         this.strideSize = strideSize;
         this.batchSize = batchSize;
@@ -94,7 +88,7 @@ public abstract class TensorOrd3StrideDim implements ColumnMajor, AutoCloseable{
      * @param batchSize The number of tensors in a batch.
      */
     public TensorOrd3StrideDim(Handle handle, int height, int width, int depth, int batchSize) {
-        this(handle, height, width, depth, height, height*width, height*width*depth, batchSize);
+        this(handle, height, width, depth, height*width, height*width*depth, batchSize);
     }
 
     /**
@@ -103,9 +97,20 @@ public abstract class TensorOrd3StrideDim implements ColumnMajor, AutoCloseable{
      * @param copyFrom The item being copied.
      */
     public TensorOrd3StrideDim(TensorOrd3StrideDim copyFrom) {
-        this(copyFrom.handle, copyFrom.height, copyFrom.width, copyFrom.depth, copyFrom.colDist, copyFrom.layerDist, copyFrom.strideSize, copyFrom.batchSize);
+        this(copyFrom.handle, copyFrom.height, copyFrom.width, copyFrom.depth, copyFrom.layerDist, copyFrom.strideSize, copyFrom.batchSize);
     }
 
+    
+    /**
+     * Copy constructor.
+     *
+     * @param handle The context.
+     * @param copyFrom The item being copied.
+     */
+    public TensorOrd3StrideDim(Handle handle, DStrideArray3d copyFrom) {
+        this(handle, copyFrom.entriesPerLine(), copyFrom.linesPerLayer(), copyFrom.numLayers(), copyFrom.batchSize);
+    }
+    
     /**
      * Calculates the size of a single layer (width × height).
      *
@@ -139,8 +144,7 @@ public abstract class TensorOrd3StrideDim implements ColumnMajor, AutoCloseable{
         return "TensorOrd3dStrideDim {"
                 + "height =" + height
                 + ", width =" + width
-                + ", depth =" + depth
-                + ", colDist =" + colDist
+                + ", depth =" + depth        
                 + ", layerDist =" + layerDist
                 + ", strideSize =" + strideSize
                 + ", batchSize =" + batchSize
@@ -148,11 +152,6 @@ public abstract class TensorOrd3StrideDim implements ColumnMajor, AutoCloseable{
                 + ", tensorSize =" + tensorSize()
                 + ", totalSize= " + size()
                 + '}';
-    }
-    
-    @Override
-    public int getColDist() {
-        return colDist;
-    }
+    }    
 
 }

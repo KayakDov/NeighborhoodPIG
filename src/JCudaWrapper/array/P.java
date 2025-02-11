@@ -46,8 +46,8 @@ public class P {
      * @param a A double that needs a pointer.
      * @return A pointer to a singleton array containing d.
      */
-    public static <T extends Array3d> Pointer to(T a) {
-        return Pointer.to(a.pointer);
+    public static <T extends Array> Pointer to(T a) {
+        return Pointer.to(a.pointer());
     }
         
     /**
@@ -58,5 +58,5 @@ public class P {
     public static Pointer to(ColumnMajor d) {
         return to(d.array());
     }
-    
+        
 }

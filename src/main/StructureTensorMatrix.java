@@ -5,7 +5,7 @@ import JCudaWrapper.algebra.Eigen;
 import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.Vector;
-import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.DArray3d;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
@@ -140,7 +140,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * @param workSpace Should be the size of the image.
      * @return The coherence matrix.
      */
-    public Matrix setCoherence(DArray workSpace) {
+    public Matrix setCoherence(DArray3d workSpace) {
         Vector[] l = eigen.values.vecPartition();
         Vector denom = new Vector(handle, workSpace, 1)
                 .setSum(1, l[0], 1, l[1]);
@@ -228,7 +228,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     }
 
     @Override
-    public int getColDist() {
+    public int colDist() {
         return orientation.getHeight();
     }
 
@@ -245,7 +245,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * @return 
      */
     @Override
-    public DArray array() {
+    public DArray3d array() {
         return strctTensors.array();
     }
     

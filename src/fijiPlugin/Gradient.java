@@ -5,13 +5,14 @@ import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.algebra.TensorOrd3StrideDim;
 import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.DArray;
-import JCudaWrapper.array.DStrideArray;
+import JCudaWrapper.array.DArray3d;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Pointer;
+import JCudaWrapper.array.DStrideArray;
+import JCudaWrapper.array.DStrideArray3d;
 
 /**
  * The gradient for each pixel.
@@ -20,8 +21,8 @@ import jcuda.Pointer;
  */
 public class Gradient extends TensorOrd3StrideDim implements AutoCloseable {
 
-    private DStrideArray data;
-    private TensorOrd3Stride x, y, z;
+
+    private DStrideArray3d x, y, z;
 
     /**
      * Compute gradients of an image in both the x and y directions. Gradients
@@ -32,38 +33,26 @@ public class Gradient extends TensorOrd3StrideDim implements AutoCloseable {
      * @param hand Handle to manage GPU memory or any other resources.
      *
      */
-    public Gradient(TensorOrd3Stride pic, Handle hand) {
-        super(pic);
+    public Gradient(Handle handle, DStrideArray3d pic, Handle hand) {
+        super(handle, pic);
 
-        data = new DArray(pic.size() * 3).getAsBatch(pic.size(), 3);
-        
-        x = pic.copyDimensions(data.getBatchArray(0));
-        y = pic.copyDimensions(data.getBatchArray(1));
-        z = pic.copyDimensions(data.getBatchArray(2));
+        x = pic.copyDim();
+        y = pic.copyDim();
+        z = pic.copyDim();
 
         try (IArray dim = new IArray(handle, height, width, depth, batchSize, layerDist, tensorSize(), tensorSize() * batchSize)) {
             
             Kernel.run("batchGradients", hand,
-                    data.length,
-                    pic.array(),
+                    x.size()*3,
+                    pic,
                     P.to(dim),
-                    P.to(data)
+                    P.to(x),P.to(x),P.to(z),
             );
         }
 
     }
 
-    public static void main(String[] args) {
-        try (Handle hand = new Handle();
-                DArray array = new DArray(hand, 1, 2, 3, 4, 5, 5, 4, 3, 2, 1, 3, 3, 3, 3, 3)) {
-            TensorOrd3Stride tenStr = new Matrix(hand, array, 3, 5).repeating(1);
-
-            try (Gradient grad = new Gradient(tenStr, hand)) {
-                System.out.println("dX: " + grad.x.array().toString());
-            }
-        }
-    }
-
+   
     /**
      * An x gradient matrix.
      *

@@ -1,62 +1,79 @@
 package JCudaWrapper.array;
 
 import JCudaWrapper.resourceManagement.Handle;
+import jcuda.Pointer;
+import jcuda.Sizeof;
 
 /**
  * Single element in the gpu.
  * @author E. Dov Neimand
  */
-public class DSingleton extends DArray{
+public class DSingleton extends Singleton implements DArray{
+
     /**
-     * For use in add a scalar fill and anywhere else it's needed.
+     * The first element in the proffered array is this singleton.
+     * @param array An array from which the first element becomes this singleton.
+     * @param index The index of the desired entry.
      */
-    public static DSingleton oneOne;
+    public DSingleton(DArray array, int index) {
+        super(array, index);
+    }
+
+    /**
+     * Creates an empty singleton. 
+     */
+    public DSingleton() {
+        super(Sizeof.DOUBLE);
+    }
     
-    static{
-        try(Handle handle = new Handle()){
-            oneOne = new DSingleton(handle, 1);
-        }
+    
+    
+    /**
+     * Gets the element in this singleton.
+     * @param handle
+     * @return The element in this singleton.
+     */
+    public double getVal(Handle handle){
+        double[] cpuArray = new double[1];
+        get(handle, Pointer.to(cpuArray));
+        handle.synch();
+        return cpuArray[0];
     }
     
     /**
-     * Creates a singleton by taking an element from another array.
-     * Note, this is copy by reference, so changes to this singleton will
-     * effect the original array.
-     * @param from The array the singleton is to be taken from.
-     * @param index The index in the array.
+     * Sets the element in this singleton.
+     * @param handle
+     * @param d The new value in this singleton.
+     * @return this.
      */
-    public DSingleton(DArray from, int index){
-        super(from, index, 1);
+    public DSingleton set(Handle handle, double d){
+        set(handle, P.to(d));
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public DSingleton set(Handle handle, DArray from) {
+        super.set(handle, from);
+        return this;
     }
     
     /**
-     * Creates a singleton with no assigned value.
+     * {@inheritDoc}
      */
-    public DSingleton(){
-        super(1);
-    }
-    /**
-     * Creates a singleton from a cpu element.
-     * @param d The element in the singleton.
-     * @param hand The handle.
-     */
-    public DSingleton(Handle hand, double d){
-        super(hand, d);
+    @Override
+    public DSingleton copy(Handle handle) {
+        return new DSingleton().set(handle, this);
     }
     
     /**
-     * Gets the value in this.
-     * @param hand This should be the same handle that's used to make whatever
-     * results are being retrieved.  The handle is synchronized before the result
-     * is returned.
-     * @return The value in this singleton.
+     * {@inheritDoc}
      */
-    public double getVal(Handle hand){
-        double[] val = get(hand);
-        
-        hand.synch();
-        
-        return val[0];
-    }    
+    @Override
+    public DSingleton get(int i){
+        return (DSingleton) super.get(i);
+    }
     
 }

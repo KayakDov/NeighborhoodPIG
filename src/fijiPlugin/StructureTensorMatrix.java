@@ -5,7 +5,7 @@ import JCudaWrapper.algebra.Eigen;
 import JCudaWrapper.algebra.MatricesStride;
 import JCudaWrapper.algebra.Matrix;
 import JCudaWrapper.algebra.TensorOrd3Stride;
-import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.DArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
@@ -117,14 +117,14 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
         try (Kernel atan2 = new Kernel("atan2")) {
 
-            atan2.map(handle,
+            atan2.run(handle,
                     orientationXY.array().length,
                     eigen.vectors.array(),
                     P.to(eigen.vectors.getStrideSize()),
                     P.to(orientationXY),
                     P.to(1)
             );
-            atan2.map(handle,
+            atan2.run(handle,
                     orientationXY.array().length,
                     eigen.vectors.array().subArray(1),
                     P.to(eigen.vectors.getStrideSize()),
@@ -195,7 +195,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
     }
 
     @Override
-    public int getColDist() {
+    public int colDist() {
         return orientationXY.colDist;
     }
 
@@ -214,7 +214,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * @return
      */
     @Override
-    public DArray array() {
+    public DArray3d array() {
         return strctTensors.array();
     }
 

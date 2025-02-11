@@ -1,16 +1,17 @@
 package JCudaWrapper.algebra;
 
+import JCudaWrapper.array.DArray1d;
+import JCudaWrapper.array.DArray2d;
 import java.util.Arrays;
 import org.apache.commons.math3.exception.OutOfRangeException;
 import org.apache.commons.math3.exception.DimensionMismatchException;
 import org.apache.commons.math3.exception.MathArithmeticException;
 import org.apache.commons.math3.exception.NotPositiveException;
 import JCudaWrapper.resourceManagement.Handle;
-import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.DArray3d;
 import JCudaWrapper.array.DSingleton;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
-import jcuda.runtime.JCuda;
 
 /**
  * The {@code Vector} class extends {@code RealVector} and represents a vector
@@ -32,8 +33,8 @@ public class Vector extends Matrix {
      * this better.
      * @param handle The JCublas handle for GPU operations.
      */
-    public Vector(Handle handle, DArray data, int inc) {
-        super(handle, data, 1, (int)Math.ceil((double)data.length / inc), inc);
+    public Vector(Handle handle, DArray1d data, int inc) {
+        super(handle, data.as2d(inc));
     }
 
     /**
@@ -43,7 +44,7 @@ public class Vector extends Matrix {
      * @param handle The JCublas handle for GPU operations.
      */
     public Vector(Handle handle, double... array) {
-        this(handle, new DArray(handle, array), 1);
+        this(handle, new DArray1d(array.length).set(handle, array), 1);
     }
 
     /**
@@ -53,7 +54,7 @@ public class Vector extends Matrix {
      * @param handle The JCublas handle for GPU operations.
      */
     public Vector(Handle handle, int length) {
-        this(handle, new DArray(length), 1);
+        this(handle, new DArray1d(length), 1);
     }
 
     /**
@@ -75,7 +76,7 @@ public class Vector extends Matrix {
      * @throws OutOfRangeException
      */
     public void set(int index, double value) throws OutOfRangeException {
-        data.set(handle, index * inc(), value);
+        data.get(index).set(handle, value);
     }
 
     /**
@@ -84,7 +85,7 @@ public class Vector extends Matrix {
      * @return The dimension of the vector. The number of elements in it.
      */
     public int dim() {
-        return inc() == 0 ? 1 : (int)Math.ceil((double)data.length/ inc());
+        return inc() == 0 ? 1 : (int) Math.ceil((double) data.size() / inc());
     }
 
     /**
@@ -96,7 +97,7 @@ public class Vector extends Matrix {
      * @return This vector.
      */
     public Vector add(double mult, Vector v) {
-        data.add(handle, mult, v.data, v.inc(), inc());
+        data.as1d().add(handle, mult, v.data.as1d(), v.inc(), inc());
         return this;
     }
 
@@ -108,35 +109,11 @@ public class Vector extends Matrix {
      */
     @Override
     public Vector add(double scalar) {
-        data.add(handle, scalar, DSingleton.oneOne, 0, 1);
-        return this;
-
-    }
-
-    /**
-     * multiplies this array by the scalar.
-     *
-     * @param scalar to multiply this array.
-     * @return this.
-     */
-    public Vector multiply(double scalar) {
-        data.multiply(handle, scalar, inc());
-        return this;
-    }
-
-    /**
-     * Sets all the values in this vector to that of the scalar.
-     *
-     * @param scalar The new value to fill this vector.
-     * @return This vector.
-     */
-    public Vector fill(double scalar) {
-        if (scalar == 0 && inc() == 1) {
-            data.fill0(handle);
-        } else {
-            data.fill(handle, scalar, inc());
+        try (DSingleton oneOne = new DSingleton().set(handle, scalar)) {
+            data.as1d().add(handle, 1, oneOne, 0, inc());
         }
         return this;
+
     }
 
     /**
@@ -148,7 +125,7 @@ public class Vector extends Matrix {
      */
     public double dotProduct(Vector v) {
 
-        return data.dot(handle, v.data, v.inc(), inc());
+        return data.as1d().dot(handle, v.data, v.inc(), inc());
     }
 
     /**
@@ -157,10 +134,10 @@ public class Vector extends Matrix {
     @Override
     public Vector copy() {
         if (inc() == 1) {
-            return new Vector(handle, data.copy(handle), inc());
+            return new Vector(handle, data.copy(handle).as1d(), inc());
         }
         Vector copy = new Vector(handle, dim());
-        copy.data.set(handle, data, 0, 0, 1, inc(), dim());
+        copy.data.set(handle, data, inc(), 1);
         return copy;
     }
 
@@ -225,16 +202,8 @@ public class Vector extends Matrix {
      */
     public Vector addEbeProduct(double timesAB, Vector a, Vector b, double timesThis) {
 
-//        data.addProductSymBandMatVec(handle, true,
-//                dim(), 0,
-//                timesAB,
-//                a.data, a.inc(),
-//                b.data, b.inc(),
-//                timesThis, inc()
-//        );
-
-        Kernel.run("addEBEProduct", 
-                handle, 
+        Kernel.run("addEBEProduct",
+                handle,
                 dim(),
                 data,
                 P.to(inc()),
@@ -257,15 +226,32 @@ public class Vector extends Matrix {
      */
     public Vector ebeDivide(Vector denominator) {
 
-        try {
-            data.solveTriangularBandedSystem(handle, true, false, false,
-                    denominator.dim(), 0, denominator.data, denominator.inc(), inc());
-        } catch (Exception e) {
-            if (Arrays.stream(denominator.toArray()).anyMatch(i -> i == 0))
-                throw new ArithmeticException("Division by 0.");
-            else throw e;
+        addEBEDivide(1, this, denominator, 0);
+        return this;
+    }
+    
+    /**
+     * Adds the quotient to this method.
+     * @param timesQuotient
+     * @param numerator The numerator of the quotient.
+     * @param denominator The denominator of the quotient.
+     * @param timesThis Times this before anything is added.
+     * @return this.
+     */
+    public Vector addEBEDivide(double timesQuotient, Vector numerator, Vector denominator, double timesThis) {
 
-        }
+        Kernel.run("addEBEQuotient",
+                handle,
+                dim(),
+                data,
+                P.to(inc()),
+                P.to(timesQuotient),
+                P.to(numerator),
+                P.to(numerator.inc()),
+                P.to(denominator),
+                P.to(denominator.inc()),
+                P.to(timesThis)
+        );
 
         return this;
     }
@@ -280,7 +266,7 @@ public class Vector extends Matrix {
      * @throws OutOfRangeException
      */
     public Vector getSubVector(int begin, int length) throws NotPositiveException, OutOfRangeException {
-        return getSubVector(begin, length, 1);
+        return subVector(begin, length, 1);
     }
 
     /**
@@ -298,33 +284,12 @@ public class Vector extends Matrix {
      * @throws NotPositiveException
      * @throws OutOfRangeException
      */
-    public Vector getSubVector(int begin, int length, int increment) throws NotPositiveException, OutOfRangeException {
+    public Vector subVector(int begin, int length, int increment) throws NotPositiveException, OutOfRangeException {
         return new Vector(
                 handle,
-                data.subArray(begin * inc(), inc() * increment * (length - 1) + 1),
+                data.as1d().sub(begin * inc(), inc() * increment * (length - 1) + 1),
                 inc() * increment
         );
-    }
-
-    /**
-     *
-     * @see Vector#setSubVector(int, org.apache.commons.math3.linear.RealVector)
-     * Sets a subvector of this vector starting at the specified index using the
-     * elements of the provided {@link Vector}.
-     *
-     * This method modifies this vector by copying the elements of the given
-     * {@link Vector} into this vector starting at the position defined by the
-     * index, with the length of the subvector determined by the dimension of
-     * the given vector.
-     *
-     * @param i The starting index where the subvector will be set, scaled by
-     * the increment (inc).
-     * @param rv The {@link Vector} whose elements will be copied into this
-     * vector.
-     * @throws OutOfRangeException If the index is out of range.
-     */
-    public void setSubVector(int i, Vector rv) throws OutOfRangeException {
-        data.set(handle, rv.data, i * inc(), 0, inc(), rv.inc(), rv.dim());
     }
 
     /**
@@ -344,7 +309,7 @@ public class Vector extends Matrix {
      *///TODO: This method can be made faster with multi threading (multiple handles)
     public void setSubVector(int toIndex, Matrix m) {
         for (int mCol = 0; mCol < dim(); mCol++) {
-            setSubVector(toIndex + mCol * m.getHeight(), m.getColumn(mCol));
+            setSubVector(toIndex + mCol * m.height(), m.getColumn(mCol));
         }
     }
 
@@ -405,14 +370,14 @@ public class Vector extends Matrix {
      * The L_1 norm.
      */
     public double getL1Norm() {
-        return data.sumAbs(handle, dim(), inc());
+        return data.as1d().sumAbs(handle, dim(), inc());
     }
 
     /**
      * The L_infinity norm
      */
     public double getLInfNorm() {
-        return get(data.argMaxAbs(handle, dim(), inc()));
+        return get(data.as1d().argMaxAbs(handle, dim(), inc()));
     }
 
     /**
@@ -423,7 +388,7 @@ public class Vector extends Matrix {
      * @return The argMin or argMax.
      */
     private int getMinMaxInd(boolean isMax) {
-        int argMaxAbsVal = data.argMaxAbs(handle, dim(), inc());
+        int argMaxAbsVal = data.as1d().argMaxAbs(handle, dim(), inc());
         double maxAbsVal = get(argMaxAbsVal);
         if (maxAbsVal == 0) {
             return 0;
@@ -436,7 +401,7 @@ public class Vector extends Matrix {
         }
 
         try (Vector sameSign = copy().add(maxAbsVal)) {
-            return sameSign.data.argMinAbs(handle, dim(), inc());
+            return sameSign.data.as1d().argMinAbs(handle, dim(), inc());
         }
     }
 
@@ -474,9 +439,9 @@ public class Vector extends Matrix {
      * @return The outer product. A new matrix.
      * @see Vector#outerProduct(org.apache.commons.math3.linear.RealVector)
      */
-    public Matrix outerProduct(Vector v, DArray placeOuterProduct) {
-        placeOuterProduct.outerProd(handle, dim(), v.dim(), 1, data, inc(), v.data, v.inc(), dim());
-        return new Matrix(handle, placeOuterProduct, dim(), v.dim()).fill(0);
+    public Matrix outerProduct(Vector v, DArray2d placeOuterProduct) {
+        placeOuterProduct.outerProd(handle, 1, data.as1d(), inc(), v.data.as1d(), v.inc());
+        return new Matrix(handle, placeOuterProduct);
     }
 
     /**
@@ -486,16 +451,14 @@ public class Vector extends Matrix {
      * @return The projection.
      *
      */
-    public Vector projection(Vector v) throws DimensionMismatchException, MathArithmeticException {
+    public Vector projection(Vector v){
         double[] dots = new double[2];
 
-        data.dot(handle, v.data, v.inc(), inc(), dots, 0);
-        v.data.dot(handle, v.data, v.inc(), inc(), dots, 1);
+        dots[0] = dotProduct(v);
+        dots[1] = v.dotProduct(v);
 
-        return v.multiply(dots[0] / dots[1]);
+        return (Vector)v.multiply(dots[0] / dots[1]);
     }
-
-    static int i = 0; //TODO remove
 
     /**
      * The cpu array that is a copy of this gpu vector.
@@ -503,11 +466,7 @@ public class Vector extends Matrix {
      * @return the array in the cpu.
      */
     public double[] toArray() {
-        double[] to = new double[dim()];
-
-        data.get(handle, to, 0, 0, 1, inc(), dim());
-
-        return to;
+        return data.get(handle, inc());
     }
 
     /**
@@ -522,36 +481,8 @@ public class Vector extends Matrix {
      *
      * @return The underlying data from this vector.
      */
-    public DArray array() {
+    public DArray2d array() {
         return data;
-    }
-
-    /**
-     * A matrix representing the data underlying this Vector. Note, depending on
-     * inc and colDist, the new matrix may have more or fewere elements than
-     * this vector.
-     *
-     * @param height The height of the new matrix.
-     * @param width The width of the new matrix.
-     * @param colDist The disance between the first element of each column.
-     * @return
-     */
-    public Matrix asMatrix(int height, int width, int colDist) {
-        return new Matrix(handle, data, height, width, colDist);
-    }
-
-    /**
-     * A matrix representing the data underlying this Vector. Note, depending on
-     * inc and colDist, the new matrix may have more or fewere elements than
-     * this vector.
-     *
-     * @param height The height of the new matrix. It should be divisible by the
-     * number of elements in the underlying data.
-     * @return A matrix containing the elements in the underlying data of this
-     * vector.
-     */
-    public Matrix asMatrix(int height) {
-        return new Matrix(handle, data, height, data.length / height, height);
     }
 
     /**
@@ -563,42 +494,7 @@ public class Vector extends Matrix {
         return handle;
     }
 
-    /**
-     * Batch vector vector dot product. This vector is set as the dot product of
-     * a and b.
-     *
-     * @param timesAB Multiply this by the product of a and b.
-     * @param a The first vector. A sub vector of a matrix or greater vector.
-     * @param b The second vector. A sub vector of a matrix or greater vector.
-     * @param timesThis multiply this before adding to it.
-     */
-    public void addBatchVecVecMult(double timesAB, VectorsStride a, VectorsStride b, double timesThis) {
-
-        data.getAsBatch(inc(), 1, dim()).addProduct(handle,
-                false, true,
-                1, a.getSubVecDim(), 1,
-                timesAB,
-                a.data, a.inc(),
-                b.data, b.inc(),
-                timesThis, inc()
-        );
-    }
-
-    /**
-     * Batch vector vector dot product. This vector is set as the dot product of
-     * a and b.
-     *
-     * @param a The first vector. A sub vector of a matrix or greater vector.
-     *
-     * @param b The second vector. A sub vector of a matrix or greater vector.
-     * @return this
-     *
-     */
-    public Vector setBatchVecVecMult(VectorsStride a, VectorsStride b) {
-        addBatchVecVecMult(1, a, b, 0);
-        return this;
-    }
-
+    
     /**
      * Partitions this vector into a sets of incremental subsets.
      *
@@ -607,7 +503,7 @@ public class Vector extends Matrix {
      */
     public Vector[] parition(int numParts) {
         Vector[] part = new Vector[numParts];
-        Arrays.setAll(part, i -> getSubVector(i, dim() / numParts, numParts));
+        Arrays.setAll(part, i -> subVector(i, dim() / numParts, numParts));
         return part;
     }
 
@@ -624,10 +520,10 @@ public class Vector extends Matrix {
     public Vector addProduct(boolean transposeMat, double timesAB, Vector vec, Matrix mat, double timesCurrent) {
         data.addProduct(handle,
                 false, transposeMat,
-                1, transposeMat ? mat.getHeight() : mat.getWidth(), vec.dim(),
+                1, transposeMat ? mat.height() : mat.width(), vec.dim(),
                 timesAB,
                 vec.data, vec.inc(),
-                mat.data, mat.colDist,
+                mat.data, mat.data.ld(),
                 timesCurrent, inc()
         );
         return this;
@@ -660,8 +556,8 @@ public class Vector extends Matrix {
     public Vector addProduct(boolean transposeMat, double timesAB, Matrix mat, Vector vec, double timesCurrent) {
 
         data.addProduct(handle, transposeMat,
-                mat.getHeight(), mat.getWidth(),
-                timesAB, mat.data, mat.getColDist(),
+                mat.height(), mat.width(),
+                timesAB, mat.data, mat.colDist(),
                 vec.array(), vec.inc(),
                 timesCurrent, inc()
         );
@@ -687,7 +583,7 @@ public class Vector extends Matrix {
      * @return The increment between elements of this vector.
      */
     public int inc() {
-        return colDist;
+        return data.ld();
     }
 
     /**
@@ -715,14 +611,6 @@ public class Vector extends Matrix {
         throw new UnsupportedOperationException("Use the addProduct methods that take vectors as parameters instead.");
     }
 
-    /**
-     * This vector as a double array.
-     *
-     * @return
-     */
-    public double[] vecGet() {
-        return data.getIncremented(handle, inc());
-    }
 
     /**
      * The L2norm or magnitude of this vector.
@@ -730,7 +618,7 @@ public class Vector extends Matrix {
      * @return The norm of this vector.
      */
     public double norm() {
-        return data.norm(handle, dim(), colDist);
+        return data.as1d().norm(handle, dim(), inc());
     }
 
     @Override
@@ -738,14 +626,5 @@ public class Vector extends Matrix {
         return Arrays.toString(toArray());
     }
 
-    public static void main(String[] args) {
-        try (Handle hand = new Handle();
-                DArray array = new DArray(hand, 1, 2, 3, 4, 5, 6);
-                DArray a2 = new DArray(hand, 2, 2, 2, 2, 2, 2)) {
-            Vector v = new Vector(hand, array, 1);
-            v.ebeDivide(new Vector(hand, a2, 1));
-            System.out.println(v);
-        }
-    }
 
 }

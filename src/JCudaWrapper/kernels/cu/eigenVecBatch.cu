@@ -25,7 +25,7 @@ class MatrixRow {
 private:
     double* elements; ///< Pointer to the row data.
     const int width;  ///< Number of columns in the matrix.
-    const int height;   ///< Leading dimension of the matrix.
+    const int ld;   ///< Leading dimension of the matrix.
 
 public:
     /**
@@ -34,8 +34,8 @@ public:
      * @param width Number of columns in the matrix.
      * @param height Leading dimension of the matrix.
      */
-    __device__ MatrixRow(double* elements, int width, int height) 
-        : elements(elements), width(width), height(height) {}
+    __device__ MatrixRow(double* elements, int width, int ld) 
+        : elements(elements), width(width), ld(ld) {}
 
     /**
      * @brief Access an element in the row by column index.
@@ -43,7 +43,7 @@ public:
      * @return Reference to the element at the specified column.
      */
     __device__ double& operator()(int col) {
-        return elements[col * height];
+        return elements[col * ld];
     }
 
     /**
@@ -138,6 +138,7 @@ private:
 public:
      const int width; ///< Number of columns in the matrix.
      const int height; ///< Number of rows in the matrix.
+     const int ld;
     /**
      * @brief Constructor for Matrix.
      * @param data Pointer to the matrix data.
@@ -145,8 +146,8 @@ public:
      * @param height Number of rows in the matrix.
      * @param isPivot Pointer to an array indicating pivot columns.
      */
-    __device__ Matrix(double* data, int width, int height, int* isPivot, double tolerance) 
-        : data(data), width(width), height(height), isPivot(isPivot), tolerance(tolerance) {}
+    __device__ Matrix(double* data, int width, int height, int ld, int* isPivot, double tolerance) 
+        : data(data), width(width), height(height), isPivot(isPivot), tolerance(tolerance), ld(ld) {}
 
     /**
      * @brief Access an element in the matrix by row and column index.
@@ -155,7 +156,7 @@ public:
      * @return Reference to the element at the specified row and column.
      */
     __device__ double& operator()(int row, int col) {
-        return data[col * height + row];
+        return data[col * ld + row];
     }
 
 
@@ -165,7 +166,7 @@ public:
      * @return MatrixRow object for the specified row.
      */
     __device__ MatrixRow getRow(int rowIndex) {
-        return MatrixRow(data + rowIndex, width, height);
+        return MatrixRow(data + rowIndex, width, ld);
     }
     
     /**
@@ -232,43 +233,36 @@ public:
     
 };
 
-/**
- * @brief Sets the matrix to A - \lambda I.
- * @param source Pointer to the source matrix.
- * @param destination Reference to the destination Matrix object.
- * @param eigenvalue Eigenvalue \lambda.
- */
-__device__ void setMatrixMinusLambdaI( const double* source, Matrix& destination,  const double eigenvalue) {    
-    for (int col = 0; col < destination.width; col++) 
-        for (int row = 0; row < destination.height; row++) 
-            destination(row, col) = source[col * destination.height + row];
- 
-    for (int i = 0; i < destination.width; i++) destination(i, i) -= eigenvalue;
-}
 
 /**
+ * This method should be called on a fresh copy of the matrices for which the vectors are sought for each eigenvalue.  Each time with an incremented value of valIndex.
+ *
  * @brief CUDA kernel to compute eigenvectors in batch using row echelon form.
- * @param batchSize Number of eigenvalues.
- * @param sourceMatrices Pointer to source matrices in column-major format.
+ * @param batchSize Number of matrices.
+ * @param sourceMatrices Pointer to source matrices in column-major format.  These matrices will be changed.
  * @param ldSourceMatrices Leading dimension of the source matrices.
  * @param eVectors Pointer to the resulting eigenvectors.
  * @param width Number of columns in each matrix.
  * @param height Number of rows in each matrix.
- * @param eigenValues Pointer to the eigenValues.
- * @param workspaceMatrices Pointer to workspace memory for intermediate computations.
+ * @param eigenValues Pointer to all the eigenValues, including those that will not be used.  Be sure to increment valIndex over multiple runs of this kernel so that they are all used.
  * @param workspacePivotFlags Pointer to workspace memory for pivot flags.
  * @param tolerance Tolerance for row echelon pivot detection.
+ * @param eVecLD the leading dimension of the eigan vectors.
+ * @param sourceLD the leading dimension of the sourver matrix.
+ * @param valIndex The index of the desired eigan value. 
  */
  //TODO: add option of only finding the first eigenVector.  
  //TODO: can this be accelerated for 3x3 as opposed to generic?
 extern "C" __global__ void eigenVecBatchKernel(
      const int batchSize, 
-     const double* sourceMatrices, 
-     const int height, 
-     double* eVectors,     
+     double* sourceMatrices, 
+     const int height,
      const int width,
+     const int sourceLD,
+     double* eVectors,
+     const int eVecLD,
+     const int valIndex,     
      const double* eigenValues,
-     double* workspaceMatrices,
      int* workspacePivotFlags,
      const double tolerance
 ) {    
@@ -278,12 +272,13 @@ extern "C" __global__ void eigenVecBatchKernel(
     // Set up the pivot flags for the current matrix.
     int* isPivot = workspacePivotFlags + width * idx;
 
-    const double* sourceMat = sourceMatrices + (idx/width) * height * width;
     
-    Matrix mat(workspaceMatrices + idx * height * width, width, height, isPivot, tolerance);
-    setMatrixMinusLambdaI(sourceMat, mat, eigenValues[idx]);
+    
+    Matrix mat(sourceMatrices + idx * sourceLD * width, width, height, sourceLD, isPivot, tolerance);
+    double eiganVal = eigenValues[idx * width + valIndex];
+    for(int i = 0; i < width; i++) mat(i, i) -= eiganVal;
 
-    double* eVec = eVectors + height * idx;
+    double* eVec = eVectors + eVecLD * width * idx + valIndex * eVecLD;
     int numFreeVariables = mat.rowEchelon();
     int freeVariableID = idx % numFreeVariables; 
 

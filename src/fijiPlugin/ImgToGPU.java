@@ -1,6 +1,6 @@
 package fijiPlugin;
 
-import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.DArray3d;
 import java.io.File;
 import java.util.Iterator;
 import jcuda.runtime.JCuda;
@@ -12,7 +12,7 @@ import jcuda.runtime.cudaError;
  *
  * @author E. Dov Neimand
  */
-public class ImgToGPU implements Iterator<DArray> {
+public class ImgToGPU implements Iterator<DArray3d> {
 
     private final int depth, height, width;    
     private final int framesPerArray;
@@ -59,7 +59,7 @@ public class ImgToGPU implements Iterator<DArray> {
     }
 
     @Override
-    public DArray next() {
+    public DArray3d next() {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 

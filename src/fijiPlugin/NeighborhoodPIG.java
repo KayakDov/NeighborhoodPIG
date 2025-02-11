@@ -3,7 +3,8 @@ package fijiPlugin;
 import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.algebra.TensorOrd3StrideDim;
 import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.DArray3d;
+import JCudaWrapper.array.DStrideArray3d;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.IJ;
 import ij.ImagePlus;
@@ -40,8 +41,8 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      * square.
      * @param tolerance How close must a number be to 0 to be considered 0.
      */
-    private NeighborhoodPIG(TensorOrd3Stride image, String[] sourceFileNames, int neighborhoodSize, double tolerance) {
-        super(image);
+    private NeighborhoodPIG(Handle handle, DStrideArray3d image, String[] sourceFileNames, int neighborhoodSize, double tolerance) {
+        super(handle, image);
 
         this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
 
@@ -125,7 +126,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
         if (imp.hasImageStack() && imp.getNSlices() > 1 && imp.getNFrames() == 1)
             HyperStackConverter.toHyperStack(imp, 1, 1, imp.getNSlices());
 
-        try (DArray gpuImmage = processImages(handle, imp)) {
+        try (DArray3d gpuImmage = processImages(handle, imp)) {
 
             return new NeighborhoodPIG(
                     new TensorOrd3Stride(handle,
@@ -163,7 +164,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
 
             BufferedImage firstImage = ImageIO.read(imageFiles[0]);
 
-            try (DArray gpuImage = processImages(handle, imageFiles, firstImage.getHeight(), firstImage.getWidth())) {
+            try (DArray3d gpuImage = processImages(handle, imageFiles, firstImage.getHeight(), firstImage.getWidth())) {
 
                 return new NeighborhoodPIG(
                         new TensorOrd3Stride(handle,
@@ -200,7 +201,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
     public static NeighborhoodPIG getWithIJ(Handle handle, String folderPath, int depth, int neighborhoodR, double tolerance) {
 
         ImagePlus ip = imagePlus(folderPath, depth);
-        try (DArray gpuImage = processImages(handle, ip)) {
+        try (DArray3d gpuImage = processImages(handle, ip)) {
 
             return new NeighborhoodPIG(
                     new TensorOrd3Stride(handle,
@@ -227,7 +228,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      * @return A DArray containing the image data in column-major order for all
      * frames, slices, and channels.
      */
-    public final static DArray processImages(Handle handle, ImagePlus imp) {
+    public final static DArray3d processImages(Handle handle, ImagePlus imp) {
         // Convert the image to grayscale if necessary
         if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32) {
             System.out.println("fijiPlugin.NeighborhoodPIG.processImages(): Converting image to grayscale.");
@@ -241,7 +242,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
         int frames = imp.getNFrames();
         int imgSize = width * height;
 
-        DArray processedImage = new DArray(imgSize * slices * channels * frames);
+        DArray3d processedImage = new DArray3d(imgSize * slices * channels * frames);
 
         double[] columnMajorSlice = new double[imgSize];
 
@@ -294,10 +295,10 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      * @throws IllegalArgumentException If no valid images are found in the
      * folder.
      */
-    public final static DArray processImages(Handle handle, File[] pics, int height, int width) {
+    public final static DArray3d processImages(Handle handle, File[] pics, int height, int width) {
 
         int numPixels = height * width * pics.length;
-        DArray pixelsGPU = new DArray(numPixels);
+        DArray3d pixelsGPU = new DArray3d(numPixels);
 
         int imgSize = width * height;
         double[] imgPixelsColMaj = new double[imgSize];

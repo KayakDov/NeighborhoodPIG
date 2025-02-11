@@ -1,7 +1,7 @@
 package JCudaWrapper.algebra;
 
 import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.DArray3d;
 import JCudaWrapper.array.DPointerArray;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.resourceManagement.Handle;
@@ -18,7 +18,7 @@ public class TensOrd3MultiArray extends TensorOrd3StrideDim{
     
     
     
-    public TensOrd3MultiArray(Supplier<DArray> sliceMaker, Handle handle, int height, int width, int depth, int batchSize) {
+    public TensOrd3MultiArray(Supplier<DArray3d> sliceMaker, Handle handle, int height, int width, int depth, int batchSize) {
         super(handle, height, width, depth, batchSize);
         
         slices = new DPointerArray(height*width, depth*batchSize);

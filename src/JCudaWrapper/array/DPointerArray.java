@@ -1,19 +1,9 @@
 package JCudaWrapper.array;
 
-import java.util.Arrays;
-import java.util.function.IntUnaryOperator;
-import jcuda.Pointer;
-import jcuda.driver.CUdeviceptr;
 import jcuda.jcublas.JCublas2;
-import org.apache.commons.math3.exception.DimensionMismatchException;
 import JCudaWrapper.resourceManagement.Handle;
-import static JCudaWrapper.array.Array3d.checkNull;
-import jcuda.jcublas.cublasFillMode;
-import jcuda.jcublas.cublasStatus;
 import jcuda.jcusolver.JCusolverDn;
 import jcuda.jcusolver.cusolverStatus;
-
-import static JCudaWrapper.array.Array3d.checkPositive;
 
 /**
  * Class for managing a batched 2D array of arrays (DArrays) on the GPU and
@@ -24,94 +14,7 @@ import static JCudaWrapper.array.Array3d.checkPositive;
  *
  * @author E. Dov Neimand
  */
-public class DPointerArray extends Array3d {
-
-    private final int lengthOfArrays;
-
-    /**
-     * An array of Arrays.
-     *
-     * @param lengthOfArrays The length of the arrays.
-     * @param numberOfArrays The number of arrays stored in this array. The
-     * length of this array of arrays.
-     */
-    public DPointerArray(int lengthOfArrays, int numberOfArrays) {
-        super(numberOfArrays, PrimitiveType.POINTER);
-        this.lengthOfArrays = lengthOfArrays;
-    }
-
-    /**
-     * Stores the list of pointers in the gpu.
-     *
-     * @param handle The handle
-     * @param arrays The arrays to be stored in this array. This array must be
-     * nonempty.
-     */
-    public DPointerArray(Handle handle, DArray[] arrays) {
-        super(arrays.length, PrimitiveType.POINTER);
-
-        CUdeviceptr[] pointers = new CUdeviceptr[length];
-        Arrays.setAll(pointers, i -> arrays[i].pointer);
-
-        set(handle, Pointer.to(pointers), length);
-        lengthOfArrays = arrays[0].length;
-    }
-
-
-    /**
-     * Sets an index of this array.
-     *
-     * @param handle The handle.
-     * @param array The array to be placed at the given index.
-     * @param index The index to place the array at.
-     */
-    public void set(Handle handle, DArray array, int index) {
-        if (array.length != lengthOfArrays)
-            throw new DimensionMismatchException(array.length, lengthOfArrays);
-        super.set(handle, array.pointer, index);
-    }
-
-    /**
-     * Creates a host array of pointer objects that have not had memory
-     * allocated. These objects are ready to have actual memory addressess
-     * written to them from the device.
-     *
-     * @param length The length of the array.
-     * @return An array of new pointer objects.
-     */
-    private CUdeviceptr[] emptyHostArray(int length) {
-        CUdeviceptr[] array = new CUdeviceptr[length];
-        Arrays.setAll(array, i -> new CUdeviceptr());
-        return array;
-    }
-
-
-    /**
-     * Sets the elements of this array to be pointers to sub sections of the
-     * proffered array.
-     *
-     * @param handle The Handle.
-     * @param source An array with sub arrays that are held in this array.
-     * @param generator The index of the beginning of the sub array to be held
-     * at the argument's index.
-     * @return This.
-     */
-    public DPointerArray set(Handle handle, DArray source, IntUnaryOperator generator) {
-        CUdeviceptr[] pointers = new CUdeviceptr[length];
-        Arrays.setAll(pointers, i -> pointer(generator.applyAsInt(i)));
-        set(handle, Pointer.to(pointers), 0, length);
-        return this;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public DPointerArray copy(Handle handle) {
-        DPointerArray copy = new DPointerArray(length, lengthOfArrays);
-        get(handle, copy, 0, 0, length);
-        return copy;
-    }
+public interface DPointerArray extends PointerArray {
 
     /**
      * Performs batched matrix-matrix multiplication:
@@ -146,55 +49,24 @@ public class DPointerArray extends Array3d {
      * elements between consecutive columns in memory).
      * @param batchCount The number of matrix-matrix multiplications to compute.
      */
-    public void addProductBatched(Handle handle, boolean transA, boolean transB,
+    public default void addProductBatched(Handle handle, boolean transA, boolean transB,
             int aRows, int aColsBRows, int bCols, double timesAB, DPointerArray A,
             int lda, DPointerArray B, int ldb, double timesResult, int ldResult, int batchCount) {
-
-        checkNull(handle, A, B);
-        checkPositive(aRows, aColsBRows, bCols, batchCount);
-        checkLowerBound(aRows, lda, ldResult);
-        checkLowerBound(aColsBRows, ldb);
 
         // Perform the batched matrix-matrix multiplication using cuBLAS
         JCublas2.cublasDgemmBatched(
                 handle.get(), // cuBLAS handle
-                DArray.transpose(transA),
-                DArray.transpose(transB),
+                Array.transpose(transA),
+                Array.transpose(transB),
                 aRows, bCols, aColsBRows, // Number of columns of A / rows of B
                 P.to(timesAB),
-                A.pointer, lda, // Leading dimension of A
-                B.pointer, ldb, // Leading dimension of B
-                P.to(timesResult), pointer, ldResult, // Leading dimension of result matrices
+                A.pointer(), lda, // Leading dimension of A
+                B.pointer(), ldb, // Leading dimension of B
+                P.to(timesResult), pointer(), ldResult, // Leading dimension of result matrices
                 batchCount // Number of matrices to multiply
         );
     }
-
-    /**
-     * Fill modes. Use lower to indicate a lower triangle, upper to indicate an
-     * upper triangle, and full for full triangles.
-     */
-    public static enum Fill {
-        LOWER(cublasFillMode.CUBLAS_FILL_MODE_LOWER), UPPER(
-                cublasFillMode.CUBLAS_FILL_MODE_UPPER), FULL(
-                cublasFillMode.CUBLAS_FILL_MODE_FULL);
-
-        private int fillMode;
-
-        private Fill(int fillMode) {
-            this.fillMode = fillMode;
-        }
-
-        /**
-         * The fill mode integer for jcusolver methods.
-         *
-         * @return The fill mode integer for jcusolver methods.
-         */
-        public int getFillMode() {
-            return fillMode;
-        }
-
-    }
-
+    
     /**
      * Performs batched eigenvector computation for symmetric matrices.
      *
@@ -223,18 +95,16 @@ public class DPointerArray extends Array3d {
      * = k is positive, then i-th matrix is not positive definite and the
      * Cholesky factorization failed at row k.
      */
-    public void choleskyFactorization(Handle handle, int n, int lda, IArray info, Fill fill) {
-        checkNull(handle, info);
-        checkPositive(n, lda);
+    public default void choleskyFactorization(Handle handle, int n, int lda, IArray info, int fill) {
 
         int success = JCusolverDn.cusolverDnDpotrfBatched(
                 handle.solverHandle(), // cuSolver handle
-                fill.getFillMode(),
+                fill,
                 n, // Matrix dimension
-                pointer, // Input matrices (symmetric)
+                pointer(), // Input matrices (symmetric)
                 lda, // Leading dimension                
-                info.pointer, // Info array for errors
-                length // Number of matrices
+                info.pointer(), // Info array for errors
+                size() // Number of matrices
         );
         if (success != cusolverStatus.CUSOLVER_STATUS_SUCCESS)
             throw new RuntimeException("choleskyFactorization didn't work.  "
@@ -262,23 +132,17 @@ public class DPointerArray extends Array3d {
      * infoArray[i] contains info for the i-th matrix. If infoArray[i] > 0, the
      * matrix is singular.
      */
-    public void luFactor(Handle handle, int rowsAndColumnsThis, int ldThis, IArray pivotArray, IArray infoArray) {
-        checkNull(handle, pivotArray, infoArray);
-        checkPositive(rowsAndColumnsThis, ldThis);
+    public default void luFactor(Handle handle, int rowsAndColumnsThis, int ldThis, IArray pivotArray, IArray infoArray) {
 
-        int success = JCublas2.cublasDgetrfBatched(
+        opCheck(JCublas2.cublasDgetrfBatched(
                 handle.get(), // cuSolver handle
                 rowsAndColumnsThis, // Matrix dimension
-                pointer, // Input matrices (general)
+                pointer(), // Input matrices (general)
                 ldThis, // Leading dimension
-                pivotArray.pointer, // Pivot indices for each matrix
-                infoArray.pointer, // Info array for errors
-                length // Number of matrices in the batch
-        );
-        if (success != cusolverStatus.CUSOLVER_STATUS_SUCCESS) {
-            throw new RuntimeException(
-                    "luFactorizationBatched didn't work. Here's the info array: " + infoArray.toString());
-        }
+                pivotArray.pointer(), // Pivot indices for each matrix
+                infoArray.pointer(), // Info array for errors
+                size() // Number of matrices in the batch
+        ));
     }
 
     /**
@@ -303,25 +167,19 @@ public class DPointerArray extends Array3d {
      * @param info Info array for status/error reporting. If infoArray[i] > 0,
      * matrix i is singular.
      */
-    public void solveWithLUFactored(Handle handle, boolean transposeA, int colsAndRowsA,
+    public default void solveWithLUFactored(Handle handle, boolean transposeA, int colsAndRowsA,
             int colsB, int ldThis, int ldb, IArray pivotArray, DPointerArray B, IArray info) {
-        checkNull(handle, pivotArray, B, info);
-        checkPositive(colsAndRowsA, colsB, ldThis, ldb);
 
-        int success = JCublas2.cublasDgetrsBatched(
+        opCheck(JCublas2.cublasDgetrsBatched(
                 handle.get(),
-                DArray.transpose(transposeA),
+                Array.transpose(transposeA),
                 colsAndRowsA, colsB,
-                pointer, ldThis,
-                pivotArray.pointer, // Pivot indices for each matrix
-                B.pointer, ldb,
-                info.pointer,
-                length // Number of matrices in the batch
-        );
-        if (success != cublasStatus.CUBLAS_STATUS_SUCCESS) {
-            throw new RuntimeException(
-                    "solveWithLUFactorizationBatched didn't work. Here's the info array: " + info.toString());
-        }
+                pointer(), ldThis,
+                pivotArray.pointer(), // Pivot indices for each matrix
+                B.pointer(), ldb,
+                info.pointer(),
+                size() // Number of matrices in the batch
+        ));
     }
 
     /**
@@ -361,60 +219,23 @@ public class DPointerArray extends Array3d {
      * @throws IllegalArgumentException if any of the dimensions (heightA,
      * widthBAndX, lda, ldb) are not positive.
      */
-    public void solveCholesky(Handle handle, Fill fillA, int heightA, int lda, DPointerArray b, int ldb, IArray info) {
-
-        checkNull(handle, fillA, b);
-        checkPositive(heightA, lda, ldb);
+    public default void solveCholesky(Handle handle, int fillA, int heightA, int lda, DPointerArray b, int ldb, IArray info) {
 
         boolean cleanInfo = false;
         if (info == null) {
-            info = new IArray(length);
+            info = new IArray1d(0);
+
             cleanInfo = true;
         }
         JCusolverDn.cusolverDnDpotrsBatched(
-                handle.solverHandle(), fillA.getFillMode(),
+                handle.solverHandle(), fillA,
                 heightA, 1,
-                pointer, lda,
-                b.pointer, ldb,
-                info.pointer,
-                length
+                pointer(), lda,
+                b.pointer(), ldb,
+                info.pointer(),
+                size()
         );
         if (cleanInfo) info.close();
-    }
-
-    @Override
-    public String toString() {
-
-        try (Handle hand = new Handle()) {
-            Pointer[] pointers = emptyHostArray(length);
-
-            get(hand, Pointer.to(pointers), 0, 0, length);
-
-            hand.synch();
-            return Arrays.toString(pointers);
-        }
-    }
-
-    public static void testLuFactorAndSolve() {
-
-        int rows = 2, cols = 2;
-
-        try (
-                Handle handle = new Handle(); IArray pivot = new IArray(2);
-                IArray info = new IArray(1);
-                DArray array = new DArray(handle, 1, 2, -1, 2);
-                DPointerArray a2d = new DPointerArray(handle, new DArray[]{array});
-                DArray b = new DArray(2);
-                DPointerArray b2d = new DPointerArray(handle, new DArray[]{b})) {
-
-            a2d.luFactor(handle, rows, cols, pivot, info);
-            a2d.solveWithLUFactored(handle, false, rows, 1, rows, rows, pivot,
-                    b2d, info);
-
-            System.out.println(a2d);
-            System.out.println(b2d);
-
-        }
     }
 
     /**
@@ -425,8 +246,8 @@ public class DPointerArray extends Array3d {
      * @param inc The distance between the pointer targets.
      * @return this
      */
-    public DPointerArray fill(Handle handle, DArray source, int inc) {
-        Kernel.run("genPtrs", handle, length, source, P.to(inc), P.to(this), P.to(1));
+    public default DPointerArray fill(Handle handle, DArray source, int inc) {
+        Kernel.run("genPtrs", handle, size(), source, P.to(inc), P.to(this), P.to(1));
         return this;
     }
 
@@ -437,11 +258,8 @@ public class DPointerArray extends Array3d {
      * @param source The array pointed to,
      * @return this
      */
-    public DPointerArray fill(Handle handle, DStrideArray source) {
-        return fill(handle, source, source.stride);
+    public default DPointerArray fill(Handle handle, DStrideArray source) {
+        return fill(handle, source, source.stride());
     }
 
-    public static void main(String[] args) {
-        testLuFactorAndSolve();
-    }
 }

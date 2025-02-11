@@ -1,17 +1,17 @@
 package JCudaWrapper.algebra;
 
-import JCudaWrapper.array.DArray;
-import JCudaWrapper.array.DStrideArray;
-import JCudaWrapper.array.DPointerArray;
+import JCudaWrapper.array.DArray1d;
+import JCudaWrapper.array.DArray2d;
+import JCudaWrapper.array.DArray2d;
 import JCudaWrapper.resourceManagement.Handle;
 import java.awt.Dimension;
 import java.util.Arrays;
 import org.apache.commons.math3.exception.*;
 import org.apache.commons.math3.linear.*;
 import JCudaWrapper.array.DSingleton;
-import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
+import jcuda.Pointer;
 
 /**
  * Represents a matrix stored on the GPU. For more information on jcuda
@@ -25,28 +25,24 @@ public class Matrix implements AutoCloseable, ColumnMajor {
 
     /**
      * The number of rows in the matrix.
+     * @return The number of rows in the matrix.
      */
-    private final int height;
+    public int height(){
+        return data.entriesPerLine();
+    }
 
     /**
      * The number of columns in the matrix.
+     * @return The number of columns in the matrix.
      */
-    private final int width;
-
-    /**
-     * The distance between the first element of each column in memory.
-     * <p>
-     * Typically, this is equal to the matrix height, but if this matrix is a
-     * submatrix, `colDist` may differ, indicating that the matrix data is
-     * stored with non-contiguous elements in memory.
-     * </p>
-     */
-    public final int colDist;
+    public int width(){
+        return data.linesPerLayer();
+    }
 
     /**
      * The underlying GPU data storage for this matrix.
      */
-    protected final DArray data;
+    protected final DArray2d data;
 
     /**
      * Handle for managing JCublas operations, usually unique per thread.
@@ -63,7 +59,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      */
     public Matrix(Handle handle, double[][] matrix) {
         this(handle, matrix[0].length, matrix.length);
-        Matrix.this.set(0, 0, matrix);
+        set(0, 0, matrix);
     }
 
     /**
@@ -71,54 +67,13 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * matrix.
      *
      * @param array The array storing the matrix in column-major order.
-     * @param height The number of rows in the matrix.
-     * @param width The number of columns in the matrix.
      * @param handle The JCublas handle for GPU operations.
      */
-    public Matrix(Handle handle, DArray array, int height, int width) {
-        this(handle, array, height, width, height);
-    }
-
-    /**
-     * Constructs a new Matrix from an existing RealMatrix object, copying its
-     * data to GPU memory.
-     *
-     * @param mat The matrix to be copied to GPU memory.
-     * @param handle The JCublas handle for GPU operations.
-     */
-    public Matrix(Handle handle, RealMatrix mat) {
-        this(handle, mat.getData());
-    }
-
-    /**
-     * Creates a shallow copy of an existing Matrix, referencing the same data
-     * on the GPU without copying. Changes to this matrix will affect the
-     * original and vice versa.
-     *
-     * @param mat The matrix to create a shallow copy of.
-     */
-    public Matrix(Matrix mat) {
-        this(mat.handle, mat.data, mat.height, mat.width, mat.colDist);
-    }
-
-    /**
-     * Constructs a new Matrix from an existing data pointer on the GPU.
-     *
-     * @param array Pointer to the data on the GPU.
-     * @param height The number of rows in the matrix.
-     * @param width The number of columns in the matrix.
-     * @param distBetweenFirstElementOfColumns The distance between the first
-     * element of each column in memory, usually equal to height. If this is a
-     * submatrix, it may differ.
-     * @param handle The handle for GPU operations.
-     */
-    public Matrix(Handle handle, DArray array, int height, int width, int distBetweenFirstElementOfColumns) {
-        this.height = height;
-        this.width = width;
+    public Matrix(Handle handle, DArray2d array) {
         this.data = array;
         this.handle = handle;
-        this.colDist = distBetweenFirstElementOfColumns;
     }
+
 
     /**
      * Constructs an empty matrix of specified height and width.
@@ -128,25 +83,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param width The number of columns in the matrix.
      */
     public Matrix(Handle handle, int height, int width) {
-        this(handle, new DArray(height * width), height, width);
-    }
-
-    /**
-     * Returns the height (number of rows) of the matrix.
-     *
-     * @return The number of rows in the matrix.
-     */
-    public int getHeight() {
-        return height;
-    }
-
-    /**
-     * Returns the width (number of columns) of the matrix.
-     *
-     * @return The number of columns in the matrix.
-     */
-    public int getWidth() {
-        return width;
+        this(handle, new DArray2d(width, height));
     }
 
     /**
@@ -163,16 +100,16 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      */
     public Matrix addProduct(boolean transposeA, boolean transposeB, double timesAB, Matrix a, Matrix b, double timesThis) {
 
-        Dimension aDim = new Dimension(transposeA ? a.height : a.width, transposeA ? a.width : a.height);
-        Dimension bDim = new Dimension(transposeB ? b.height : b.width, transposeB ? b.width : b.height);
+        Dimension aDim = new Dimension(transposeA ? a.height() : a.width(), transposeA ? a.width() : a.height());
+        Dimension bDim = new Dimension(transposeB ? b.height() : b.width(), transposeB ? b.width() : b.height());
         Dimension result = new Dimension(bDim.width, aDim.height);
 
         checkRowCol(result.height - 1, result.width - 1);
 
         data.addProduct(handle, transposeA, transposeB,
                 aDim.height, bDim.width, aDim.width, timesAB,
-                a.data, a.colDist, b.data, b.colDist,
-                timesThis, colDist);
+                a.data, a.data.ld(), b.data, b.data.ld(),
+                timesThis, data.ld());
         return this;
     }
 
@@ -204,39 +141,16 @@ public class Matrix implements AutoCloseable, ColumnMajor {
     }
 
     /**
-     * Returns the row index corresponding to the given column-major vector
-     * index.
-     *
-     * @param vectorIndex The index in the underlying storage vector.
-     * @return The row index.
-     */
-    private int rowIndex(int vectorIndex) {
-        return vectorIndex % height;
-    }
-
-    /**
-     * Returns the column index corresponding to the given column-major vector
-     * index.
-     *
-     * @param vectorIndex The index in the underlying storage vector.
-     * @return The column index.
-     */
-    private int columnIndex(int vectorIndex) {
-        return vectorIndex / height;
-    }
-
-    /**
      * Copies a matrix to the GPU and stores it in the internal data structure.
      *
      * @param toRow The starting row index in this matrix.
      * @param toCol The starting column index in this matrix.
-     * @param matrix The matrix to be copied, represented as an array of
+     * @param src The matrix to be copied, represented as an array of
      * columns.
      */
-    private final void set(int toRow, int toCol, double[][] matrix) {
-        for (int col = 0; col < Math.min(width, matrix.length); col++) {
-            data.set(handle, matrix[col], index(toRow, toCol + col));
-        }
+    private void set(int toRow, int toCol, double[][] src) {
+        for (int col = toCol; col < Math.min(width(), src.length); col++)
+            data.sub(col, 1, toRow, src[col].length).set(handle, src[col - toCol]);
     }
 
     /**
@@ -263,13 +177,13 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      */
     public Matrix setSum(Handle handle, boolean transA, boolean transB, double alpha, Matrix a, double beta, Matrix b) {
 
-        if (transA) checkRowCol(a.width - 1, a.height - 1);
-        else checkRowCol(a.height - 1, a.width - 1);
-        if (transB) checkRowCol(b.width - 1, b.height - 1);
-        else  checkRowCol(b.height - 1, b.width - 1);
+        if (transA) checkRowCol(a.width() - 1, a.height() - 1);
+        else checkRowCol(a.height() - 1, a.width() - 1);
+        if (transB) checkRowCol(b.width() - 1, b.height() - 1);
+        else  checkRowCol(b.height() - 1, b.width() - 1);
         
 
-        data.setSum(handle, transA, transB, height, width, alpha, a.data, a.colDist, beta, b.data, b.colDist, colDist);
+        data.setSum(handle, transA, transB, height(), width(), alpha, a.data, a.data.ld(), beta, b.data, b.data.ld(), data.ld());
 
         return this;
     }
@@ -317,7 +231,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return this.
      */
     public Matrix fill(double scalar) {
-        data.fillMatrix(handle, height, width, colDist, scalar);
+        data.fill(handle, scalar, 1, height(), data.ld());
         return this;
     }
 
@@ -328,8 +242,8 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return this.
      */
     public Matrix add(double d) {
-        try (DSingleton sing = new DSingleton(handle, d)) {
-            Kernel.run("addScalarToMatrix", handle, size(), sing, P.to(colDist), P.to(data), P.to(height));
+        try (DSingleton sing = new DSingleton().set(handle, d)) {
+            Kernel.run("addScalarToMatrix", handle, size(), sing, P.to(data.ld()), P.to(data), P.to(height()));
             return this;
         }
     }
@@ -347,9 +261,9 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      *
      */
     public Matrix insert(Handle handle, Matrix other, int row, int col) {
-        checkSubMatrixParameters(row, row + other.height, col, col + other.width);
+        checkSubMatrixParameters(row, row + other.height(), col, col + other.width());
 
-        getSubMatrix(row, row + other.height, col, col + other.width)
+        getSubMatrix(row, other.height(), col, other.width())
                 .setSum(1, other, 0, other);
 
         return this;
@@ -385,22 +299,10 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return The entry at the given row and column.
      */
     public double get(int row, int column) {
-        return data.get(index(row, column)).getVal(handle);
+        double[] val = new double[1];
+        data.get(index(row, column)).get(handle, Pointer.to(val));
+        return val[0];
 
-    }
-
-    /**
-     * The dimensions of a submatrix.
-     *
-     * @param startRow The top row of the submatrix.
-     * @param endRow The bottom row of the submatrix, exclusive.
-     * @param startColumn The first column of a submatrix.
-     * @param endColumn The last column of the submatrix, exclusive.
-     * @return The dimensions of a submatrix.
-     */
-    private Dimension subMatrixDimensions(int startRow, int endRow, int startColumn, int endColumn) {
-        checkSubMatrixParameters(startRow, endRow, startColumn, endColumn);
-        return new Dimension(endColumn - startColumn, endRow - startRow);
     }
 
     /**
@@ -431,34 +333,29 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * matrix and vice versa.
      *
      * @param startRow The starting row of the submatrix.
-     * @param endRow The end row of the submatrix exclusive.
+     * @param subWidth The width of the subMatrix
      * @param startColumn The starting column of the submatrix.
-     * @param endColumn The end column exclusive.
+     * @param subHeight The height of the subMatrix.
      * @return The submatrix.
      * @throws OutOfRangeException
      * @throws NumberIsTooSmallException
      */
-    public Matrix getSubMatrix(int startRow, int endRow, int startColumn, int endColumn) throws OutOfRangeException, NumberIsTooSmallException {
-
-        Dimension dim = subMatrixDimensions(startRow, endRow, startColumn, endColumn);
+    public Matrix getSubMatrix(int startRow, int subHeight, int startColumn, int subWidth, boolean TODORemoveMeAfterSortingOutParamaters) throws OutOfRangeException, NumberIsTooSmallException {
 
         return new Matrix(
                 handle,
-                data.subArray(index(startRow, startColumn), (dim.width - 1) * colDist + dim.height),
-                dim.height,
-                dim.width,
-                colDist);
+                data.sub(startColumn, subWidth, startRow, subHeight));
     }
 
     /**
      * A submatrix consisting of the given rows.
      *
      * @param startRow The first row.
-     * @param endRow The last row, exclusive.
+     * @param subHeight the number of rows in the submatrix.
      * @return A submatrix from the given rows.
      */
-    public Matrix getRows(int startRow, int endRow) {
-        return getSubMatrix(startRow, endRow, 0, getWidth());
+    public Matrix getRows(int startRow, int subHeight, boolean TODORemoveMeAfterSortingOutParamaters) {
+        return getSubMatrix(startRow, subHeight, 0, width());
     }
 
     /**
@@ -468,8 +365,8 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param endCol The last column, exclusive.
      * @return A submatrix from the given rows.
      */
-    public Matrix getColumns(int startCol, int endCol) {
-        return getSubMatrix(0, getHeight(), startCol, endCol);
+    public Matrix getColumns(int startCol, int subWidth) {
+        return getSubMatrix(0, height(), startCol, subWidth);
     }
 
     /**
@@ -479,8 +376,8 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @throws OutOfRangeException
      */
     private void checkRow(int row) throws OutOfRangeException {
-        if (row < 0 || row >= height) {
-            throw new OutOfRangeException(row, 0, height);
+        if (row < 0 || row >= height()) {
+            throw new OutOfRangeException(row, 0, height());
         }
     }
 
@@ -491,8 +388,8 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @throws OutOfRangeException
      */
     private void checkCol(int col) {
-        if (col < 0 || col >= width) {
-            throw new OutOfRangeException(col, 0, width);
+        if (col < 0 || col >= width()) {
+            throw new OutOfRangeException(col, 0, width());
         }
     }
 
@@ -507,17 +404,6 @@ public class Matrix implements AutoCloseable, ColumnMajor {
         checkCol(col);
     }
 
-    /**
-     * Checks if any of the objects passed are null, and if they are, throws a
-     * null argument exception.
-     *
-     * @param o To be checked for null values.
-     */
-    private void checkForNull(Object... o) {
-        if (Arrays.stream(o).anyMatch(obj -> obj == null)) {
-            throw new NullArgumentException();
-        }
-    }
 
     /**
      * The number of elements in this matrix.
@@ -525,23 +411,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return The number of elements in this matrix.
      */
     public int size() {
-        return width * height;
-    }
-
-    /**
-     * Checks if the two methods are equal to within an epsilon margin of error.
-     *
-     * @param other A matrix that might be equal to this one.
-     * @param epsilon The acceptable margin of error.
-     * @param workSpace Should be the size of the matrix.
-     * @return True if the matrices are very close to one another, false
-     * otherwise.
-     */
-    public boolean equals(Matrix other, double epsilon, DArray workSpace) {
-        if (height != other.height || width != other.width) return false;
-
-        return new Matrix(handle, data, height, width).setSum(1, this, -1, other)
-                .frobeniusNorm(workSpace.subArray(0, width)) <= epsilon;
+        return width() * height();
     }
 
     /**
@@ -550,15 +420,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return A copy of this matrix.
      */
     public Matrix copy() {
-        if (height == colDist) {
-            return new Matrix(handle, data.copy(handle), height, width);
-        }
-
-        Matrix copy = new Matrix(handle, height, width);
-
-        copy.setSum(1, this, 0, this);
-
-        return copy;
+        return new Matrix(handle, data.copy(handle));
     }
 
     /**
@@ -569,7 +431,10 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param value The value to be placed at the entry.
      */
     public void set(int row, int column, double value) {
-        data.set(handle, index(row, column), value);
+        
+        double[] val = new double[]{value};
+        
+        data.get(column, row).set(handle, Pointer.to(val));
     }
 
     /**
@@ -580,7 +445,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @throws OutOfRangeException
      */
     public Vector getRow(int row) throws OutOfRangeException {
-        return new Vector(handle, data.subArray(row), colDist);
+        return new Vector(handle, new DArray1d(data, row, (width() - 1)*data.ld() + 1), data.ld());
     }
 
     /**
@@ -591,7 +456,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @throws OutOfRangeException
      */
     public Vector getColumn(int column) throws OutOfRangeException {
-        return new Vector(handle, data.subArray(index(0, column), height), 1);
+        return new Vector(handle, data.getLine(column), 1);
     }
 
     /**
@@ -601,7 +466,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return A copy of this matrix as a 2d cpu array.
      */
     public double[][] get() {
-        double[][] getData = new double[height][];
+        double[][] getData = new double[height()][];
         Arrays.setAll(getData, i -> getRow(i).vecGet());
         return getData;
     }
@@ -610,8 +475,11 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * The trace of this matrix.
      */
     public double getTrace() throws NonSquareMatrixException {
-        if (height != width) throw new NonSquareMatrixException(width, height);
-        return data.dot(handle, new DSingleton(handle, 1), 0, width + 1);
+        if (height() != width()) throw new NonSquareMatrixException(width(), height());
+        
+        Vector diagonal = new Vector(handle, new DArray1d(data, 0, data.ld()*width()), width() + 1);
+        return diagonal.dotProduct(diagonal);
+        
     }
 
     /**
@@ -641,20 +509,17 @@ public class Matrix implements AutoCloseable, ColumnMajor {
     /**
      * The identity Matrix.
      *
-     * @param n the height and width of the matrix.
      * @param hand
      * @param holdIdentity The underlying array that will hold the identity
-     * matrix.
+     * matrix.  This should be a square array.
      * @return The identity matrix.
      */
-    public static Matrix identity(Handle hand, int n, DArray holdIdentity) {
+    public static Matrix identity(Handle hand, DArray2d holdIdentity) {
 
-        Matrix ident = new Matrix(hand, holdIdentity, n, n);
-        ident.data.fill0(hand);
-
-        ident.data.add(hand, 1, DSingleton.oneOne, 0, n + 1);
-
-        return ident;
+        holdIdentity.fill0(hand);
+        holdIdentity.fill(hand, 1, holdIdentity.entriesPerLine() + 1);
+                
+        return new Matrix(hand, holdIdentity);
     }
 
     /**
@@ -665,7 +530,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return The identity matrix.
      */
     public static Matrix identity(Handle hand, int n) {
-        return identity(hand, n, new DArray(n * n));
+        return identity(hand, new DArray2d(n, n));
     }
 
     /**
@@ -680,8 +545,8 @@ public class Matrix implements AutoCloseable, ColumnMajor {
     public Matrix power(int p) throws NotPositiveException, NonSquareMatrixException {
 
         if (p < 0) throw new NotPositiveException(p);
-        if (height != width) throw new NonSquareMatrixException(width, height);
-        if (p == 0) return identity(handle, width);
+        if (height() != width()) throw new NonSquareMatrixException(width(), height());
+        if (p == 0) return identity(handle, width());
 
         if (p % 2 == 0) {
             power(p / 2);
@@ -703,14 +568,14 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @throws MatrixDimensionMismatchException
      */
     public void setColumnVector(int column, Vector vector) throws OutOfRangeException, MatrixDimensionMismatchException {
-        data.set(handle, vector.array(), index(0, column), 0, 0, vector.colDist, Math.min(height, vector.dim()));
+        data.getLine(column).set(handle, vector.array(), vector.inc(), 1);
     }
 
     /**
      * @see Matrix#setRowVector(int, org.apache.commons.math3.linear.RealVector)
      */
     public void setRowVector(int row, Vector vector) throws OutOfRangeException, MatrixDimensionMismatchException {
-        data.set(handle, vector.array(), index(row, 0), 0, colDist, vector.colDist, Math.min(width, vector.dim()));
+        data.sub(0, height(), row, width()).set(handle, vector.data, vector.inc(), data.ld());
     }
 
     /**
@@ -728,9 +593,9 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param workspace Should be as long as the width.
      * @return A vector containing the dot product of each column and itself.
      */
-    public Vector columnsSquared(DArray workspace) {
+    public Vector columnsSquared(DArray1d workspace) {
 
-        Vector cs = new Vector(handle, data, 1);
+        Vector cs = new Vector(handle, new DArray1d(workspace, 0, width()), 1);
 
         VectorsStride columns = columns();
 
@@ -745,7 +610,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param workspace Needs to be width long
      * @return
      */
-    public double frobeniusNorm(DArray workspace) {
+    public double frobeniusNorm(DArray1d workspace) {
         return Math.sqrt(columnsSquared(workspace).getL1Norm());
 
     }
@@ -788,7 +653,14 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      */
     public Matrix addOuterProduct(Vector a, Vector b) {
 
-        data.outerProd(handle, height, width, 1, a.array(), a.colDist, b.array(), b.colDist, colDist);
+        data.outerProd(
+                handle, 
+                1.0, 
+                a.data.as1d(), 
+                a.inc(), 
+                b.data.as1d(), 
+                b.inc()
+        );
 
         return this;
     }
@@ -798,53 +670,8 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      *
      * @return The underlying column major data.
      */
-    public DArray array() {
+    public DArray2d array() {
         return data;
-    }
-
-    /**
-     * Creates a matrix from the underlying data in this matrix with a new
-     * height, width, and distance between columns. Note that if the distance
-     * between columns in the new matrix is less that in this matrix, the matrix
-     * will contain data that this one does not.
-     *
-     * @param newHieght The height of the new matrix.
-     * @param newWidth The width of the new matrix.
-     * @param newColDist The distance between columns of the new matrix. By
-     * setting the new column distance to be less than or greater than the old
-     * one, the new matrix may have more or fewer elements.
-     * @return A shallow copy of this matrix that has a different shape.
-     *
-     */
-    public Matrix newDimensions(int newHieght, int newWidth, int newColDist) {
-        return new Matrix(handle, data, newHieght, newWidth, newColDist);
-    }
-
-    /**
-     * Creates a matrix from the underlying data in this matrix with a new
-     * height, width, and distance between columns. Note that if the distance
-     * between columns in the new matrix is less that in this matrix, the matrix
-     * will contain data that this one does not.
-     *
-     * @param newHieght The height of the new matrix. The width*colDist should
-     * be divisible by this number.
-     * @return A shallow copy of this matrix that has a different shape.
-     *
-     */
-    public Matrix newDimensions(int newHieght) {
-        return newDimensions(newHieght, size() / newHieght, newHieght);
-    }
-
-    /**
-     * The distance between the 1st element of each column in column major
-     * order.
-     *
-     * @return The distance between the first element of each column in column
-     * major order.
-     */
-    @Override
-    public int getColDist() {
-        return colDist;
     }
 
     /**
@@ -853,7 +680,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return The columns of this matrix.
      */
     public VectorsStride columns() {
-        return new VectorsStride(handle, data, 1, height, colDist, width);
+        return new VectorsStride(handle, data, 1, height(), data.ld(), width());
     }
 
     /**
@@ -862,7 +689,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return The columns of this matrix.
      */
     public VectorsStride rows() {
-        return new VectorsStride(handle, data, colDist, width, 1, height);
+        return new VectorsStride(handle, data, data.ld(), width(), 1, height());
     }
 
     /**
@@ -883,7 +710,7 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @return This matrix repeating itself in a batch.
      */
     public MatricesStride repeating(int batchSize) {
-        return new MatricesStride(handle, data, height, width, colDist, 0, batchSize);
+        return new MatricesStride(handle, data, height(), width(), data.ld(), 0, batchSize);
     }
 
     /**
@@ -894,14 +721,14 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param putLHere Where the new matrix is to be placed.
      * @return
      */
-    public Matrix lowerLeftUnitDiagonal(DArray putLHere) {
-        Matrix l = new Matrix(handle, putLHere, height, width).fill(0);
-        for (int i = 0; i < height - 1; i++) {
-            l.getColumn(i).getSubVector(i + 1, height - i - 1)
-                    .set(getColumn(i).getSubVector(i + 1, height - i - 1));
+    public Matrix lowerLeftUnitDiagonal(DArray2d putLHere) {
+        Matrix l = new Matrix(handle, putLHere).fill(0);
+        for (int i = 0; i < height() - 1; i++) {
+            l.getColumn(i).getSubVector(i + 1, height() - i - 1)
+                    .set(getColumn(i).getSubVector(i + 1, height() - i - 1));
             l.set(i, i, 1);
         }
-        l.set(height - 1, height - 1, 1);
+        l.set(height() - 1, height() - 1, 1);
         return l;
     }
 
@@ -912,9 +739,9 @@ public class Matrix implements AutoCloseable, ColumnMajor {
      * @param putUHere Where the new matrix is to be placed.
      * @return
      */
-    public Matrix upperRight(DArray putUHere) {
-        Matrix u = new Matrix(handle, putUHere, height, width).fill(0);
-        for (int i = 0; i < height; i++)
+    public Matrix upperRight(DArray2d putUHere) {
+        Matrix u = new Matrix(handle, putUHere).fill(0);
+        for (int i = 0; i < height(); i++)
             u.getColumn(i).getSubVector(0, i + 1)
                     .set(getColumn(i).getSubVector(0, i + 1));
 

@@ -92,10 +92,10 @@ public class Kernel implements AutoCloseable {
      * @param additionalArguments An array of pointers to all additional
      * arguments.
      */
-    public static void run(String name, Handle handle, int numThreads, Array3d source, Pointer... additionalArguments) {
+    public static void run(String name, Handle handle, int numThreads, Array source, Pointer... additionalArguments) {
 
         try (Kernel km = new Kernel(name)) {
-            km.map(handle, numThreads, source, additionalArguments);
+            km.run(handle, numThreads, source, additionalArguments);
         }
     }
 
@@ -112,7 +112,7 @@ public class Kernel implements AutoCloseable {
      * @param additionalParmaters These should all be pointers to cpu arrays or
      * pointers to device pointers.
      */
-    public <T extends Array3d> void map(Handle handle, int numThreads, T input, Pointer... additionalParmaters) {
+    public <T extends Array> void run(Handle handle, int numThreads, T input, Pointer... additionalParmaters) {
 
         NativePointerObject[] pointers = new NativePointerObject[additionalParmaters.length + 2];
         pointers[0] = P.to(numThreads);

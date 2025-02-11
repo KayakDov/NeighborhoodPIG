@@ -1,7 +1,9 @@
 package JCudaWrapper.algebra;
 
+import JCudaWrapper.array.Array;
+import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.DArray3d;
 
 /**
  * Any column major matrix like think could implement this class.
@@ -9,7 +11,7 @@ import JCudaWrapper.array.DArray;
  */
 public interface ColumnMajor {
     
-    public int getColDist();
+    public int colDist();
     
     /**
      * Returns the column-major vector index of the given row and column.
@@ -19,14 +21,14 @@ public interface ColumnMajor {
      * @return The vector index: {@code col * colDist + row}.
      */
     default public int index(int row, int col){
-        return col*getColDist() + row;
+        return col*colDist() + row;
     }
     
     /**
      * Gets the underlying array for this data structure.
      * @return The GPU array.
      */
-    public Array3d array();
+    public Array array();
     
     
 }

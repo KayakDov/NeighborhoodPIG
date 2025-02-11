@@ -1,6 +1,6 @@
 package JCudaWrapper.algebra;
 
-import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.DArray3d;
 import java.awt.Point;
 import java.util.function.Consumer;
 
@@ -154,7 +154,7 @@ public class MatricesPntrs implements AutoCloseable {
      * @return The data for each sub matrix.
      */
     public static DPointerArray getDarray(Matrix contains, Consumer<Point> step, int height, int width, int batchSize) {
-        DArray[] arrays = new DArray[batchSize];
+        DArray3d[] arrays = new DArray3d[batchSize];
 
         Point p = new Point(0, 0);
 

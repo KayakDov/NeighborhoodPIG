@@ -1,0 +1,201 @@
+package JCudaWrapper.array;
+
+import java.awt.geom.Point2D;
+import jcuda.Pointer;
+import jcuda.runtime.cudaPitchedPtr;
+
+/**
+ * Represents a 2D array where data is stored in contiguous memory sections,
+ * with each section containing a fixed number of entries. This abstract class
+ * provides foundational functionality for handling CUDA-pitched memory.
+ *
+ * <p>
+ * Subclasses must ensure memory allocation for the {@code pointer} field.</p>
+ *
+ * @author E. Dov Neimand
+ */
+public abstract class LineArray implements Array {
+
+    protected final cudaPitchedPtr pointer;
+    public final int bytesPerEntry;
+
+    /**
+     * Constructs a LineArray with the specified memory layout. Be sure to
+     * allocate the memory, as that is not done here.
+     *
+     * @param entriesPerLine The number of entries in each section of memory.
+     * @param linesPerLayer The number of memory sections (lines) in a layer, where 2d arrays only have one layer.
+     * @param bytesPerEntry The number of bytes per entry.
+     */
+    public LineArray(int entriesPerLine, int linesPerLayer, int bytesPerEntry) {//TODO: use entries per line
+        this.pointer = new cudaPitchedPtr();
+        pointer.ysize = linesPerLayer;
+        pointer.xsize = entriesPerLine;
+        this.bytesPerEntry = bytesPerEntry;
+        Array.allocatedArrays.add(pointer.ptr);
+    }
+
+    /**
+     * Constructs a sub-array from an existing {@code LineArray}, starting from
+     * a specified line and entry index.
+     *
+     * @param src The source {@code LineArray}.
+     * @param startLine The starting line index.
+     * @param numLines The number of lines to include.
+     * @param startEntry The starting entry index within the line.
+     * @param entriesPerLine The number of entries per line in the sub-array.
+     */
+    public LineArray(LineArray src, int startLine, int numLines, int startEntry, int entriesPerLine) {
+        this(entriesPerLine, numLines, src.bytesPerEntry);
+
+        confirm(startLine + numLines < src.linesPerLayer(),
+                startEntry + entriesPerLine < src.entriesPerLine());
+
+        pointer.ptr = src.get(startLine, startEntry).pointer();
+
+    }
+
+    /**
+     * This array is creates as a sub array of the proffered array.
+     *
+     * @param src The super array.
+     * @param entriesPerLine The number of entries on each included line. This
+     * should divide into the number of elements.
+     */
+    public LineArray(Array src, int entriesPerLine) {
+        this(src, entriesPerLine, entriesPerLine);
+    }
+
+    /**
+     * This array is creates as a sub array of the proffered array.
+     *
+     * @param src The super array.
+     * @param entriesPerLine The number of entries on each included line. This
+     * should divide into the number of elements.
+     * @param ld The number of entries that could be put in s line if the entire
+     * pitch were used.
+     */
+    public LineArray(Array src, int entriesPerLine, int ld) {
+        this(src, entriesPerLine, ld, src.size() / entriesPerLine);
+    }
+    
+    
+    /**
+     * This array is creates as a sub array of the proffered array.
+     *
+     * @param src The super array.
+     * @param entriesPerLine The number of entries on each included line. This
+     * should divide into the number of elements.
+     * @param ld The number of entries that could be put in s line if the entire
+     * pitch were used.
+     * @param linesPerLayer The number of lines on a layer.
+     */
+    public LineArray(Array src, int entriesPerLine, int ld, int linesPerLayer) {
+        this(entriesPerLine, linesPerLayer, src.bytesPerEntry());
+        pointer.ptr = src.pointer();
+        pointer.pitch = ld * src.bytesPerEntry();
+        
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int bytesPerLine() {
+        return (int) pointer.pitch;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int entriesPerLine() {
+        return (int) pointer.xsize / bytesPerEntry();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    abstract public Singleton get(int index);
+
+    /**
+     * Retrieves an element at the specified section and entry index.
+     *
+     * @param lineNumber The index of the section.
+     * @param indexInLine The index within the section.
+     * @return A {@code Singleton} containing the desired element.
+     */
+    public Singleton get(int lineNumber, int indexInLine) {
+        return get(lineNumber * entriesPerLine() + indexInLine);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int linesPerLayer() {
+        return (int) pointer.ysize;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int size() {
+        return entriesPerLine() * linesPerLayer();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int bytesPerEntry() {
+        return bytesPerEntry;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public cudaPitchedPtr pitchedPointer() {
+        return pointer;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Pointer pointer() {
+        return pointer.ptr;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int ld() {
+        return bytesPerLine() / bytesPerEntry();
+    }
+
+    /**
+     * A one dimensional representation of this array. 
+     * @return 
+     */
+    abstract public Array1d as1d();
+    
+    /**
+     * A 2 dimensional representation of this array. If this array is already
+     * 2d, then this array is returned. If it is 3d then each layer precedes the
+     * previous layers.
+     *
+     * @return A 2 dimensional representation of this array.
+     */
+    abstract public Array2d as2d();
+    
+    /**
+     * A 3d representation of this array.
+     * @param linesPerLayer
+     * @return 
+     */
+    abstract public DArray3d as3d(int linesPerLayer);
+}

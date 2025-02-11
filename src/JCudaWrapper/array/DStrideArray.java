@@ -1,109 +1,89 @@
 package JCudaWrapper.array;
 
-import static JCudaWrapper.array.Array3d.checkNull;
-import jcuda.driver.CUdeviceptr;
 import jcuda.jcublas.JCublas2;
-import jcuda.jcusolver.JCusolverDn;
-import jcuda.jcusolver.cusolverEigMode;
-import jcuda.jcusolver.gesvdjInfo;
 import JCudaWrapper.resourceManagement.Handle;
-import static JCudaWrapper.array.Array3d.checkPositive;
 import jcuda.runtime.cudaError;
-import jcuda.jcusolver.syevjInfo;
 
 /**
  * A class for a batch of consecutive arrays.
  *
  * @author E. Dov Neimand
  */
-public class DStrideArray extends DArray {
+public interface DStrideArray extends StrideArray, DArray{
 
-    public final int stride, batchSize, subArrayLength;
 
-    /**
-     * The constructor. Make sure batchSize * strideSize is less than length      
-     * @param from The array to be subdivided.
-     * @param strideSize The number of elements between the first element of each subarray. 
-     * @param batchSize The number of strides. @param subArrayLength The length of e
-     * @param subArrayLength The length of each sub arrau/
-     * @param deallocateOnClose Dealocate gpu memory when this is closed or inaccessible.
-     */
-    protected DStrideArray(DArray from, int strideSize, int subArrayLength, int batchSize, boolean deallocateOnClose) {
-        super(from, 0, totalDataLength(strideSize, subArrayLength, batchSize));
-        this.stride = strideSize;
-        this.subArrayLength = subArrayLength;
-        this.batchSize = batchSize;
-    }
-    
-    
-    /**
-     * The constructor. Make sure batchSize * strideSize is less than length      
-     * @param from The array to be subdivided.
-     * @param strideSize The number of elements between the first element of each subarray. 
-     * @param batchSize The number of strides. @param subArrayLength The length of e
-     * @param subArrayLength The length of each sub arrau/
-     * @param deallocateOnClose Dealocate gpu memory when this is closed or inaccessible.
-     */
-    protected DStrideArray(int strideSize, int subArrayLength, int batchSize, boolean deallocateOnClose) {
-        super(totalDataLength(strideSize, subArrayLength, batchSize));
-        this.stride = strideSize;
-        this.subArrayLength = subArrayLength;
-        this.batchSize = batchSize;
-    }
 
     /**
-     * The number of sub arrays.
+     * Performs batched matrix-matrix multiplication:
      *
-     * @return The number of sub arrays.
-     */
-    /**
-     * The number of sub arrays.
+     * <pre>
+     * Result[i] = alpha * op(A[i]) * op(B[i]) + timesResult * Result[i]
+     * </pre>
      *
-     * @return The number of sub arrays.
-     */
-    public int batchCount() {
-        return batchSize;
-    }
-
-    /* Doesn't work because Jacobiparms doesn't work.
-     * 
-     * Creates an auxiliary workspace for cusolverDnDsyevjBatched using
-     * cusolverDnDsyevjBatched_bufferSize.
+     * Where op(A) and op(B) can be A and B or their transposes.
      *
-     * @param handle The cusolverDn handle.
-     * @param height The size of the matrices (nxn).
-     * @param input The device pointer to the input matrices.
-     * @param ldInput The leading dimension of the matrix A.
-     * @param resultValues The device pointer to the eigenvalue array.
-     * @param batchSize The number of matrices in the batch.
-     * @param fill How is the matrix stored.
-     * @param params The syevjInfo_t structure for additional parameters.
-     * @return A Pointer array where the first element is the workspace size,
-     * and the second element is the device pointer to the workspace.
+     * This method computes multiple matrix-matrix multiplications at once,
+     * using strided data access, allowing for efficient batch processing.
+     *
+     * @param handle Handle to the cuBLAS library context.
+     * @param transA True if matrix A should be transposed, false otherwise.
+     * @param transB True if matrix B should be transposed, false otherwise.
+     * @param aRows The number of rows in matrix A.
+     * @param aColsBRows The number of columns in matrix A and the number of
+     * rows in matrix B.
+     * @param bCols The number of columns in matrix B.
+     * @param timesAB Scalar multiplier applied to the matrix-matrix product.
+     * @param matA Pointer to the batched matrix A in GPU memory.
+     * @param lda Leading dimension of matrix A (the number of elements between
+     * consecutive columns in memory).
+     * @param matB Pointer to the batched matrix B in GPU memory.
+     * @param ldb Leading dimension of matrix B (the number of elements between
+     * consecutive columns in memory).
+     * @param timesResult Scalar multiplier applied to each result matrix before
+     * adding the matrix-matrix product.
+     * @param ldResult Leading dimension of the result matrix (the number of
+     * elements between consecutive columns in memory).
+     *
      */
-    public int eigenWorkspaceSize(Handle handle,
-            int height,
-            int ldInput,
-            DArray resultValues,
-            syevjInfo params,
-            DPointerArray.Fill fill) {
-        int[] lwork = new int[1];
+    public default void addProduct(Handle handle, boolean transA, boolean transB,
+            int aRows, int aColsBRows, int bCols, double timesAB, DStrideArray matA,
+            int lda, DStrideArray matB, int ldb, double timesResult,
+            int ldResult) {
 
-        JCusolverDn.cusolverDnDsyevjBatched_bufferSize(
-                handle.solverHandle(),
-                cusolverEigMode.CUSOLVER_EIG_MODE_VECTOR,
-                fill.getFillMode(),
-                height,
-                pointer,
-                ldInput,
-                resultValues.pointer,
-                lwork,
-                params,
-                batchCount()
+        int result = JCublas2.cublasDgemmStridedBatched(handle.get(),
+                Array.transpose(transA), Array.transpose(transB),
+                aRows, bCols, aColsBRows,
+                P.to(timesAB),
+                matA.pointer(), lda, matA.stride(),
+                matB.pointer(), ldb, matB.stride(),
+                P.to(timesResult), pointer(), ldResult, stride(),
+                batchSize()
         );
-
-        return lwork[0];
+        if(result != cudaError.cudaSuccess)
+            throw new RuntimeException("cuda multiplication failed.");
+        
     }
+    
+
+    
+    /**
+     * Gets the sub array at the given batch index (not to be confused with indices in the underlying array.)
+     * @param i The batch index of the desired array: batch index = stride * i     
+     * @return The member of the batch at the given batch index.
+     */
+    public default DArray getBatchArray(int i){
+
+        return new DArray1d(this, stride()*i, subArraySize());
+    }   
+}
+
+
+
+
+
+
+
+
 
 //    /**
 //     * If each sub array is square matrix data,then this is the height and width
@@ -176,82 +156,46 @@ public class DStrideArray extends DArray {
 ////            }
 //
 //    }
-
-    /**
-     * Performs batched matrix-matrix multiplication:
-     *
-     * <pre>
-     * Result[i] = alpha * op(A[i]) * op(B[i]) + timesResult * Result[i]
-     * </pre>
-     *
-     * Where op(A) and op(B) can be A and B or their transposes.
-     *
-     * This method computes multiple matrix-matrix multiplications at once,
-     * using strided data access, allowing for efficient batch processing.
-     *
-     * @param handle Handle to the cuBLAS library context.
-     * @param transA True if matrix A should be transposed, false otherwise.
-     * @param transB True if matrix B should be transposed, false otherwise.
-     * @param aRows The number of rows in matrix A.
-     * @param aColsBRows The number of columns in matrix A and the number of
-     * rows in matrix B.
-     * @param bCols The number of columns in matrix B.
-     * @param timesAB Scalar multiplier applied to the matrix-matrix product.
-     * @param matA Pointer to the batched matrix A in GPU memory.
-     * @param lda Leading dimension of matrix A (the number of elements between
-     * consecutive columns in memory).
-     * @param matB Pointer to the batched matrix B in GPU memory.
-     * @param ldb Leading dimension of matrix B (the number of elements between
-     * consecutive columns in memory).
-     * @param timesResult Scalar multiplier applied to each result matrix before
-     * adding the matrix-matrix product.
-     * @param ldResult Leading dimension of the result matrix (the number of
-     * elements between consecutive columns in memory).
-     *
-     */
-    public void addProduct(Handle handle, boolean transA, boolean transB,
-            int aRows, int aColsBRows, int bCols, double timesAB, DStrideArray matA,
-            int lda, DStrideArray matB, int ldb, double timesResult,
-            int ldResult) {
-
-        checkNull(handle, matA, matB);
-        checkPositive(aRows, bCols, ldb, ldResult);
-        checkAgainstLength(aRows * bCols * batchCount() - 1);
-
-        int result = JCublas2.cublasDgemmStridedBatched(handle.get(),
-                DArray.transpose(transA), DArray.transpose(transB),
-                aRows, bCols, aColsBRows,
-                P.to(timesAB),
-                matA.pointer, lda, matA.stride,
-                matB.pointer, ldb, matB.stride,
-                P.to(timesResult), pointer, ldResult, stride,
-                batchCount()
-        );
-        if(result != cudaError.cudaSuccess)
-            throw new RuntimeException("cuda multiplication failed.");
-        
-    }
-
-    /**
-     * The length of the array.
-     *
-     * @param batchSize The number of elements in the batch.
-     * @param strideSize The distance between the first elements of each batch.
-     * @param subArrayLength The length of each subArray.
-     * @return The minimum length to hold a batch described by these paramters.
-     */
-    public static int totalDataLength(int strideSize, int subArrayLength, int batchSize) {
-        return strideSize * (batchSize - 1) + subArrayLength;
-    }
-    
-    /**
-     *
-     * @param handle
-     * @return An array of pointers to each of the subsequences.
-     */
-    public DPointerArray getPointerArray(Handle handle) {
-        return super.getPointerArray(handle, stride);
-    }
+//
+//    /* Doesn't work because Jacobiparms doesn't work.
+//     * 
+//     * Creates an auxiliary workspace for cusolverDnDsyevjBatched using
+//     * cusolverDnDsyevjBatched_bufferSize.
+//     *
+//     * @param handle The cusolverDn handle.
+//     * @param height The size of the matrices (nxn).
+//     * @param input The device pointer to the input matrices.
+//     * @param ldInput The leading dimension of the matrix A.
+//     * @param resultValues The device pointer to the eigenvalue array.
+//     * @param batchSize The number of matrices in the batch.
+//     * @param fill How is the matrix stored.
+//     * @param params The syevjInfo_t structure for additional parameters.
+//     * @return A Pointer array where the first element is the workspace size,
+//     * and the second element is the device pointer to the workspace.
+//     */
+//    public int eigenWorkspaceSize(Handle handle,
+//            int height,
+//            int ldInput,
+//            DArray3d resultValues,
+//            syevjInfo params,
+//            DPointerArray.Fill fill) {
+//        int[] lwork = new int[1];
+//
+//        JCusolverDn.cusolverDnDsyevjBatched_bufferSize(
+//                handle.solverHandle(),
+//                cusolverEigMode.CUSOLVER_EIG_MODE_VECTOR,
+//                fill.getFillMode(),
+//                height,
+//                pointer,
+//                ldInput,
+//                resultValues.pointer,
+//                lwork,
+//                params,
+//                batchCount()
+//        );
+//
+//        return lwork[0];
+//    }
 
     /**
      * Performs batched SVD (Singular Value Decomposition) using the
@@ -285,58 +229,22 @@ public class DStrideArray extends DArray {
      * @param gesvdj
      *
      */
-    public void svdBatched(Handle handle, boolean computeVectors, int rows, int cols, int lda,
-            DStrideArray values, DStrideArray leftVectors, int ldleftVecs, DStrideArray rightVecs, int ldRightVecs,
-            DArray workSpace, int batchSize, IArray info, gesvdjInfo gesvdj) {
-
-        checkNull(handle, values, leftVectors, rightVecs);
-        checkPositive(rows, cols, lda, ldleftVecs, ldRightVecs);
-        checkAgainstLength(rows * cols * batchSize - 1);
-
-        int jobzInt = computeVectors ? cusolverEigMode.CUSOLVER_EIG_MODE_VECTOR : cusolverEigMode.CUSOLVER_EIG_MODE_NOVECTOR;
-
-        int error = JCusolverDn.cusolverDnDgesvdjBatched(
-                handle.solverHandle(),
-                jobzInt, rows, cols,
-                pointer, lda,
-                values.pointer,
-                leftVectors.pointer, ldleftVecs,
-                rightVecs.pointer, ldRightVecs,
-                workSpace.pointer, workSpace.length,
-                info.pointer,
-                gesvdj,//I can't seem to create this parameter without a core crash. 
-                batchSize
-        );
-        if (error != cudaError.cudaSuccess)
-            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
-    }
-
-    /**
-     * A sub batch of this batch.
-     *
-     * @param start The index of the first sub array.
-     * @param length The number of sub arrays in this array. Between 0 and batch
-     * size.
-     * @return A subbatch.
-     */
-    public DStrideArray subBatch(int start, int length) {
-        return subArray(start * stride, totalDataLength(stride, subArrayLength, length)).getAsBatch(stride, subArrayLength, length);
-    }
-    
-    /**
-     * Gets the sub array at the given batch index (not to be confused with indices in the underlying array.)
-     * @param i The batch index of the desired array: batch index = stride * i     
-     * @return The member of the batch at the given batch index.
-     */
-    public DArray getBatchArray(int i){
-        if(i >= batchSize) throw new ArrayIndexOutOfBoundsException();
-        return subArray(stride*i, subArrayLength);
-    }
-
-    @Override
-    public DStrideArray copy(Handle handle) {
-        return super.copy(handle).getAsBatch(stride, subArrayLength, batchSize);
-    }
-
-    
-}
+//    public void svdBatched(Handle handle, boolean computeVectors, int rows, int cols, int lda,
+//            DStrideArray values, DStrideArray leftVectors, int ldleftVecs, DStrideArray rightVecs, int ldRightVecs,
+//            DArray workSpace, int batchSize, IArray info, gesvdjInfo gesvdj) {
+//
+//        int jobzInt = computeVectors ? cusolverEigMode.CUSOLVER_EIG_MODE_VECTOR : cusolverEigMode.CUSOLVER_EIG_MODE_NOVECTOR;
+//
+//        opCheck(JCusolverDn.cusolverDnDgesvdjBatched(
+//                handle.solverHandle(),
+//                jobzInt, rows, cols,
+//                pointer(), lda,
+//                values.pointer(),
+//                leftVectors.pointer(), ldleftVecs,
+//                rightVecs.pointer(), ldRightVecs,
+//                workSpace.pointer(), workSpace.size(),
+//                info.pointer(),
+//                gesvdj,//I can't seem to create this parameter without a core crash. 
+//                batchSize
+//        ));
+//    }

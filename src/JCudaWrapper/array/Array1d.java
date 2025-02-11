@@ -1,88 +1,209 @@
 package JCudaWrapper.array;
 
-import static JCudaWrapper.array.Array3d.checkNull;
-import static JCudaWrapper.array.Array3d.checkPositive;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Pointer;
 import jcuda.driver.CUdeviceptr;
 import jcuda.runtime.JCuda;
-import jcuda.runtime.cudaError;
 import jcuda.runtime.cudaMemcpyKind;
+import jcuda.runtime.cudaPitchedPtr;
 
 /**
+ * A one-dimensional array stored in GPU memory. This class provides methods for
+ * allocating, accessing, and transferring data between host and device memory.
  *
  * @author E. Dov Neimand
  */
-public class Array1d implements Array {
+public abstract class Array1d implements Array {
 
-    private Pointer p;
-    private final int bytesPerELement;
+    private final Pointer pointer;
+    public final int bytesPerEntry;
+    public final int size;
+    public final int ld;
 
-    public Array1d(int numElements, int bytesPerElement) {
-
-        p = new CUdeviceptr();
-        this.bytesPerELement= bytesPerElement;
-        int error = JCuda.cudaMalloc(p, numElements * bytesPerElement);
-    }
-    
     /**
-     * Copies data from a CPU array to a GPU array.
+     * Creates a new empty array.
      *
-     * @param to The destination GPU array.
-     * @param fromCPUArray The source CPU array.
-     * @param toIndex The index in the destination array to start copying to.
-     * @param fromIndex The index in the source array to start copying from.
-     * @param length The number of elements to copy.
-     * @param type The type of the elements.
-     * @param handle The handle.
-     *
-     * @throws IllegalArgumentException if any index is out of bounds or length
-     * is negative.
+     * @param size The number of elements in the array.
+     * @param bytesPerElement The number of bytes each element uses.
      */
-    protected static void copy(Handle handle, Array3d to, Pointer fromCPUArray, int toIndex, int fromIndex, int length, Array3d.PrimitiveType type) {
-        checkPositive(toIndex, fromIndex, length);
-        to.checkAgainstLength(toIndex + length - 1);
-
-        int result;
-   
-        result = JCuda.cudaMemcpyAsync(
-                to.pointer.withByteOffset(toIndex * type.size),
-                fromCPUArray.withByteOffset(fromIndex * type.size),
-                length * type.size,
-                cudaMemcpyKind.cudaMemcpyHostToDevice,
-                handle.getStream()
-        );
-
-        if (result != cudaError.cudaSuccess) {
-            throw new RuntimeException("CUDA error: " + JCuda.cudaGetErrorString(result));
-        }
-
+    public Array1d(int size, int bytesPerElement) {
+        pointer = new CUdeviceptr();
+        this.bytesPerEntry = bytesPerElement;
+        opCheck(JCuda.cudaMalloc(pointer, size * bytesPerElement));
+        this.size = size;
+        allocatedArrays.add(pointer);
+        ld = 1;
     }
-    
-    
+
     /**
-     * Copies data from this GPU array to another GPU array.
+     * Creates a sub array from the given array.
      *
-     * @param to The destination GPU array.
-     * @param toIndex The index in the destination array to start copying to.
-     * @param fromIndex The index in this array to start copying from.
-     * @param length The number of elements to copy.
-     * @param handle The handle.
-     *
-     * @throws IllegalArgumentException if any index is out of bounds or length
-     * is negative.
+     * @param src The array copied from.
+     * @param start The start index in the array copied from where this array
+     * begins.
+     * @param size The number of elements in this array.
+     * @param ld The increment between elements.
+     */
+    public Array1d(Array src, int start, int size, int ld) {
+        bytesPerEntry = src.bytesPerEntry();
+        pointer = src.pointer().withByteOffset(start * bytesPerEntry);
+        this.size = size;
+        this.ld = src.ld() * ld;
+    }
+
+    /**
+     * {@inheritDoc}
      */
     @Override
-    public void get(Handle handle, Array3d to, int toIndex, int fromIndex, int length) {
-        
-        int error = JCuda.cudaMemcpyAsync(to.pointer(toIndex),
-                pointer(fromIndex),
-                length * bytesPerELement,
-                cudaMemcpyKind.cudaMemcpyDeviceToDevice,
-                handle.getStream()
-        );
-        if (error != cudaError.cudaSuccess)
-            throw new RuntimeException("cuda error " + cudaError.stringFor(error));
+    public Pointer pointer() {
+        return pointer;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public cudaPitchedPtr pitchedPointer() {
+        cudaPitchedPtr cpp = new cudaPitchedPtr();
+        cpp.ptr = pointer;
+        cpp.pitch = size * bytesPerEntry;
+        cpp.xsize = cpp.pitch;
+        cpp.ysize = 1;
+        return cpp;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int bytesPerEntry() {
+        return bytesPerEntry;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int size() {
+        return size;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void get(Handle handle, Array dst) {
+        if (ld() == 1)
+            opCheck(JCuda.cudaMemcpyAsync(
+                    dst.pointer(),
+                    pointer(),
+                    bytesPerLine(),
+                    cudaMemcpyKind.cudaMemcpyDeviceToDevice,
+                    handle.getStream()
+            ));
+        throw new UnsupportedOperationException("This opration is only supported for ld = 1.  You have ld = " + ld());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void get(Handle handle, Pointer dstCPUArray) {
+        if (ld() == 1) opCheck(JCuda.cudaMemcpyAsync(
+                    dstCPUArray,
+                    pointer(),
+                    bytesPerLine(),
+                    cudaMemcpyKind.cudaMemcpyDeviceToHost,
+                    handle.getStream()
+            ));
+        else
+            throw new UnsupportedOperationException("This opration is only supported for ld = 1.  You have ld = " + ld());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Array1d set(Handle handle, Pointer srcCPUArray) {
+        if (ld() == 1)
+            opCheck(JCuda.cudaMemcpyAsync(
+                    pointer(),
+                    srcCPUArray,
+                    bytesPerLine(),
+                    cudaMemcpyKind.cudaMemcpyHostToDevice,
+                    handle.getStream()
+            ));
+        else
+            throw new UnsupportedOperationException("This opration is only supported for ld = 1.  You have ld = " + ld());
+        return this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    abstract public Array copy(Handle handle);
+
+    /**
+     * This array represented as a 2d array.
+     *
+     * @param entriesPerLine The number of entries on each line of the 2d array.
+     * @return This array represented as a 2d array.
+     */
+    abstract public Array2d as2d(int entriesPerLine);
+
+    /**
+     * This array represented as a 2d array.
+     *
+     * @param entriesPerLine The number of entries on each line of the 2d array.
+     * @param ld The number of elements that could fit between the first
+     * elements of each row, if the padding were used.
+     * @return This array represented as a 2d array.
+     */
+    abstract public Array2d as2d(int entriesPerLine, int ld);
+
+    /**
+     * This array represented as a 2d array.
+     *
+     * @param entriesPerLine The number of entries on each line of the 2d array.
+     * @param linesPerLayer The number of lines on each layer of the 3d array.
+     * @return This array represented as a 2d array.
+     */
+    abstract public Array3d as3d(int entriesPerLine, int linesPerLayer);
+
+    /**
+     * This array represented as a 2d array.
+     *
+     * @param entriesPerLine The number of entries on each line of the 2d array.
+     * @param ld The number of elements that could fit between the first
+     * @param linesPerLayer The number of lines on each layer of the 3d array.
+     * @return This array represented as a 2d array.
+     */
+    abstract public Array3d as3d(int entriesPerLine, int ld, int linesPerLayer);
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int ld() {
+        return ld;
+    }
+
+    /**
+     *
+     * @param start The starting index of the sub array.
+     * @param size The number of elements in the sub array.     
+     * @return A sub array of this array.
+     */
+    public abstract Array1d sub(int start, int size);
+    
+    
+    /**
+     *
+     * @param start The starting index of the sub array.
+     * @param size The number of elements in the sub array.
+     * @param ld The increment between elements of the sub array.
+     * @return A sub array of this array.
+     */
+    public abstract Array1d sub(int start, int size, int ld);
 }

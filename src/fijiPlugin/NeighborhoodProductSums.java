@@ -4,7 +4,7 @@ import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.algebra.TensorOrd3StrideDim;
 import JCudaWrapper.algebra.Vector;
 import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.DArray3d;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
@@ -82,9 +82,9 @@ public class NeighborhoodProductSums extends TensorOrd3StrideDim implements Auto
          * @param dir The dimension, 0 for X, 1 for Y, and 2 for Z.
          * @param toInc The increment of the the destination matrices.
          */
-        public void mapNeighborhoodSum(DArray from, DArray to, int toInc) {
+        public void mapNeighborhoodSum(DArray3d from, DArray3d to, int toInc) {
 
-            nSum.map(handle,
+            nSum.run(handle,
                     numThreads,
                     from,
                     P.to(to),

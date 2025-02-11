@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import javax.imageio.ImageIO;
 import JCudaWrapper.resourceManagement.Handle;
-import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.DArray3d;
 import JCudaWrapper.array.IArray;
 import java.awt.image.WritableRaster;
 
@@ -75,7 +75,7 @@ public class NeighborhoodPIG implements AutoCloseable {
 
         Arrays.setAll(imageDataCPU, i -> raster.getSample(i / height, i % height, 0) / 255.0);
 
-        DArray imageDataGPU = new DArray(handle, imageDataCPU);
+        DArray3d imageDataGPU = new DArray3d(handle, imageDataCPU);
 
         Matrix mat = new Matrix(
                 handle,

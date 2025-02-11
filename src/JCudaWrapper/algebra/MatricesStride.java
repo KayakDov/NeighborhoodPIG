@@ -1,8 +1,9 @@
 package JCudaWrapper.algebra;
 
 import JCudaWrapper.algebra.Eigen;
-import JCudaWrapper.array.DArray;
-import JCudaWrapper.array.DStrideArray;
+import JCudaWrapper.array.DArray2d;
+import JCudaWrapper.array.DArray3d;
+import JCudaWrapper.array.DLineArray;
 import JCudaWrapper.array.DPointerArray;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.Kernel;
@@ -11,6 +12,7 @@ import java.util.Arrays;
 import org.apache.commons.math3.exception.DimensionMismatchException;
 import JCudaWrapper.resourceManagement.Handle;
 import java.awt.Dimension;
+import JCudaWrapper.array.DStrideArray;
 
 /**
  * This class provides methods for handling a batch of strided matrices stored
@@ -25,7 +27,7 @@ import java.awt.Dimension;
  *
  * @author E. Dov Neimand
  */
-public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
+public class MatricesStride extends TensorOrd3Stride {
 
     /**
      * Constructor for creating a batch of strided matrices. Each matrix is
@@ -41,9 +43,8 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
      * @param batchSize The number of matrices in this batch.
      */
     public MatricesStride(Handle handle, int height, int width, int stride, int batchSize) {
-        this(
-                handle,
-                new DArray(DStrideArray.totalDataLength(stride, width * height, batchSize)),
+        this(handle,
+                new DArray3d(DStrideArray.totalDataLength(stride, width * height, batchSize)),
                 height,
                 width,
                 height,
@@ -63,7 +64,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
      * @param strideSize How far between the first elements of each matrix.
      * @param batchSize The number of matrices in this batch.
      */
-    public MatricesStride(Handle handle, DArray data, int height, int width, int colDist, int strideSize, int batchSize) {
+    public MatricesStride(Handle handle, DLineArray data, int height, int width, int colDist, int strideSize, int batchSize) {
         super(handle, height, width, 1, colDist, colDist * width, strideSize, batchSize, data);
     }
 
@@ -200,7 +201,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
      * @param workSpace Should be width * height.
      * @return this
      */
-    public MatricesStride multiply(double scalar, DArray workSpace) {
+    public MatricesStride multiply(double scalar, DArray3d workSpace) {
         add(false, scalar, this, 0, workSpace);
         return this;
     }
@@ -292,7 +293,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
 //        return vals;
     }
 
-    private static DArray negOnes3;
+    private static DArray3d negOnes3;
 
     /**
      * A vector of 3 negative ones.
@@ -300,7 +301,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
      * @return A vector of 3 negative ones.
      */
     private static VectorsStride negOnes3(Handle handle, int batchSize) {
-        if (negOnes3 == null) negOnes3 = new DArray(3).fill(handle, -1, 1);
+        if (negOnes3 == null) negOnes3 = new DArray3d(3).fill(handle, -1, 1);
         return new VectorsStride(handle, negOnes3, 1, 3, 0, batchSize);
     }
 
@@ -399,20 +400,20 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
             //c is free for now.  
             Vector theta = c;
             Vector pInverse = root[1].fill(1).ebeDivide(p); //c is now taken               
-            sqrt.map(b.getHandle(), pInverse.dim(), pInverse.data, P.to(pInverse.inc()), P.to(theta), P.to(theta.inc()));
+            sqrt.run(b.getHandle(), pInverse.dim(), pInverse.data, P.to(pInverse.inc()), P.to(theta), P.to(theta.inc()));
 
             theta.addEbeProduct(-0.5, q, theta, 0);//root[0] is now free (all roots).
             theta.ebeSetProduct(theta, pInverse); //c is now free.
-            acos.map(b.getHandle(), theta.dim(), theta.array(), 
+            acos.run(b.getHandle(), theta.dim(), theta.array(), 
                     P.to(theta.inc()), P.to(theta), P.to(theta.inc()));
 
             for (int k = 0; k < 3; k++)
                 root[k].set(theta).add(-2 * Math.PI * k);
 
             roots.data.multiply(b.getHandle(), 1.0 / 3, 1);
-            cos.map(b.getHandle(), roots.data.length, roots.data, P.to(1), P.to(roots.data), P.to(1));
+            cos.run(b.getHandle(), roots.data.length, roots.data, P.to(1), P.to(roots.data), P.to(1));
 
-            sqrt.map(b.getHandle(), p.dim(), p.data, P.to(p.inc()), P.to(p), P.to(p.inc()));
+            sqrt.run(b.getHandle(), p.dim(), p.data, P.to(p.inc()), P.to(p), P.to(p.inc()));
             for (Vector r : root) {
                 r.addEbeProduct(2, p, r, 0);
                 r.add(-1.0 / 3, b);
@@ -458,7 +459,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
      * @param underlyingData data in need of batch dimensions.
      * @return The given data with this's dimensions.
      */
-    public MatricesStride copyDimensions(DArray underlyingData) {
+    public MatricesStride copyDimensions(DArray3d underlyingData) {
         return new MatricesStride(
                 handle,
                 underlyingData,
@@ -504,9 +505,9 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
      * @return The eigenvectors.
      *
      */
-    public MatricesStride computeVecs(VectorsStride eValues, DArray workSpaceDArray, IArray workSpaceIArray, double tolerance) {
+    public MatricesStride computeVecs(VectorsStride eValues, DArray3d workSpaceDArray, IArray workSpaceIArray, double tolerance) {
 
-        MatricesStride eVectors = copyDimensions(new DArray(data.length));
+        MatricesStride eVectors = copyDimensions(new DArray3d(data.length));
 
         Kernel.run("eigenVecBatch", handle,
                 eValues.dim() * eValues.batchSize,
@@ -546,9 +547,9 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
      * @return The eigenvectors.
      *
      */
-    public MatricesStride computeVecs3x3(VectorsStride eValues, DArray workSpaceArray, double tolerance) {
+    public MatricesStride computeVecs3x3(VectorsStride eValues, DArray3d workSpaceArray, double tolerance) {
 
-        MatricesStride eVectors = copyDimensions(new DArray(data.length));
+        MatricesStride eVectors = copyDimensions(new DArray3d(data.length));
 
         System.out.println("JCudaWrapper.algebra.MatricesStride.computeVecs3x3() " + batchSize * 3);
 
@@ -653,7 +654,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
      * @param copyTo becomes a copy of this matrix.
      * @return the copy.
      */
-    public MatricesStride copy(DArray copyTo) {
+    public MatricesStride copy(DArray3d copyTo) {
         copyTo.set(handle, data, 0, 0, data.length);
 
         return copyDimensions(copyTo);
@@ -662,14 +663,14 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
     public static void main(String[] args) {
         try (
                 Handle handle = new Handle();
-                DArray array = new DArray(handle, 0, 2, 0, 3/*, 9, 11, 11, 12, 5, 6, 6, 8, 1, 0, 0, 0*/)) {
+                DArray3d array = new DArray3d(handle, 0, 2, 0, 3/*, 9, 11, 11, 12, 5, 6, 6, 8, 1, 0, 0, 0*/)) {
 
             int numMatrices = 1;
 
             MatricesStride ms = new MatricesStride(handle, array, 2, 2, 2, 4, numMatrices);
 
             Matrix[] m = new Matrix[1];
-            Arrays.setAll(m, i -> new Matrix(handle, array.subArray(i * 4), 2, 2));
+            Arrays.setAll(m, i -> new Matrix(handle, array.subArray(i * 4)));
             for (int i = 0; i < m.length; i++) m[i].power(2);
 
             System.out.println("matrices:\n" + ms);
@@ -797,7 +798,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
             else if (height == 1) data.fill(handle, scalar, colDist);
             else data.fillMatrix(handle, height, totalWidth(), colDist, scalar);
         } else {
-            try (DArray workSpace = new DArray(width * width)) {
+            try (DArray3d workSpace = new DArray3d(width * width)) {
 
                 MatricesStride empty = new Matrix(handle, workSpace, height, width).repeating(data.batchSize);
 
@@ -826,7 +827,7 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
      * @param workSpace workspace should be width^2 length.
      * @return
      */
-    public MatricesStride add(boolean transpose, double timesToAdd, MatricesStride toAdd, double timesThis, DArray workSpace) {
+    public MatricesStride add(boolean transpose, double timesToAdd, MatricesStride toAdd, double timesThis, DArray3d workSpace) {
 
         Matrix id = Matrix.identity(handle, width, workSpace);
 
@@ -839,12 +840,12 @@ public class MatricesStride extends TensorOrd3Stride implements ColumnMajor {
      *
      * @return These matrices.
      */
-    public MatricesStride diagnolize(DArray pivot) {
+    public MatricesStride diagnolize(DArray3d pivot) {
         throw new UnsupportedOperationException("This method is not yet written.");
     }
 
     @Override
-    public int getColDist() {
+    public int colDist() {
         return colDist;
     }
 

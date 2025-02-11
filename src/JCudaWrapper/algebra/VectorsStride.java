@@ -1,11 +1,12 @@
 package JCudaWrapper.algebra;
 
 import JCudaWrapper.array.DArray;
-import JCudaWrapper.array.DStrideArray;
+import JCudaWrapper.array.DArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import java.util.Arrays;
 import JCudaWrapper.resourceManagement.Handle;
+import JCudaWrapper.array.DStrideArray;
 
 /**
  *
@@ -38,9 +39,8 @@ public class VectorsStride extends MatricesStride {
      * @param inc The increment of each subvector.
      */
     public VectorsStride(Handle handle, int strideSize, int batchSize, int subVecDim, int inc) {
-        this(
-                handle,
-                new DArray(DStrideArray.totalDataLength(strideSize, inc * subVecDim, batchSize)),
+        this(handle,
+                new DArray3d(DStrideArray.totalDataLength(strideSize, inc * subVecDim, batchSize)),
                 inc,
                 subVecDim,
                 strideSize,
@@ -78,7 +78,7 @@ public class VectorsStride extends MatricesStride {
      * @return The number of elements in each sub array.
      */
     public int getSubVecDim() {
-        return (int)Math.ceil((double)data.subArrayLength/ colDist);
+        return (int)Math.ceil((double)data.subArraySize/ colDist);
     }
 
     /**
@@ -175,7 +175,7 @@ public class VectorsStride extends MatricesStride {
     /**
      * @see MatricesStride#add(boolean, double, JCudaWrapper.algebra.MatricesStride, double, JCudaWrapper.array.DArray)
      */
-    public VectorsStride add(boolean transpose, double timesToAdd, VectorsStride toAdd, double timesThis, DArray workSpace) {
+    public VectorsStride add(boolean transpose, double timesToAdd, VectorsStride toAdd, double timesThis, DArray3d workSpace) {
         super.add(transpose, timesToAdd, toAdd, timesThis, workSpace);
         return this;
     }
@@ -216,7 +216,7 @@ public class VectorsStride extends MatricesStride {
      * column distance.
      */
     public int inc() {
-        return super.getColDist(); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
+        return super.colDist(); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/OverriddenMethodBody
     }
 
     /**
@@ -225,7 +225,7 @@ public class VectorsStride extends MatricesStride {
      * @param normsGoHere This array will hold the norm of each vector.
      * @return
      */
-    public Vector norms(DArray normsGoHere) {
+    public Vector norms(DArray3d normsGoHere) {
         Vector norms = new Vector(handle, normsGoHere, 1);
         norms.addBatchVecVecMult(1, this, this, 0);
         Kernel.run("sqrt", handle, norms.dim(), norms.array(), P.to(norms.inc()), P.to(norms), P.to(norms.inc()));
@@ -240,7 +240,7 @@ public class VectorsStride extends MatricesStride {
      * @param workSpace Should be 2 * batchSize in length.
      * @return this.
      */
-    public VectorsStride setVectorMagnitudes(double magnitude, DArray workSpace) {
+    public VectorsStride setVectorMagnitudes(double magnitude, DArray3d workSpace) {
         Vector norms = norms(workSpace.subArray(0, data.batchSize));
 
         Vector normsInverted = new Vector(handle, workSpace.subArray(data.batchSize), 1)

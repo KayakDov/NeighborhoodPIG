@@ -1,6 +1,6 @@
 package JCudaWrapper.algebra;
 
-import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.DArray3d;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.resourceManagement.Handle;
 
@@ -23,11 +23,11 @@ public class Eigen implements AutoCloseable {
      */
     public Eigen(MatricesStride mats, double tolerance) {
 
-        try (DArray workSpaceD = new DArray(mats.width * mats.array().length);
+        try (DArray3d workSpaceD = new DArray3d(mats.width * mats.array().size());
                 IArray workSpaceI = new IArray(mats.width * mats.width * mats.batchSize)) {
 
             values = mats.height == 2
-                    ? mats.computeVals2x2(new Vector(mats.getHandle(), workSpaceD.subArray(0, mats.getBatchSize()), 1))
+                    ? mats.computeVals2x2(new Vector(mats.getHandle(), workSpaceD.sub(0, mats.getBatchSize()), 1))
                     : mats.computeVals3x3(tolerance);
 
             vectors = mats.computeVecs(values, workSpaceD, workSpaceI, tolerance);            
@@ -39,7 +39,7 @@ public class Eigen implements AutoCloseable {
     
     public static void main(String[] args) {
         try (Handle handle = new Handle();
-                DArray array = new DArray(handle, 6, 0, 0,   0, 0, 0,   0, 0, 0, 1, 0, 1, 0, 2, 1, 1, 1, 3);) {
+                DArray3d array = new DArray3d(handle, 6, 0, 0,   0, 0, 0,   0, 0, 0, 1, 0, 1, 0, 2, 1, 1, 1, 3);) {
 
             MatricesStride mst = new MatricesStride(handle, array, 3, 3, 3, 9, 1);
 

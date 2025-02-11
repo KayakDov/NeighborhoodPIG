@@ -1,27 +1,26 @@
 
 package JCudaWrapper.algebra;
 
-import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.Array;
+import JCudaWrapper.array.DArray3d;
 import JCudaWrapper.resourceManagement.Handle;
 
 /**
  * A 3d matrix class.
  * @author E. Dov Neimand
  */
-public class TensorOrd3 extends MatricesStride{
+public class TensorOrd3 extends TensorOrd3StrideDim {
+    
+    private final DArray3d data;
     
     /**
      * Constructor for a 3d matrix
      * @param handle  The handle.
      * @param data The underlying data.
-     * @param height The height of the matrix (number of columns).
-     * @param width The width of the matrix (number of rows).
-     * @param depth Thee depth of the matrix (number of layers).
-     * @param colDist The distance between the first element of each column.
-     * @param layerDist The distance between the first element of each layer.
      */
-    public TensorOrd3(Handle handle, DArray data, int height, int width, int depth, int colDist, int layerDist) {
-        super(handle, data, height, width, colDist, layerDist, depth);
+    public TensorOrd3(Handle handle, DArray3d data) {
+        super(handle, data.entriesPerLine(), data.linesPerLayer(), data.linesPerLayer(), 1);
+        this.data = data;
     }
     
     /**
@@ -32,7 +31,8 @@ public class TensorOrd3 extends MatricesStride{
      * @param depth Thee depth of the matrix (number of layers).
      */
     public TensorOrd3(Handle handle, int height, int width, int depth) {
-        super(handle, height, width, depth);
+        super(handle, height, width, depth,1);
+        data = new DArray3d(height, width, depth);
     }
 
     /**
@@ -40,7 +40,7 @@ public class TensorOrd3 extends MatricesStride{
      * @return The distance between the first element of each layer.
      */
     public int layerDist(){
-        return getStrideSize();
+        return data.ld()*width;
     }
     
     /**
@@ -51,21 +51,21 @@ public class TensorOrd3 extends MatricesStride{
      * @return The column major index of the desired element.
      */
     private int index(int row, int col, int layer){
-        return layer*layerDist() + col*colDist + row;
+        return layer*layerDist() + col*colDist() + row;
     }
     
     /**
      * A sub Matrix.
      * @param startRow The startinf row of the submatrix inclusive.
-     * @param endRow The end row of the submatrix exclusive.
+     * @param subHeight The end row of the submatrix exclusive.
      * @param startCol The starting column of the submatrix inclusive.
-     * @param endCol The end column of the submatrix exclusive.
+     * @param subWidth The width of the sub tensor
      * @param startLayer The starting layer of the matrix inlcusive.
-     * @param endLayer The end layer of the matrix exclusive.
+     * @param subDepth
      * @return The requested submatrix.
      */
-    public TensorOrd3 subMatrix(int startRow, int endRow, int startCol, int endCol, int startLayer, int endLayer){
-        return new TensorOrd3(handle, data.subArray(index(startRow, startCol, startLayer)), endRow - startRow, endCol - startCol, endLayer- startLayer, colDist, layerDist());
+    public TensorOrd3 subMatrix(int startRow, int subHeight, int startCol, int subWidth, int startLayer, int subDepth){
+        return new TensorOrd3(handle, data.sub(startRow, subHeight, startCol, subWidth, startLayer, subDepth));
     }
     
     /**
@@ -141,6 +141,28 @@ public class TensorOrd3 extends MatricesStride{
      */
     public TensorOrd3 setSum(double alpha, TensorOrd3 a, double beta, TensorOrd3 b){
         throw new UnsupportedOperationException();
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public DArray3d array() {
+        return data;
+    }
+
+    
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public void close() throws Exception {
+        data.close();
+    }
+
+    @Override
+    public int colDist() {
+        return data.ld();
     }
     
 }
