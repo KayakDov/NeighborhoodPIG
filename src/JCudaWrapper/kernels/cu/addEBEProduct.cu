@@ -38,7 +38,7 @@ extern "C" __global__ void addEBEProductKernel(
     
     int row = idx % heightSrc;
     int col = idx / heightSrc;
-    int indDst = (idx/heightDst) * ldDst + idx % heighDst;  
+    int indDst = (idx/heightDst) * ldDst + idx % heightDst;  
     dst[indDst] = timesThis * dst[indDst] + timesProduct * a[col * ldA + row] * b[col * ldB + row];
 }
 
