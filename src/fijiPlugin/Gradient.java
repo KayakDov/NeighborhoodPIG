@@ -25,7 +25,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
      *
      * @param handle The context
      * @param pic The pixel intensity values matrix.
-     * @param hand Handle to manage GPU memory or any other resources.
+     
      *
      */
     public Gradient(Handle handle, DStrideArray3d pic) {
@@ -35,7 +35,9 @@ public class Gradient extends Dimensions implements AutoCloseable {
         y = pic.copyDim();
         z = pic.copyDim();
 
-        try (IArray dim = new IArray1d(7).set(handle, new int[]{height, width, depth, batchSize, layerDist, tensorSize(), tensorSize() * batchSize})) {
+        int[] dimensions = new int[]{height, width, depth, batchSize, layerDist, tensorSize(), tensorSize() * batchSize};
+        
+        try (IArray1d dim = new IArray1d(7).set(handle, dimensions)) {
             
             Kernel.run("batchGradients", handle,
                     x.size()*3,

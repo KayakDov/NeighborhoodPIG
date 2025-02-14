@@ -48,16 +48,11 @@ public interface IArray extends Array {
         return this;
     }
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
     public default int bytesPerEntry() {
         return Sizeof.INT;
     }
-
-//
-//    @Override
-//    public default String toString() {
-//        try (Handle hand = new Handle()) {
-//            return Arrays.toString(get(hand));
-//        }
-//    }
 }

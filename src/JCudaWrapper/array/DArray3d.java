@@ -78,13 +78,18 @@ public class DArray3d extends Array3d implements DLineArray {
         super(src, entriesPerLine, ld, linesPerLayer);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String toString() {
 
-        try (Handle handle = new Handle()) {
-            return Arrays.toString(get(handle));
-        }
-
+        StringBuilder sb = new StringBuilder();
+        
+        for(int i = 0; i < numLayers(); i++)
+            sb.append(getLayer(i).toString()).append("\n");
+        
+        return sb.toString();
     }
 
     /**
@@ -138,4 +143,5 @@ public class DArray3d extends Array3d implements DLineArray {
     public Singleton get(int index) {
         return new DSingleton(this, index);
     }
+    
 }

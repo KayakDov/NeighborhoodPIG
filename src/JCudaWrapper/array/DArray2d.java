@@ -1,8 +1,10 @@
 package JCudaWrapper.array;
 
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.Arrays;
 import jcuda.Sizeof;
 import jcuda.jcublas.JCublas2;
+import jcuda.runtime.JCuda;
 
 /**
  *
@@ -187,7 +189,6 @@ public class DArray2d extends Array2d implements DLineArray {
         ));
     }
 
-
     /**
      *
      * Performs symmetric matrix-matrix multiplication using.
@@ -230,7 +231,6 @@ public class DArray2d extends Array2d implements DLineArray {
         return new DArray3d(this, entriesPerLine(), linesPerLayer);
     }
 
-    
     /**
      * {@inheritDoc }
      */
@@ -239,5 +239,18 @@ public class DArray2d extends Array2d implements DLineArray {
         return new DSingleton(this, index);
     }
 
-    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+        JCuda.cudaDeviceSynchronize();
+
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < entriesPerLine(); i++)
+            sb.append(entriesAt(i).toString()).append("\n");
+
+        return sb.toString();
+    }
 }

@@ -1,11 +1,13 @@
 package JCudaWrapper.array;
 
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.Arrays;
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.jcublas.JCublas2;
 import jcuda.jcublas.cublasDiagType;
 import jcuda.jcublas.cublasFillMode;
+import jcuda.runtime.JCuda;
 
 /**
  *
@@ -728,4 +730,17 @@ public class DArray1d extends Array1d implements DArray {
     public DArray1d sub(int start, int length, int ld){
         return new DArray1d(this, start, length, ld);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+        JCuda.cudaDeviceSynchronize();
+        try (Handle handle = new Handle()) {
+            return Arrays.toString(get(handle));
+        }
+    }
+    
+    
 }
