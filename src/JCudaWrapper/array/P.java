@@ -1,6 +1,5 @@
 package JCudaWrapper.array;
 
-import JCudaWrapper.algebra.ColumnMajor;
 import jcuda.Pointer;
 
 /**
@@ -50,13 +49,13 @@ public class P {
         return Pointer.to(a.pointer());
     }
         
-    /**
-     * Points to anything with underlying data.
-     * @param d The thing with data.
-     * @return A pointer to the thing with data.
-     */
-    public static Pointer to(ColumnMajor d) {
-        return to(d.array());
-    }
+//    /**
+//     * Points to anything with underlying data.
+//     * @param d The thing with data.
+//     * @return A pointer to the thing with data.
+//     */
+//    public static Pointer to(ColumnMajor d) {
+//        return to(d.array());
+//    }
         
 }

@@ -5,89 +5,101 @@
  */
 class Pixel {
 private:
-    const double* sourceMat;   /**< Pointer to the source matrix. */
-    double* targetMat;   /**< Pointer to the target matrix. */
-    const int stepSize;        /**< Step size for moving along the specified direction. */
-    const int toInc;           /**< Increment multiplier for accessing the target matrix. */
+    const double* srcMat;   /**< Pointer to the source matrix. */
+    const int srcStride;        /**< Step size for moving along the specified direction. */
+    double* dstMat;   /**< Pointer to the target matrix. */    
+    const int dstStride;           /**< Increment multiplier for accessing the target matrix. */
 
 public:
     /**
      * Constructs a Pixel instance.
      *
-     * @param sourceMat Pointer to the source matrix.
-     * @param targetMat Pointer to the target matrix.
-     * @param stepSize The step size for moving along a direction in the matrix.
-     * @param toInc The stride multiplier for accessing the target matrix.
+     * @param srcMat Pointer to the source matrix.
+     * @param dstMat Pointer to the target matrix.
+     * @param srcStride The step size for moving along a direction in the matrix.
+     * @param dstStride The stride multiplier for accessing the target matrix.
      */
-    __device__ Pixel(const double* sourceMat, double* targetMat, const int stepSize, const int toInc)
-        : sourceMat(sourceMat), targetMat(targetMat), stepSize(stepSize), toInc(toInc) {}
+    __device__ Pixel(const double* srcMat, double* dstMat, const int srcStride, const int dstStride)
+        : srcMat(srcMat), dstMat(dstMat), srcStride(srcStride), dstStride(dstStride) {}
 
     /**
      * Retrieves the value from the source matrix at the current position plus an offset.
      *
-     * @param offset The offset to apply (in units of `stepSize`).
+     * @param offset The offset to apply (in units of `srcStride`).
      * @return The value from the source matrix.
      */
     __device__ double sourceValue(int offset = 0) const {
-        return sourceMat[offset * stepSize];
+        return srcMat[offset * srcStride];
     }
 
     /**
      * Accesses the value in the target matrix at the current position plus an offset.
      *
-     * @param offset The offset to apply (in units of `stepSize`).
+     * @param offset The offset to apply (in units of `srcStride`).
      * @return Reference to the value in the target matrix.
      */
     __device__ double& targetValue(int offset = 0) {
-        return targetMat[offset * stepSize * toInc];
+        return dstMat[offset * dstStride];
     }
 
     /**
      * Advances the pixel to the next position along the direction.
      */
     __device__ void move() {
-        sourceMat += stepSize;
-        targetMat += stepSize * toInc;
+        srcMat += srcStride;
+        dstMat += dstStride;
     }
 };
 
 /**
  * CUDA kernel for computing a rolling neighborhood sum over a 2D or 3D matrix along a specified direction.
  *
- * @param sourceMat Pointer to the source matrix in global memory.
- * @param targetMat Pointer to the target matrix in global memory.
+ * @param srcMat Pointer to the source matrix in global memory.
+ * @param dstMat Pointer to the target matrix in global memory.
  * @param height The height of the matrix.
  * @param width The width of the matrix.
+ * @param ldDst If the destination is a matrix, then this is the leading dimension.  If it is a vector, then this is the increment.
  * @param depth The depth of the matrix (3rd dimension).
- * @param toInc The stride multiplier for accessing the target matrix.
- * @param stepSize The size of each step in the 1d array to move through the relivant tensor dimension.
+ * @param dstStride The stride multiplier for accessing the target matrix.
+ * @param srcStride The size of each step in the 1d array to move through the relivant tensor dimension.
  * @param numSteps The number of steps to be taken in the desired dimension.
  * @param neighborhoodSize The size of the neighborhood window for summation.
  * @param dir Direction of operation: 0 (row), 1 (column), or 2 (depth).
  */
 extern "C" __global__ void neighborhoodSum3dKernel(
     const int n,
-    const double* sourceMat,
-    double* targetMat,
-    const int height, const int width, const int depth,
-    const int stepSize, const int numSteps,
-    const int toInc,
+    const double* srcMat,
+    double* dstMat,
+    const int height, const int width, const int depth, const int ldSrc, const int ldDst,
+    const int srcStride, const int dstStride, const int numSteps,
     const int neighborhoodSize,
-    const int dir
+    const int dir,
+    const bool dstIsMatrix
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= n) return; // Out-of-bounds thread
 
     // Initialize starting position and step sizes
-    int startIdx;
+    int srcStart, dstStart;
+    int row = idx % height, col = idx / height;
     switch (dir) {
-        case 0: startIdx = (idx % height) + (idx / height) * (height * width); break;  // Row-wise
-        case 1: startIdx = idx * height; break; // Column-wise            
-        case 2: startIdx = idx; //depth-wise
+        case 0: 
+            srcStart = row +  col * width * ldSrc;
+            dstStart = dstIsMatrix ? row +  col * width * ldDst :  (row + col * height * width) * ldDst;
+        break;  // Row-wise        
+        case 1: 
+            srcStart = idx * ldSrc;
+	    dstStart = dstIsMatrix ? idx * ldDst : idx * height * ldDst;
+        break; // Column-wise
+        case 2: 
+            int wd = width * depth, hw = height*width;
+            srcStart = col*ldSrc + row + idx/hw *ldSrc * wd;
+            dstStart = dstIsMatrix ?  col*ldDst + row + idx/hw * ldDst * wd: (col*height + row + idx/hw * height * wd) * ldDst;
+        //depth-wise
     }
 
-    Pixel pixel(sourceMat + startIdx, targetMat + startIdx * toInc, stepSize, toInc);
+    Pixel pixel(srcMat + srcStart, dstMat + dstStart, srcStride, dstStride);
 
     double rollingSum = 0;
     for (int i = 0; i <= neighborhoodSize; i++)

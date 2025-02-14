@@ -1,11 +1,7 @@
 package fijiPlugin;
 
-import JCudaWrapper.algebra.ColumnMajor;
-import JCudaWrapper.algebra.Eigen;
-import JCudaWrapper.algebra.MatricesStride;
-import JCudaWrapper.algebra.Matrix;
-import JCudaWrapper.algebra.TensorOrd3Stride;
 import JCudaWrapper.array.DArray3d;
+import JCudaWrapper.array.DStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
@@ -14,50 +10,41 @@ import JCudaWrapper.resourceManagement.Handle;
  *
  * @author E. Dov Neimand
  */
-public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
+public class StructureTensorMatrix implements AutoCloseable {
 
-    /**
-     * This matrix is a row of tensors. The height of this matrix is the height
-     * of one tensor and the length of this matrix is the number of pixels times
-     * the length of a tensor. The order of the tensors is column major, that
-     * is, the first tensor corresponds to the pixel at column 0 row 0, the
-     * second tensor corresponds to the pixel at column 0 row 1, etc...
-     */
-    private final MatricesStride strctTensors;
-    private final Eigen eigen;
-    private final TensorOrd3Stride orientationXY, orientationYZ, coherence;
+    private final Eigan eigen;
+    private final DStrideArray3d orientationXY, orientationYZ, coherence;
     private final Handle handle;
 
     /**
      * Finds the structure tensor for every pixel in the image and stores them
      * in a column major format.
      *
+     * @param handle The context.
      * @param grad The pixel intensity gradient of the image.
      * @param neighborhoodRad A square window considered a neighborhood around a
      * point. This is the distance from the center of the square to the nearest
      * point on the edge.
      * @param tolerance How close a number be to 0 to be considered 0.
      */
-    public StructureTensorMatrix(Gradient grad, int neighborhoodRad, double tolerance) {
+    public StructureTensorMatrix(Handle handle, Gradient grad, int neighborhoodRad, double tolerance) {
 
-        handle = grad.x().handle;
+        this.handle = handle;
+        
+        eigen = new Eigan(neighborhoodRad, handle, tolerance);
 
-        strctTensors = new MatricesStride(handle, 3, grad.size());
-
-        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, neighborhoodRad, grad.x())) {
-            nps.set(grad.x(), grad.x(), strctTensors.matIndices(0, 0));
-            nps.set(grad.x(), grad.y(), strctTensors.matIndices(0, 1));
-            nps.set(grad.y(), grad.y(), strctTensors.matIndices(1, 1));
-            nps.set(grad.x(), grad.z(), strctTensors.matIndices(0, 2));
-            nps.set(grad.y(), grad.z(), strctTensors.matIndices(1, 2));
-            nps.set(grad.z(), grad.z(), strctTensors.matIndices(2, 2));
+        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, neighborhoodRad, grad.x)) {
+            nps.set(grad.x, grad.x, eigen.depth(0, 0));
+            nps.set(grad.x, grad.y, eigen.depth(0, 1));
+            nps.set(grad.y, grad.y, eigen.depth(1, 1));
+            nps.set(grad.x, grad.z, eigen.depth(0, 2));
+            nps.set(grad.y, grad.z, eigen.depth(1, 2));
+            nps.set(grad.z, grad.z, eigen.depth(2, 2));
         }
 
-        strctTensors.matIndices(1, 0).set(strctTensors.matIndices(0, 1));
-        strctTensors.matIndices(2, 0).set(strctTensors.matIndices(0, 2));
-        strctTensors.matIndices(2, 1).set(strctTensors.matIndices(1, 2));
+        eigen.copyLowerTriangleToUpper();
 
-        eigen = new Eigen(strctTensors, tolerance);
+        eigen.setEigenVals().setEiganVectors();
         
         
 //        int problemMat = eigen.vectors.firstTensorIndexOfNaN();//TODO: delete this
@@ -68,43 +55,43 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 //        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() vectors\n" + eigen.vectors.getTensor(problemMat));
 
 
-        orientationXY = grad.x().emptyCopyDimensions();
-        orientationYZ = grad.x().emptyCopyDimensions();
-        coherence = grad.x().emptyCopyDimensions();
+        orientationXY = grad.x.copyDim();
+        orientationYZ = grad.x.copyDim();
+        coherence = grad.x.copyDim();
 
         setVecs0ToPi();
         setCoherence(tolerance);
         setOrientations();
     }
-
-    /**
-     * Gets the structure tensor from pixel at the given row and column of the
-     * picture.
-     *
-     * @param row The row of the desired pixel.
-     * @param col The column of the desired pixel.
-     * @param layer The desired layer of the tensor.
-     * @param frame The desired frame of the tensor.
-     * @return The structure tensor for the given row and column.
-     */
-    public Matrix getTensor(int row, int col, int layer, int frame) {
-
-        return strctTensors.getMatrix(index(row, col) + layer*orientationXY.layerDist + frame*orientationXY.strideSize);
-    }
+//
+//    /**
+//     * Gets the structure tensor from pixel at the given row and column of the
+//     * picture.
+//     *
+//     * @param row The row of the desired pixel.
+//     * @param col The column of the desired pixel.
+//     * @param layer The desired layer of the tensor.
+//     * @param frame The desired frame of the tensor.
+//     * @return The structure tensor for the given row and column.
+//     */
+//    public Matrix getTensor(int row, int col, int layer, int frame) {
+//
+//        return strctTensors.getMatrix(index(row, col) + layer*orientationXY.layerDist + frame*orientationXY.strideSize);
+//    }
 
     /**
      * All the eigen vectors with y less than 0 are mulitplied by -1.
      *
      * @return The eigenvectors.
      */
-    public final MatricesStride setVecs0ToPi() {
-        MatricesStride eVecs = eigen.vectors;
+    public final DArray3d setVecs0ToPi() {
+        DArray3d eVecs = eigen.vectors;
         Kernel.run("vecToNematic", handle,
-                eVecs.getBatchSize() * eVecs.width,
-                eVecs.array(),
-                P.to(eVecs.colDist),
+                eVecs.numLayers(),
+                eVecs,
+                P.to(eVecs.ld()),
                 P.to(eVecs),
-                P.to(eVecs.colDist)
+                P.to(eVecs.ld())
         );
         return eVecs;
     }
@@ -117,17 +104,18 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
 
         try (Kernel atan2 = new Kernel("atan2")) {
 
+            int eiganVecLayerStride = eigen.vectors.ld()*eigen.vectors.linesPerLayer();
             atan2.run(handle,
-                    orientationXY.array().length,
-                    eigen.vectors.array(),
-                    P.to(eigen.vectors.getStrideSize()),
+                    orientationXY.size(),
+                    eigen.vectors,
+                    P.to(eiganVecLayerStride),
                     P.to(orientationXY),
                     P.to(1)
             );
             atan2.run(handle,
-                    orientationXY.array().length,
-                    eigen.vectors.array().subArray(1),
-                    P.to(eigen.vectors.getStrideSize()),
+                    orientationXY.size(),
+                    eigen.vectors,
+                    P.to(eiganVecLayerStride),
                     P.to(orientationYZ),
                     P.to(1)
             );
@@ -142,13 +130,13 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      * @param tolerance Numbers closer to 0 than may be considered 0.
      * @return The coherence matrix.
      */
-    public final TensorOrd3Stride setCoherence(double tolerance) {
+    public final DStrideArray3d setCoherence(double tolerance) {
         Kernel.run("coherence", handle, 
                 coherence.size(), 
-                eigen.values.array(), 
-                P.to(eigen.values.strideSize),
+                eigen.values, 
+                P.to(eigen.values.entriesPerLine()),
                 P.to(coherence),
-                P.to(eigen.values.dim() == 3),
+                P.to(eigen.values.entriesPerLine() == 3),
                 P.to(tolerance)
         );
         
@@ -160,7 +148,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      *
      * @return The coherence matrix.
      */
-    public TensorOrd3Stride getCoherence() {
+    public DStrideArray3d getCoherence() {
         return coherence;
     }
 
@@ -169,7 +157,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      *
      * @return Thew matrix of orientations.
      */
-    public TensorOrd3Stride getOrientationXY() {
+    public DStrideArray3d getOrientationXY() {
         return orientationXY;
     }
 
@@ -178,7 +166,7 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      *
      * @return Thew matrix of orientations.
      */
-    public TensorOrd3Stride getOrientationYZ() {
+    public DStrideArray3d getOrientationYZ() {
         return orientationYZ;
     }
 
@@ -187,35 +175,21 @@ public class StructureTensorMatrix implements AutoCloseable, ColumnMajor {
      */
     @Override
     public void close() {
-        strctTensors.close();
+        
         eigen.close();
         orientationXY.close();
         orientationYZ.close();
         coherence.close();
     }
 
-    @Override
-    public int colDist() {
-        return orientationXY.colDist;
-    }
 
     /**
      * The eigenvalues and vectors of the structure tensors.
      *
      * @return The eigenvalues and vectors of the structure tensors.
      */
-    public Eigen getEigen() {
+    public Eigan getEigen() {
         return eigen;
-    }
-
-    /**
-     * The data for the array of structure tensors.
-     *
-     * @return
-     */
-    @Override
-    public DArray3d array() {
-        return strctTensors.array();
     }
 
 }

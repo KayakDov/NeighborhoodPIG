@@ -8,7 +8,30 @@ import jcuda.runtime.cudaError;
  *
  * @author E. Dov Neimand
  */
-public class DStrideArray2d extends Array2d implements DStrideArray {
+public class DStrideArray2d extends DArray2d implements StrideArray {
+
+    /**
+     * Creates a bunch of consecutive 2d arrays.
+     * @param numLines The number of lines in each array.
+     * @param entriesPerLine The number of entries in each line.
+     * @param batchSize The number of 2d arrays.
+     */
+    public DStrideArray2d(int entriesPerLine, int numLines, int batchSize) {
+        super(entriesPerLine, numLines*batchSize);
+        this.stride = linesPerLayer()*ld();
+        this.batchSize = batchSize;
+        this.subArraySize = linesPerLayer() * entriesPerLine();
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public final int linesPerLayer() {
+        return super.linesPerLayer()/batchSize;
+    }
+    
+    
 
     
     /**
@@ -33,7 +56,7 @@ public class DStrideArray2d extends Array2d implements DStrideArray {
      * adding the matrix-matrix product.
      *
      */
-    public void addProduct(Handle handle, boolean transA, boolean transB, double timesAB, DStrideArray matA, DStrideArray matB, double timesResult) {
+    public void addProduct(Handle handle, boolean transA, boolean transB, double timesAB, DStrideArray2d matA, DStrideArray2d matB, double timesResult) {
 
         int result = JCublas2.cublasDgemmStridedBatched(handle.get(),
                 Array.transpose(transA), Array.transpose(transB),
@@ -51,49 +74,83 @@ public class DStrideArray2d extends Array2d implements DStrideArray {
     
     public final int stride, batchSize, subArraySize;
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
     public int size() {
         return super.size()*batchSize();
     }
     
+    /**
+     * {@inheritDoc }
+     */
     @Override
     public DArray1d as1d() {
         return new DArray1d(this, 0, size(), 1);
     }
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
-    public Array2d as2d() {
+    public DArray2d as2d() {
         return this;
     }
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
     public DArray3d as3d(int linesPerLayer) {
         return new DArray3d(this, entriesPerLine(), linesPerLayer);
     }
 
+    public DStrideArray2d set(Handle handle, DStrideArray2d from) {
+        super.set(handle, from); 
+        return this;
+    }
+    
+    
+    /**
+     * {@inheritDoc }
+     */
     @Override
-    public Array copy(Handle handle) {
-        return new DStrideArray2d().set(handle, this);
+    public DStrideArray2d copy(Handle handle) {
+        return new DStrideArray2d(entriesPerLine(), linesPerLayer(), batchSize())
+                .set(handle, this);
     }
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
     public int stride() {
         return stride;
     }
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
     public int batchSize() {
         return batchSize;
     }
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
     public int subArraySize() {
         return subArraySize;
     }
 
+    /**
+     * {@inheritDoc }
+     */
     @Override
     public DArray2d getSubArray(int arrayIndex) {
-        return new DArray2d(this, arrayIndex*ld()*linesPerLayer(), linesPerLayer(), 0, entriesPerLine());
+        return new DArray2d(this, 0, entriesPerLine(), arrayIndex*ld()*linesPerLayer(), linesPerLayer());
     }
 
 }

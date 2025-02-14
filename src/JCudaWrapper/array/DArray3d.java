@@ -120,5 +120,22 @@ public class DArray3d extends Array3d implements DLineArray {
     public DArray3d as3d(int linesPerLayer) {
         return this;
     }
+    
+    /**
+     * returns the desired layer of this array.
+     * @param layerIndex The index of the desired layer.
+     * @return The layer at the given index.
+     */
+    public DArray2d getLayer(int layerIndex){
+        return new DArray2d(this, 0, entriesPerLine(), layerIndex * linesPerLayer(), linesPerLayer());
+    }
 
+    
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public Singleton get(int index) {
+        return new DSingleton(this, index);
+    }
 }

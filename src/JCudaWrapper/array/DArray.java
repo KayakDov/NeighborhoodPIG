@@ -40,12 +40,10 @@ public interface DArray extends Array {
 
         if (ld() > 1) 
             try (DArray1d gpuArray = new DArray1d(size())) {
-                get(handle, gpuArray);
-                gpuArray.get(handle, Pointer.to(export));
-            }
-        else get(handle, Pointer.to(export));
+            get(handle, gpuArray);
+            gpuArray.get(handle, Pointer.to(export));
+        } else get(handle, Pointer.to(export));
 
-        
         handle.synch();
 
         return export;
@@ -63,10 +61,6 @@ public interface DArray extends Array {
         return this;
     }
 
-    
-
-    
-
     /**
      * Fills a matrix with a scalar value directly on the GPU using a CUDA
      * kernel.
@@ -79,27 +73,11 @@ public interface DArray extends Array {
      *
      * @param handle A handle.
      * @param fill the scalar value to set all elements of A
-     * @param inc The increment with which the method iterates over the array.
-     * @param lineLength The number of elements in each line.
-     * @param ld The number of elements between the first element of each row.
      * @return this;
      */
-    public default DArray fill(Handle handle, double fill, int inc, int lineLength, int ld) {
-        Kernel.run("fill", handle, n(inc), this, P.to(inc), P.to(lineLength), P.to(ld), P.to(fill));
+    public default DArray fill(Handle handle, double fill) {
+        Kernel.run("fill", handle, size(), this, P.to(ld()), P.to(entriesPerLine()), P.to(ld()), P.to(fill));
         return this;
-    }
-
-
-    /**
-     * The maximum number of times something can be done at the requested
-     * increment.
-     *
-     * @param inc The increment between the elements that the something is done
-     * with.
-     * @return The number of times is can be done
-     */
-    default int n(int inc) {
-        return (int) Math.ceil((double) size() / inc);
     }
 
     /**
@@ -110,16 +88,8 @@ public interface DArray extends Array {
      * @param subArrayLength The number of elements in each subArray.
      * @return A representation of this array as a set of sub arrays.
      */
-    public default DStrideArray getAsBatch(int subArrayLength, int strideSize, int batchSize) {
+    public default DStrideArray1d getAsBatch(int subArrayLength, int strideSize, int batchSize) {
         return new DStrideArray1d(this, strideSize, subArrayLength, batchSize);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public default DSingleton get(int i) {
-        return new DSingleton(this, i);
     }
 
     /**
@@ -134,4 +104,80 @@ public interface DArray extends Array {
         set(handle, Pointer.to(srcCPUArray));
         return this;
     }
+
+    /**
+     * Performs matrix addition or subtraction. a and b may be vectors (matrices
+     * with 1 element per line) or matrices with identical number of elements
+     * per line.
+     *
+     * <p>
+     * This function computes C = alpha * A + beta * B, where A, B, and C are
+     * matrices.
+     * </p>
+     *
+     * @param handle the cuBLAS context handle
+     * @param transA specifies whether matrix A is transposed (CUBLAS_OP_N for
+     * no transpose, CUBLAS_OP_T for transpose, CUBLAS_OP_C for conjugate
+     * transpose)
+     * @param transB specifies whether matrix B is transposed (CUBLAS_OP_N for
+     * no transpose, CUBLAS_OP_T for transpose, CUBLAS_OP_C for conjugate
+     * transpose)
+     * @param alpha scalar used to multiply matrix A
+     * @param a pointer to matrix A
+     * @param beta scalar used to multiply matrix B
+     * @param b pointer to matrix B
+     * @return this
+     *
+     */
+    public default DArray setSum(Handle handle, boolean transA, boolean transB, double alpha, DArray a, double beta, DArray b) {
+
+        opCheck(JCublas2.cublasDgeam(handle.get(),
+                Array.transpose(transA), Array.transpose(transB),
+                entriesPerLine(), linesPerLayer(),
+                P.to(alpha), a.pointer(), a.ld(),
+                P.to(beta), b.pointer(), b.ld(),
+                pointer(), ld()
+        ));
+        return this;
+    }
+    
+    /**
+     * Multiplies src by a scalar and places the result here.
+     * @param handle THe context.
+     * @param src The array to be multiplied by a scalar.
+     * @param scalar The scalar.
+     * @return The product of the array the the scalar goes here.  This is returned.
+     */
+    public default DArray setProduct(Handle handle, DArray src, double scalar){
+        return setSum(handle, false, false, scalar, src, 0, null);
+    }
+    
+    /**
+     * A one dimensional representation of this array. 
+     * @return 
+     */
+    public default DArray1d as1d(){
+        return new DArray1d(this, 0, size(), 1);
+    }
+    
+    /**
+     * A 2 dimensional representation of this array. If this array is already
+     * 2d, then this array is returned. If it is 3d then each layer precedes the
+     * previous layers.
+     *
+     * @return A 2 dimensional representation of this array.
+     */    
+    public default DArray2d as2d(){
+        return new DArray2d(this, entriesPerLine());
+    }
+    
+    /**
+     * A 3d representation of this array.
+     * @param linesPerLayer
+     * @return A 3d representation of this array.
+     */
+    public default DArray3d as3d(int linesPerLayer){
+        return new DArray3d(this, entriesPerLine(), linesPerLayer);
+    }
+
 }

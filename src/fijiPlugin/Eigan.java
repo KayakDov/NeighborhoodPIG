@@ -13,10 +13,11 @@ import JCudaWrapper.resourceManagement.Handle;
  *
  * @author E. Dov Neimand
  */
-public class Eigan {
+public class Eigan implements AutoCloseable{//TODO fix spelling to eigen
 
     private final Handle handle;
     private final double tolerance;
+
 
     /**
      * Gets a depth (z dimensional column) of the
@@ -40,38 +41,52 @@ public class Eigan {
     /**
      * Each layer is the eiganvectors for the corresponding tensor.
      */
-    private DArray3d vectors;
+    public final DArray3d vectors;
 
-    public Eigan(int numPixels, Handle handle, N2To1dArrayBuilder array, double tolerance) {
+    public Eigan(int numPixels, Handle handle, double tolerance) {
         this.handle = handle;
         this.tolerance = tolerance;
         structureTensors = new DArray3d(3, 3, numPixels);
 
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j <= i; j++) {
-                DArray1d a = array.get(i, j);
-                a.get(handle, structureTensors.depth(i, j));
-                if (i != j) a.get(handle, structureTensors.depth(j, i));
-            }
-        values = new DArray2d(numPixels, 3);
-        setEigenVals();
+        values = new DArray2d(3, numPixels);
         vectors = new DArray3d(3, 3, numPixels);
-        setEiganVectors();
 
     }
 
     /**
-     * Sets the eiganvalues. *
+     * The depth vector.
+     * @param row The row of the desired vector.
+     * @param col The column of the desired vector.
+     * @return The depth vector.
      */
-    public final void setEigenVals() {
+    public DArray1d depth(int row, int col){
+        return structureTensors.depth(row, col);
+    }
+    
+    /**
+     * Copies the lower triangle to the upper one.
+     */
+    public void copyLowerTriangleToUpper(){
+        depth(1, 0).set(handle, depth(0, 1));
+        depth(2, 0).set(handle, depth(0, 2));
+        depth(2, 1).set(handle, depth(1, 2));
+    }
+    
+    /**
+     * Sets the eiganvalues. *
+     * @return this
+     */
+    public final Eigan setEigenVals() {
         Kernel.run("eigenValsBatch", handle,
                 structureTensors.numLayers(), structureTensors, P.to(values), P.to(tolerance));
+        return this;
     }
 
     /**
      * Sets the eiganvectors.
+     * @return this
      */
-    public final void setEiganVectors() {//TODO: add ld
+    public final Eigan setEiganVectors() {//TODO: add ld
 
         try (IArray1d pivotFlags = new IArray1d(structureTensors.numLayers());
                 DArray3d workSpace = new DArray3d(3, 3, structureTensors.numLayers())) {
@@ -91,9 +106,18 @@ public class Eigan {
                         P.to(pivotFlags),
                         P.to(tolerance)
                 );
-
-            
-
         }
+        return this;
+    }
+    
+    
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public void close() {
+        structureTensors.close();
+        values.close();
+        vectors.close();
     }
 }

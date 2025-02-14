@@ -8,7 +8,7 @@ import jcuda.Sizeof;
  *
  * @author E. Dov Neimand
  */
-public class DStrideArray3d extends Array3d implements DStrideArray{
+public class DStrideArray3d extends DArray3d implements StrideArray{
 
     public final int stride, batchSize;
 
@@ -20,7 +20,7 @@ public class DStrideArray3d extends Array3d implements DStrideArray{
      * @param numGrids The number of tensors.
      */
     public DStrideArray3d(int entriesPerLine, int linesPerLayer, int layersPerGrid, int numGrids){
-        super(entriesPerLine, linesPerLayer, layersPerGrid *numGrids, Sizeof.DOUBLE);
+        super(entriesPerLine, linesPerLayer, layersPerGrid);
         this.stride = ld()*linesPerLayer*layersPerGrid;
         this.batchSize = numGrids;
     }
@@ -51,7 +51,7 @@ public class DStrideArray3d extends Array3d implements DStrideArray{
      * {@inheritDoc }
      */
     @Override
-    public Array1d as1d() {
+    public DArray1d as1d() {
         return new DArray1d(this, 0, size());
     }
     

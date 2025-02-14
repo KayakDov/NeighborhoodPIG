@@ -251,15 +251,5 @@ public interface DPointerArray extends PointerArray {
         return this;
     }
 
-    /**
-     * Fills this arrays with pointers to the given array.
-     *
-     * @param handle
-     * @param source The array pointed to,
-     * @return this
-     */
-    public default DPointerArray fill(Handle handle, DStrideArray source) {
-        return fill(handle, source, source.stride());
-    }
 
 }

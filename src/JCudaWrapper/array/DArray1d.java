@@ -6,7 +6,6 @@ import jcuda.Sizeof;
 import jcuda.jcublas.JCublas2;
 import jcuda.jcublas.cublasDiagType;
 import jcuda.jcublas.cublasFillMode;
-import org.apache.commons.math3.exception.DimensionMismatchException;
 
 /**
  *
@@ -33,7 +32,7 @@ public class DArray1d extends Array1d implements DArray {
     public void get(Handle handle, DArray dst) {
         opCheck(JCublas2.cublasDcopy(
                 handle.get(),
-                Math.min(n(ld()), dst.n(dst.ld())),
+                Math.min(size(), dst.size()),
                 pointer(),
                 ld(),
                 dst.pointer(),
@@ -53,6 +52,16 @@ public class DArray1d extends Array1d implements DArray {
     public DArray1d(DArray src, int start, int size) {
         super(src, start, size, src.ld());
     }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public Singleton get(int index) {
+        return new DSingleton(this, index);
+    }
+    
+    
     
     /**
      * Constructs a 1d sub array of the proffered array. If the array copied
@@ -78,17 +87,13 @@ public class DArray1d extends Array1d implements DArray {
      * This method synchronizes the handle.
      *
      * @param handle handle to the cuBLAS library context.
-     * @param incX The number of spaces to jump when incrementing forward
-     * through x.
-     * @param inc The number of spaces to jump when incrementing forward through
-     * this array.
      * @param x Pointer to vector X in GPU memory. If this is not a one
      * dimensional array, then the increment should account for that.
      * @return The dot product of X and Y.
      */
-    public double dot(Handle handle, DArray x, int incX, int inc) {
+    public double dot(Handle handle, DArray1d x) {
         double[] result = new double[1];
-        dot(handle, x, incX, inc, result, 0);
+        dot(handle, x, result, 0);
         handle.synch();
         return result[0];
     }
@@ -101,17 +106,13 @@ public class DArray1d extends Array1d implements DArray {
      * </pre>
      *
      * @param handle handle to the cuBLAS library context.
-     * @param incX The number of spaces to jump when incrementing forward
-     * through x.
-     * @param inc The number of spaces to jump when incrementing forward through
-     * this array.
      * @param x Pointer to vector X in GPU memory. If this is not a one
      * dimensional array then the increment should account for that.
      * @param result The array the answer should be put in.
      * @param resultInd The index of the array the answer should be put in.
      */
-    public void dot(Handle handle, DArray x, int incX, int inc, double[] result, int resultInd) {
-        opCheck(JCublas2.cublasDdot(handle.get(), n(inc), x.pointer(), incX, pointer(), inc, Pointer.to(result).withByteOffset(resultInd * Sizeof.DOUBLE)));
+    public void dot(Handle handle, DArray1d x, double[] result, int resultInd) {
+        opCheck(JCublas2.cublasDdot(handle.get(), size(), x.pointer(), x.ld(), pointer(), ld(), Pointer.to(result).withByteOffset(resultInd * Sizeof.DOUBLE)));
 
     }
 
@@ -127,21 +128,16 @@ public class DArray1d extends Array1d implements DArray {
      * @param handle handle to the cuBLAS library context.
      * @param timesX Scalar used to scale vector X.
      * @param x Pointer to vector X in GPU memory.
-     * @param incX The number of elements to jump when iterating forward through
-     * x.
-     * @param inc The number of elements to jump when iterating forward through
-     * this.
      * @return this
      */
-    public DArray1d add(Handle handle, double timesX, DArray x, int incX, int inc) {
-
-        if (incX != 0 && x.n(incX) != n(inc))
-            throw new DimensionMismatchException(n(inc), x.n(incX));
+    public DArray1d add(Handle handle, double timesX, DArray1d x) {
+        
+        confirm(size() == x.size());
 
         opCheck(JCublas2.cublasDaxpy(handle.get(),
-                n(inc),
-                P.to(timesX), x.pointer(), incX,
-                pointer(), inc
+                size(),
+                P.to(timesX), x.pointer(), x.ld(),
+                pointer(), ld()
         ));
 
         return this;
@@ -156,15 +152,13 @@ public class DArray1d extends Array1d implements DArray {
      *
      * @param handle handle to the cuBLAS library context.
      * @param scalar Scalar multiplier applied to vector X.
-     * @param inc The number of elements to jump when iterating forward through
-     * this array.
      * @return this;
      *
      *
      */
-    public DArray multiply(Handle handle, double scalar, int inc) {
+    public DArray1d multiply(Handle handle, double scalar) {
 
-        opCheck(JCublas2.cublasDscal(handle.get(), n(inc), P.to(scalar), pointer(), inc));
+        opCheck(JCublas2.cublasDscal(handle.get(), size(), P.to(scalar), pointer(), ld()));
         return this;
     }
 
@@ -183,7 +177,7 @@ public class DArray1d extends Array1d implements DArray {
      */
     public double norm(Handle handle, int length, int inc) {
         DSingleton result = new DSingleton();
-        norm(handle, length, inc, result);
+        norm(handle , length, inc, result);
         return result.getVal(handle);
     }
 
@@ -234,15 +228,19 @@ public class DArray1d extends Array1d implements DArray {
      * </pre>
      *
      * @param handle handle to the cuBLAS library context.
-     * @param length The number of elements to search.
-     * @param inc The stride step over the array.
      * @param result where the result (index of the maximum absolute value) is
      * to be stored.
      * @param toIndex The index in the result array to store the result.
      */
-    public void argMaxAbs(Handle handle, int length, int inc, int[] result, int toIndex) {
+    public void argMaxAbs(Handle handle, int[] result, int toIndex) {
 
-        opCheck(JCublas2.cublasIdamax(handle.get(), length, pointer(), inc, Pointer.to(result).withByteOffset(toIndex * Sizeof.INT)));
+        opCheck(JCublas2.cublasIdamax(
+                handle.get(), 
+                size(), 
+                pointer(), 
+                ld(),
+                Pointer.to(result).withByteOffset(toIndex * Sizeof.INT)
+        ));
         result[toIndex] -= 1; //It looks like the cuda methods are index-1 based.
     }
 
@@ -257,13 +255,11 @@ public class DArray1d extends Array1d implements DArray {
      * This method synchronizes the handle.
      *
      * @param handle handle to the cuBLAS library context.
-     * @param length The number of elements to search.
-     * @param inc The stride step over the array.
-     * @return The index of the lement with the minimum absolute value.
+     * @return The index of the element with the minimum absolute value.
      */
-    public int argMinAbs(Handle handle, int length, int inc) {
+    public int argMinAbs(Handle handle) {
         int[] result = new int[1];
-        argMinAbs(handle, length, inc, result, 0);
+        argMinAbs(handle, size(), ld(), result, 0);
         handle.synch();
         return result[0];
     }
@@ -284,9 +280,9 @@ public class DArray1d extends Array1d implements DArray {
      * @return The index of the element with greatest absolute value.
      *
      */
-    public int argMaxAbs(Handle handle, int length, int inc) {
+    public int argMaxAbs(Handle handle) {
         int[] result = new int[1];
-        argMaxAbs(handle, length, inc, result, 0);
+        argMaxAbs(handle, result, 0);
         handle.synch();
         return result[0];
     }

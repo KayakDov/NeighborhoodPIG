@@ -1,7 +1,7 @@
 package JCudaWrapper.array;
 
-import java.awt.geom.Point2D;
 import jcuda.Pointer;
+import jcuda.Sizeof;
 import jcuda.runtime.cudaPitchedPtr;
 
 /**
@@ -177,25 +177,5 @@ public abstract class LineArray implements Array {
         return bytesPerLine() / bytesPerEntry();
     }
 
-    /**
-     * A one dimensional representation of this array. 
-     * @return 
-     */
-    abstract public Array1d as1d();
     
-    /**
-     * A 2 dimensional representation of this array. If this array is already
-     * 2d, then this array is returned. If it is 3d then each layer precedes the
-     * previous layers.
-     *
-     * @return A 2 dimensional representation of this array.
-     */
-    abstract public Array2d as2d();
-    
-    /**
-     * A 3d representation of this array.
-     * @param linesPerLayer
-     * @return 
-     */
-    abstract public DArray3d as3d(int linesPerLayer);
 }

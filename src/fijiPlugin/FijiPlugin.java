@@ -1,6 +1,5 @@
 package fijiPlugin;
 
-import JCudaWrapper.algebra.Vector;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
 import ij.gui.GenericDialog;

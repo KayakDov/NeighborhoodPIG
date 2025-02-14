@@ -1,9 +1,8 @@
 package fijiPlugin;
 
-import JCudaWrapper.algebra.TensorOrd3Stride;
-import JCudaWrapper.algebra.TensorOrd3StrideDim;
-import JCudaWrapper.array.Array3d;
+import JCudaWrapper.array.DStrideArray3d;
 import JCudaWrapper.array.IArray;
+import JCudaWrapper.array.IArray1d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
@@ -26,13 +25,14 @@ import javax.imageio.ImageIO;
  *
  * @author E. Dov Neimand
  */
-public class ImageCreator extends TensorOrd3StrideDim {
+public class ImageCreator extends Dimensions {
 
     /**
      * Array storing color data for each tensor element.
      */
     private final int[] cpuColors;
     private final String[] sliceNames;
+    private final int colDist;
 
     /**
      * Constructs an ImageCreator with the given orientations and coherence
@@ -44,26 +44,27 @@ public class ImageCreator extends TensorOrd3StrideDim {
      * @param coherence The tensor representing coherence values. pass null if
      * coherence should not be used
      */
-    public ImageCreator(Handle handle, String[] sliceNames, TensorOrd3Stride orientation, TensorOrd3Stride coherence) {
-        super(orientation);
+    public ImageCreator(Handle handle, String[] sliceNames, DStrideArray3d orientation, DStrideArray3d coherence) {
+        super(handle, orientation);
+        colDist = orientation.ld();
         this.sliceNames = sliceNames;
-        orientation.array().multiply(handle, 2, 1); // Scale orientations.
+        orientation.setProduct(handle, orientation, 2);
 
-        try (IArray gpuColors = new IArray(orientation.array().length)) {
+        try (IArray gpuColors = new IArray1d(orientation.size())) {
 
             Kernel.run("colors", handle,
                     orientation.size(),
-                    orientation.array(),
+                    orientation,
                     P.to(1),
                     P.to(gpuColors),
                     P.to(1),
-                    P.to(coherence == null ? new TensorOrd3Stride(handle, 0, 0, 0, 0) : coherence),
+                    P.to(coherence == null ? new DStrideArray3d(0, 0, 0, 0): coherence),
                     P.to(coherence == null ? -1 : 1)
             );
             cpuColors = gpuColors.get(handle); // Transfer GPU results to CPU.
         }
 
-        orientation.array().multiply(handle, 0.5, 1); // Restore original scale.
+        orientation.setProduct(handle, orientation, 0.5); // Restore original scale.
     }
 
     /**
@@ -188,13 +189,11 @@ public class ImageCreator extends TensorOrd3StrideDim {
         return image;
     }
 
-    @Override
-    public Array3d array() {
-        throw new UnsupportedOperationException("This object has no data.");
-    }
 
     @Override
     public void close() throws Exception {
-        throw new UnsupportedOperationException("This object has no data.");
+        
     }
+
+
 }

@@ -1,9 +1,5 @@
 package fijiPlugin;
 
-import JCudaWrapper.algebra.TensorOrd3Stride;
-import JCudaWrapper.algebra.TensorOrd3StrideDim;
-import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.DArray3d;
 import JCudaWrapper.array.DStrideArray3d;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.IJ;
@@ -26,7 +22,7 @@ import javax.imageio.ImageIO;
  *
  * @author E. Dov Neimand
  */
-public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseable {
+public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
 
     public final StructureTensorMatrix stm; //TODO: this should probably be made private
 
@@ -46,9 +42,9 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
 
         this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
 
-        Gradient grad = new Gradient(image, handle);
-        stm = new StructureTensorMatrix(grad, neighborhoodSize, tolerance);
-        grad.close();
+        try (Gradient grad = new Gradient(handle, image)) {
+            stm = new StructureTensorMatrix(handle, grad, neighborhoodSize, tolerance);
+        }
     }
 
     
@@ -86,7 +82,12 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      * @return A heat map of the orientation in the yz plane.
      */
     public ImageCreator getImageOrientationYZ(boolean useCoherence) {
-        return new ImageCreator(handle, concat(sourceFileNames, " YZ orientation"), stm.getOrientationXY(), useCoherence ? stm.getCoherence() : null);
+        return new ImageCreator(
+                handle, 
+                concat(sourceFileNames, " YZ orientation"), 
+                stm.getOrientationXY(), 
+                useCoherence ? stm.getCoherence() : null
+        );
     }
 
     /**
@@ -126,16 +127,11 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
         if (imp.hasImageStack() && imp.getNSlices() > 1 && imp.getNFrames() == 1)
             HyperStackConverter.toHyperStack(imp, 1, 1, imp.getNSlices());
 
-        try (DArray3d gpuImmage = processImages(handle, imp)) {
+        try (DStrideArray3d gpuImmage = processImages(handle, imp)) {
 
             return new NeighborhoodPIG(
-                    new TensorOrd3Stride(handle,
-                            imp.getHeight(),
-                            imp.getWidth(),
-                            imp.getNSlices(),
-                            imp.getNFrames(),
-                            gpuImmage
-                    ),
+                    handle,
+                    gpuImmage,
                     imp.getImageStack().getSliceLabels(),
                     neighborhoodR,
                     tolerance
@@ -164,16 +160,11 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
 
             BufferedImage firstImage = ImageIO.read(imageFiles[0]);
 
-            try (DArray3d gpuImage = processImages(handle, imageFiles, firstImage.getHeight(), firstImage.getWidth())) {
+            try (DStrideArray3d gpuImage = processImages(handle, imageFiles, firstImage.getHeight(), firstImage.getWidth())) {
 
                 return new NeighborhoodPIG(
-                        new TensorOrd3Stride(handle,
-                                firstImage.getHeight(),
-                                firstImage.getWidth(),
-                                depth,
-                                imageFiles.length / depth,
-                                gpuImage
-                        ),
+                        handle,
+                        gpuImage,
                         new File(folderPath).list(),
                         neighborhoodR,
                         tolerance
@@ -201,16 +192,11 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
     public static NeighborhoodPIG getWithIJ(Handle handle, String folderPath, int depth, int neighborhoodR, double tolerance) {
 
         ImagePlus ip = imagePlus(folderPath, depth);
-        try (DArray3d gpuImage = processImages(handle, ip)) {
+        try (DStrideArray3d gpuImage = processImages(handle, ip)) {
 
             return new NeighborhoodPIG(
-                    new TensorOrd3Stride(handle,
-                            ip.getHeight(),
-                            ip.getWidth(),
-                            depth,
-                            ip.getNFrames(),
-                            gpuImage
-                    ),
+                    handle,
+                    gpuImage,
                     new File(folderPath).list(),
                     neighborhoodR,
                     tolerance
@@ -228,7 +214,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      * @return A DArray containing the image data in column-major order for all
      * frames, slices, and channels.
      */
-    public final static DArray3d processImages(Handle handle, ImagePlus imp) {
+    public final static DStrideArray3d processImages(Handle handle, ImagePlus imp) {
         // Convert the image to grayscale if necessary
         if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32) {
             System.out.println("fijiPlugin.NeighborhoodPIG.processImages(): Converting image to grayscale.");
@@ -242,7 +228,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
         int frames = imp.getNFrames();
         int imgSize = width * height;
 
-        DArray3d processedImage = new DArray3d(imgSize * slices * channels * frames);
+        DStrideArray3d processedImage = new DStrideArray3d(height, width, slices, frames);
 
         double[] columnMajorSlice = new double[imgSize];
 
@@ -258,9 +244,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
                         for (int row = 0; row < height; row++)
                             columnMajorSlice[col * height + row] = pixels[col][row];
 
-                    int globalIndex = ((frame - 1) * slices * channels + (slice - 1) * channels + (channel - 1)) * imgSize;
-
-                    processedImage.set(handle, columnMajorSlice, globalIndex);
+                    processedImage.getSubArray(frame - 1).getLayer(slice - 1).set(handle, columnMajorSlice);
                 }
             }
         }
@@ -295,10 +279,10 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
      * @throws IllegalArgumentException If no valid images are found in the
      * folder.
      */
-    public final static DArray3d processImages(Handle handle, File[] pics, int height, int width) {
+    public final static DStrideArray3d processImages(Handle handle, File[] pics, int height, int width) {
 
         int numPixels = height * width * pics.length;
-        DArray3d pixelsGPU = new DArray3d(numPixels);
+        DStrideArray3d pixelsGPU = new DStrideArray3d(height, width, 1, pics.length);
 
         int imgSize = width * height;
         double[] imgPixelsColMaj = new double[imgSize];
@@ -310,7 +294,7 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
 
                 toColMjr(grayScale(ImageIO.read(file)).getData(), imgPixelsColMaj);
 
-                pixelsGPU.set(handle, imgPixelsColMaj, (pixelInd / imgSize) * imgSize);
+                pixelsGPU.set(handle, imgPixelsColMaj);
 
                 pixelInd += imgSize;
 
@@ -425,9 +409,5 @@ public class NeighborhoodPIG extends TensorOrd3StrideDim implements AutoCloseabl
         return imageFiles;
     }
 
-    @Override
-    public Array3d array() {
-        throw new UnsupportedOperationException("This object has no data. You may want stm.array().");
-    }
 
 }

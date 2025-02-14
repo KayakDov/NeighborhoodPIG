@@ -7,7 +7,7 @@ import jcuda.Sizeof;
  *
  * @author E. Dov Neimand
  */
-public class DStrideArray1d extends Array1d implements DStrideArray {
+public class DStrideArray1d extends DArray1d implements StrideArray {
 
     public final int stride, batchSize, subArraySize;
 
@@ -20,7 +20,7 @@ public class DStrideArray1d extends Array1d implements DStrideArray {
      * @param subArraySize The size of the sub arrays.
      */
     public DStrideArray1d(int stride, int batchSize, int size, int subArraySize) {
-        super(size, Sizeof.DOUBLE);
+        super(size);
         this.stride = stride;
         this.batchSize = batchSize;
         this.subArraySize = subArraySize;
@@ -119,7 +119,7 @@ public class DStrideArray1d extends Array1d implements DStrideArray {
      * {@inheritDoc }
      */
     @Override
-    public Array3d as3d(int entriesPerLine, int ld, int linesPerLayer) {
+    public DArray3d as3d(int entriesPerLine, int ld, int linesPerLayer) {
         return new DArray3d(this, entriesPerLine, ld, linesPerLayer);
     }
 

@@ -19,7 +19,7 @@ public class DArray2d extends Array2d implements DLineArray {
      * @param startEntry The start index on each included line.
      * @param entriesPerLine The number of entries on each included line.
      */
-    public DArray2d(LineArray src, int startLine, int numLines, int startEntry, int entriesPerLine) {
+    public DArray2d(LineArray src, int startEntry, int entriesPerLine, int startLine, int numLines) {
         super(src, startLine, numLines, startEntry, entriesPerLine);
     }
 
@@ -29,30 +29,32 @@ public class DArray2d extends Array2d implements DLineArray {
      * @param numLines The number of lines in the array.
      * @param entriesPerLine The number of entries on each line of the array.
      */
-    public DArray2d(int numLines, int entriesPerLine) {
+    public DArray2d(int entriesPerLine, int numLines) {
         super(numLines, entriesPerLine, Sizeof.DOUBLE);
     }
 
     /**
      * Creates this 2d array from a 1d array.
+     *
      * @param src The 1d array.
-     * @param entriesPerLine The number of entries per line in the new structure.
+     * @param entriesPerLine The number of entries per line in the new
+     * structure.
      */
     public DArray2d(DArray src, int entriesPerLine) {
         super(src, entriesPerLine);
     }
-    
+
     /**
      * Creates this 2d array from a 1d array.
+     *
      * @param src The 1d array.
-     * @param entriesPerLine The number of entries per line in the new structure.
+     * @param entriesPerLine The number of entries per line in the new
+     * structure.
      * @param ld The number of entries between the first element of each line.
      */
     public DArray2d(DArray src, int entriesPerLine, int ld) {
         super(src, entriesPerLine, ld);
     }
-    
-    
 
     /**
      * A sub array of the proffered array.
@@ -64,7 +66,7 @@ public class DArray2d extends Array2d implements DLineArray {
      * @return a sub array of the proffered array.
      */
     public DArray2d sub(int startLine, int numLines, int startEntry, int entriesPerLine) {
-        return new DArray2d(this, startLine, numLines, startEntry, entriesPerLine);
+        return new DArray2d(this, startEntry, entriesPerLine, startLine, numLines);
     }
 
     /**
@@ -72,22 +74,19 @@ public class DArray2d extends Array2d implements DLineArray {
      */
     @Override
     public DArray2d set(Handle handle, DArray from) {
-        super.set(handle, from); 
+        super.set(handle, from);
         return this;
     }
 
-    
-    
     /**
      * {@inheritDoc}
      */
     @Override
     public DArray2d copy(Handle handle) {
-        return new DArray2d(linesPerLayer(), entriesPerLine())
+        return new DArray2d(entriesPerLine(), linesPerLayer())
                 .set(handle, this);
     }
 
-    
     /**
      * Performs the matrix-vector multiplication:
      *
@@ -122,7 +121,7 @@ public class DArray2d extends Array2d implements DLineArray {
         ));
         return this;
     }
-    
+
     /**
      * Performs the rank-1 update: This is outer product.
      *
@@ -140,20 +139,19 @@ public class DArray2d extends Array2d implements DLineArray {
     public void outerProd(Handle handle, double multProd, DArray1d vecX, DArray1d vecY) {
 
         opCheck(JCublas2.cublasDger(
-                handle.get(), 
-                entriesPerLine(), 
-                linesPerLayer(), 
-                P.to(multProd), 
-                vecX.pointer(), 
-                vecX.ld(), 
-                vecY.pointer(), 
-                vecY.ld(), 
-                pointer(), 
+                handle.get(),
+                entriesPerLine(),
+                linesPerLayer(),
+                P.to(multProd),
+                vecX.pointer(),
+                vecX.ld(),
+                vecY.pointer(),
+                vecY.ld(),
+                pointer(),
                 ld()
         ));
     }
-    
-    
+
     /**
      * Performs the matrix-matrix multiplication using double precision (Dgemm)
      * on the GPU:
@@ -188,42 +186,7 @@ public class DArray2d extends Array2d implements DLineArray {
                 pointer(), ld()
         ));
     }
-    
-    /**
-     * Performs matrix addition or subtraction.
-     *
-     * <p>
-     * This function computes C = alpha * A + beta * B, where A, B, and C are
-     * matrices.
-     * </p>
-     *
-     * @param handle the cuBLAS context handle
-     * @param transA specifies whether matrix A is transposed (CUBLAS_OP_N for
-     * no transpose, CUBLAS_OP_T for transpose, CUBLAS_OP_C for conjugate
-     * transpose)
-     * @param transB specifies whether matrix B is transposed (CUBLAS_OP_N for
-     * no transpose, CUBLAS_OP_T for transpose, CUBLAS_OP_C for conjugate
-     * transpose)
-     * @param alpha scalar used to multiply matrix A
-     * @param a pointer to matrix A
-     * @param beta scalar used to multiply matrix B
-     * @param b pointer to matrix B
-     * @return this
-     *
-     */
-    public DArray setSum(Handle handle, boolean transA, boolean transB, double alpha, DArray2d a, double beta, DArray2d b) {
 
-        opCheck(JCublas2.cublasDgeam(handle.get(),
-                Array.transpose(transA), Array.transpose(transB),
-                entriesPerLine(), linesPerLayer(),
-                P.to(alpha), a.pointer(), a.ld(),
-                P.to(beta), b.pointer(), b.ld(),
-                pointer(), ld()
-        ));
-        return this;
-    }
-    
-    
 
     /**
      *
@@ -258,5 +221,23 @@ public class DArray2d extends Array2d implements DLineArray {
                 pointer(), ld()
         ));
     }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public DArray3d as3d(int linesPerLayer) {
+        return new DArray3d(this, entriesPerLine(), linesPerLayer);
+    }
+
+    
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public Singleton get(int index) {
+        return new DSingleton(this, index);
+    }
+
     
 }

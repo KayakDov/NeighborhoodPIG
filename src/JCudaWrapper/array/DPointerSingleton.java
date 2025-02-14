@@ -40,5 +40,38 @@ public class DPointerSingleton extends PSingleton implements DPointerArray{
     public DPointerSingleton copy(Handle handle) {
         return new DPointerSingleton().set(handle, this);
     }
+
+    /**
+     * Guaranteed to throw an exception.  TODO: implement this method.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @Override
+    public Array1d as1d() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    /**
+     * Guaranteed to throw an exception.  TODO: implement this method.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @Override
+    public Array2d as2d() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    /**
+     * Guaranteed to throw an exception.  TODO: implement this method.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @Override
+    public Array3d as3d(int linesPerLayer) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
     
 }

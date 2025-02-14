@@ -24,7 +24,7 @@ public class DPointerArray1d extends PointerArray1d implements PointerArray{
      * @param handle The context
      * @param dsa The array to be pointed to.
      */
-    public DPointerArray1d(Handle handle, DStrideArray dsa){
+    public <DStrideArray extends StrideArray, DArray> DPointerArray1d(Handle handle, DStrideArray dsa){
         super(dsa.batchSize(), dsa.subArraySize());
         Kernel.run("genPtrs", handle, dsa.batchSize(), dsa, P.to(dsa.stride()), P.to(this), P.to(1));
     }
@@ -136,6 +136,39 @@ public class DPointerArray1d extends PointerArray1d implements PointerArray{
     @Override
     public Array1d sub(int start, int size, int ld) {
         return new DPointerArray1d(this, start, size, ld);
+    }
+
+    /**
+     * Guaranteed to throw an exception.  TODO: implement this method.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @Override
+    public Array1d as1d() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    /**
+     * Guaranteed to throw an exception.  TODO: implement this method.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @Override
+    public Array2d as2d() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    /**
+     * Guaranteed to throw an exception.  TODO: implement this method.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @Override
+    public Array3d as3d(int linesPerLayer) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
     

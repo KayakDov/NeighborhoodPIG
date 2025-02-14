@@ -81,10 +81,43 @@ public class IArray1d extends Array1d implements IArray{
      *
      * @throws UnsupportedOperationException always
      * @deprecated Unsupported operation.
-     */    
+     */
     @Override
     public Array1d sub(int start, int length, int ld) {
         throw new UnsupportedOperationException("Not yet implemented.");
+    }
+
+    /**
+     * Guaranteed to throw an exception.  TODO: implement this method.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @Override
+    public Array1d as1d() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    /**
+     * Guaranteed to throw an exception.  TODO: implement this method.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @Override
+    public Array2d as2d() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    /**
+     * Guaranteed to throw an exception.  TODO: implement this method.
+     *
+     * @throws UnsupportedOperationException always
+     * @deprecated Unsupported operation.
+     */
+    @Override
+    public Array3d as3d(int linesPerLayer) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
     
 }

@@ -17,7 +17,7 @@ import java.nio.file.StandardCopyOption;
  * using JCuda. It handles loading CUDA modules, setting up functions, and
  * executing them with specified parameters.
  *
- *
+ *  TODO: change kernel to take advantage of matrices structure.  Rewrite them for 2d indexing.
  * <p>
  * Example usage:
  * <pre>

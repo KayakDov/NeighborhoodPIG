@@ -1,11 +1,8 @@
 package fijiPlugin;
 
-import JCudaWrapper.algebra.TensorOrd3Stride;
-import JCudaWrapper.algebra.TensorOrd3StrideDim;
-import JCudaWrapper.algebra.Vector;
-import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.DArray3d;
-import JCudaWrapper.array.IArray;
+import JCudaWrapper.array.DArray;
+import JCudaWrapper.array.DArray1d;
+import JCudaWrapper.array.DStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
@@ -21,14 +18,14 @@ import JCudaWrapper.resourceManagement.Handle;
  *
  * @author E. Dov Neimand
  */
-public class NeighborhoodProductSums extends TensorOrd3StrideDim implements AutoCloseable {
+public class NeighborhoodProductSums extends Dimensions implements AutoCloseable {
 
 //    private final Vector halfNOnes;
-    private final TensorOrd3Stride workSpace1, workSpace2;
+    private final DStrideArray3d workSpace1, workSpace2;
     private final int nRad;
     private Kernel nSum;
-    private final Dir X, Y, Z;
-    
+    private final Mapper X, Y, Z;
+
     /**
      * Constructs a {@code NeighborhoodProductSums} instance to compute the sum
      * of element-by-element products for neighborhoods within two matrices.
@@ -39,63 +36,120 @@ public class NeighborhoodProductSums extends TensorOrd3StrideDim implements Auto
      * @param dim Dimensions from this will be copied.
      *
      */
-    public NeighborhoodProductSums(Handle handle, int nRad, TensorOrd3Stride dim) {
-        super(dim);
-        Z = new Dir(depth, layerDist, 2, height * width * batchSize);
-        Y = new Dir(height, 1, 1, depth * width * batchSize);
-        X = new Dir(width, colDist, 0, depth * height * batchSize);
-        
+    public NeighborhoodProductSums(Handle handle, int nRad, DStrideArray3d dim) {
+        super(handle, dim);
+
+        Z = new Mapper(depth, 2, height * width * batchSize) {
+            @Override
+            protected int srcStride(DStrideArray3d src) {
+                return src.ld() * src.linesPerLayer();
+            }
+
+            @Override
+            protected int dstStride(DStrideArray3d src, DArray dst) {
+                return dst.entriesPerLine() == 1 ? src.entriesPerLine() * src.linesPerLayer() * dst.ld() : dst.ld() * dst.linesPerLayer();
+            }
+        };
+
+        Y = new Mapper(height, 1, depth * width * batchSize) {
+            @Override
+            protected int srcStride(DStrideArray3d src) {
+                return 1;
+
+            }
+
+            @Override
+            protected int dstStride(DStrideArray3d src, DArray dst) {
+                return dst.entriesPerLine() == 1 ? dst.ld() : 1;
+            }
+        };
+
+        X = new Mapper(width, 0, depth * height * batchSize) {
+            @Override
+            protected int srcStride(DStrideArray3d src) {
+                return src.ld();
+            }
+
+            @Override
+            protected int dstStride(DStrideArray3d src, DArray dst) {
+                return dst.entriesPerLine() == 1 ? src.entriesPerLine() * dst.ld() : dst.ld();
+            }
+        };
+
         this.nRad = nRad;
 
-        workSpace2 = dim.emptyCopyDimensions();
-        workSpace1 = dim.emptyCopyDimensions();
+        workSpace2 = dim.copyDim();
+        workSpace1 = dim.copyDim();
 
         nSum = new Kernel("neighborhoodSum3d");
     }
 
-    @Override
-    public Array3d array() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
     /**
-     * A class to manage data for computing neighborhood sums in a specifif
+     * A class to manage data for computing neighborhood sums in a specific
      * dimension.
      */
-    private class Dir {
+    private abstract class Mapper {
 
-        public final int numSteps, stepSize, dir, numThreads;
+        public final int numSteps, numThreads, dirOrd;
 
-        public Dir(int numSteps, int stepSize, int dir, int numThreads) {
+        /**
+         *
+         * @param numSteps The number of steps to take in the requested
+         * dimension.
+         * @param srcInc The size of each step in the direction.
+         * @param dirOrd The direction. x = 0, y = 1, z = 2.
+         * @param numThreads The number pixels on a face perpendicular to the
+         * direction.
+         */
+        public Mapper(int numSteps, int dirOrd, int numThreads) {
             this.numSteps = numSteps;
-            this.stepSize = stepSize;
-            this.dir = dir;
             this.numThreads = numThreads;
+            this.dirOrd = dirOrd;
         }
+
+        /**
+         * The stride size for the source.
+         *
+         * @param src The data being strode through.
+         * @return The stride size.
+         */
+        protected abstract int srcStride(DStrideArray3d src);
+
+        /**
+         * The stride size for the source.
+         *
+         * dst src The data being strode through.
+         * @return The stride size.
+         */
+        protected abstract int dstStride(DStrideArray3d src, DArray dst);
 
         /**
          * Maps the neighborhood sums in the given dimension.
          *
          * @param n The number of threads.
-         * @param from The source matrix.
-         * @param to The destination matrix.
+         * @param src The source matrix.
+         * @param dst The destination matrix.
          * @param dir The dimension, 0 for X, 1 for Y, and 2 for Z.
-         * @param toInc The increment of the the destination matrices.
+         * @param ldTo The increment of the the destination matrices.
          */
-        public void mapNeighborhoodSum(DArray3d from, DArray3d to, int toInc) {
+        public void neighborhoodSum(DStrideArray3d src, DArray dst) {
 
-            nSum.run(handle,
+
+            nSum.run(handle, //TODO: make sure nSum takes in ld.
                     numThreads,
-                    from,
-                    P.to(to),
+                    src,
+                    P.to(dst),
                     P.to(height),
                     P.to(width),
                     P.to(depth),
-                    P.to(stepSize),
+                    P.to(src.ld()),
+                    P.to(dst.ld()),
+                    P.to(srcStride(src)),
+                    P.to(dstStride(src, dst)),
                     P.to(numSteps),
-                    P.to(toInc),
-                    P.to(Math.min(nRad, numSteps)),
-                    P.to(dir)
+                    P.to(nRad),
+                    P.to(dirOrd),
+                    P.to(dst.entriesPerLine() != 1)
             );
         }
 
@@ -112,21 +166,27 @@ public class NeighborhoodProductSums extends TensorOrd3StrideDim implements Auto
      * @param result Store the result here in column major order. Note that the
      * increment of this vector is probably not one.
      */
-    public void set(TensorOrd3Stride a, TensorOrd3Stride b, Vector result) {
+    public void set(DStrideArray3d a, DStrideArray3d b, DArray1d result) {
 
-        new Vector(handle, workSpace1.array(), 1)
-                .ebeSetProduct(
-                        new Vector(handle, a.array(), 1),
-                        new Vector(handle, b.array(), 1)
-                );        
+        Kernel.run("addEBEProduct", handle, a.size(), result, //TODO: fix kernel so that target does not need to be same shape as source.
+                P.to(result.ld()),
+                P.to(1),
+                P.to(a.entriesPerLine()),
+                P.to(1),
+                P.to(a),
+                P.to(a.ld()),
+                P.to(b),
+                P.to(b.ld()),
+                P.to(0)
+        );
 
-        X.mapNeighborhoodSum(workSpace1.array(), workSpace2.array(), 1);
+        X.neighborhoodSum(workSpace1, workSpace2);
 
         if (depth > 1) {
-            Y.mapNeighborhoodSum(workSpace2.array(), workSpace1.array(), 1);
-            Z.mapNeighborhoodSum(workSpace1.array(), result.array(), result.inc());
+            Y.neighborhoodSum(workSpace2, workSpace1);
+            Z.neighborhoodSum(workSpace1, result);
         } else
-            Y.mapNeighborhoodSum(workSpace2.array(), result.array(), result.inc());
+            Y.neighborhoodSum(workSpace2, result);
 
     }
 

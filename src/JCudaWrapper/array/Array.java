@@ -266,4 +266,28 @@ public interface Array extends AutoCloseable {
     public default boolean hasPadding(){
         return ld() != entriesPerLine();
     }
+    
+        
+    /**
+     * A one dimensional representation of this array. 
+     * @return 
+     */
+    public Array1d as1d();
+    
+    /**
+     * A 2 dimensional representation of this array. If this array is already
+     * 2d, then this array is returned. If it is 3d then each layer precedes the
+     * previous layers.
+     *
+     * @return A 2 dimensional representation of this array.
+     */    
+    public Array2d as2d();
+    
+    /**
+     * A 3d representation of this array.
+     * @param linesPerLayer
+     * @return A 3d representation of this array.
+     */
+    public Array3d as3d(int linesPerLayer);
+
 }

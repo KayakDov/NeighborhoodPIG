@@ -1,4 +1,4 @@
-package JCudaWrapper.algebra;
+package fijiPlugin;
 
 import JCudaWrapper.array.DStrideArray3d;
 import JCudaWrapper.resourceManagement.Handle;
@@ -17,7 +17,7 @@ import JCudaWrapper.resourceManagement.Handle;
  *
  * @author E.Dov Neimand
  */
-public abstract class TensorOrd3StrideDim implements ColumnMajor, AutoCloseable{
+public abstract class Dimensions implements AutoCloseable{
 
     /**
      * The height (number of rows) of the tensor.
@@ -63,7 +63,7 @@ public abstract class TensorOrd3StrideDim implements ColumnMajor, AutoCloseable{
      * @param strideSize The stride size (distance between elements in memory).
      * @param batchSize The number of tensors in a batch.
      */
-    public TensorOrd3StrideDim(Handle handle, int height, int width, int depth, int layerDist, int strideSize, int batchSize) {
+    public Dimensions(Handle handle, int height, int width, int depth, int layerDist, int strideSize, int batchSize) {
         this.handle = handle;
         this.height = height;
         this.width = width;
@@ -87,7 +87,7 @@ public abstract class TensorOrd3StrideDim implements ColumnMajor, AutoCloseable{
      * @param depth The depth (number of layers) of the tensor.
      * @param batchSize The number of tensors in a batch.
      */
-    public TensorOrd3StrideDim(Handle handle, int height, int width, int depth, int batchSize) {
+    public Dimensions(Handle handle, int height, int width, int depth, int batchSize) {
         this(handle, height, width, depth, height*width, height*width*depth, batchSize);
     }
 
@@ -96,7 +96,7 @@ public abstract class TensorOrd3StrideDim implements ColumnMajor, AutoCloseable{
      *
      * @param copyFrom The item being copied.
      */
-    public TensorOrd3StrideDim(TensorOrd3StrideDim copyFrom) {
+    public Dimensions(Dimensions copyFrom) {
         this(copyFrom.handle, copyFrom.height, copyFrom.width, copyFrom.depth, copyFrom.layerDist, copyFrom.strideSize, copyFrom.batchSize);
     }
 
@@ -107,7 +107,7 @@ public abstract class TensorOrd3StrideDim implements ColumnMajor, AutoCloseable{
      * @param handle The context.
      * @param copyFrom The item being copied.
      */
-    public TensorOrd3StrideDim(Handle handle, DStrideArray3d copyFrom) {
+    public Dimensions(Handle handle, DStrideArray3d copyFrom) {
         this(handle, copyFrom.entriesPerLine(), copyFrom.linesPerLayer(), copyFrom.numLayers(), copyFrom.batchSize);
     }
     

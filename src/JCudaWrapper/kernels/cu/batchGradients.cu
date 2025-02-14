@@ -84,7 +84,7 @@ extern "C" __global__ void batchGradientsKernel(
     const int n, 
     const double* mat, 
     const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
-    double* dX, double* dY, double* dZ
+    double* dX, const int ldx, double* dY, const int ldy, double* dZ const int ldz
 ) {
     
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -93,8 +93,10 @@ extern "C" __global__ void batchGradientsKernel(
 
     const Indices indices(idx, dim, mat);
 
-    if(idx < dim[6]) dX[idx] = indices.grad();
-    else if(idx < 2*dim[6]) dY[idx%dim[6]] = indices.grad();
-    else dZ[idx % dim[6]] = indices.grad();
+    int dInd = idx%dim[6];
+     
+    if(idx < dim[6]) dX[(dInd/height)*ldx + dInd%height] = indices.grad();
+    else if(idx < 2*dim[6]) dY[(dInd/height)*ldx + dInd%height] = indices.grad();
+    else dZ[(dInd/height)*ldx + dInd%height] = indices.grad();
 }
 

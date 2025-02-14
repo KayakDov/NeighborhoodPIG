@@ -7,11 +7,11 @@
  *
  * @param n      The number of elements to process.
  * @param a      Pointer to the first input array.
- * @param aInc   Stride increment for the first input array.
+ * @param ldA   Stride increment for the first input array.
  * @param b      Pointer to the second input array.
- * @param bInc   Stride increment for the second input array.
+ * @param ldB   Stride increment for the second input array.
  * @param dst     Pointer to the output array.
- * @param dstInc  Stride increment for the output array.
+ * @param ldDst  Stride increment for the output array.
  *
  * @note This kernel assumes that the input arrays `a`, `b`, and `to` have been allocated with sufficient size
  * to accommodate the specified strides and number of elements.
@@ -21,12 +21,14 @@
 extern "C" __global__ void addEBEProductKernel(
     const int n,
     double* dst,
-    const int dstInc,
+    const int ldDst,
+    const int heightDst,
+    const int heightSrc,
     const double timesProduct,
     const double* a, 
-    const int aInc, 
+    const int ldA, 
     const double* b, 
-    const int bInc,
+    const int ldB,
     const double timesThis
         
 ) {
@@ -34,7 +36,9 @@ extern "C" __global__ void addEBEProductKernel(
     
     if (idx >= n) return;
     
-    int toInd = idx*dstInc;
-    dst[toInd] = timesThis * dst[toInd] + timesProduct * a[idx * aInc] * b[idx * bInc];
+    int row = idx % heightSrc;
+    int col = idx / heightSrc;
+    int indDst = (idx/heightDst) * ldDst + idx % heighDst;  
+    dst[indDst] = timesThis * dst[indDst] + timesProduct * a[col * ldA + row] * b[col * ldB + row];
 }
 
