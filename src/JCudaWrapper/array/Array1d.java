@@ -11,6 +11,8 @@ import jcuda.runtime.cudaPitchedPtr;
  * A one-dimensional array stored in GPU memory. This class provides methods for
  * allocating, accessing, and transferring data between host and device memory.
  *
+ * 1d arrays have a height of 1 and an increment of ld().
+ * 
  * @author E. Dov Neimand
  */
 public abstract class Array1d implements Array {

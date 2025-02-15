@@ -27,11 +27,11 @@ public abstract class Array2d extends LineArray {
 
         long[] pitchArray = new long[1];
 
-        opCheck(JCuda.cudaMallocPitch(pointer.ptr, pitchArray, entriesPerLine() * bytesPerEntry, linesPerLayer()));
-
+        opCheck(JCuda.cudaMallocPitch(pointer.ptr, pitchArray, entriesPerLine() * bytesPerEntry, linesPerLayer()));        
+        
         pointer.pitch = pitchArray[0];
         pointer.xsize = entriesPerLine();
-        pointer.ysize = linesPerLayer();
+        pointer.ysize = linesPerLayer();        
     }
 
     /**

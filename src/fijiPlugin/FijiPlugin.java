@@ -93,7 +93,7 @@ public class FijiPlugin implements PlugIn {
 
     public static void main(String[] args) {
 
-            String imagePath = "images/input/5Tests/";
+            String imagePath = "images/input/5debugs/";
 //        String imagePath = "images/input/5debugs/";
 
         int neighborhoodSize = 2; // Default neighborhood radius

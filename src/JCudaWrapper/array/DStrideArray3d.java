@@ -20,7 +20,7 @@ public class DStrideArray3d extends DArray3d implements StrideArray{
      * @param numGrids The number of tensors.
      */
     public DStrideArray3d(int entriesPerLine, int linesPerLayer, int layersPerGrid, int numGrids){
-        super(entriesPerLine, linesPerLayer, layersPerGrid);
+        super(entriesPerLine, linesPerLayer, layersPerGrid * numGrids);
         this.stride = ld()*linesPerLayer*layersPerGrid;
         this.batchSize = numGrids;
     }

@@ -7,6 +7,7 @@ import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
 import JCudaWrapper.array.DStrideArray3d;
 import JCudaWrapper.array.IArray1d;
+import java.util.Arrays;
 
 /**
  * The gradient for each pixel.
@@ -35,7 +36,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
         y = pic.copyDim();
         z = pic.copyDim();
 
-        int[] dimensions = new int[]{height, width, depth, batchSize, layerDist, tensorSize(), tensorSize() * batchSize};
+        int[] dimensions = new int[]{height, width, depth, batchSize, layerDist, tensorSize(), tensorSize() * batchSize};               
         
         try (IArray1d dim = new IArray1d(7).set(handle, dimensions)) {
             

@@ -48,8 +48,8 @@ public abstract class LineArray implements Array {
     public LineArray(LineArray src, int startLine, int numLines, int startEntry, int entriesPerLine) {
         this(entriesPerLine, numLines, src.bytesPerEntry);
 
-        confirm(startLine + numLines < src.linesPerLayer(),
-                startEntry + entriesPerLine < src.entriesPerLine());
+        confirm(startLine + numLines <= src.linesPerLayer(),
+                startEntry + entriesPerLine <= src.entriesPerLine());
 
         pointer.ptr = src.get(startLine, startEntry).pointer();
 
