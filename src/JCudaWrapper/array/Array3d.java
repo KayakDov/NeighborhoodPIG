@@ -55,6 +55,7 @@ public abstract class Array3d extends LineArray implements Array {
         cudaExtent extent = new cudaExtent(entriesPerLine * bytesPerEntry, linesPerLayer, numLayers);
 
         opCheck(JCuda.cudaMalloc3D(pointer, extent));
+        Array.allocatedArrays.add(pointer.ptr);
     }
 
     /**
@@ -70,7 +71,7 @@ public abstract class Array3d extends LineArray implements Array {
      * @param numLayers The number of layers.
      */
     protected Array3d(LineArray from, int startLine, int numLines, int startEntry, int numEntryPerLine, int startLayer, int numLayers) {
-        super(from, startLine, numLines, startEntry, numEntryPerLine);
+        super(from, startEntry, numEntryPerLine, startLine, numLines);
 
         this.numLayers = numLayers;
 

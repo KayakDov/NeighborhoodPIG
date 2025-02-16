@@ -4,6 +4,7 @@ import jcuda.Pointer;
 import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaMemcpyKind;
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.HashSet;
 
 /**
  * Represents a 2D GPU array with memory allocated on the device. This class
@@ -22,16 +23,19 @@ public abstract class Array2d extends LineArray {
      * @param bytesPerEntry The memory size in bytes of elements stored in this
      * array.
      */
-    public Array2d(int numLines, int entriesPerLine, int bytesPerEntry) {
+    public Array2d(int entriesPerLine, int numLines, int bytesPerEntry) {
         super(entriesPerLine, numLines, bytesPerEntry);
 
         long[] pitchArray = new long[1];
 
-        opCheck(JCuda.cudaMallocPitch(pointer.ptr, pitchArray, entriesPerLine() * bytesPerEntry, linesPerLayer()));        
+        opCheck(JCuda.cudaMallocPitch(pointer.ptr, pitchArray, entriesPerLine * bytesPerEntry, linesPerLayer()));
+        Array.allocatedArrays.add(pointer.ptr);
+        
         
         pointer.pitch = pitchArray[0];
-        pointer.xsize = entriesPerLine();
-        pointer.ysize = linesPerLayer();        
+        pointer.xsize = entriesPerLine*bytesPerEntry;
+        pointer.ysize = numLines;
+        
     }
 
     /**
@@ -43,8 +47,8 @@ public abstract class Array2d extends LineArray {
      * @param startEntry The start index on each included line.
      * @param entriesPerLine The number of entries on each included line.
      */
-    public Array2d(LineArray src, int startLine, int numLines, int startEntry, int entriesPerLine) {
-        super(src, startLine, numLines, startEntry, entriesPerLine);
+    public Array2d(LineArray src, int startEntry, int entriesPerLine, int startLine, int numLines) {
+        super(src, startEntry, entriesPerLine, startLine, numLines);
     }
 
     /**
@@ -76,12 +80,13 @@ public abstract class Array2d extends LineArray {
      */
     @Override
     public void get(Handle handle, Pointer dstCPUArray) {
+        int width = entriesPerLine() * bytesPerEntry();
         opCheck(JCuda.cudaMemcpy2DAsync(
                 dstCPUArray,
-                bytesPerLine(),
+                width,
                 pointer(),
-                bytesPerLine(),
-                entriesPerLine() * bytesPerEntry(),
+                pitch(),
+                width,
                 linesPerLayer(),
                 cudaMemcpyKind.cudaMemcpyDeviceToHost,
                 handle.getStream()
@@ -93,12 +98,15 @@ public abstract class Array2d extends LineArray {
      */
     @Override
     public Array2d set(Handle handle, Pointer srcCPUArray) {
+        
+        int width = entriesPerLine() * bytesPerEntry();
+        
         opCheck(JCuda.cudaMemcpy2DAsync(
                 pointer(),
-                bytesPerLine(),
+                pitch(),
                 srcCPUArray,
-                bytesPerLine(),
-                entriesPerLine() * bytesPerEntry(),
+                width,
+                width,
                 linesPerLayer(),
                 cudaMemcpyKind.cudaMemcpyHostToDevice,
                 handle.getStream()
@@ -112,9 +120,9 @@ public abstract class Array2d extends LineArray {
     @Override
     public void get(Handle handle, Array dst) {
         opCheck(JCuda.cudaMemcpy2DAsync(dst.pointer(),
-                dst.bytesPerLine(),
+                dst.pitch(),
                 pointer(),
-                bytesPerLine(),
+                pitch(),
                 entriesPerLine() * bytesPerEntry(),
                 linesPerLayer(),
                 cudaMemcpyKind.cudaMemcpyDeviceToDevice,
@@ -145,6 +153,7 @@ public abstract class Array2d extends LineArray {
      * @return All the entries at the requested index in their lines.
      */
     public Array1d entriesAt(int index){
-        return as1d().sub(index, ld()*(linesPerLayer() - 1), ld());
+        
+        return as1d().sub(index, ld()*(linesPerLayer() - 1) + 1, ld());
     }
 }

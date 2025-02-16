@@ -1,7 +1,7 @@
 package JCudaWrapper.array;
 
 import JCudaWrapper.resourceManagement.Handle;
-import java.util.Arrays;
+import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.jcublas.JCublas2;
 import jcuda.runtime.JCuda;
@@ -22,7 +22,7 @@ public class DArray2d extends Array2d implements DLineArray {
      * @param entriesPerLine The number of entries on each included line.
      */
     public DArray2d(LineArray src, int startEntry, int entriesPerLine, int startLine, int numLines) {
-        super(src, startLine, numLines, startEntry, entriesPerLine);
+        super(src, startEntry, entriesPerLine, startLine, numLines);        
     }
 
     /**
@@ -32,7 +32,7 @@ public class DArray2d extends Array2d implements DLineArray {
      * @param entriesPerLine The number of entries on each line of the array.
      */
     public DArray2d(int entriesPerLine, int numLines) {
-        super(numLines, entriesPerLine, Sizeof.DOUBLE);
+        super(entriesPerLine, numLines, Sizeof.DOUBLE);
     }
 
     /**
@@ -247,10 +247,39 @@ public class DArray2d extends Array2d implements DLineArray {
         JCuda.cudaDeviceSynchronize();
 
         StringBuilder sb = new StringBuilder();
-
+        
         for (int i = 0; i < entriesPerLine(); i++)
             sb.append(entriesAt(i).toString()).append("\n");
 
         return sb.toString();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public DArray1d entriesAt(int index) {
+        return new DArray1d(this, index, linesPerLayer());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public double[] get(Handle handle) {
+        double[] cpuArray = new double[size()];
+        get(handle, Pointer.to(cpuArray));
+        return cpuArray;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public DArray2d set(Handle handle, double... srcCPUArray) {
+        DLineArray.super.set(handle, srcCPUArray); 
+        return this;
+    }
+
+    
 }

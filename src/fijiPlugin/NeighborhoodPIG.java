@@ -283,6 +283,8 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
 
         
         DStrideArray3d pixelsGPU = new DStrideArray3d(height, width, 1, pics.length);
+        
+        System.out.println("fijiPlugin.NeighborhoodPIG.processImages() \n" + pixelsGPU.toString());
 
         int imgSize = width * height;
         double[] imgPixelsColMaj = new double[imgSize];
@@ -293,8 +295,6 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
                 toColMjr(grayScale(ImageIO.read(pics[i])).getData(), imgPixelsColMaj);
 
                 pixelsGPU.getSubArray(i).getLayer(0).set(handle, imgPixelsColMaj);
-
-
 
             } catch (IOException e) {
                 throw new IllegalArgumentException("Error reading image file: " + pics[i].getName(), e);

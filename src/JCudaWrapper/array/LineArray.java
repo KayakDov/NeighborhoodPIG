@@ -30,9 +30,9 @@ public abstract class LineArray implements Array {
     public LineArray(int entriesPerLine, int linesPerLayer, int bytesPerEntry) {//TODO: use entries per line
         this.pointer = new cudaPitchedPtr();
         pointer.ysize = linesPerLayer;
-        pointer.xsize = entriesPerLine;
+        pointer.xsize = entriesPerLine * bytesPerEntry;
         this.bytesPerEntry = bytesPerEntry;
-        Array.allocatedArrays.add(pointer.ptr);
+        
     }
 
     /**
@@ -45,13 +45,11 @@ public abstract class LineArray implements Array {
      * @param startEntry The starting entry index within the line.
      * @param entriesPerLine The number of entries per line in the sub-array.
      */
-    public LineArray(LineArray src, int startLine, int numLines, int startEntry, int entriesPerLine) {
-        this(entriesPerLine, numLines, src.bytesPerEntry);
+    public LineArray(LineArray src, int startEntry, int entriesPerLine, int startLine, int numLines) {
+        this(entriesPerLine, numLines, src.bytesPerEntry());
 
-        confirm(startLine + numLines <= src.linesPerLayer(),
-                startEntry + entriesPerLine <= src.entriesPerLine());
-
-        pointer.ptr = src.get(startLine, startEntry).pointer();
+        pointer.ptr = src.get(startEntry, startLine).pointer();
+        pointer.pitch = src.pitchedPointer().pitch;
 
     }
 
@@ -101,7 +99,7 @@ public abstract class LineArray implements Array {
      * {@inheritDoc}
      */
     @Override
-    public int bytesPerLine() {
+    public int pitch() {
         return (int) pointer.pitch;
     }
 
@@ -126,7 +124,7 @@ public abstract class LineArray implements Array {
      * @param indexInLine The index within the section.
      * @return A {@code Singleton} containing the desired element.
      */
-    public Singleton get(int lineNumber, int indexInLine) {
+    public Singleton get(int indexInLine, int lineNumber) {
         return get(lineNumber * entriesPerLine() + indexInLine);
     }
 
@@ -174,7 +172,7 @@ public abstract class LineArray implements Array {
      * {@inheritDoc}
      */
     public int ld() {
-        return bytesPerLine() / bytesPerEntry();
+        return pitch() / bytesPerEntry();
     }
 
     

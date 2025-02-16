@@ -11,8 +11,8 @@ import jcuda.runtime.cudaPitchedPtr;
  * A one-dimensional array stored in GPU memory. This class provides methods for
  * allocating, accessing, and transferring data between host and device memory.
  *
- * 1d arrays have a height of 1 and an increment of ld().
- * 
+ * 1d arrays have one element on each line and an increment of ld().
+ *
  * @author E. Dov Neimand
  */
 public abstract class Array1d implements Array {
@@ -44,7 +44,9 @@ public abstract class Array1d implements Array {
      * @param start The start index in the array copied from where this array
      * begins.
      * @param size The number of elements in this array.
-     * @param ld The increment between elements.
+     * @param ld The increment between elements of the src. If the src is
+     * already incremented, then this is the rate at which to increment over
+     * those increments.
      */
     public Array1d(Array src, int start, int size, int ld) {
         bytesPerEntry = src.bytesPerEntry();
@@ -95,15 +97,15 @@ public abstract class Array1d implements Array {
      */
     @Override
     public void get(Handle handle, Array dst) {
-        if (ld() == 1)
+        if (ld() == 1 && entriesPerLine() != ld())
             opCheck(JCuda.cudaMemcpyAsync(
                     dst.pointer(),
                     pointer(),
-                    bytesPerLine(),
+                    size() * bytesPerEntry(),
                     cudaMemcpyKind.cudaMemcpyDeviceToDevice,
                     handle.getStream()
             ));
-        throw new UnsupportedOperationException("This opration is only supported for ld = 1.  You have ld = " + ld());
+        throw new UnsupportedOperationException("This opration is only supported for ld = 1.  You have ld = " + ld() + " dst is a " + dst.getClass());
     }
 
     /**
@@ -111,10 +113,11 @@ public abstract class Array1d implements Array {
      */
     @Override
     public void get(Handle handle, Pointer dstCPUArray) {
-        if (ld() == 1) opCheck(JCuda.cudaMemcpyAsync(
+        if (!hasPadding())
+            opCheck(JCuda.cudaMemcpyAsync(
                     dstCPUArray,
                     pointer(),
-                    bytesPerLine(),
+                    size() * bytesPerEntry(),
                     cudaMemcpyKind.cudaMemcpyDeviceToHost,
                     handle.getStream()
             ));
@@ -131,7 +134,7 @@ public abstract class Array1d implements Array {
             opCheck(JCuda.cudaMemcpyAsync(
                     pointer(),
                     srcCPUArray,
-                    bytesPerLine(),
+                    size() * bytesPerEntry(),
                     cudaMemcpyKind.cudaMemcpyHostToDevice,
                     handle.getStream()
             ));
@@ -194,12 +197,11 @@ public abstract class Array1d implements Array {
     /**
      *
      * @param start The starting index of the sub array.
-     * @param size The number of elements in the sub array.     
+     * @param size The number of elements in the sub array.
      * @return A sub array of this array.
      */
     public abstract Array1d sub(int start, int size);
-    
-    
+
     /**
      *
      * @param start The starting index of the sub array.

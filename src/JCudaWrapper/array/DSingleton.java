@@ -76,4 +76,14 @@ public class DSingleton extends Singleton implements DArray{
         return (DSingleton) super.get(i);
     }
     
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public double[] get(Handle handle) {
+        double[] cpuArray = new double[size()];
+        get(handle, Pointer.to(cpuArray));
+        return cpuArray;
+    }
+    
 }

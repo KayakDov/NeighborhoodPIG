@@ -24,14 +24,13 @@ public class DArray1d extends Array1d implements DArray {
         super(size, Sizeof.DOUBLE);
     }
 
-    
     /**
      * Copies from here to there with increments.
      *
      * @param handle The context.
      * @param dst Copy to here.
      */
-    public void get(Handle handle, DArray dst) {
+    public void get(Handle handle, DArray1d dst) {
         opCheck(JCublas2.cublasDcopy(
                 handle.get(),
                 Math.min(size(), dst.size()),
@@ -41,7 +40,7 @@ public class DArray1d extends Array1d implements DArray {
                 dst.ld()
         ));
     }
-    
+
     /**
      * Constructs a 1d sub array of the proffered array. If the array copied
      * from is not 1d, then depending on the length, this array may include
@@ -52,7 +51,7 @@ public class DArray1d extends Array1d implements DArray {
      * @param size The length of the array.
      */
     public DArray1d(DArray src, int start, int size) {
-        super(src, start, size, src.ld());
+        super(src, start, size, 1);
     }
 
     /**
@@ -62,9 +61,7 @@ public class DArray1d extends Array1d implements DArray {
     public Singleton get(int index) {
         return new DSingleton(this, index);
     }
-    
-    
-    
+
     /**
      * Constructs a 1d sub array of the proffered array. If the array copied
      * from is not 1d, then depending on the length, this array may include
@@ -76,7 +73,7 @@ public class DArray1d extends Array1d implements DArray {
      * @param ld The increment.
      */
     public DArray1d(DArray src, int start, int size, int ld) {
-        super(src, start, size, src.ld()*ld);
+        super(src, start, size, src.ld() * ld);
     }
 
     /**
@@ -133,7 +130,7 @@ public class DArray1d extends Array1d implements DArray {
      * @return this
      */
     public DArray1d add(Handle handle, double timesX, DArray1d x) {
-        
+
         confirm(size() == x.size());
 
         opCheck(JCublas2.cublasDaxpy(handle.get(),
@@ -179,7 +176,7 @@ public class DArray1d extends Array1d implements DArray {
      */
     public double norm(Handle handle, int length, int inc) {
         DSingleton result = new DSingleton();
-        norm(handle , length, inc, result);
+        norm(handle, length, inc, result);
         return result.getVal(handle);
     }
 
@@ -237,9 +234,9 @@ public class DArray1d extends Array1d implements DArray {
     public void argMaxAbs(Handle handle, int[] result, int toIndex) {
 
         opCheck(JCublas2.cublasIdamax(
-                handle.get(), 
-                size(), 
-                pointer(), 
+                handle.get(),
+                size(),
+                pointer(),
                 ld(),
                 Pointer.to(result).withByteOffset(toIndex * Sizeof.INT)
         ));
@@ -710,24 +707,24 @@ public class DArray1d extends Array1d implements DArray {
      * {@inheritDoc}
      */
     @Override
-    public DArray1d set(Handle handle, double[] srcCPUArray) {
+    public DArray1d set(Handle handle, double... srcCPUArray) {
         DArray.super.set(handle, srcCPUArray);
         return this;
     }
-    
+
     /**
      * {@inheritDoc }
      */
     @Override
-    public DArray1d sub(int start, int length){
+    public DArray1d sub(int start, int length) {
         return new DArray1d(this, start, length);
     }
-    
+
     /**
      * {@inheritDoc }
      */
     @Override
-    public DArray1d sub(int start, int length, int ld){
+    public DArray1d sub(int start, int length, int ld) {
         return new DArray1d(this, start, length, ld);
     }
 
@@ -741,6 +738,22 @@ public class DArray1d extends Array1d implements DArray {
             return Arrays.toString(get(handle));
         }
     }
-    
-    
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public double[] get(Handle handle) {
+
+        double[] cpuArray = new double[size()];
+
+        if (!hasPadding()) get(handle, Pointer.to(cpuArray));
+        else try (DArray1d temp = new DArray1d(size())) {
+            get(handle, temp);
+            temp.get(handle, Pointer.to(cpuArray));
+        }
+        
+        return cpuArray;
+
+    }
 }

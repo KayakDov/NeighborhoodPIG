@@ -34,21 +34,8 @@ public interface DArray extends Array {
      *
      * @param handle handle to the cuBLAS library context.
      */
-    public default double[] get(Handle handle) {
-
-        double[] export = new double[size()];
-
-        if (ld() > 1) 
-            try (DArray1d gpuArray = new DArray1d(size())) {
-            get(handle, gpuArray);
-            gpuArray.get(handle, Pointer.to(export));
-        } else get(handle, Pointer.to(export));
-
-        handle.synch();
-
-        return export;
-    }
-
+    public double[] get(Handle handle);
+    
     /**
      * Copies to here with increments.
      *
@@ -100,7 +87,7 @@ public interface DArray extends Array {
      * array.
      * @return this array.
      */
-    public default DArray set(Handle handle, double[] srcCPUArray) {
+    public default DArray set(Handle handle, double... srcCPUArray) {
         set(handle, Pointer.to(srcCPUArray));
         return this;
     }

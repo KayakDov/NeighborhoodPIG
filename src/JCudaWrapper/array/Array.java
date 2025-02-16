@@ -190,7 +190,7 @@ public interface Array extends AutoCloseable {
      *
      * @return The number of bytes in a section.
      */
-    public default int bytesPerLine() {
+    public default int pitch() {
         return size() * bytesPerEntry();
     }
 
@@ -243,10 +243,11 @@ public interface Array extends AutoCloseable {
 
     /**
      * The number of elements that could fit in the pitch.
+     *
      * @return The number of elements that could fit in the pitch.
      */
     public int ld();
-    
+
     /**
      * Takes in the index of the desired element, and returns the actual index
      * of that element accounting for pitch.
@@ -258,33 +259,36 @@ public interface Array extends AutoCloseable {
     public default int memIndex(int entryNumber) {
         return (entryNumber / entriesPerLine()) * ld() + entryNumber % entriesPerLine();
     }
-    
+
     /**
      * true if there is padding, ie ld() != entriesPerLine, and false otherwise.
-     * @return true if there is padding, ie ld() != entriesPerLine, and false otherwise.
+     *
+     * @return true if there is padding, ie ld() != entriesPerLine, and false
+     * otherwise.
      */
-    public default boolean hasPadding(){
-        return ld() != entriesPerLine();
+    public default boolean hasPadding() {
+        return ld() != entriesPerLine() && size() != 1;
     }
-    
-        
+
     /**
-     * A one dimensional representation of this array. 
-     * @return 
+     * A one dimensional representation of this array.
+     *
+     * @return
      */
     public Array1d as1d();
-    
+
     /**
      * A 2 dimensional representation of this array. If this array is already
      * 2d, then this array is returned. If it is 3d then each layer precedes the
      * previous layers.
      *
      * @return A 2 dimensional representation of this array.
-     */    
+     */
     public Array2d as2d();
-    
+
     /**
      * A 3d representation of this array.
+     *
      * @param linesPerLayer
      * @return A 3d representation of this array.
      */

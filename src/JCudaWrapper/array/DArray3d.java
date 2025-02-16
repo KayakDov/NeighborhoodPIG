@@ -2,6 +2,7 @@ package JCudaWrapper.array;
 
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;
+import jcuda.Pointer;
 import jcuda.Sizeof;
 
 /**
@@ -143,5 +144,25 @@ public class DArray3d extends Array3d implements DLineArray {
     public Singleton get(int index) {
         return new DSingleton(this, index);
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public double[] get(Handle handle) {
+        double[] cpuArray = new double[size()];
+        get(handle, Pointer.to(cpuArray));
+        return cpuArray;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public DArray3d set(Handle handle, double... srcCPUArray) {
+        DLineArray.super.set(handle, srcCPUArray); 
+        return this;
+    }
+    
     
 }
