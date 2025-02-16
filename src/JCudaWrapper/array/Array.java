@@ -58,7 +58,6 @@ public interface Array extends AutoCloseable {
      * @throws ArrayIndexOutOfBoundsException if the index is out of bounds.
      */
     default Pointer pointer(int offset) {
-        confirm(offset >= 0, offset < size());
 
         return pointer().withByteOffset(offset * bytesPerEntry());
     }
@@ -210,7 +209,7 @@ public interface Array extends AutoCloseable {
      *
      * @return 1
      */
-    public default int numLayers() {
+    public default int layersPerGrid() {
         return 1;
     }
 

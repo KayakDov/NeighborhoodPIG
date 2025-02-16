@@ -36,7 +36,7 @@ public abstract class Array3d extends LineArray implements Array {
     /**
      * The length of the array.
      */
-    public final int numLayers;
+    public final int layersPerGrid;
 
     /**
      * Constructs a 3d array.
@@ -51,7 +51,7 @@ public abstract class Array3d extends LineArray implements Array {
 
         super(entriesPerLine, linesPerLayer, bytesPerEntry);
 
-        this.numLayers = numLayers;
+        this.layersPerGrid = numLayers;
         cudaExtent extent = new cudaExtent(entriesPerLine * bytesPerEntry, linesPerLayer, numLayers);
 
         opCheck(JCuda.cudaMalloc3D(pointer, extent));
@@ -73,9 +73,9 @@ public abstract class Array3d extends LineArray implements Array {
     protected Array3d(LineArray from, int startLine, int numLines, int startEntry, int numEntryPerLine, int startLayer, int numLayers) {
         super(from, startEntry, numEntryPerLine, startLine, numLines);
 
-        this.numLayers = numLayers;
+        this.layersPerGrid = numLayers;
 
-        this.pointer.ptr = from.pointer(startEntry + (startLine + startLayer * linesPerLayer()) * entriesPerLine());
+        this.pointer.ptr = from.pointer(startEntry + (startLine + startLayer * linesPerLayer()) * ld());
     }
     
     /**
@@ -98,7 +98,7 @@ public abstract class Array3d extends LineArray implements Array {
      */
     public Array3d(Array src, int entriesPerLine, int ld, int linesPerLayer){
         super(src, entriesPerLine, ld, linesPerLayer);
-        numLayers = src.size()/(ld * linesPerLayer);
+        layersPerGrid = src.size()/(ld * linesPerLayer);
     }
     
 
@@ -116,7 +116,7 @@ public abstract class Array3d extends LineArray implements Array {
             extent = new cudaExtent(
                     entriesPerLine() * bytesPerEntry(),
                     linesPerLayer(),
-                    numLayers
+                    layersPerGrid
             );
         return extent;
     }
@@ -209,7 +209,7 @@ public abstract class Array3d extends LineArray implements Array {
      */
     @Override
     public int size() {
-        return super.size() * numLayers;
+        return super.size() * layersPerGrid();
     }
 
     /**
@@ -234,8 +234,9 @@ public abstract class Array3d extends LineArray implements Array {
      * The number of layers.
      * @return The number of layers.
      */
-    public int numLayers() {
-        return numLayers;
+    @Override
+    public int layersPerGrid() {
+        return layersPerGrid;
     }
     
     /**

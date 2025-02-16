@@ -78,7 +78,7 @@ public class Eigan implements AutoCloseable{//TODO fix spelling to eigen
      */
     public final Eigan setEigenVals() {
         Kernel.run("eigenValsBatch", handle,
-                structureTensors.numLayers(), structureTensors, P.to(values), P.to(tolerance));
+                structureTensors.layersPerGrid(), structureTensors, P.to(values), P.to(tolerance));
         return this;
     }
 
@@ -88,13 +88,13 @@ public class Eigan implements AutoCloseable{//TODO fix spelling to eigen
      */
     public final Eigan setEiganVectors() {//TODO: add ld
 
-        try (IArray1d pivotFlags = new IArray1d(structureTensors.numLayers());
-                DArray3d workSpace = new DArray3d(3, 3, structureTensors.numLayers())) {
+        try (IArray1d pivotFlags = new IArray1d(structureTensors.layersPerGrid());
+                DArray3d workSpace = new DArray3d(3, 3, structureTensors.layersPerGrid())) {
 
             for (int i = 0; i < 3; i++) 
 
                 Kernel.run("eigenVecBatch", handle,
-                        structureTensors.numLayers(),
+                        structureTensors.layersPerGrid(),
                         workSpace.set(handle, structureTensors),
                         P.to(3),
                         P.to(3),

@@ -108,7 +108,7 @@ public abstract class Dimensions implements AutoCloseable{
      * @param copyFrom The item being copied.
      */
     public Dimensions(Handle handle, DStrideArray3d copyFrom) {
-        this(handle, copyFrom.entriesPerLine(), copyFrom.linesPerLayer(), copyFrom.numLayers(), copyFrom.batchSize);
+        this(handle, copyFrom.entriesPerLine(), copyFrom.linesPerLayer(), copyFrom.layersPerGrid(), copyFrom.batchSize);
     }
     
     /**

@@ -62,9 +62,9 @@ public class DStrideArray2d extends DArray2d implements StrideArray {
                 Array.transpose(transA), Array.transpose(transB),
                 matA.entriesPerLine(), matB.linesPerLayer(), matA.linesPerLayer(),
                 P.to(timesAB),
-                matA.pointer(), matA.ld(), matA.stride(),
-                matB.pointer(), matB.ld(), matB.stride(),
-                P.to(timesResult), pointer(), ld(), stride(),
+                matA.pointer(), matA.ld(), matA.strideLines(),
+                matB.pointer(), matB.ld(), matB.strideLines(),
+                P.to(timesResult), pointer(), ld(), strideLines(),
                 batchSize()
         );
         if (result != cudaError.cudaSuccess)
@@ -125,7 +125,7 @@ public class DStrideArray2d extends DArray2d implements StrideArray {
      * {@inheritDoc }
      */
     @Override
-    public int stride() {
+    public int strideLines() {
         return stride;
     }
 

@@ -4,6 +4,7 @@ import JCudaWrapper.array.Array;
 import JCudaWrapper.array.DArray1d;
 import JCudaWrapper.array.DArray2d;
 import JCudaWrapper.array.DArray3d;
+import JCudaWrapper.array.DStrideArray3d;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;
 
@@ -15,11 +16,16 @@ import java.util.Arrays;
 public class Test {
 
     public static void main(String[] args) {
+        
+        double[] cpuArray = new double[16];
+        Arrays.setAll(cpuArray, i -> i*2);
 
         try (Handle handle = new Handle(); 
-                DArray3d array = new DArray3d(2, 2, 2).set(handle, 1, 2, 3, 4, 5, 6, 7 ,8)) {
+                DStrideArray3d array = new DStrideArray3d(2, 2, 2, 2).set(handle, cpuArray)) {
 
+                System.out.println("main.Test.main() size = " + array.size());
                 System.out.println("toString:\n" + array.toString());
+                System.out.println("toString:\n" + Arrays.toString(array.get(handle)));
             
         }
 

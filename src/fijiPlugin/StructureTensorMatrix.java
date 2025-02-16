@@ -87,7 +87,7 @@ public class StructureTensorMatrix implements AutoCloseable {
     public final DArray3d setVecs0ToPi() {
         DArray3d eVecs = eigen.vectors;
         Kernel.run("vecToNematic", handle,
-                eVecs.numLayers(),
+                eVecs.layersPerGrid(),
                 eVecs,
                 P.to(eVecs.ld()),
                 P.to(eVecs),

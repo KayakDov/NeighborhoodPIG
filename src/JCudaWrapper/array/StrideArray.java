@@ -10,7 +10,7 @@ public interface StrideArray extends Array {
      * The stride size.
      * @return The stride size.
      */
-    public int stride();
+    public int strideLines();
     
     /**
      * The batch Size. The number of strides taken.

@@ -26,7 +26,7 @@ public class DPointerArray1d extends PointerArray1d implements PointerArray{
      */
     public <DStrideArray extends StrideArray, DArray> DPointerArray1d(Handle handle, DStrideArray dsa){
         super(dsa.batchSize(), dsa.subArraySize());
-        Kernel.run("genPtrs", handle, dsa.batchSize(), dsa, P.to(dsa.stride()), P.to(this), P.to(1));
+        Kernel.run("genPtrs", handle, dsa.batchSize(), dsa, P.to(dsa.strideLines()), P.to(this), P.to(1));
     }
     
     

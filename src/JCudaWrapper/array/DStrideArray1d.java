@@ -87,7 +87,7 @@ public class DStrideArray1d extends DArray1d implements StrideArray {
      * {@inheritDoc }
      */
     @Override
-    public int stride() {
+    public int strideLines() {
         return stride;
     }
 
@@ -128,7 +128,7 @@ public class DStrideArray1d extends DArray1d implements StrideArray {
      */
     @Override
     public DArray1d getSubArray(int arrayIndex) {
-        return new DArray1d(this, arrayIndex * stride(), arrayIndex * stride() + subArraySize());
+        return new DArray1d(this, arrayIndex * strideLines(), arrayIndex * strideLines() + subArraySize());
     }
 
     /**

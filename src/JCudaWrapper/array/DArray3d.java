@@ -87,7 +87,7 @@ public class DArray3d extends Array3d implements DLineArray {
 
         StringBuilder sb = new StringBuilder();
         
-        for(int i = 0; i < numLayers(); i++)
+        for(int i = 0; i < layersPerGrid(); i++)
             sb.append(getLayer(i).toString()).append("\n");
         
         return sb.toString();
@@ -107,7 +107,7 @@ public class DArray3d extends Array3d implements DLineArray {
      */
     @Override
     public DArray3d copy(Handle handle) {
-        return new DArray3d(linesPerLayer(), entriesPerLine(), numLayers)
+        return new DArray3d(linesPerLayer(), entriesPerLine(), layersPerGrid)
                 .set(handle, this);
     }
 
@@ -116,7 +116,7 @@ public class DArray3d extends Array3d implements DLineArray {
      */
     @Override
     public DArray1d depth(int entryIndex, int lineIndex) {
-        return new DArray1d(this, ld() * lineIndex + entryIndex, numLayers(), ld() * linesPerLayer());
+        return new DArray1d(this, ld() * lineIndex + entryIndex, layersPerGrid(), ld() * linesPerLayer());
     }
 
     /**
