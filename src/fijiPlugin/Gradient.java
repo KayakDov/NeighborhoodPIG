@@ -36,9 +36,19 @@ public class Gradient extends Dimensions implements AutoCloseable {
         y = pic.copyDim();
         z = pic.copyDim();
 
-        int[] dimensions = new int[]{height, width, depth, batchSize, layerDist, tensorSize(), tensorSize() * batchSize};               
+        //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+        int[] dimensions = new int[]{
+            height,   //0
+            width,    //1
+            depth,    //2
+            batchSize,//3 
+            height*width,//4
+            tensorSize(),//5 
+            tensorSize() * batchSize,//6
+            pic.ld() //7
+        };               
         
-        try (IArray1d dim = new IArray1d(7).set(handle, dimensions)) {
+        try (IArray1d dim = new IArray1d(8).set(handle, dimensions)) {
             
             Kernel.run("batchGradients", handle,
                     x.size()*3,
@@ -48,8 +58,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
                     P.to(y), P.to(y.ld()),
                     P.to(z), P.to(z.ld())
             );
-        }
-
+        }        
     }
 
    /**

@@ -23,7 +23,7 @@ public:
           layer((threadIndex % dim[5]) / dim[4]),
           col((threadIndex % dim[4]) / dim[0]),
           row(threadIndex % dim[0]),
-          srcFlatIndex(threadIndex % dim[6]),
+          srcFlatIndex((threadIndex % dim[6]) / dim[0] * dim[7] + threadIndex % dim[0]),
           data(data) {}
 
     /**
@@ -32,11 +32,11 @@ public:
      * @return Flat index of the shifted position.
      */
     __device__ double shift(int offset) const {
-        int offsetIndex = 0;
+        int offsetIndex;
         switch (gradient) {
-            case 0: offsetIndex = srcFlatIndex + dim[0] * offset; break;
+            case 0: offsetIndex = srcFlatIndex + dim[7] * offset; break;
             case 1: offsetIndex = srcFlatIndex + offset; break;
-            case 2: offsetIndex = srcFlatIndex + dim[1] * dim[0] * offset; break;
+            case 2: offsetIndex = srcFlatIndex + dim[1] * dim[7] * offset; break;
         }
         return data[offsetIndex];
     }
@@ -52,7 +52,7 @@ public:
             case 1: loc = row; end = dim[0]; break;
             case 2: loc = layer; end = dim[2]; break;
         }
-
+        
         if (end == 1) return 0.0; // Single element case.
 
         if (loc == 0) return shift(1) - data[srcFlatIndex]; // Forward difference at start.
@@ -72,6 +72,30 @@ public:
 };
 
 /**
+ *Computes the indices written to.
+ */
+class DstIndices{
+private:
+	const int col;
+	const int row;
+public:
+	/**
+	 * @param height the height of the matrix.
+	 * @param batchSize the number of elements in the batch.
+	 * @param idx the thread id.
+	 */
+	__device__ DstIndices(int height, int batchSize, int idx): row(idx%height), col((idx % batchSize)/height){}
+	/**
+	 * Computes the index on the destination matrix.
+	 * @param ldDst the leading dimension of the destination for which the index is computed.
+	 * @param dInd the index in the batch (idx % batchSize).
+	 * @param height the height of the matrix.
+	 */
+	__device__ int index(int ldDst) const {
+		return col*ldDst + row;
+	}
+};
+/**
  * Kernel to compute gradients for batched tensors.
  * @param n Total number of elements in the gradients.
  * @param mat Pointer to input tensor data.
@@ -83,7 +107,7 @@ public:
 extern "C" __global__ void batchGradientsKernel(
     const int n, 
     const double* mat, 
-    const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+    const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6, colDist = 7
     double* dX, const int ldx, double* dY, const int ldy, double* dZ, const int ldz
 ) {
     
@@ -93,10 +117,12 @@ extern "C" __global__ void batchGradientsKernel(
 
     const Indices indices(idx, dim, mat);
 
-    int dInd = idx%dim[6];
+    const DstIndices to(dim[0], dim[6], idx);
      
-    if(idx < dim[6]) dX[(dInd/dim[0])*ldx + dInd%dim[0]] = indices.grad();
-    else if(idx < 2*dim[6]) dY[(dInd/dim[0])*ldx + dInd%dim[0]] = indices.grad();
-    else dZ[(dInd/dim[0])*ldx + dInd%dim[0]] = indices.grad();
+    //if(idx == 0) printf("\nidx == 0 toIndex = %d, srcVal = %f, grad = %f\n", to.index(ldx), indices.shift(0), indices.grad());
+     
+    if(idx < dim[6])        dX[to.index(ldx)] = indices.grad();
+    else if(idx < 2*dim[6]) dY[to.index(ldy)] = indices.grad();
+    else                    dZ[to.index(ldz)] = indices.grad();
 }
 

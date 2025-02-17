@@ -223,6 +223,17 @@ public interface Array extends AutoCloseable {
     }
 
     /**
+     * True if this matrix has one entry per line, one layer per grid, and any
+     * number of lines per layer.
+     *
+     * @return True if this matrix has one entry per line, one layer per grid,
+     * and any number of lines per layer.
+     */
+    public default boolean is1D() {
+        return entriesPerLine() == 1 && layersPerGrid() == 1;
+    }
+
+    /**
      * If any of the conditions are not true, an exception is thrown.
      *
      * @param check These all must be true.

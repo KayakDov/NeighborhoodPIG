@@ -35,11 +35,6 @@ public abstract class Dimensions implements AutoCloseable{
     public final int depth;
 
     /**
-     * The distance between consecutive layers in memory.
-     */
-    public final int layerDist;
-
-    /**
      * The stride size (distance between elements in memory).
      */
     public final int strideSize;
@@ -68,7 +63,6 @@ public abstract class Dimensions implements AutoCloseable{
         this.height = height;
         this.width = width;
         this.depth = depth;
-        this.layerDist = layerDist;
         this.strideSize = strideSize;
         this.batchSize = batchSize;
 
@@ -89,15 +83,6 @@ public abstract class Dimensions implements AutoCloseable{
      */
     public Dimensions(Handle handle, int height, int width, int depth, int batchSize) {
         this(handle, height, width, depth, height*width, height*width*depth, batchSize);
-    }
-
-    /**
-     * Copy constructor.
-     *
-     * @param copyFrom The item being copied.
-     */
-    public Dimensions(Dimensions copyFrom) {
-        this(copyFrom.handle, copyFrom.height, copyFrom.width, copyFrom.depth, copyFrom.layerDist, copyFrom.strideSize, copyFrom.batchSize);
     }
 
     
@@ -144,8 +129,7 @@ public abstract class Dimensions implements AutoCloseable{
         return "TensorOrd3dStrideDim {"
                 + "height =" + height
                 + ", width =" + width
-                + ", depth =" + depth        
-                + ", layerDist =" + layerDist
+                + ", depth =" + depth
                 + ", strideSize =" + strideSize
                 + ", batchSize =" + batchSize
                 + ", layerSize =" + layerSize()

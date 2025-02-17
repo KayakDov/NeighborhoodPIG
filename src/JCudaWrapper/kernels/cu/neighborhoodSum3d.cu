@@ -5,7 +5,7 @@
  */
 class Pixel {
 private:
-    const double* srcMat;   /**< Pointer to the source matrix. */
+    double* srcMat;   /**< Pointer to the source matrix. */
     const int srcStride;        /**< Step size for moving along the specified direction. */
     double* dstMat;   /**< Pointer to the target matrix. */    
     const int dstStride;           /**< Increment multiplier for accessing the target matrix. */
@@ -19,7 +19,7 @@ public:
      * @param srcStride The step size for moving along a direction in the matrix.
      * @param dstStride The stride multiplier for accessing the target matrix.
      */
-    __device__ Pixel(const double* srcMat, double* dstMat, const int srcStride, const int dstStride)
+    __device__ Pixel(double* srcMat, double* dstMat, const int srcStride, const int dstStride)
         : srcMat(srcMat), dstMat(dstMat), srcStride(srcStride), dstStride(dstStride) {}
 
     /**
@@ -68,7 +68,7 @@ public:
  */
 extern "C" __global__ void neighborhoodSum3dKernel(
     const int n,
-    const double* srcMat,
+    double* srcMat,
     double* dstMat,
     const int height, const int width, const int depth, const int ldSrc, const int ldDst,
     const int srcStride, const int dstStride, const int numSteps,
@@ -79,6 +79,10 @@ extern "C" __global__ void neighborhoodSum3dKernel(
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= n) return; // Out-of-bounds thread
+    
+    
+    if (idx < 10) printf("Thread %d is alive!\n", idx);
+
 
     // Initialize starting position and step sizes
     int srcStart, dstStart;

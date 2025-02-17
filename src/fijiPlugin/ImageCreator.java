@@ -77,7 +77,7 @@ public class ImageCreator extends Dimensions {
      * @return The color as an integer in RGB format.
      */
     private int getPixelInt(int frame, int layer, int x, int y) {
-        return cpuColors[frame * layerDist * depth + layer * layerDist + x * colDist + y];
+        return cpuColors[frame * width * height * depth + layer * width * height + x * height + y];
     }
 
     /**

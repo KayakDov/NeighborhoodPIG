@@ -1,9 +1,5 @@
 package main;
 
-import JCudaWrapper.array.Array;
-import JCudaWrapper.array.DArray1d;
-import JCudaWrapper.array.DArray2d;
-import JCudaWrapper.array.DArray3d;
 import JCudaWrapper.array.DStrideArray3d;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;

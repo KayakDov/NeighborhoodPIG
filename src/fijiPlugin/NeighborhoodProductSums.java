@@ -22,8 +22,8 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
 
 //    private final Vector halfNOnes;
     private final DStrideArray3d workSpace1, workSpace2;
-    private final int nRad;
-    private Kernel nSum;
+    private final int nRad;//TODO:  This needs to have a seperate value for each dimension.
+    private final Kernel nSum;
     private final Mapper X, Y, Z;
 
     /**
@@ -39,19 +39,22 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
     public NeighborhoodProductSums(Handle handle, int nRad, DStrideArray3d dim) {
         super(handle, dim);
 
-        Z = new Mapper(depth, 2, height * width * batchSize) {
+        Z = new Mapper(height * width * batchSize, depth, 2) {
+
             @Override
             protected int srcStride(DStrideArray3d src) {
-                return src.ld() * src.linesPerLayer();
+                return matZStride(src);
             }
 
             @Override
             protected int dstStride(DStrideArray3d src, DArray dst) {
-                return dst.entriesPerLine() == 1 ? src.entriesPerLine() * src.linesPerLayer() * dst.ld() : dst.ld() * dst.linesPerLayer();
+                return dst.is1D()
+                        ? src.entriesPerLine() * src.linesPerLayer() * dst.ld()
+                        : matZStride(src);
             }
         };
 
-        Y = new Mapper(height, 1, depth * width * batchSize) {
+        Y = new Mapper(depth * width * batchSize, height, 1) {
             @Override
             protected int srcStride(DStrideArray3d src) {
                 return 1;
@@ -60,11 +63,11 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
 
             @Override
             protected int dstStride(DStrideArray3d src, DArray dst) {
-                return dst.entriesPerLine() == 1 ? dst.ld() : 1;
+                return dst.is1D() ? dst.ld() : 1;
             }
         };
 
-        X = new Mapper(width, 0, depth * height * batchSize) {
+        X = new Mapper(depth * height * batchSize, width, 0) {
             @Override
             protected int srcStride(DStrideArray3d src) {
                 return src.ld();
@@ -72,7 +75,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
 
             @Override
             protected int dstStride(DStrideArray3d src, DArray dst) {
-                return dst.entriesPerLine() == 1 ? src.entriesPerLine() * dst.ld() : dst.ld();
+                return (dst.is1D() ? src.entriesPerLine() : 1) * dst.ld();
             }
         };
 
@@ -83,6 +86,13 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
 
         nSum = new Kernel("neighborhoodSum3d");
     }
+
+    /**
+     * The Z stride size in a matrix.
+     */
+    private static int matZStride(DArray mat) {
+        return mat.ld() * mat.linesPerLayer();
+    }    
 
     /**
      * A class to manage data for computing neighborhood sums in a specific
@@ -101,7 +111,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
          * @param numThreads The number pixels on a face perpendicular to the
          * direction.
          */
-        public Mapper(int numSteps, int dirOrd, int numThreads) {
+        public Mapper(int numThreads, int numSteps, int dirOrd) {
             this.numSteps = numSteps;
             this.numThreads = numThreads;
             this.dirOrd = dirOrd;
@@ -119,6 +129,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
          * The stride size for the source.
          *
          * dst src The data being strode through.
+         *
          * @return The stride size.
          */
         protected abstract int dstStride(DStrideArray3d src, DArray dst);
@@ -134,7 +145,6 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
          */
         public void neighborhoodSum(DStrideArray3d src, DArray dst) {
 
-
             nSum.run(handle, //TODO: make sure nSum takes in ld.
                     numThreads,
                     src,
@@ -149,7 +159,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
                     P.to(numSteps),
                     P.to(nRad),
                     P.to(dirOrd),
-                    P.to(dst.entriesPerLine() != 1)
+                    P.to(!dst.is1D())
             );
         }
 

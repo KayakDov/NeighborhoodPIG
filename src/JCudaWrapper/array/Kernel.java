@@ -11,13 +11,16 @@ import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import jcuda.runtime.JCuda;
+import jcuda.runtime.cudaError;
 
 /**
  * The {@code Kernel} class is a utility for managing and executing CUDA kernels
  * using JCuda. It handles loading CUDA modules, setting up functions, and
  * executing them with specified parameters.
  *
- *  TODO: change kernel to take advantage of matrices structure.  Rewrite them for 2d indexing.
+ * TODO: change kernel to take advantage of matrices structure. Rewrite them for
+ * 2d indexing.
  * <p>
  * Example usage:
  * <pre>
@@ -58,15 +61,16 @@ public class Kernel implements AutoCloseable {
 
         try (InputStream resourceStream = getClass().getClassLoader()
                 .getResourceAsStream("JCudaWrapper/kernels/ptx/" + fileName)) {
-            
-            if (resourceStream == null) throw new RuntimeException("Kernel file not found in JAR: " + fileName);
-            
+
+            if (resourceStream == null)
+                throw new RuntimeException("Kernel file not found in JAR: " + fileName);
+
             File tempFile = File.createTempFile("kernel_", ".ptx");
             tempFile.deleteOnExit(); // Clean up after the program ends
             Files.copy(resourceStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);  //TODO: copying the file seems ineficiant.  Can this be made faster?
 
             JCudaDriver.cuModuleLoad(module, tempFile.getAbsolutePath());
-            
+
         } catch (Exception e) {
             throw new RuntimeException("Failed to load kernel file", e);
         }
@@ -143,6 +147,10 @@ public class Kernel implements AutoCloseable {
      * @param result The result of a cuLaunch.
      */
     private void checkResult(int result) {
+        int err = JCuda.cudaGetLastError();
+        if (err != cudaError.cudaSuccess)
+            throw new RuntimeException("CUDA error during : " + JCuda.cudaGetErrorString(err));
+        
         if (result != CUresult.CUDA_SUCCESS) {
             String[] errorMsg = new String[1];
             JCudaDriver.cuGetErrorString(result, errorMsg);
