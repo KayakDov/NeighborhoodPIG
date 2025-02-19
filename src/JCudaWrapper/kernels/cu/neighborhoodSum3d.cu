@@ -80,10 +80,6 @@ extern "C" __global__ void neighborhoodSum3dKernel(
 
     if (idx >= n) return; // Out-of-bounds thread
     
-    
-    if (idx < 10) printf("Thread %d is alive!\n", idx);
-
-
     // Initialize starting position and step sizes
     int srcStart, dstStart;
     int row = idx % height, col = idx / height;

@@ -24,4 +24,16 @@ public interface DLineArray extends DArray {
     public default DSingleton getAt(int indexInLine, int lineNumber) {
         return new DSingleton(this, indexInLine + lineNumber*entriesPerLine());
     }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public default DArray setProduct(Handle handle, double scalar, DArray src){
+        Kernel.run("multiplyScalar", handle, size(), this, P.to(ld()), P.to(linesPerLayer()), P.to(src), P.to(src.ld()), P.to(src.linesPerLayer()), P.to(scalar));
+        return this;
+    }
+    
+    
+    
 }

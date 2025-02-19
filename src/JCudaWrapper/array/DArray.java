@@ -122,23 +122,12 @@ public interface DArray extends Array {
                 Array.transpose(transA), Array.transpose(transB),
                 entriesPerLine(), linesPerLayer(),
                 P.to(alpha), a.pointer(), a.ld(),
-                P.to(beta), b.pointer(), b.ld(),
+                P.to(beta), b==null?new Pointer():b.pointer(), b== null?1:b.ld(),
                 pointer(), ld()
         ));
         return this;
     }
-    
-    /**
-     * Multiplies src by a scalar and places the result here.
-     * @param handle THe context.
-     * @param src The array to be multiplied by a scalar.
-     * @param scalar The scalar.
-     * @return The product of the array the the scalar goes here.  This is returned.
-     */
-    public default DArray setProduct(Handle handle, DArray src, double scalar){
-        return setSum(handle, false, false, scalar, src, 0, null);
-    }
-    
+        
     /**
      * A one dimensional representation of this array. 
      * @return 
@@ -148,12 +137,9 @@ public interface DArray extends Array {
     }
     
     /**
-     * A 2 dimensional representation of this array. If this array is already
-     * 2d, then this array is returned. If it is 3d then each layer precedes the
-     * previous layers.
-     *
-     * @return A 2 dimensional representation of this array.
+     * {@inheritDoc }
      */    
+    @Override
     public default DArray2d as2d(){
         return new DArray2d(this, entriesPerLine());
     }
@@ -166,5 +152,21 @@ public interface DArray extends Array {
     public default DArray3d as3d(int linesPerLayer){
         return new DArray3d(this, entriesPerLine(), linesPerLayer);
     }
+    
+    
+    /**
+     * Scales this vector by the scalar mult:
+     *
+     * <pre>
+     * this = mult * this
+     * </pre>
+     *
+     * @param handle handle to the cuBLAS library context.
+     * @param scalar Scalar multiplier applied to vector X.
+     * @param src Where the array is copied from.  The result is placed here.
+     * @return this;
+     *
+     */
+    public DArray setProduct(Handle handle, double scalar, DArray src);
 
 }

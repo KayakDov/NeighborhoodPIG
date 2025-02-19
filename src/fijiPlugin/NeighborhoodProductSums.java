@@ -177,10 +177,6 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
      * increment of this vector is probably not one.
      */
     public void set(DStrideArray3d a, DStrideArray3d b, DArray1d dst) {
-                
-//        System.out.println("fijiPlugin.NeighborhoodProductSums.set() A = \n" + a.toString());
-
-        System.out.println("fijiPlugin.NeighborhoodProductSums.set() a.size = " + a.size() + ", b.size() = " + b.size() + " dst.size() = " + dst.size() + " dst.ld() = " + dst.ld() + "\n");
         
         Kernel.run("addEBEProduct", handle, 
                 a.size(), 
@@ -196,7 +192,6 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
                 P.to(0)
         );
         
-        System.out.println("fijiPlugin.NeighborhoodProductSums.set() A = \n" + a.toString());
 
         X.neighborhoodSum(workSpace1, workSpace2);
 

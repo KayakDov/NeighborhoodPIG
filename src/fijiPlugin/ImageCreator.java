@@ -48,7 +48,7 @@ public class ImageCreator extends Dimensions {
         super(handle, orientation);
         colDist = orientation.ld();
         this.sliceNames = sliceNames;
-        orientation.setProduct(handle, orientation, 2);
+        orientation.setProduct(handle, 2, orientation);
 
         try (IArray gpuColors = new IArray1d(orientation.size())) {
 
@@ -64,7 +64,7 @@ public class ImageCreator extends Dimensions {
             cpuColors = gpuColors.get(handle); // Transfer GPU results to CPU.
         }
 
-        orientation.setProduct(handle, orientation, 0.5); // Restore original scale.
+        orientation.setProduct(handle, 0.5, orientation); // Restore original scale.
     }
 
     /**

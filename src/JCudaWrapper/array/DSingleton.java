@@ -85,5 +85,14 @@ public class DSingleton extends Singleton implements DArray{
         get(handle, Pointer.to(cpuArray));
         return cpuArray;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public DSingleton setProduct(Handle handle, double scalar, DArray src) {
+        as1d().setProduct(handle, scalar, src);
+        return this;
+    }
     
 }

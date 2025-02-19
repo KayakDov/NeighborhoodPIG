@@ -55,6 +55,15 @@ public class DStrideArray1d extends DArray1d implements StrideArray {
      * {@inheritDoc }
      */
     @Override
+    public DStrideArray1d set(Handle handle, DArray1d src) {
+        super.set(handle, src); 
+        return this;
+    }
+    
+    /**
+     * {@inheritDoc }
+     */
+    @Override
     public DStrideArray1d copy(Handle handle) {
         return new DStrideArray1d(stride, batchSize, size, 0).set(handle, this);
     }

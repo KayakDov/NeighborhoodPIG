@@ -42,6 +42,19 @@ public class DArray1d extends Array1d implements DArray {
     }
 
     /**
+     * Copies the data from the src to here taking into acount increments.
+     * @param handle The context.
+     * @param src The data is copied from here.
+     * @return this.
+     */
+    public DArray1d set(Handle handle, DArray1d src) {
+        src.get(handle, this);
+        return this;
+    }
+
+    
+    
+    /**
      * Constructs a 1d sub array of the proffered array. If the array copied
      * from is not 1d, then depending on the length, this array may include
      * pitch.
@@ -143,22 +156,24 @@ public class DArray1d extends Array1d implements DArray {
     }
 
     /**
-     * Scales this vector by the scalar mult:
-     *
-     * <pre>
-     * this = mult * this
-     * </pre>
-     *
-     * @param handle handle to the cuBLAS library context.
-     * @param scalar Scalar multiplier applied to vector X.
-     * @return this;
-     *
-     *
+     * Multiplies this array by a scalar.
+     * @param handle The context.
+     * @param scalar The scalar to multiply this array by.
+     * @return this array.
      */
     public DArray1d multiply(Handle handle, double scalar) {
-
+        
         opCheck(JCublas2.cublasDscal(handle.get(), size(), P.to(scalar), pointer(), ld()));
         return this;
+    }
+    
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public DArray1d setProduct(Handle handle, double scalar, DArray src) {
+        if(src != this) set(handle, this);
+        return multiply(handle, scalar);
     }
 
     /**
@@ -702,6 +717,7 @@ public class DArray1d extends Array1d implements DArray {
         super.set(handle, from);
         return this;
     }
+    
 
     /**
      * {@inheritDoc}
