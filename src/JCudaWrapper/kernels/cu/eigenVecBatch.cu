@@ -239,30 +239,31 @@ public:
  *
  * @brief CUDA kernel to compute eigenvectors in batch using row echelon form.
  * @param batchSize Number of matrices.
- * @param sourceMatrices Pointer to source matrices in column-major format.  These matrices will be changed.
- * @param ldSourceMatrices Leading dimension of the source matrices.
+ * @param src Pointer to source matrices in column-major format.  These matrices will be changed.
+ * @param ldsrc Leading dimension of the source matrices.
  * @param eVectors Pointer to the resulting eigenvectors.
  * @param width Number of columns in each matrix.
  * @param height Number of rows in each matrix.
  * @param eigenValues Pointer to all the eigenValues, including those that will not be used.  Be sure to increment valIndex over multiple runs of this kernel so that they are all used.
  * @param workspacePivotFlags Pointer to workspace memory for pivot flags.
  * @param tolerance Tolerance for row echelon pivot detection.
- * @param eVecLD the leading dimension of the eigan vectors.
- * @param sourceLD the leading dimension of the sourver matrix.
+ * @param ldEVec the leading dimension of the eigan vectors.
+ * @param ldSrc the leading dimension of the sourver matrix.
  * @param valIndex The index of the desired eigan value. 
  */
  //TODO: add option of only finding the first eigenVector.  
  //TODO: can this be accelerated for 3x3 as opposed to generic?
 extern "C" __global__ void eigenVecBatchKernel(
      const int batchSize, 
-     double* sourceMatrices, 
+     double* src, 
      const int height,
      const int width,
-     const int sourceLD,
+     const int ldSrc,
      double* eVectors,
-     const int eVecLD,
+     const int ldEVec,
      const int valIndex,     
      const double* eigenValues,
+     const int ldEVal,
      int* workspacePivotFlags,
      const double tolerance
 ) {    
@@ -271,16 +272,18 @@ extern "C" __global__ void eigenVecBatchKernel(
 
     // Set up the pivot flags for the current matrix.
     int* isPivot = workspacePivotFlags + width * idx;
-
     
+    Matrix mat(src + idx * ldSrc * width, width, height, ldSrc, isPivot, tolerance);
     
-    Matrix mat(sourceMatrices + idx * sourceLD * width, width, height, sourceLD, isPivot, tolerance);
-    double eiganVal = eigenValues[idx * width + valIndex];
+    double eiganVal = eigenValues[idx * ldEVal + valIndex];
     for(int i = 0; i < width; i++) mat(i, i) -= eiganVal;
 
-    double* eVec = eVectors + eVecLD * width * idx + valIndex * eVecLD;
+    double* eVec = eVectors + ldEVec * width * idx + valIndex * ldEVec;
     int numFreeVariables = mat.rowEchelon();
-    int freeVariableID = idx % numFreeVariables; 
+    
+    //printf("%d free variables -> %d\n",idx, numFreeVariables);//mat.print();
+    
+    int freeVariableID = valIndex % numFreeVariables; 
 
     int col = width - 1, pivotsPassed = 0;
     // Loop through the columns in reverse, starting from the last column.
@@ -299,7 +302,8 @@ extern "C" __global__ void eigenVecBatchKernel(
     for (int row = (width - numFreeVariables) - pivotsPassed - 1; row >= 0 && col >= 0; col--) {	
     	eVec[col] = 0;	
 	if(isPivot[col]){         
-            for (int i = col + 1; i < width - freeVariableID; i++) eVec[col] -= eVec[i] * mat(row, i);
+            for (int i = col + 1; i < width - freeVariableID; i++) 
+                eVec[col] -= eVec[i] * mat(row, i);
             eVec[col] /= mat(row, col);
             row--;
         }

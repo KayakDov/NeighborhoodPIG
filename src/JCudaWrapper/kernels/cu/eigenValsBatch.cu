@@ -2,7 +2,6 @@
 #include <math.h>
 
 static constexpr int DIM = 3;
-static constexpr int MATRIX_SIZE = DIM * DIM;
 
 /**
  * Swap function for double values.
@@ -19,13 +18,14 @@ __device__ inline void swap(double& a, double& b) {
 class Matrix3x3 {
 private:
     const double* data; // Pointer to external matrix data.
+    const int ld;
 
 public:
     /**
      * Constructor for the Matrix3x3 class.
-     * @param inputData Pointer to the flattened 3x3 matrix in column-major format.
+     * @param srcData Pointer to the flattened 3x3 matrix in column-major format.
      */
-    __device__ explicit Matrix3x3(const double* inputData) : data(inputData) {}
+    __device__ explicit Matrix3x3(const double* srcData, const int ld) : data(srcData), ld(ld) {}
 
     /**
      * Access operator for matrix elements.
@@ -34,7 +34,7 @@ public:
      * @return The value at the specified row and column.
      */
     __device__ double operator()(int row, int col) const {
-        return data[col * DIM + row];
+        return data[col * ld + row];
     }
 
     /**
@@ -189,18 +189,18 @@ __device__ void cubicRoot(const double& b, const double& c, const double& d, con
 /**
  * CUDA Kernel to compute eigenvalues of a batch of 3x3 symmetric positive definite matrices.
  *
- * @param input  Flattened array of 3x3 matrices in column-major format (size: n * 9).
- * @param output Array to store the eigenvalues (size: n * DIM).
+ * @param src  Flattened array of 3x3 matrices in column-major format (size: n * 9).
+ * @param dst Array to store the eigenvalues (size: n * DIM).
  * @param n      Number of matrices in the batch.
  */
-extern "C" __global__ void eigenValsBatchKernel(const int n, const double* input, double* output, double tolerance) {
+extern "C" __global__ void eigenValsBatchKernel(const int n, const double* src, const int ldSrc, double* dst, const int ldDst, double tolerance) { //TODO: use ld and height
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= n) return;
     
-    Matrix3x3 matrix(input + idx*MATRIX_SIZE);
+    Matrix3x3 matrix(src + idx*DIM*ldSrc, ldSrc);
     
-    double* eigenvalues = output + idx * DIM;
+    double* eigenvalues = dst + idx * ldDst;
     
     cubicRoot(
     	-matrix.trace(), 

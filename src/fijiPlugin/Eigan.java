@@ -78,7 +78,13 @@ public class Eigan implements AutoCloseable{//TODO fix spelling to eigen
      */
     public final Eigan setEigenVals() {
         Kernel.run("eigenValsBatch", handle,
-                structureTensors.layersPerGrid(), structureTensors, P.to(values), P.to(tolerance));
+                structureTensors.layersPerGrid(), 
+                structureTensors,
+                P.to(structureTensors.ld()),
+                P.to(values),
+                P.to(values.ld()),
+                P.to(tolerance)
+        );
         return this;
     }
 
@@ -86,7 +92,7 @@ public class Eigan implements AutoCloseable{//TODO fix spelling to eigen
      * Sets the eiganvectors.
      * @return this
      */
-    public final Eigan setEiganVectors() {//TODO: add ld
+    public final Eigan setEiganVectors() {
 
         try (IArray1d pivotFlags = new IArray1d(structureTensors.layersPerGrid());
                 DArray3d workSpace = new DArray3d(3, 3, structureTensors.layersPerGrid())) {
@@ -94,7 +100,7 @@ public class Eigan implements AutoCloseable{//TODO fix spelling to eigen
             for (int i = 0; i < 3; i++) 
 
                 Kernel.run("eigenVecBatch", handle,
-                        structureTensors.layersPerGrid(),
+                        structureTensors.layersPerGrid(),//TODO: some vectors are getting infinity!
                         workSpace.set(handle, structureTensors),
                         P.to(3),
                         P.to(3),
@@ -103,10 +109,13 @@ public class Eigan implements AutoCloseable{//TODO fix spelling to eigen
                         P.to(vectors.ld()),
                         P.to(i),
                         P.to(values),
+                        P.to(values.ld()),
                         P.to(pivotFlags),
                         P.to(tolerance)
                 );
         }
+        System.out.println("fijiPlugin.Eigan.setEiganVectors() " + vectors.toString());
+        
         return this;
     }
     

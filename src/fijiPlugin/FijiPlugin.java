@@ -1,5 +1,6 @@
 package fijiPlugin;
 
+import JCudaWrapper.array.Array;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
@@ -108,6 +109,8 @@ public class FijiPlugin implements PlugIn {
 
         }
         System.out.println("NeighborhoodPIG processing complete.");
+        
+        System.out.println("fijiPlugin.FijiPlugin.main() - unclosed arrays: " + Array.allocatedArrays.toString());
 //        System.out.println("fijiPlugin.FijiPlugin.main() not deleted " + JCudaWrapper.array.DArray.alocatedArrays);
 
     }

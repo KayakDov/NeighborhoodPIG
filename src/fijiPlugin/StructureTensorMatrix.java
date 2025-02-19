@@ -48,15 +48,6 @@ public class StructureTensorMatrix implements AutoCloseable {
 
         eigen.setEigenVals().setEiganVectors();
         
-        
-//        int problemMat = eigen.vectors.firstTensorIndexOfNaN();//TODO: delete this
-//        if(problemMat == -1) System.out.println("clean eigenvectors");
-//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() matrix index " + problemMat);
-//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() matrix\n" + strctTensors.getTensor(problemMat));
-//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() values\n" + eigen.values.getTensor(problemMat));
-//        System.out.println("fijiPlugin.StructureTensorMatrix.<init>() vectors\n" + eigen.vectors.getTensor(problemMat));
-
-
         orientationXY = grad.x.copyDim();
         orientationYZ = grad.x.copyDim();
         coherence = grad.x.copyDim();
@@ -65,21 +56,6 @@ public class StructureTensorMatrix implements AutoCloseable {
         setCoherence(tolerance);
         setOrientations();
     }
-//
-//    /**
-//     * Gets the structure tensor from pixel at the given row and column of the
-//     * picture.
-//     *
-//     * @param row The row of the desired pixel.
-//     * @param col The column of the desired pixel.
-//     * @param layer The desired layer of the tensor.
-//     * @param frame The desired frame of the tensor.
-//     * @return The structure tensor for the given row and column.
-//     */
-//    public Matrix getTensor(int row, int col, int layer, int frame) {
-//
-//        return strctTensors.getMatrix(index(row, col) + layer*orientationXY.layerDist + frame*orientationXY.strideSize);
-//    }
 
     /**
      * All the eigen vectors with y less than 0 are mulitplied by -1.

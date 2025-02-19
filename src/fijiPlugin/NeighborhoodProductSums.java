@@ -177,22 +177,21 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
      * increment of this vector is probably not one.
      */
     public void set(DStrideArray3d a, DStrideArray3d b, DArray1d dst) {
-        
+        //TODO: fix workspace 1 height and ld
         Kernel.run("addEBEProduct", handle, 
                 a.size(), 
-                dst,
-                P.to(dst.ld()),
-                P.to(1),
+                workSpace1,
+                P.to(workSpace1.ld()),
+                P.to(workSpace1.entriesPerLine()),
                 P.to(a.entriesPerLine()),
-                P.to(1),
+                P.to(1.0),
                 P.to(a),
                 P.to(a.ld()),
                 P.to(b),
                 P.to(b.ld()),
-                P.to(0)
+                P.to(0.0)
         );
         
-
         X.neighborhoodSum(workSpace1, workSpace2);
 
         if (depth > 1) {
