@@ -173,13 +173,19 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
      *
      * @param a The first matrix.
      * @param b The second matrix.
-     * @param result Store the result here in column major order. Note that the
+     * @param dst Store the result here in column major order. Note that the
      * increment of this vector is probably not one.
      */
-    public void set(DStrideArray3d a, DStrideArray3d b, DArray1d result) {
+    public void set(DStrideArray3d a, DStrideArray3d b, DArray1d dst) {
+                
+//        System.out.println("fijiPlugin.NeighborhoodProductSums.set() A = \n" + a.toString());
 
-        Kernel.run("addEBEProduct", handle, a.size(), result, //TODO: fix kernel so that target does not need to be same shape as source.
-                P.to(result.ld()),
+        System.out.println("fijiPlugin.NeighborhoodProductSums.set() a.size = " + a.size() + ", b.size() = " + b.size() + " dst.size() = " + dst.size() + " dst.ld() = " + dst.ld() + "\n");
+        
+        Kernel.run("addEBEProduct", handle, 
+                a.size(), 
+                dst,
+                P.to(dst.ld()),
                 P.to(1),
                 P.to(a.entriesPerLine()),
                 P.to(1),
@@ -189,14 +195,16 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
                 P.to(b.ld()),
                 P.to(0)
         );
+        
+        System.out.println("fijiPlugin.NeighborhoodProductSums.set() A = \n" + a.toString());
 
         X.neighborhoodSum(workSpace1, workSpace2);
 
         if (depth > 1) {
             Y.neighborhoodSum(workSpace2, workSpace1);
-            Z.neighborhoodSum(workSpace1, result);
+            Z.neighborhoodSum(workSpace1, dst);
         } else
-            Y.neighborhoodSum(workSpace2, result);
+            Y.neighborhoodSum(workSpace2, dst);
 
     }
 

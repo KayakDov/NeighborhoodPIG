@@ -73,7 +73,7 @@ public class DArray1d extends Array1d implements DArray {
      * @param ld The increment.
      */
     public DArray1d(DArray src, int start, int size, int ld) {
-        super(src, start, size, src.ld() * ld);
+        super(src, start, size, ld);
     }
 
     /**

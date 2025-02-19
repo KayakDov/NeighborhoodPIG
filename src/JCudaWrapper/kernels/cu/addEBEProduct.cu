@@ -1,3 +1,4 @@
+
 /**
  * @brief CUDA kernel to compute the element-by-element product of two arrays and store the result in a target array.
  *
@@ -29,7 +30,7 @@ extern "C" __global__ void addEBEProductKernel(
     const int ldA, 
     const double* b, 
     const int ldB,
-    const double timesThis
+    const double timesDst
         
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -38,7 +39,7 @@ extern "C" __global__ void addEBEProductKernel(
     
     int row = idx % heightSrc;
     int col = idx / heightSrc;
-    int indDst = (idx/heightDst) * ldDst + idx % heightDst;  
-    dst[indDst] = timesThis * dst[indDst] + timesProduct * a[col * ldA + row] * b[col * ldB + row];
+    int indDst = (idx / heightDst) * ldDst + idx % heightDst;  
+    dst[indDst] = timesDst * dst[indDst] + timesProduct * a[col * ldA + row] * b[col * ldB + row];
 }
 

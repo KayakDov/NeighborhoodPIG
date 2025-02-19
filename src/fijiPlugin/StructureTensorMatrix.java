@@ -31,8 +31,10 @@ public class StructureTensorMatrix implements AutoCloseable {
 
         this.handle = handle;
         
-        eigen = new Eigan(neighborhoodRad, handle, tolerance);
+        eigen = new Eigan(grad.size(), handle, tolerance);
 
+        
+        
         try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, neighborhoodRad, grad.x)) {
             nps.set(grad.x, grad.x, eigen.depth(0, 0));
             nps.set(grad.x, grad.y, eigen.depth(0, 1));

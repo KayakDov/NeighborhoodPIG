@@ -3,22 +3,7 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/array/DSingleton.java</file>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/array/DPointerArray1d.java</file>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/array/DArray1d.java</file>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/array/DArray2d.java</file>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/algebra/VectorsStride.java</file>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/array/PointerArray1d.java</file>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/array/LineArray.java</file>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/algebra/Vector.java</file>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/array/DLineArray.java</file>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/array/PointerArray.java</file>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/algebra/MatricesStride.java</file>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/array/Array2d.java</file>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/array/Array.java</file>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/array/Array3d.java</file>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/algebra/Matrix.java</file>
-            <file>file:/home/dov/projects/NeighborhoodPIG/src/JCudaWrapper/array/DArray3d.java</file>
+            <file>file:/home/dov/projects/NeighborhoodPIG/src/fijiPlugin/NeighborhoodProductSums.java</file>
         </group>
     </open-files>
 </project-private>
