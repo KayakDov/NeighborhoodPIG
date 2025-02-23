@@ -16,8 +16,10 @@ import java.util.Arrays;
  */
 public class Gradient extends Dimensions implements AutoCloseable {
 
-
-    public final DStrideArray3d x, y, z;
+    /**
+     * 0 is the x dimension, 1 is the y dimension, and 2 is the z dimension.
+     */
+    public final DStrideArray3d[] x;
 
     /**
      * Compute gradients of an image in both the x and y directions. Gradients
@@ -26,58 +28,45 @@ public class Gradient extends Dimensions implements AutoCloseable {
      *
      * @param handle The context
      * @param pic The pixel intensity values matrix.
-     
+     *
      *
      */
     public Gradient(Handle handle, DStrideArray3d pic) {
         super(handle, pic);
-
-        x = pic.copyDim();
-        y = pic.copyDim();
-        z = pic.copyDim();
+        x = new DStrideArray3d[3];
+        Arrays.setAll(x, i -> pic.copyDim());
 
         //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
         int[] dimensions = new int[]{
-            height,   //0
-            width,    //1
-            depth,    //2
+            height, //0
+            width, //1
+            depth, //2
             batchSize,//3 
-            height*width,//4
+            height * width,//4
             tensorSize(),//5 
             tensorSize() * batchSize,//6
             pic.ld() //7
-        };               
-        
+        };
+
         try (IArray1d dim = new IArray1d(8).set(handle, dimensions)) {
-            
+
             Kernel.run("batchGradients", handle,
-                    x.size()*3,
+                    pic.size() * 3,
                     pic,
                     P.to(dim),
-                    P.to(x), P.to(x.ld()),
-                    P.to(y), P.to(y.ld()),
-                    P.to(z), P.to(z.ld())
+                    P.to(x[0]), P.to(x[0].ld()),
+                    P.to(x[1]), P.to(x[1].ld()),
+                    P.to(x[2]), P.to(x[2].ld())
             );
-        }        
-    }
-
-   /**
-    * {@inheritDoc }
-    */
-    @Override
-    public void close() {
-        x.close();
-        y.close();
-        z.close();
+        }
     }
 
     /**
-     * The number of pixels for which the gradient is calculated.
-     *
-     * @return The number of pixels for which the gradient is calculated.
+     * {@inheritDoc }
      */
-    public int size() {
-        return height * width * depth * batchSize;
+    @Override
+    public void close() {
+        for (DStrideArray3d grad : x) grad.close();
     }
 
     /**
@@ -85,8 +74,15 @@ public class Gradient extends Dimensions implements AutoCloseable {
      */
     @Override
     public String toString() {
-        return super.toString() + "\nd\\dx =\n" + x.toString() + "\nd\\dy = \n" + y.toString() + "\nd\\dz = \n" + z.toString();
+        return super.toString() + "\nd\\grad =\n" + Arrays.toString(x);
     }
-    
+
+    /**
+     * An empty array with the same dimensions as one of the gradients.
+     * @return An empty array with the same dimensions as one of the gradients.
+     */
+    public DStrideArray3d copyDim() {
+        return x[0].copyDim();
+    }
 
 }

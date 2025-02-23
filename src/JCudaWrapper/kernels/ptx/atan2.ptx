@@ -17,38 +17,36 @@
 	.param .u64 atan2Kernel_param_1,
 	.param .u32 atan2Kernel_param_2,
 	.param .u64 atan2Kernel_param_3,
-	.param .u32 atan2Kernel_param_4
+	.param .u32 atan2Kernel_param_4,
+	.param .u32 atan2Kernel_param_5
 )
 {
 	.reg .pred 	%p<13>;
-	.reg .b32 	%r<28>;
+	.reg .b32 	%r<32>;
 	.reg .f64 	%fd<63>;
 	.reg .b64 	%rd<9>;
 
 
-	ld.param.u32 	%r4, [atan2Kernel_param_0];
-	ld.param.u64 	%rd2, [atan2Kernel_param_1];
+	ld.param.u32 	%r5, [atan2Kernel_param_0];
+	ld.param.u64 	%rd1, [atan2Kernel_param_1];
 	ld.param.u32 	%r2, [atan2Kernel_param_2];
-	ld.param.u64 	%rd3, [atan2Kernel_param_3];
+	ld.param.u64 	%rd2, [atan2Kernel_param_3];
 	ld.param.u32 	%r3, [atan2Kernel_param_4];
-	mov.u32 	%r5, %ntid.x;
-	mov.u32 	%r6, %ctaid.x;
-	mov.u32 	%r7, %tid.x;
-	mad.lo.s32 	%r1, %r6, %r5, %r7;
-	setp.ge.s32 	%p1, %r1, %r4;
+	ld.param.u32 	%r4, [atan2Kernel_param_5];
+	mov.u32 	%r6, %ntid.x;
+	mov.u32 	%r7, %ctaid.x;
+	mov.u32 	%r8, %tid.x;
+	mad.lo.s32 	%r1, %r7, %r6, %r8;
+	setp.ge.s32 	%p1, %r1, %r5;
 	@%p1 bra 	$L__BB0_7;
 
-	cvta.to.global.u64 	%rd4, %rd3;
-	mul.lo.s32 	%r8, %r1, %r2;
-	cvta.to.global.u64 	%rd5, %rd2;
-	mul.wide.s32 	%rd6, %r8, 8;
-	add.s64 	%rd7, %rd5, %rd6;
-	mul.lo.s32 	%r9, %r1, %r3;
-	mul.wide.s32 	%rd8, %r9, 8;
-	add.s64 	%rd1, %rd4, %rd8;
-	ld.global.f64 	%fd1, [%rd7];
+	mul.lo.s32 	%r9, %r1, %r2;
+	cvta.to.global.u64 	%rd3, %rd1;
+	mul.wide.s32 	%rd4, %r9, 8;
+	add.s64 	%rd5, %rd3, %rd4;
+	ld.global.f64 	%fd1, [%rd5];
 	abs.f64 	%fd2, %fd1;
-	ld.global.f64 	%fd3, [%rd7+8];
+	ld.global.f64 	%fd3, [%rd5+8];
 	abs.f64 	%fd4, %fd3;
 	setp.eq.f64 	%p2, %fd2, 0d0000000000000000;
 	setp.eq.f64 	%p3, %fd4, 0d0000000000000000;
@@ -187,7 +185,14 @@ $L__BB0_3:
 	selp.f64 	%fd62, %fd58, %fd59, %p10;
 
 $L__BB0_6:
-	st.global.f64 	[%rd1], %fd62;
+	div.s32 	%r28, %r1, %r3;
+	mul.lo.s32 	%r29, %r28, %r3;
+	sub.s32 	%r30, %r1, %r29;
+	mad.lo.s32 	%r31, %r28, %r4, %r30;
+	cvta.to.global.u64 	%rd6, %rd2;
+	mul.wide.s32 	%rd7, %r31, 8;
+	add.s64 	%rd8, %rd6, %rd7;
+	st.global.f64 	[%rd8], %fd62;
 
 $L__BB0_7:
 	ret;

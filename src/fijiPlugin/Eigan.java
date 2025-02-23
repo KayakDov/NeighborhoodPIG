@@ -18,15 +18,6 @@ public class Eigan implements AutoCloseable{//TODO fix spelling to eigen
     private final Handle handle;
     private final double tolerance;
 
-
-    /**
-     * Gets a depth (z dimensional column) of the
-     */
-    public interface N2To1dArrayBuilder {
-
-        public DArray1d get(int row, int col);
-    }
-
     /**
      * Each layer in this matrix is for a different pixel, in column major
      * order.
@@ -113,8 +104,7 @@ public class Eigan implements AutoCloseable{//TODO fix spelling to eigen
                         P.to(pivotFlags),
                         P.to(tolerance)
                 );
-        }
-        System.out.println("fijiPlugin.Eigan.setEiganVectors() " + vectors.toString());
+        }        
         
         return this;
     }

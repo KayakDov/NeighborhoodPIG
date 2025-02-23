@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.function.IntUnaryOperator;
 import jcuda.Pointer;
 import jcuda.driver.CUdeviceptr;
-import org.apache.commons.math3.exception.DimensionMismatchException;
 
 /**
  *
@@ -23,8 +22,6 @@ public interface PointerArray extends Array {
      * @param index The index to place the array at.
      */
     public default void set(Handle handle, Array array, int index) {
-        if (array.size() != subArraySize())
-            throw new DimensionMismatchException(array.size(), subArraySize());
 
         get(index).set(handle, array.pointer());
     }

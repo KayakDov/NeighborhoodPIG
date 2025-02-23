@@ -52,15 +52,29 @@ public class ImageCreator extends Dimensions {
 
         try (IArray gpuColors = new IArray1d(orientation.size())) {
 
+            int heightCoherence, ldCoherence;
+            if (coherence == null) {
+                heightCoherence = 0;
+                ldCoherence = -1;
+            } else {
+                heightCoherence = coherence.entriesPerLine();
+                ldCoherence = coherence.ld();
+            }
+
+            
             Kernel.run("colors", handle,
                     orientation.size(),
                     orientation,
-                    P.to(1),
+                    P.to(orientation.ld()),
+                    P.to(orientation.entriesPerLine()),
                     P.to(gpuColors),
-                    P.to(1),
-                    P.to(coherence == null ? new DStrideArray3d(0, 0, 0, 0): coherence),
-                    P.to(coherence == null ? -1 : 1)
+                    P.to(gpuColors.ld()),
+                    P.to(gpuColors.entriesPerLine()),
+                    P.to(coherence),
+                    P.to(heightCoherence),
+                    P.to(ldCoherence)
             );
+
             cpuColors = gpuColors.get(handle); // Transfer GPU results to CPU.
         }
 
@@ -189,11 +203,9 @@ public class ImageCreator extends Dimensions {
         return image;
     }
 
-
     @Override
     public void close() throws Exception {
-        
-    }
 
+    }
 
 }

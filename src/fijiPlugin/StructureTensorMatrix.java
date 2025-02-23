@@ -35,22 +35,19 @@ public class StructureTensorMatrix implements AutoCloseable {
 
         
         
-        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, neighborhoodRad, grad.x)) {
-            nps.set(grad.x, grad.x, eigen.depth(0, 0));
-            nps.set(grad.x, grad.y, eigen.depth(0, 1));
-            nps.set(grad.y, grad.y, eigen.depth(1, 1));
-            nps.set(grad.x, grad.z, eigen.depth(0, 2));
-            nps.set(grad.y, grad.z, eigen.depth(1, 2));
-            nps.set(grad.z, grad.z, eigen.depth(2, 2));
+        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, neighborhoodRad, grad.x[0])) {
+            for(int i = 0; i < 3; i++)
+                for(int j = i; j < 3; j++)
+                    nps.set(grad.x[i], grad.x[j], eigen.depth(i, j));
         }
 
         eigen.copyLowerTriangleToUpper();
 
         eigen.setEigenVals().setEiganVectors();
         
-        orientationXY = grad.x.copyDim();
-        orientationYZ = grad.x.copyDim();
-        coherence = grad.x.copyDim();
+        orientationXY = grad.copyDim();
+        orientationYZ = grad.copyDim();
+        coherence = grad.copyDim();
 
         setVecs0ToPi();
         setCoherence(tolerance);
@@ -88,14 +85,16 @@ public class StructureTensorMatrix implements AutoCloseable {
                     eigen.vectors,
                     P.to(eiganVecLayerStride),
                     P.to(orientationXY),
-                    P.to(1)
+                    P.to(orientationXY.entriesPerLine()),
+                    P.to(orientationXY.ld())
             );
             atan2.run(handle,
                     orientationXY.size(),
-                    eigen.vectors,
+                    eigen.vectors.sub(1, 2, 0, 3, 0, eigen.vectors.layersPerGrid()),
                     P.to(eiganVecLayerStride),
                     P.to(orientationYZ),
-                    P.to(1)
+                    P.to(orientationYZ.entriesPerLine()),
+                    P.to(orientationYZ.ld())
             );
         }
         
@@ -112,9 +111,10 @@ public class StructureTensorMatrix implements AutoCloseable {
         Kernel.run("coherence", handle, 
                 coherence.size(), 
                 eigen.values, 
-                P.to(eigen.values.entriesPerLine()),
+                P.to(eigen.values.ld()),
                 P.to(coherence),
-                P.to(eigen.values.entriesPerLine() == 3),
+                P.to(coherence.ld()),
+                P.to(coherence.entriesPerLine()),
                 P.to(tolerance)
         );
         
