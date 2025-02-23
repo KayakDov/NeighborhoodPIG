@@ -38,13 +38,13 @@ public class Gradient extends Dimensions implements AutoCloseable {
 
         //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
         int[] dimensions = new int[]{
-            height, //0
-            width, //1
-            depth, //2
-            batchSize,//3 
-            height * width,//4
-            tensorSize(),//5 
-            tensorSize() * batchSize,//6
+            height, //0 -> height
+            width, //1 -> width
+            depth, //2 -> depth
+            batchSize,//3 -> numTensorts
+            height * width,//4 -> layerSize
+            tensorSize(),//5  -> tensorSize 
+            tensorSize() * batchSize,//6 -> batchSize (number of elements, not tensors, in the batch)
             pic.ld() //7
         };
 
@@ -58,7 +58,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
                     P.to(x[1]), P.to(x[1].ld()),
                     P.to(x[2]), P.to(x[2].ld())
             );
-        }
+        }             
     }
 
     /**

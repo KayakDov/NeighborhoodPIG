@@ -31,17 +31,13 @@ public class StructureTensorMatrix implements AutoCloseable {
 
         this.handle = handle;
         
-        eigen = new Eigan(grad.size(), handle, tolerance);
-
-        
+        eigen = new Eigan(handle, grad, tolerance);        
         
         try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, neighborhoodRad, grad.x[0])) {
             for(int i = 0; i < 3; i++)
                 for(int j = i; j < 3; j++)
-                    nps.set(grad.x[i], grad.x[j], eigen.depth(i, j));
+                    nps.set(grad.x[i], grad.x[j], eigen.at(i, j));
         }
-
-        eigen.copyLowerTriangleToUpper();
 
         eigen.setEigenVals().setEiganVectors();
         
@@ -60,13 +56,15 @@ public class StructureTensorMatrix implements AutoCloseable {
      * @return The eigenvectors.
      */
     public final DArray3d setVecs0ToPi() {
-        DArray3d eVecs = eigen.vectors;
+        DArray3d eVecs = eigen.vectors1;
         Kernel.run("vecToNematic", handle,
-                eVecs.layersPerGrid(),
+                eigen.size(),
                 eVecs,
                 P.to(eVecs.ld()),
+                P.to(eVecs.entriesPerLine()),
                 P.to(eVecs),
-                P.to(eVecs.ld())
+                P.to(eVecs.ld()),
+                P.to(eVecs.entriesPerLine())
         );
         return eVecs;
     }
@@ -78,24 +76,29 @@ public class StructureTensorMatrix implements AutoCloseable {
     public final void setOrientations() {
 
         try (Kernel atan2 = new Kernel("atan2")) {
-
-            int eiganVecLayerStride = eigen.vectors.ld()*eigen.vectors.linesPerLayer();
+            
             atan2.run(handle,
                     orientationXY.size(),
-                    eigen.vectors,
-                    P.to(eiganVecLayerStride),
+                    eigen.vectors1,
+                    P.to(eigen.vectors1.ld()),
+                    P.to(eigen.vectors1.entriesPerLine()),
                     P.to(orientationXY),
                     P.to(orientationXY.entriesPerLine()),
                     P.to(orientationXY.ld())
             );
+            
+            System.out.println("fijiPlugin.StructureTensorMatrix.setOrientations() orientation = \n" + orientationXY.toString());
+            
             atan2.run(handle,
                     orientationXY.size(),
-                    eigen.vectors.sub(1, 2, 0, 3, 0, eigen.vectors.layersPerGrid()),
-                    P.to(eiganVecLayerStride),
+                    eigen.vectors1.sub(1, eigen.vectors1.entriesPerLine() - 1, 0, eigen.vectors1.linesPerLayer(), 0, eigen.vectors1.layersPerGrid() * eigen.vectors1.batchSize()),
+                    P.to(eigen.vectors1.ld()),
+                    P.to(eigen.vectors1.entriesPerLine() - 1),
                     P.to(orientationYZ),
                     P.to(orientationYZ.entriesPerLine()),
                     P.to(orientationYZ.ld())
             );
+            System.out.println("fijiPlugin.StructureTensorMatrix.setOrientations() orientation = \n" + orientationXY.toString());
         }
         
         
@@ -112,6 +115,7 @@ public class StructureTensorMatrix implements AutoCloseable {
                 coherence.size(), 
                 eigen.values, 
                 P.to(eigen.values.ld()),
+                P.to(eigen.values.entriesPerLine()),
                 P.to(coherence),
                 P.to(coherence.ld()),
                 P.to(coherence.entriesPerLine()),

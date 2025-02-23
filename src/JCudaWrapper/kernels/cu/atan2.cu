@@ -14,12 +14,16 @@
  */
 
 extern "C" __global__
-void atan2Kernel(const int n, const double* srcVecs, const int ldSrc, double* dstAng, const int dstHeight, const int ldDst) {
+void atan2Kernel(
+	const int n, 
+	const double* srcVecs, const int ldSrc, const int heightSrc, 
+	double* dstAng, const int dstHeight, const int ldDst
+	) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= n) return;    
     
-    const double* vecFrom = srcVecs + idx*ldSrc;
+    const double* vecFrom = srcVecs + 3 * idx/heightSrc * ldSrc + 3 * idx % heightSrc;
     
     dstAng[(idx / dstHeight) * ldDst + idx % dstHeight] = atan2(vecFrom[1], vecFrom[0]);    
 }

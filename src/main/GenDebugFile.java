@@ -18,23 +18,23 @@ import ij.io.Opener;
 public class GenDebugFile {
 
 
-    public static int[][] blackWithWhiteBorder() {
-        int size = 15;
-        int[][] black = new int[size][size];
-        for (int i = 0; i < size; i++)
-            for (int j = 0; j < size; j++)
+    public static int[][] blackWithWhiteBorder(int height, int width) {
+        int size = 7;
+        int[][] black = new int[height][width];
+        for (int i = 0; i < height; i++)
+            for (int j = 0; j < width; j++)
                 black[i][j] = 0;
 
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < height; i++) {
             black[i][0] = 255; // left
-            black[i][size - 1] = 255; // right
+            black[i][width - 1] = 255; // right
         }
         return black;
     }
 
     public static void main(String[] args) {
         // Define pixel values for each point in a grid
-        int[][] pixelValues = blackWithWhiteBorder();
+        int[][] pixelValues = blackWithWhiteBorder(3, 9);
 
         int width = pixelValues[0].length;
         int height = pixelValues.length;

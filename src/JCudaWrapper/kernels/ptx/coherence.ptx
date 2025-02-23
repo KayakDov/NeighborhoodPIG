@@ -16,46 +16,55 @@
 	.param .u32 coherenceKernel_param_0,
 	.param .u64 coherenceKernel_param_1,
 	.param .u32 coherenceKernel_param_2,
-	.param .u64 coherenceKernel_param_3,
-	.param .u32 coherenceKernel_param_4,
+	.param .u32 coherenceKernel_param_3,
+	.param .u64 coherenceKernel_param_4,
 	.param .u32 coherenceKernel_param_5,
-	.param .f64 coherenceKernel_param_6
+	.param .u32 coherenceKernel_param_6,
+	.param .f64 coherenceKernel_param_7
 )
 {
 	.reg .pred 	%p<3>;
-	.reg .b32 	%r<14>;
+	.reg .b32 	%r<19>;
 	.reg .f64 	%fd<9>;
-	.reg .b64 	%rd<13>;
+	.reg .b64 	%rd<16>;
 
 
-	ld.param.u32 	%r5, [coherenceKernel_param_0];
+	ld.param.u32 	%r6, [coherenceKernel_param_0];
 	ld.param.u64 	%rd3, [coherenceKernel_param_1];
 	ld.param.u32 	%r2, [coherenceKernel_param_2];
-	ld.param.u64 	%rd4, [coherenceKernel_param_3];
-	ld.param.u32 	%r3, [coherenceKernel_param_4];
+	ld.param.u32 	%r3, [coherenceKernel_param_3];
+	ld.param.u64 	%rd4, [coherenceKernel_param_4];
 	ld.param.u32 	%r4, [coherenceKernel_param_5];
-	ld.param.f64 	%fd2, [coherenceKernel_param_6];
-	mov.u32 	%r6, %ntid.x;
-	mov.u32 	%r7, %ctaid.x;
-	mov.u32 	%r8, %tid.x;
-	mad.lo.s32 	%r1, %r7, %r6, %r8;
-	setp.ge.s32 	%p1, %r1, %r5;
+	ld.param.u32 	%r5, [coherenceKernel_param_6];
+	ld.param.f64 	%fd2, [coherenceKernel_param_7];
+	mov.u32 	%r7, %ntid.x;
+	mov.u32 	%r8, %ctaid.x;
+	mov.u32 	%r9, %tid.x;
+	mad.lo.s32 	%r1, %r8, %r7, %r9;
+	setp.ge.s32 	%p1, %r1, %r6;
 	@%p1 bra 	$L__BB0_4;
 
 	cvta.to.global.u64 	%rd5, %rd4;
-	mul.lo.s32 	%r9, %r1, %r2;
-	cvta.to.global.u64 	%rd6, %rd3;
-	mul.wide.s32 	%rd7, %r9, 8;
-	add.s64 	%rd1, %rd6, %rd7;
-	div.s32 	%r10, %r1, %r4;
-	mul.lo.s32 	%r11, %r10, %r3;
-	cvt.s64.s32 	%rd8, %r11;
-	mul.lo.s32 	%r12, %r10, %r4;
-	sub.s32 	%r13, %r1, %r12;
-	cvt.s64.s32 	%rd9, %r13;
-	add.s64 	%rd10, %rd8, %rd9;
-	shl.b64 	%rd11, %rd10, 3;
-	add.s64 	%rd2, %rd5, %rd11;
+	mul.lo.s32 	%r10, %r1, 3;
+	div.s32 	%r11, %r10, %r3;
+	mul.lo.s32 	%r12, %r11, %r2;
+	cvt.s64.s32 	%rd6, %r12;
+	mul.lo.s32 	%r13, %r11, %r3;
+	sub.s32 	%r14, %r10, %r13;
+	cvt.s64.s32 	%rd7, %r14;
+	add.s64 	%rd8, %rd6, %rd7;
+	cvta.to.global.u64 	%rd9, %rd3;
+	shl.b64 	%rd10, %rd8, 3;
+	add.s64 	%rd1, %rd9, %rd10;
+	div.s32 	%r15, %r1, %r5;
+	mul.lo.s32 	%r16, %r15, %r4;
+	cvt.s64.s32 	%rd11, %r16;
+	mul.lo.s32 	%r17, %r15, %r5;
+	sub.s32 	%r18, %r1, %r17;
+	cvt.s64.s32 	%rd12, %r18;
+	add.s64 	%rd13, %rd11, %rd12;
+	shl.b64 	%rd14, %rd13, 3;
+	add.s64 	%rd2, %rd5, %rd14;
 	ld.global.f64 	%fd1, [%rd1];
 	setp.gtu.f64 	%p2, %fd1, %fd2;
 	@%p2 bra 	$L__BB0_3;
@@ -72,8 +81,8 @@ $L__BB0_3:
 	bra.uni 	$L__BB0_4;
 
 $L__BB0_2:
-	mov.u64 	%rd12, 0;
-	st.global.u64 	[%rd2], %rd12;
+	mov.u64 	%rd15, 0;
+	st.global.u64 	[%rd2], %rd15;
 
 $L__BB0_4:
 	ret;

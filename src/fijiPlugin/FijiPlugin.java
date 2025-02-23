@@ -94,11 +94,11 @@ public class FijiPlugin implements PlugIn {
 
     public static void main(String[] args) {
 
-            String imagePath = "images/input/5Tests/";
-//        String imagePath = "images/input/5debugs/";
+//            String imagePath = "images/input/5Tests/";
+        String imagePath = "images/input/5debugs/";
 //String imagePath = "images/input/test/";
 
-        int neighborhoodSize = 2; // Default neighborhood radius
+        int neighborhoodSize = 1; // Default neighborhood radius
         double tolerance = 1; // Default tolerance
         int depth = 1;
 

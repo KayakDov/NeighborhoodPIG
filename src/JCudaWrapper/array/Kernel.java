@@ -96,7 +96,7 @@ public class Kernel implements AutoCloseable {
      * @param additionalArguments An array of pointers to all additional
      * arguments.
      */
-    public static void run(String name, Handle handle, int numThreads, Array source, Pointer... additionalArguments) {
+    public static void run(String name, Handle handle, int numThreads, Array source, Pointer... additionalArguments) {//TODO: organize this so vectors are always followed by their ld and height.
 
         try (Kernel km = new Kernel(name)) {
             km.run(handle, numThreads, source, additionalArguments);

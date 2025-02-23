@@ -6,8 +6,60 @@
 #include <cstdio>
 #include <cmath>
 
+/**
+ * @class Get
+ * @brief A helper class for accessing values in a column-major order matrix.
+ */
+class Get{
+private:
+    const int height;
+    const int idx;
+public:
+    __device__ Get(const int idx, const int height): idx(idx), height(height){}
+    
+    /**
+     * @brief Retrieves a value from a column-major order matrix.
+     * @param src Pointer to the source array.
+     * @param ld The leading dimension (stride between columns in memory).
+     * @return The value at the corresponding column-major index.
+     */
+    __device__ double val(const double* src, const int  ld) const{
+	return val(src, height, ld);
+    }
+    
+    /**
+     * @brief Retrieves a value from a column-major order matrix.
+     * @param src Pointer to the source array.
+     * @param ld The leading dimension (stride between columns in memory).
+     * @param height The height of the matrix.
+     * @return The value at the corresponding column-major index.
+     */
+    __device__ double val(const double* src, const int height, const int ld) const{
+	return src[ind(height, ld)];
+    }
+    
+    /**
+     * @brief Retrieves an index from a column-major order matrix.
+     * @param height The height of the matrix.
+     * @param ld The leading dimension (stride between columns in memory).
+     * @return The computed column-major index.
+     */
+    __device__ int ind(const int height, const int ld) const{
+	return (idx / height) * ld + (idx % height);
+    }
+    
+    /**
+     * @brief Retrieves an index from a column-major order matrix using stored height.
+     * @param ld The leading dimension (stride between columns in memory).
+     * @return The computed column-major index.
+     */
+    __device__ int ind(const int ld) const{
+	return ind(height, ld);
+    }
+    
+    
+};
 
-#define DIM 3
 
 /**
  * @brief Utility function to swap two double values.
@@ -20,64 +72,93 @@ __device__ void swap(double& a, double& b) {
     b = temp;
 }
 
+
 /**
- * @class Row
- * @brief Represents a row of a matrix with utility functions for row operations.
+ * @class MaxAbs
+ * @brief A utility class for tracking the argument corresponding to the maximum absolute value in a set of comparisons.
+ *
+ * This class is designed for use in CUDA device code and provides methods to update the tracked maximum 
+ * absolute value and retrieve the corresponding argument.
  */
-class Row {
+class MaxAbs {
 private:
-    double* data; ///< Pointer to the row data.
+    int arg; ///< The argument corresponding to the maximum absolute value.
+    double val; ///< The maximum absolute value encountered so far.    
 
 public:
     /**
-     * @brief Constructor for Row.
-     * @param data Pointer to the row data.
+     * @brief Constructor for the MaxAbs class.
+     * 
+     * Initializes the maximum absolute value and its corresponding argument.
+     *
+     * @param initVal The initial maximum absolute value.
+     * @param initArg The initial argument corresponding to the maximum absolute value.
      */
-    __device__ Row(double* data) : data(data) {}
+    __device__ MaxAbs(int initArg, double initVal) : arg(initArg), val(initVal) {}
 
-    /**
-     * @brief Access an element in the row by column index.
-     * @param col Column index.
-     * @return Reference to the element at the specified column.
+     /**
+     * @brief Updates the tracked maximum absolute value if the new value is greater.
+     * 
+     * Compares the given value with the current maximum absolute value. If the new value is greater,
+     * updates the maximum value and its corresponding index.
+     *
+     * @param candidateIndex The index associated with the new value.
+     * @param candidateValue The new value to compare against the current maximum absolute value.
      */
-    __device__ double& operator()(int col) {
-        return data[col * DIM];
+    __device__ void challenge(int candidateIndex, double candidateValue) {
+        double absoluteValue = fabs(candidateValue); // Compute the absolute value of the candidate value.
+        if (absoluteValue > val) {             // Update if the candidate value is larger than the current maximum.
+            val = absoluteValue;
+            arg = candidateIndex;
+        }
     }
 
     /**
-     * @brief Subtracts a scaled version of another row from this row.
-     * @param other The row to subtract.
-     * @param timesOther Scaling factor for the other row.
+     * @brief Retrieves the argument corresponding to the maximum absolute value.
+     *
+     * @return The argument corresponding to the maximum absolute value.
      */
-    __device__ void subtract(Row& other, double timesOther) {
-        for (int i = 0; i < DIM; i++) 
-            (*this)(i) -= timesOther * other(i);
+    __device__ int getArg() {
+        return arg;
     }
-
+    
     /**
-     * @brief Swaps this row with another row.
-     * @param other The row to swap with.
+     * @brief Retrieves the absolute value at the argument.
+     *
+     * @return The maximum absolute value.
      */
-    __device__ void swap(Row& other) {
-        for (int i = 0; i < DIM; i++) 
-            ::swap((*this)(i), other(i));
+    __device__ double getVal() {
+        return val;
     }
 };
 
+
 /**
  * @class Matrix
- * @brief Represents a matrix and provides utility functions for matrix operations.
+ * @brief Represents a matrix and provides utility functions for matrix operations. * 
  */
 class Matrix {
 private:
-    double* data; ///< Pointer to the matrix data.
+    double mat[3][3];     
+    int* isPivot; ///< Pointer to an array indicating pivot columns.
+    const double tolerance;
+    
 
 public:
     /**
      * @brief Constructor for Matrix.
-     * @param data Pointer to the matrix data.
+     * @param xx, xy, xz, yy, yz, zz Matrix elements.
+     * @param eigenVal Eigenvalue for computation.
+     * @param isPivot Pointer to pivot flag array.
+     * @param tolerance Numerical tolerance for pivot detection.
      */
-    __device__ Matrix(double* data) : data(data){}
+    __device__ Matrix(double xx, double xy, double xz, double yy, double yz, double zz, double eigenVal, int* isPivot, double tolerance) 
+    : isPivot(isPivot), tolerance(tolerance) {
+        mat[0][0] = xx - eigenVal; mat[0][1] = xy; mat[0][2] = xz;
+        mat[1][0] = xy; mat[1][1] = yy - eigenVal; mat[1][2] = yz;
+        mat[2][0] = xz; mat[2][1] = yz; mat[2][2] = zz - eigenVal;
+    }
+
 
     /**
      * @brief Access an element in the matrix by row and column index.
@@ -86,180 +167,159 @@ public:
      * @return Reference to the element at the specified row and column.
      */
     __device__ double& operator()(int row, int col) {
-        return data[col * DIM + row];
+        return mat[row][col];
+    }
+    
+    /**
+     * @brief Subtracts a scaled row from another row.
+     * @param minuendInd Index of the row to be updated.
+     * @param subtrahendInd Index of the row to subtract.
+     * @param scale Scaling factor.
+     */
+    __device__ void subtractRow(int minuendInd, int subtrahendInd, double scale) {
+        for (int i = 0; i < 3; i++) mat[minuendInd][i] -= scale * mat[i][subtrahendInd];        
     }
 
     /**
-     * @brief Get a Row object for the specified row index.
-     * @param i Row index.
-     * @return Row object for the specified row.
+     * @brief Swaps two rows of the matrix.
+     * @param i First row index.
+     * @param j Second row index.
      */
-    __device__ Row row(int i) {
-        return Row(data + i);
+    __device__ void swapRows(int i, int j) {
+        for(int k = 0; k < 3; k++) swap(mat[i][k], mat[j][k]);
     }
 
+    
     /**
      * @brief Perform row echelon work for a specific row and column.
-     * @param row Row index.
-     * @param col Column index.
-     * @param tolerance Tolerance for considering a pivot.
+     * @param row Current row index.
+     * @param col Current column index.
      * @return True if a pivot was found, false otherwise.
      */
-    __device__ bool rowEchelonWorkRow(int row, int col, double tolerance) {
-        Row r(data + row);
+    __device__ bool reduceToRowEchelon(int row, int col) {
+        
+        MaxAbs maxPivot(row, fabs(mat[row][col]));
+        
+	for (int i = row + 1; i < 3; i++) maxPivot.challenge(i, mat[i][col]);
 
-        double maxPivot = fabs((*this)(row, col));
-        int maxRow = row;
+        if (maxPivot.getVal() <= tolerance) return false;
 
-        for (int i = row + 1; i < DIM; i++) {
-            double absVal = fabs((*this)(i, col));
-            if (absVal > maxPivot) {
-                maxPivot = absVal;
-                maxRow = i;
-            }
-        }
+        if (maxPivot.getArg() != row) swapRows(maxPivot.getArg(), row);
+        
+        for (int i = row + 1; i < 3; i++)
+	    subtractRow(i, row, mat[i][col]/mat[row][col]);
 
-        if (maxRow == -1 || maxPivot <= tolerance) return false;
-
-        if (maxRow != row) {
-            Row needsSwap(data + maxRow);
-            r.swap(needsSwap);
-        }
-
-        double diagonalElement = (*this)(row, col);
-        for (int j = row + 1; j < DIM; j++) {
-            double factor = (*this)(j, col) / diagonalElement;
-            Row lower(data + j);
-            lower.subtract(r, factor);
-        }
         return true;
     }
 
     /**
      * @brief Perform row echelon reduction on the matrix.
-     * @param tolerance Tolerance for considering a pivot.
-     * @return Number of pivots found during the reduction.
+     * @return Number of free variables found during the reduction.
      */
-    __device__ void rowEchelon(double tolerance) {
-        
-        for (int col = 0, row = 0; col < DIM; col++)
-            if (rowEchelonWorkRow(row, col, tolerance)) row++;
-    }
+    __device__ int rowEchelon() {
+        int numFreeVariables = 0;
+        int row = 0;
 
-    /**
-     * @brief Print the matrix to the console for debugging.
-     * @param label Optional label to display with the matrix.
-     */
-    __device__ void printMatrix(const char* label = "") {
-        printf("\n");
-        
-        printf("Thread id: %d\n", blockIdx.x * blockDim.x + threadIdx.x);
-        
-        for (int row = 0; row < DIM; row++) {
-            for (int col = 0; col < DIM; col++) printf("%10.4f ", (*this)(row, col));
-	    printf("\n");
-        }
-        printf("\n");
-    }
-    
-};
-
-/**
- * @brief Sets the matrix to A - \lambda I.
- * @param from Pointer to the source matrix.
- * @param to Reference to the destination Matrix object.
- * @param eVal Eigenvalue \lambda.
- */
-__device__ void setAMinusLambdaI(const double* from, Matrix& to, const double& eVal) {
-
-    for (int i = 0; i < DIM * DIM; i++) to(i / DIM, i % DIM) = from[i];
-    for (int i = 0; i < DIM; i++) to(i, i) -= eVal;
-}
-
-class Vector{
-private:
-    double* data;
-public:
-    __device__ Vector(double* data): data(data){}
-    
-    /**
-     * @brief Set vector components.
-     * @param a Component along x-axis.
-     * @param b Component along y-axis.
-     * @param c Component along z-axis.
-     */
-    __device__ void set(double a, double b, double c){
-        data[0] = a;
-        data[1] = b;
-        data[2] = c;
-    }
-    __device__ double& operator[](int i) {
-        return data[i];
-    }
-};
-
-/**
- * @brief CUDA kernel to compute eigenvectors in batch using row echelon form.
- * @param batchSize Number of matrices in the batch.
- * @param sourceMatrices Pointer to source matrices in column-major format.
- * @param ldSourceMatrices Leading dimension of the source matrices.
- * @param eVectors Pointer to the resulting eigenvectors.
- * @param ldEVecs Leading dimension of the eigenvector array.
- * @param eVals Pointer to the eigenvalues.
- * @param workSpace Pointer to workspace memory for intermediate computations.
- * @param tolerance Tolerance for row echelon pivot detection.
- */
-extern "C" __global__ void eigenVecBatch3x3Kernel(
-    const int batchSize, 
-    const double* sourceMatrices, 
-    const int ldSourceMatrices, 
-    double* eVectors, 
-    const int ldEVecs,
-    const double* eVals,
-    double* workSpace,
-    const double tolerance
-) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (idx >= batchSize) return;
-    
-    Matrix m(workSpace + idx * DIM*DIM);
-    setAMinusLambdaI(sourceMatrices + idx * DIM*DIM, m, eVals[idx]);
-
-    Vector v(eVectors + ldEVecs * idx);
-
-    m.rowEchelon(tolerance);
-
-    if(idx == 1) m.printMatrix();
-
-    if(fabs(m(0,0)) > tolerance){
-        
-        if(fabs(m(1,1)) > tolerance){
-    	    v[2] = 1; 
-    	    v[1] = -m(1,2)/m(1,1); 
-    	    v[0] = -(m(0,1)*v[1] - m(0,2))/m(0,0);
-        }
-        else {
-            if(fabs(m(1,2))  > tolerance) v.set(-m(0,1)/m(
-            0,0), 1, 0);
-            else {
-                if(idx % 3 == 0) v.set(-m(0,2)/m(0,0), 0, 1);
-                else if(idx % 2 == 0) v.set(-m(0,1)/m(0,0), 1, 0);
-                else v.set(-(m(0,1) + m(0,2))/m(0,0), 1, 1);
+        for (int col = 0; col < 3; col++) {            
+            if (reduceToRowEchelon(row, col)) {
+                row++;
+                isPivot[col] = 1;
+            } else {
+                isPivot[col] = 0;
+                numFreeVariables++;
             }
         }
-    }else{
-    	if(fabs(m(0,1)) > tolerance){
-    		if(fabs(m(1,2)) > tolerance) v.set(1,0,0);
-    		else{
-    		    if(idx % 2 == 0) v.set(1, 0, 0);
-    		    else v.set(0, -m(0,2)/m(0,1), 1);//maybe has multiplicity of 3
-    		}
-    	}
-    	else{
-    	    if(idx%2 == 0) v.set(1,0,0);
-    	    else v.set(0,1,0);
-    	}
-    }
-}
 
+        if (fabs(mat[0][0]) < tolerance) isPivot[0] = 0;
+
+        return numFreeVariables;
+    }
+
+};
+
+
+/**
+ * This method should be called on a fresh copy of the matrices for which the vectors are sought for each eigenvalue.  Each time with an incremented value of valIndex.
+ *
+ * @brief CUDA kernel to compute eigenvectors in batch using row echelon form.
+ * @param batchSize Number of matrices.
+ * @param src Pointer to source matrices in column-major format.  These matrices will be changed.
+ * @param ldsrc Leading dimension of the source matrices.
+ * @param eVectors Pointer to the resulting eigenvectors.
+ * @param width Number of columns in each matrix.
+ * @param eigenValues Pointer to all the eigenValues, including those that will not be used.  Be sure to increment valIndex over multiple runs of this kernel so that they are all used.
+ * @param workspacePivotFlags Pointer to workspace memory for pivot flags.
+ * @param tolerance Tolerance for row echelon pivot detection.
+ * @param ldEVec the leading dimension of the eigen vectors.
+ * @param ldSrc the leading dimension of the sourver matrix.
+ * @param valIndex The index of the desired eigen value. 
+ */
+extern "C" __global__ void eigenVecBatch3x3Kernel(
+     const int batchSize, 
+     const double* xx, const int ldxx, 
+     const double* xy, const int ldxy, 
+     const double* xz, const int ldxz,
+     const double* yy, const int ldyy,
+     const double* yz, const int ldyz,
+     const double* zz, const int ldzz, 
+     const int srcHeight, 
+    
+     double* eVectors,
+     const int ldEVec,
+     const int heightEVec,
+         
+     const double* eigenValues,
+     const int ldEVal,
+     const int heightEVal,
+     
+     int* workspacePivotFlags,
+     const int ldPivot,
+     const int heightPivot, 
+     
+     
+     const double tolerance
+) {    
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= batchSize) return;
+    
+    Get getx3(3*idx, heightEVal);
+    
+    int* isPivot = workspacePivotFlags + getx3.ind(heightPivot, ldPivot);    
+    
+    double eigenVal = getx3.val(eigenValues, ldEVal);    
+    
+    Get get(idx, srcHeight);
+    Matrix mat(
+        get.val(xx, ldxx), 
+        get.val(xy, ldxy), 
+        get.val(xz, ldxz), 
+        get.val(yy, ldyy), 
+        get.val(yz, ldyz), 
+        get.val(zz, ldzz),
+        eigenVal,
+        isPivot, 
+	tolerance
+    );
+    
+    double* eVec = eVectors + getx3.ind(heightEVec, ldEVec);
+    int numFreeVariables = mat.rowEchelon();
+
+    int col = 2;
+    
+    while(isPivot[col]) {
+    	eVec[col] = 0;
+    	col--;
+    }
+    
+    eVec[col] = 1;
+    
+    for (int row = col - 1; row >= 0 && col >= 0; col--) {	
+    	eVec[col] = 0;	
+	if(isPivot[col]){         
+            for (int i = col + 1; i < 3; i++) 
+                eVec[col] -= eVec[i] * mat(row, i);
+            eVec[col] /= mat(row, col);
+            row--;
+        }
+    }    
+}

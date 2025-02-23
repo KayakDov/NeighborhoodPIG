@@ -1,10 +1,29 @@
 #include <cuda_runtime.h>
 #include <math.h>
 
-static constexpr int DIM = 3;
+class Val{
+private:
+    const int height;
+    const int idx;
+public:
+    __device__ Val(int idx, int height): idx(idx), height(height){}
+    /**
+     * Retrieves a value from a column-major order matrix.
+     *
+     * @param src Pointer to the source array.
+     * @param ld The leading dimension (stride between columns in memory).
+     * @return The value at the corresponding column-major index.
+     */
+    __device__ double get(const double* src, int ld) const{
+	return src[(idx / height) * ld + (idx % height)];
+    }
+};
 
 /**
  * Swap function for double values.
+ *
+ * @param a First value.
+ * @param b Second value.
  */
 __device__ inline void swap(double& a, double& b) {
     double temp = a;
@@ -13,57 +32,39 @@ __device__ inline void swap(double& a, double& b) {
 }
 
 /**
- * Represents a 3x3 matrix in column-major format, using a pointer to external data.
+ * Represents a 3x3 symmetric matrix in column-major format.
  */
 class Matrix3x3 {
 private:
-    const double* data; // Pointer to external matrix data.
-    const int ld;
+    const double xx, xy, xz, yy, yz, zz;
 
 public:
     /**
-     * Constructor for the Matrix3x3 class.
-     * @param srcData Pointer to the flattened 3x3 matrix in column-major format.
+     * Constructs a Matrix3x3 object.
+     *
+     * @param xx Element at (0,0).
+     * @param xy Element at (0,1) and (1,0).
+     * @param xz Element at (0,2) and (2,0).
+     * @param yy Element at (1,1).
+     * @param yz Element at (1,2) and (2,1).
+     * @param zz Element at (2,2).
      */
-    __device__ explicit Matrix3x3(const double* srcData, const int ld) : data(srcData), ld(ld) {}
-
-    /**
-     * Access operator for matrix elements.
-     * @param row Row index (0-based).
-     * @param col Column index (0-based).
-     * @return The value at the specified row and column.
-     */
-    __device__ double operator()(int row, int col) const {
-        return data[col * ld + row];
-    }
+    __device__ explicit Matrix3x3(const double xx, const double xy, const double xz, const double yy, const double yz, const double zz) : xx(xx), xy(xy), xz(xz), yy(yy), yz(yz), zz(zz) {}
 
     /**
      * Computes the trace of the matrix.
      * @return The sum of the diagonal elements.
      */
     __device__ double trace() const {
-        double tr = 0.0f;
-        for (int i = 0; i < DIM; i++) tr += (*this)(i, i);        
-        return tr;
+        return xx + yy + zz;
     }
 
     /**
-     * Computes the determinant of a specified 2x2 submatrix.
-     * @param excludedRow Excluded row index (0-based).
-     * @param excludedCol Excluded column index (0-based).
-     * @return The determinant of the 2x2 submatrix.
+     * Computes the sum of 2x2 determinant minors of the matrix.
+     * @return The sum of determinant minors.
      */
-    __device__ double minor(int excludedRow, int excludedCol) const {
-        int rows[2], cols[2];
-	int row = 0, col = 0;
-	
-        for (int i = 0; i < DIM; i++){ 
-            if (i != excludedRow) rows[row++] = i;
-            if (i != excludedCol) cols[col++] = i;
-        }        
-
-        return (*this)(rows[0], cols[0]) * (*this)(rows[1], cols[1]) -
-               (*this)(rows[0], cols[1]) * (*this)(rows[1], cols[0]);
+    __device__ double diagMinorSum() const {
+        return yy*zz - yz*yz + xx*zz - xz*xz + xx*yy - xy*xy;
     }
 
     /**
@@ -71,21 +72,11 @@ public:
      * @return The determinant value.
      */
     __device__ double determinant() const {
-        return (*this)(0, 0) * ((*this)(1, 1) * (*this)(2, 2) - (*this)(1, 2) * (*this)(2, 1)) -
-               (*this)(0, 1) * ((*this)(1, 0) * (*this)(2, 2) - (*this)(1, 2) * (*this)(2, 0)) +
-               (*this)(0, 2) * ((*this)(1, 0) * (*this)(2, 1) - (*this)(1, 1) * (*this)(2, 0));
+        return xx * (yy * zz - yz * yz) -
+               xy * (xy * zz - yz * xz) +
+               xz * (xy * yz - yy * xz);
     }
     
-    __device__ void print() const {
-        printf("matrix:\n");
-        for (int i = 0; i < DIM; i++){ 
-            for (int j = 0; j < DIM; j++)
-                printf("%f ", (*this)(i, j));           
-            printf("\n");
-        }
-    }
-
-
 };
 
 /**
@@ -98,52 +89,37 @@ __device__ static void sortDescending(double* values) {
     if(values[1] < values[2]) swap(values[1], values[2]);
 }
 
-
 /**
- * Represents a mathematical line defined by the equation y = ax + b,
- * where 'a' is the slope and 'b' is the y-intercept.
- * 
- * This class provides methods to compute the y-value of the line for a given x-value
- * and to map multiple x-values to their corresponding y-values.
+ * Represents an affine function y = ax + b.
  */
 class Affine {
 private:
-    /**
-     * The slope of the line.
-     */
-    double a;
-
-    /**
-     * The y-intercept of the line.
-     */
-    double b;
+    double a; /**< The slope of the line. */
+    double b; /**< The y-intercept of the line. */
 
 public:
     /**
-     * Constructs a new Line object with the specified slope and y-intercept.
-     * 
-     * @param a The slope of the line.
-     * @param b The y-intercept of the line.
+     * Constructs an Affine function.
+     * @param a The slope.
+     * @param b The y-intercept.
      */
     __device__ Affine(double a, double b) : a(a), b(b) {}
 
     /**
-     * Evaluates the line equation y = ax + b for a given x-value.
-     * 
-     * @param x The x-value at which to evaluate the line.
-     * @return The y-value of the line at the specified x-value.
+     * Evaluates the function at a given x.
+     * @param x The input value.
+     * @return The corresponding y-value.
      */
     __device__ double operator()(double x) {
         return a * x + b;
     }
 
     /**
-     * Maps multiple x-values to their corresponding y-values using the line equation y = ax + b.
-     * 
-     * @param x1 The first x-value.
-     * @param x2 The second x-value.
-     * @param x3 The third x-value.
-     * @param y  Pointer to an array of size 3 to store the computed y-values.
+     * Maps multiple x-values to y-values.
+     * @param x1 First x-value.
+     * @param x2 Second x-value.
+     * @param x3 Third x-value.
+     * @param y Pointer to an array where results are stored.
      */
     __device__ void map(double x1, double x2, double x3, double* y) {
         y[0] = (*this)(x1);
@@ -152,22 +128,30 @@ public:
     }
     
     /**
-     * @return The slope of the line.
+     * @return The slope of the function.
      */
     __device__ double getSlope(){
         return a;
     }
     
+    /**
+     * Prints the function parameters.
+     */
     __device__ void print(){
-    	printf("a = %lf and b = %lf\n\n", a, b);
+        printf("a = %lf and b = %lf\n\n", a, b);
     }
 };
 
-
-
-// variable names are taken from https://www.scribd.com/document/355163848/Real-Roots-of-Cubic-Equation
+/**
+ * Computes the real roots of a cubic equation.
+ *
+ * @param b Coefficient of x^2.
+ * @param c Coefficient of x.
+ * @param d Constant term.
+ * @param tolerance Numerical tolerance for zero checking.
+ * @param val Output array to store roots.
+ */
 __device__ void cubicRoot(const double& b, const double& c, const double& d, const double tolerance, double* val){
-
     double p = (3*c - b*b)/9;
     double q = (2*b*b*b - 9*b*c + 27*d)/27;
 
@@ -177,42 +161,55 @@ __device__ void cubicRoot(const double& b, const double& c, const double& d, con
     
         double inACos = q/(line.getSlope() * p);        
     
-        if(inACos > 1 - 1e-10) line.map(1, -0.5, -0.5, val); //this tolerance needs to be much smaller than the other one, so it's just hard coded in.
+        if(inACos > 1 - 1e-10) line.map(1, -0.5, -0.5, val);
         else if(inACos < -1 + 1e-10) line.map(-1, 0.5, 0.5, val);
         else {
-	    double phi = acos(inACos);
-	    for(int i = 0; i < 3; i++) val[i] = line(cos((phi + i*2*M_PI)/3));
+            double phi = acos(inACos);
+            for(int i = 0; i < 3; i++) val[i] = line(cos((phi + i*2*M_PI)/3));
         }
     }
 }
 
 /**
- * CUDA Kernel to compute eigenvalues of a batch of 3x3 symmetric positive definite matrices.
+ * CUDA Kernel to compute eigenvalues of a batch of 3x3 symmetric matrices.
  *
- * @param src  Flattened array of 3x3 matrices in column-major format (size: n * 9).
- * @param dst Array to store the eigenvalues (size: n * DIM).
- * @param n      Number of matrices in the batch.
+ * @param n Number of matrices.
+ * @param srcHeight Height of the input matrices.
+ * @param dst Pointer to the output eigenvalues.
+ * @param ldDst Leading dimension of output.
+ * @param tolerance Numerical tolerance for root computation.
  */
-extern "C" __global__ void eigenValsBatchKernel(const int n, const double* src, const int ldSrc, double* dst, const int ldDst, double tolerance) { //TODO: use ld and height
+extern "C" __global__ void eigenValsBatchKernel(
+    const int n, 
+    const double* xx, const int ldxx, 
+    const double* xy, const int ldxy, 
+    const double* xz, const int ldxz,
+    const double* yy, const int ldyy,
+    const double* yz, const int ldyz,
+    const double* zz, const int ldzz, 
+    const int srcHeight, 
+    double* dst, const int ldDst, int heightDst, 
+    double tolerance
+) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-
+    
     if (idx >= n) return;
     
-    Matrix3x3 matrix(src + idx*DIM*ldSrc, ldSrc);
+    Val src(idx, srcHeight);
     
-    double* eigenvalues = dst + idx * ldDst;
-    
-    cubicRoot(
-    	-matrix.trace(), 
-	matrix.minor(0,0) + matrix.minor(1,1) + matrix.minor(2,2), 
-	-matrix.determinant(), 
-	tolerance, 
-	eigenvalues
+    Matrix3x3 matrix(
+    	src.get(xx, ldxx), 
+    	src.get(xy, ldxy), 
+    	src.get(xz, ldxz), 
+    	src.get(yy, ldyy), 
+    	src.get(yz, ldyz), 
+    	src.get(zz, ldzz)
     );
-
-    sortDescending(eigenvalues);//TODO: see if you can get a correct order without sorting them.
     
- //   if(idx == 352) printf("\neigenvalues %lf, %lf, %lf\n" , eigenvalues[0], eigenvalues[1], eigenvalues[2]);
+    double* eigenvalues = dst + (3*idx/heightDst) * ldDst + (3 * idx) % heightDst;
+    
+    cubicRoot(-matrix.trace(), matrix.diagMinorSum(), -matrix.determinant(), tolerance, eigenvalues);
+    
+    sortDescending(eigenvalues);
 }
-
 

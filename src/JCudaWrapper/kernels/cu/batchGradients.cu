@@ -52,9 +52,8 @@ public:
             case 1: loc = row; end = dim[0]; break;
             case 2: loc = layer; end = dim[2]; break;
         }
-        
-        if (end == 1) return 0.0; // Single element case.
 
+        if (end == 1) return 0.0; // Single element case.
         if (loc == 0) return shift(1) - data[srcFlatIndex]; // Forward difference at start.
         if (loc == end - 1) return data[srcFlatIndex] - shift(-1); // Backward difference at end.
         if (loc == 1 || loc == end - 2) return (shift(1) - shift(-1)) / 2.0; // Central difference.
@@ -117,8 +116,6 @@ extern "C" __global__ void batchGradientsKernel(
     const Indices indices(idx, dim, mat);
 
     const DstIndices to(dim[0], dim[6], idx);
-     
-    //if(idx == 0) printf("\nidx == 0 toIndex = %d, srcVal = %f, grad = %f\n", to.index(ldx), indices.shift(0), indices.grad());
      
     if(idx < dim[6])        dX[to.index(ldx)] = indices.grad();
     else if(idx < 2*dim[6]) dY[to.index(ldy)] = indices.grad();

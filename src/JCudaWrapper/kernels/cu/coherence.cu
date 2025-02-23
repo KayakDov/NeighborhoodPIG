@@ -39,7 +39,8 @@
 extern "C" __global__ void coherenceKernel(
     const int n, 
     const double* eigenVals, 
-    const int ldSrc, 
+    const int ldSrc,
+    const int heightSrc,
     double* dst,
     const int ldDst,
     const int dstHeight,
@@ -50,9 +51,9 @@ extern "C" __global__ void coherenceKernel(
     
     if(idx >= n) return;
      
-    const double* e = eigenVals + idx * ldSrc; 
+    const double* e = eigenVals + 3 * idx / heightSrc * ldSrc + 3 * idx % heightSrc; 
     
-    double& dstVal = *(dst + (idx/dstHeight) * ldDst + idx % dstHeight); 
+    double& dstVal = *(dst + (idx / dstHeight) * ldDst + idx % dstHeight); 
     
     if (e[0] <=  tolerance) dstVal = 0;
     

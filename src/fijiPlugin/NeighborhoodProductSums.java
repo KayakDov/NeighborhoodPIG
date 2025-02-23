@@ -176,7 +176,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
      * @param dst Store the result here in column major order. Note that the
      * increment of this vector is probably not one.
      */
-    public void set(DStrideArray3d a, DStrideArray3d b, DArray1d dst) {
+    public void set(DStrideArray3d a, DStrideArray3d b, DArray dst) {
         //TODO: fix workspace 1 height and ld
         Kernel.run("addEBEProduct", handle, 
                 a.size(), 

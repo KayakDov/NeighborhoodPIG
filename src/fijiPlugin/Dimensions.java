@@ -95,6 +95,16 @@ public abstract class Dimensions implements AutoCloseable{
     public Dimensions(Handle handle, DStrideArray3d copyFrom) {
         this(handle, copyFrom.entriesPerLine(), copyFrom.linesPerLayer(), copyFrom.layersPerGrid(), copyFrom.batchSize);
     }
+        
+    /**
+     * Copy constructor.
+     *
+     * @param handle The context.
+     * @param copyFrom The item being copied.
+     */
+    public Dimensions(Handle handle, Dimensions copyFrom) {
+        this(handle, copyFrom.height, copyFrom.width, copyFrom.depth, copyFrom.batchSize);
+    }
     
     /**
      * Calculates the size of a single layer (width × height).
@@ -136,6 +146,14 @@ public abstract class Dimensions implements AutoCloseable{
                 + ", tensorSize =" + tensorSize()
                 + ", totalSize= " + size()
                 + '}';
-    }    
+    }
+    
+    /**
+     * An empty array with these dimensions.
+     * @return An empty array with these dimensions.
+     */
+    public DStrideArray3d empty(){
+        return new DStrideArray3d(height, width, depth, batchSize);
+    }
 
 }
