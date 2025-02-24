@@ -30,7 +30,8 @@ public interface DLineArray extends DArray {
      */
     @Override
     public default DArray setProduct(Handle handle, double scalar, DArray src){
-        Kernel.run("multiplyScalar", handle, size(), this, P.to(ld()), P.to(linesPerLayer()), P.to(src), P.to(src.ld()), P.to(src.linesPerLayer()), P.to(scalar));
+        Kernel.run("multiplyScalar", handle, size(), this, P.to(ld()), P.to(entriesPerLine()), 
+                P.to(src), P.to(src.ld()), P.to(src.entriesPerLine()), P.to(scalar));
         return this;
     }
     

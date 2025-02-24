@@ -199,7 +199,6 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
             Z.neighborhoodSum(workSpace1, dst);
         } else
             Y.neighborhoodSum(workSpace2, dst);
-
     }
 
     /**

@@ -24,7 +24,7 @@ public:
      * @return The value at the corresponding column-major index.
      */
     __device__ double val(const double* src, const int  ld) const{
-	return val(src, height, ld);
+		return val(src, height, ld);		
     }
     
     /**
@@ -35,7 +35,7 @@ public:
      * @return The value at the corresponding column-major index.
      */
     __device__ double val(const double* src, const int height, const int ld) const{
-	return src[ind(height, ld)];
+		return src[ind(height, ld)];
     }
     
     /**
@@ -45,7 +45,7 @@ public:
      * @return The computed column-major index.
      */
     __device__ int ind(const int height, const int ld) const{
-	return (idx / height) * ld + (idx % height);
+		return (idx / height) * ld + idx % height;
     }
     
     /**
@@ -54,7 +54,7 @@ public:
      * @return The computed column-major index.
      */
     __device__ int ind(const int ld) const{
-	return ind(height, ld);
+		return ind(height, ld);
     }
     
     
@@ -177,7 +177,7 @@ public:
      * @param scale Scaling factor.
      */
     __device__ void subtractRow(int minuendInd, int subtrahendInd, double scale) {
-        for (int i = 0; i < 3; i++) mat[minuendInd][i] -= scale * mat[i][subtrahendInd];        
+        for (int i = 0; i < 3; i++) mat[minuendInd][i] -= scale * mat[subtrahendInd][i];        
     }
 
     /**
@@ -234,6 +234,20 @@ public:
 
         return numFreeVariables;
     }
+    
+    /**
+     * Prints the matrix for debuging purposes.
+     */
+    __device__ void print() {
+        printf("Matrix:\n");
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                printf("%f ", mat[i][j]);
+            }
+            printf("\n");
+        }
+    }
+
 
 };
 
@@ -298,7 +312,7 @@ extern "C" __global__ void eigenVecBatch3x3Kernel(
         get.val(zz, ldzz),
         eigenVal,
         isPivot, 
-	tolerance
+		tolerance
     );
     
     double* eVec = eVectors + getx3.ind(heightEVec, ldEVec);
@@ -306,20 +320,18 @@ extern "C" __global__ void eigenVecBatch3x3Kernel(
 
     int col = 2;
     
-    while(isPivot[col]) {
-    	eVec[col] = 0;
-    	col--;
-    }
+    while(isPivot[col]) eVec[col--] = 0;    
+
+    eVec[col--] = 1;
     
-    eVec[col] = 1;
-    
-    for (int row = col - 1; row >= 0 && col >= 0; col--) {	
+    for (int row = col; row >= 0 && col >= 0; col--) {	
     	eVec[col] = 0;	
-	if(isPivot[col]){         
+		if(isPivot[col]){         
             for (int i = col + 1; i < 3; i++) 
                 eVec[col] -= eVec[i] * mat(row, i);
             eVec[col] /= mat(row, col);
             row--;
         }
-    }    
+    }
+ //   if(idx == 0) printf("eVec = (%f, %f, %f)\n", eVec[0], eVec[1], eVec[2]);//mat.print();
 }

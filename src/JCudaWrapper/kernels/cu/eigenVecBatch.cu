@@ -290,9 +290,9 @@ extern "C" __global__ void eigenVecBatchKernel(
     // All the values of the eigenvector after the free variable are set to 0.  
     // The value of the eigenvector that corresponds to the free vector is set to 1.
     for (int idfv = freeVariableID; idfv >= 0; col--) {
-	if (!isPivot[col]) idfv--;
-	else pivotsPassed++;
-	eVec[col] = 0;
+		if (!isPivot[col]) idfv--;
+		else pivotsPassed++;
+		eVec[col] = 0;
     }
     
     if(col < width - 1) col++;
@@ -301,7 +301,7 @@ extern "C" __global__ void eigenVecBatchKernel(
     
     for (int row = (width - numFreeVariables) - pivotsPassed - 1; row >= 0 && col >= 0; col--) {	
     	eVec[col] = 0;	
-	if(isPivot[col]){         
+		if(isPivot[col]){         
             for (int i = col + 1; i < width - freeVariableID; i++) 
                 eVec[col] -= eVec[i] * mat(row, i);
             eVec[col] /= mat(row, col);

@@ -18,8 +18,22 @@ import ij.io.Opener;
 public class GenDebugFile {
 
 
-    public static int[][] blackWithWhiteBorder(int height, int width) {
-        int size = 7;
+    public static int[][] blackWithWhiteBorderY(int height, int width) {
+        
+        int[][] black = new int[height][width];
+        for (int i = 0; i < height; i++)
+            for (int j = 0; j < width; j++)
+                black[i][j] = 0;
+
+        for (int i = 0; i < width; i++) {
+            black[0][i] = 255; // left
+            black[height - 1][i] = 255; // right
+        }
+        return black;
+    }
+    
+    public static int[][] blackWithWhiteBorderX(int height, int width) {
+        
         int[][] black = new int[height][width];
         for (int i = 0; i < height; i++)
             for (int j = 0; j < width; j++)
@@ -31,11 +45,31 @@ public class GenDebugFile {
         }
         return black;
     }
+    
+    public static int[][] fadeToCorner(){
+        int[][] fadeToCorner = new int[9][9];
+        for(int i = 0; i < 9; i++)
+            for(int j = 0; j < 9; j++)
+                fadeToCorner[i][j] = (int)(255 * Math.sqrt((9 - i) * (9 - i) + (9 - j) * (9 - j))/13.0);
+        return fadeToCorner;
+    }
+    
+    public static int[][] uniform(int height, int width, int color){
+        int[][] uniform = new int[height][width];
+        for(int i = 0; i < width; i++)
+            for(int j = 0; j < height; j++)
+                uniform[i][j] = color;
+        return uniform;
+    }
+    
+    
 
     public static void main(String[] args) {
         // Define pixel values for each point in a grid
-        int[][] pixelValues = blackWithWhiteBorder(3, 9);
+        int[][] pixelValues = uniform(3, 3, 255);
 
+        
+        
         int width = pixelValues[0].length;
         int height = pixelValues.length;
 
@@ -55,7 +89,7 @@ public class GenDebugFile {
 
         // Save the image as a JPEG file
         try {
-            String saveTo = "images/input/debug/debug.png";
+            String saveTo = "images/input/debug/debugWhite.png";
 
             FileSaver saver = new FileSaver(image);
             saver.saveAsPng(saveTo);

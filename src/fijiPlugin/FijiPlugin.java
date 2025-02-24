@@ -96,7 +96,7 @@ public class FijiPlugin implements PlugIn {
 
 //            String imagePath = "images/input/5Tests/";
         String imagePath = "images/input/5debugs/";
-//String imagePath = "images/input/test/";
+//        String imagePath = "images/input/debug/";
 
         int neighborhoodSize = 1; // Default neighborhood radius
         double tolerance = 1; // Default tolerance

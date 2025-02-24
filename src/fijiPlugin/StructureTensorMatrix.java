@@ -5,6 +5,7 @@ import JCudaWrapper.array.DStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.Arrays;
 
 /**
  *
@@ -37,10 +38,10 @@ public class StructureTensorMatrix implements AutoCloseable {
             for(int i = 0; i < 3; i++)
                 for(int j = i; j < 3; j++)
                     nps.set(grad.x[i], grad.x[j], eigen.at(i, j));
-        }
+        }   
 
         eigen.setEigenVals().setEiganVectors();
-        
+                
         orientationXY = grad.copyDim();
         orientationYZ = grad.copyDim();
         coherence = grad.copyDim();
@@ -86,19 +87,16 @@ public class StructureTensorMatrix implements AutoCloseable {
                     P.to(orientationXY.entriesPerLine()),
                     P.to(orientationXY.ld())
             );
-            
-            System.out.println("fijiPlugin.StructureTensorMatrix.setOrientations() orientation = \n" + orientationXY.toString());
-            
+                        
             atan2.run(handle,
-                    orientationXY.size(),
+                    orientationYZ.size(),
                     eigen.vectors1.sub(1, eigen.vectors1.entriesPerLine() - 1, 0, eigen.vectors1.linesPerLayer(), 0, eigen.vectors1.layersPerGrid() * eigen.vectors1.batchSize()),
                     P.to(eigen.vectors1.ld()),
                     P.to(eigen.vectors1.entriesPerLine() - 1),
                     P.to(orientationYZ),
                     P.to(orientationYZ.entriesPerLine()),
                     P.to(orientationYZ.ld())
-            );
-            System.out.println("fijiPlugin.StructureTensorMatrix.setOrientations() orientation = \n" + orientationXY.toString());
+            );            
         }
         
         

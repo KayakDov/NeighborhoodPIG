@@ -3,6 +3,7 @@ package fijiPlugin;
 import JCudaWrapper.array.DStrideArray3d;
 import JCudaWrapper.array.IArray;
 import JCudaWrapper.array.IArray1d;
+import JCudaWrapper.array.IStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
@@ -50,7 +51,7 @@ public class ImageCreator extends Dimensions {
         this.sliceNames = sliceNames;
         orientation.setProduct(handle, 2, orientation);
 
-        try (IArray gpuColors = new IArray1d(orientation.size())) {
+        try (IArray gpuColors = new IStrideArray3d(height, width, depth, batchSize)) {
 
             int heightCoherence, ldCoherence;
             if (coherence == null) {
