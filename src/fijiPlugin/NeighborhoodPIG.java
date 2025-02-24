@@ -37,7 +37,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * square.
      * @param tolerance How close must a number be to 0 to be considered 0.
      */
-    private NeighborhoodPIG(Handle handle, DStrideArray3d image, String[] sourceFileNames, int neighborhoodSize, double tolerance) {
+    private NeighborhoodPIG(Handle handle, DStrideArray3d image, String[] sourceFileNames, NeighborhoodDim neighborhoodSize, double tolerance) {
         super(handle, image);
 
         this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
@@ -69,9 +69,13 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * confidence (coherence)
      * @return A heat map of the orientation in the xy plane.
      */
-    public ImageCreator getImageOrientationXY(boolean useCoherence) {
+    public ImageCreator getAzimuthalAngles(boolean useCoherence) {
 
-        return new ImageCreator(handle, concat(sourceFileNames, " XY orientation"), stm.getOrientationXY(), useCoherence ? stm.getCoherence() : null);
+        return new ImageCreator(handle, 
+                concat(sourceFileNames, " Azimuthal Angles"), 
+                stm.getAzimuthalAngles(), 
+                useCoherence ? stm.getCoherence() : null
+        );
     }
 
     /**
@@ -81,11 +85,11 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * confidence (coherence)
      * @return A heat map of the orientation in the yz plane.
      */
-    public ImageCreator getImageOrientationYZ(boolean useCoherence) {
+    public ImageCreator getPolarAngles(boolean useCoherence) {
         return new ImageCreator(
                 handle, 
-                concat(sourceFileNames, " YZ orientation"), 
-                stm.getOrientationXY(), 
+                concat(sourceFileNames, " Polar Angles"), 
+                stm.getPolarAngles(), 
                 useCoherence ? stm.getCoherence() : null
         );
     }
@@ -116,13 +120,13 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      *
      * @param handle
      * @param imp The imagePlus from which the image data is taken.
-     * @param neighborhoodR The radius of a neighborhood. The neighborhood will
+     * @param nRad The radius of a neighborhood. The neighborhood will
      * be a square and the radius is the distance from the center to the nearest
      * edge.
      * @param tolerance Close enough to 0.
      * @return A neighborhoodPIG.
      */
-    public static NeighborhoodPIG get(Handle handle, ImagePlus imp, int neighborhoodR, double tolerance) {//TODO: get image names
+    public static NeighborhoodPIG get(Handle handle, ImagePlus imp, NeighborhoodDim nRad, double tolerance) {//TODO: get image names
 
         if (imp.hasImageStack() && imp.getNSlices() > 1 && imp.getNFrames() == 1)
             HyperStackConverter.toHyperStack(imp, 1, 1, imp.getNSlices());
@@ -133,7 +137,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
                     handle,
                     gpuImmage,
                     imp.getImageStack().getSliceLabels(),
-                    neighborhoodR,
+                    nRad,
                     tolerance
             );
         }
@@ -146,27 +150,27 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @param handle
      * @param folderPath All images in the folder should have the sameheight and
      * width.
-     * @param neighborhoodR The radius of a neighborhood. The neighborhood will
+     * @param nRad The radius of a neighborhood. The neighborhood will
      * be a square and the radius is the distance from the center to the nearest
      * edge.
      * @param depth
      * @param tolerance Close enough to 0.
      * @return A neighborhoodPIG.
      */
-    public static NeighborhoodPIG get(Handle handle, String folderPath, int depth, int neighborhoodR, double tolerance) {
+    public static NeighborhoodPIG get(Handle handle, String folderPath, int depth, NeighborhoodDim nRad, double tolerance) {
         try {
 
             File[] imageFiles = getImageFiles(folderPath);
 
             BufferedImage firstImage = ImageIO.read(imageFiles[0]);
 
-            try (DStrideArray3d gpuImage = processImages(handle, imageFiles, firstImage.getHeight(), firstImage.getWidth())) {
+            try (DStrideArray3d gpuImage = processImages(handle, imageFiles, firstImage.getHeight(), firstImage.getWidth(), depth)) {
 
                 return new NeighborhoodPIG(
                         handle,
                         gpuImage,
                         new File(folderPath).list(),
-                        neighborhoodR,
+                        nRad,
                         tolerance
                 );
             }
@@ -182,14 +186,14 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @param handle
      * @param folderPath All images in the folder should have the sameheight and
      * width.
-     * @param neighborhoodR The radius of a neighborhood. The neighborhood will
+     * @param nRad The radius of a neighborhood. The neighborhood will
      * be a square and the radius is the distance from the center to the nearest
      * edge.
      * @param depth
      * @param tolerance Close enough to 0.
      * @return A neighborhoodPIG.
      */
-    public static NeighborhoodPIG getWithIJ(Handle handle, String folderPath, int depth, int neighborhoodR, double tolerance) {
+    public static NeighborhoodPIG getWithIJ(Handle handle, String folderPath, int depth, NeighborhoodDim nRad, double tolerance) {
 
         ImagePlus ip = imagePlus(folderPath, depth);
         try (DStrideArray3d gpuImage = processImages(handle, ip)) {
@@ -198,7 +202,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
                     handle,
                     gpuImage,
                     new File(folderPath).list(),
-                    neighborhoodR,
+                    nRad,
                     tolerance
             );
         }
@@ -273,16 +277,17 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @param pics Path to the folder containing image files.
      * @param height The height of the pictures.
      * @param width The width of the pictures.
+     * @param depth The depth of the image.
      *
      * @return A single column-major GPU array containing pixel values of all
      * images.
      * @throws IllegalArgumentException If no valid images are found in the
      * folder.
      */
-    public final static DStrideArray3d processImages(Handle handle, File[] pics, int height, int width) {
+    public final static DStrideArray3d processImages(Handle handle, File[] pics, int height, int width, int depth) {
 
         
-        DStrideArray3d pixelsGPU = new DStrideArray3d(height, width, 1, pics.length);
+        DStrideArray3d pixelsGPU = new DStrideArray3d(height, width, depth, pics.length/depth);
         int imgSize = width * height;
         double[] imgPixelsColMaj = new double[imgSize];
 
@@ -291,7 +296,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
 
                 toColMjr(grayScale(ImageIO.read(pics[i])).getData(), imgPixelsColMaj);
 
-                pixelsGPU.getSubArray(i).getLayer(0).set(handle, imgPixelsColMaj);
+                pixelsGPU.getSubArray(i/depth).getLayer(i % depth).set(handle, imgPixelsColMaj);
 
             } catch (IOException e) {
                 throw new IllegalArgumentException("Error reading image file: " + pics[i].getName(), e);

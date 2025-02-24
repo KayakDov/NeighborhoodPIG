@@ -45,7 +45,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
             height * width,//4 -> layerSize
             tensorSize(),//5  -> tensorSize 
             tensorSize() * batchSize,//6 -> batchSize (number of elements, not tensors, in the batch)
-            pic.ld() //7
+            pic.ld() //7 ld
         };
 
         try (IArray1d dim = new IArray1d(8).set(handle, dimensions)) {
@@ -59,7 +59,6 @@ public class Gradient extends Dimensions implements AutoCloseable {
                     P.to(x[2]), P.to(x[2].ld())
             );
         }
-
     }
 
     /**

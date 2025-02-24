@@ -58,8 +58,6 @@ public class FijiPlugin implements PlugIn {
     public void run(String string) {
 
         ImagePlus imp = ij.WindowManager.getCurrentImage();
-        
-        
 
         if (!validImage(imp)) return;
 
@@ -67,26 +65,27 @@ public class FijiPlugin implements PlugIn {
         double defaultTolerance = 1;
 
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
-        gd.addNumericField("Neighborhood radius:", defaultNeighborhoodRadius, 0);
+        gd.addNumericField("Neighborhood xy radius:", defaultNeighborhoodRadius, 0);
+        gd.addNumericField("Neighborhood z radius:", defaultNeighborhoodRadius, 0);
         gd.addCheckbox("use coherence", false);
         gd.showDialog();
 
         if (gd.wasCanceled()) return;
 
-        int neighborhoodSize = (int) gd.getNextNumber();
+        NeighborhoodDim neighborhoodSize = new NeighborhoodDim((int) gd.getNextNumber(), (int) gd.getNextNumber());
         boolean useCoherence = (boolean) gd.getNextBoolean();
 
-        if (!validParamaters(neighborhoodSize)) return;
+        if (!validParamaters(neighborhoodSize.xy) || !validParamaters(neighborhoodSize.z)) return;
 
         try (
                 Handle handle = new Handle();
                 NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, neighborhoodSize, defaultTolerance)) {
 
-            ImageCreator ic = np.getImageOrientationXY(useCoherence);
+            ImageCreator ic = np.getPolarAngles(useCoherence);
             ic.printToFiji(useCoherence);
 //            ic.printToFile("images/output/test2/");
             
-            if(imp.getNSlices() > imp.getNFrames()) np.getImageOrientationYZ(useCoherence).printToFiji(false);
+            if(imp.getNSlices() > imp.getNFrames()) np.getPolarAngles(useCoherence).printToFiji(false);
 
             ij.IJ.showMessage("NeighborhoodPIG processing complete.");
         }
@@ -98,14 +97,14 @@ public class FijiPlugin implements PlugIn {
         String imagePath = "images/input/5debugs/";
 //        String imagePath = "images/input/debug/";
 
-        int neighborhoodSize = 1; // Default neighborhood radius
+        NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1); // Default neighborhood radius
         double tolerance = 1; // Default tolerance
-        int depth = 1;
+        int depth = 9;
 
         try (Handle handle = new Handle();
                 NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, neighborhoodSize, tolerance)) {
 
-            np.getImageOrientationXY(true).printToFile("images/output/test2/");
+            np.getPolarAngles(true).printToFile("images/output/test2/");
 //                np.getImageOrientationXY(true).printToFiji(true);
 
         }

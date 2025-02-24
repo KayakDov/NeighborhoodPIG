@@ -72,7 +72,7 @@ extern "C" __global__ void neighborhoodSum3dKernel(
     double* dstMat,
     const int height, const int width, const int depth, const int ldSrc, const int ldDst,
     const int srcStride, const int dstStride, const int numSteps,
-    const int neighborhoodSize,
+    const int neighborhoodSizeXY, const int neighborhoodSizeZ,
     const int dir,
     const bool dstIsMatrix
 ) {

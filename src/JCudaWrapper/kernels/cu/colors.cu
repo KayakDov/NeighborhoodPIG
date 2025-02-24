@@ -95,12 +95,15 @@ public:
  */
 extern "C" __global__ void colorsKernel(
     const int n, 
+    
     const double* srcAngles, 
     const int ldSrcAng, 
     const int heightSrcAng,
+    
     int* colors,
     const int ldCol,
     const int heightCol,
+    
     const double* srcIntensities,
     const int heightSrcInt,
     const int ldSrcInt    
@@ -109,7 +112,13 @@ extern "C" __global__ void colorsKernel(
     if (idx >= n) return;
     
     double angle = srcAngles[ind(idx, ldSrcAng, heightSrcAng)];
+    if(isnan(angle)) {
+    	colors[ind(idx, ldCol, heightCol)] = -1;
+    	return;
+    }
+    
     double intensity = (ldSrcInt == -1) ? 1.0 : srcIntensities[ind(idx, ldSrcInt, heightSrcInt)];
+    
     Writer writer(colors + ind(idx, ldCol, heightCol), intensity);
 
     if (0 <= angle && angle < CUDART_PI / 3) 

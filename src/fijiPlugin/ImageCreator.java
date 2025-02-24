@@ -15,6 +15,7 @@ import ij.process.ColorProcessor;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
+import java.util.Arrays;
 import javax.imageio.ImageIO;
 
 /**
@@ -62,21 +63,26 @@ public class ImageCreator extends Dimensions {
                 ldCoherence = coherence.ld();
             }
 
+            System.out.println("fijiPlugin.ImageCreator.<init>()\n" + orientation.toString());
             
             Kernel.run("colors", handle,
                     orientation.size(),
+                    
                     orientation,
                     P.to(orientation.ld()),
                     P.to(orientation.entriesPerLine()),
+                    
                     P.to(gpuColors),
                     P.to(gpuColors.ld()),
                     P.to(gpuColors.entriesPerLine()),
+                    
                     P.to(coherence),
                     P.to(heightCoherence),
                     P.to(ldCoherence)
             );
 
-            cpuColors = gpuColors.get(handle); // Transfer GPU results to CPU.
+            cpuColors = gpuColors.get(handle);           
+            
         }
 
         orientation.setProduct(handle, 0.5, orientation); // Restore original scale.

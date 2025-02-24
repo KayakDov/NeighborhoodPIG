@@ -13,19 +13,7 @@ public class Test {
 
     public static void main(String[] args) {
         
-        double[] cpuArray = new double[16];
-        Arrays.setAll(cpuArray, i -> i*2);
-
-        try (Handle handle = new Handle(); 
-                DStrideArray3d array = new DStrideArray3d(2, 2, 2, 2).set(handle, cpuArray)) {
-
-                System.out.println("main.Test.main() size = " + array.size());
-                System.out.println("toString:\n" + array.toString());
-                System.out.println("toString:\n" + Arrays.toString(array.get(handle)));
-            
-        }
-
-
+        System.out.println(Math.atan2(0, 0));
 
     }
 }

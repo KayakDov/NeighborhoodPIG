@@ -14,7 +14,7 @@ import java.util.Arrays;
 public class StructureTensorMatrix implements AutoCloseable {
 
     private final Eigan eigen;
-    private final DStrideArray3d orientationXY, orientationYZ, coherence;
+    private final DStrideArray3d azimuthalAngles, polarAngles, coherence;
     private final Handle handle;
 
     /**
@@ -23,32 +23,32 @@ public class StructureTensorMatrix implements AutoCloseable {
      *
      * @param handle The context.
      * @param grad The pixel intensity gradient of the image.
-     * @param neighborhoodRad A square window considered a neighborhood around a
+     * @param nRad A square window considered a neighborhood around a
      * point. This is the distance from the center of the square to the nearest
      * point on the edge.
      * @param tolerance How close a number be to 0 to be considered 0.
      */
-    public StructureTensorMatrix(Handle handle, Gradient grad, int neighborhoodRad, double tolerance) {
+    public StructureTensorMatrix(Handle handle, Gradient grad, NeighborhoodDim nRad, double tolerance) {
 
         this.handle = handle;
-        
-        eigen = new Eigan(handle, grad, tolerance);        
-        
-        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, neighborhoodRad, grad.x[0])) {
-            for(int i = 0; i < 3; i++)
-                for(int j = i; j < 3; j++)
+
+        eigen = new Eigan(handle, grad, tolerance);
+
+        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, nRad, grad.x[0])) {
+            for (int i = 0; i < 3; i++)
+                for (int j = i; j < 3; j++)
                     nps.set(grad.x[i], grad.x[j], eigen.at(i, j));
-        }   
+        }
 
         eigen.setEigenVals().setEiganVectors();
-                
-        orientationXY = grad.copyDim();
-        orientationYZ = grad.copyDim();
+
+        azimuthalAngles = grad.copyDim();
+        polarAngles = grad.copyDim();
         coherence = grad.copyDim();
 
         setVecs0ToPi();
         setCoherence(tolerance);
-        setOrientations();
+        setOrientations(tolerance);
     }
 
     /**
@@ -73,33 +73,27 @@ public class StructureTensorMatrix implements AutoCloseable {
     /**
      * Sets the orientations from the eigenvectors.
      *
+     * @param tolerance What is considered 0.
      */
-    public final void setOrientations() {
+    public final void setOrientations(double tolerance) {
 
-        try (Kernel atan2 = new Kernel("atan2")) {
-            
-            atan2.run(handle,
-                    orientationXY.size(),
-                    eigen.vectors1,
-                    P.to(eigen.vectors1.ld()),
-                    P.to(eigen.vectors1.entriesPerLine()),
-                    P.to(orientationXY),
-                    P.to(orientationXY.entriesPerLine()),
-                    P.to(orientationXY.ld())
-            );
-                        
-            atan2.run(handle,
-                    orientationYZ.size(),
-                    eigen.vectors1.sub(1, eigen.vectors1.entriesPerLine() - 1, 0, eigen.vectors1.linesPerLayer(), 0, eigen.vectors1.layersPerGrid() * eigen.vectors1.batchSize()),
-                    P.to(eigen.vectors1.ld()),
-                    P.to(eigen.vectors1.entriesPerLine() - 1),
-                    P.to(orientationYZ),
-                    P.to(orientationYZ.entriesPerLine()),
-                    P.to(orientationYZ.ld())
-            );            
-        }
-        
-        
+        Kernel.run("toSpherical",  handle, azimuthalAngles.size(),
+                
+                eigen.vectors1,                
+                P.to(eigen.vectors1.entriesPerLine()),
+                P.to(eigen.vectors1.ld()),
+                
+                P.to(azimuthalAngles),
+                P.to(azimuthalAngles.entriesPerLine()),
+                P.to(azimuthalAngles.ld()),
+                
+                P.to(polarAngles),
+                P.to(polarAngles.entriesPerLine()),
+                P.to(polarAngles.ld()),
+                
+                P.to(.01)
+        );
+
     }
 
     /**
@@ -109,9 +103,9 @@ public class StructureTensorMatrix implements AutoCloseable {
      * @return The coherence matrix.
      */
     public final DStrideArray3d setCoherence(double tolerance) {
-        Kernel.run("coherence", handle, 
-                coherence.size(), 
-                eigen.values, 
+        Kernel.run("coherence", handle,
+                coherence.size(),
+                eigen.values,
                 P.to(eigen.values.ld()),
                 P.to(eigen.values.entriesPerLine()),
                 P.to(coherence),
@@ -119,7 +113,7 @@ public class StructureTensorMatrix implements AutoCloseable {
                 P.to(coherence.entriesPerLine()),
                 P.to(tolerance)
         );
-        
+
         return coherence;
     }
 
@@ -137,8 +131,8 @@ public class StructureTensorMatrix implements AutoCloseable {
      *
      * @return Thew matrix of orientations.
      */
-    public DStrideArray3d getOrientationXY() {
-        return orientationXY;
+    public DStrideArray3d getAzimuthalAngles() {
+        return azimuthalAngles;
     }
 
     /**
@@ -146,8 +140,8 @@ public class StructureTensorMatrix implements AutoCloseable {
      *
      * @return Thew matrix of orientations.
      */
-    public DStrideArray3d getOrientationYZ() {
-        return orientationYZ;
+    public DStrideArray3d getPolarAngles() {
+        return polarAngles;
     }
 
     /**
@@ -155,13 +149,12 @@ public class StructureTensorMatrix implements AutoCloseable {
      */
     @Override
     public void close() {
-        
+
         eigen.close();
-        orientationXY.close();
-        orientationYZ.close();
+        azimuthalAngles.close();
+        polarAngles.close();
         coherence.close();
     }
-
 
     /**
      * The eigenvalues and vectors of the structure tensors.

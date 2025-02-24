@@ -22,7 +22,6 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
 
 //    private final Vector halfNOnes;
     private final DStrideArray3d workSpace1, workSpace2;
-    private final int nRad;//TODO:  This needs to have a seperate value for each dimension.
     private final Kernel nSum;
     private final Mapper X, Y, Z;
 
@@ -36,10 +35,10 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
      * @param dim Dimensions from this will be copied.
      *
      */
-    public NeighborhoodProductSums(Handle handle, int nRad, DStrideArray3d dim) {
+    public NeighborhoodProductSums(Handle handle, NeighborhoodDim nRad, DStrideArray3d dim) {
         super(handle, dim);
 
-        Z = new Mapper(height * width * batchSize, depth, 2) {
+        Z = new Mapper(height * width * batchSize, depth, 2, nRad.z) {
 
             @Override
             protected int srcStride(DStrideArray3d src) {
@@ -54,7 +53,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
             }
         };
 
-        Y = new Mapper(depth * width * batchSize, height, 1) {
+        Y = new Mapper(depth * width * batchSize, height, 1, nRad.xy) {
             @Override
             protected int srcStride(DStrideArray3d src) {
                 return 1;
@@ -67,7 +66,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
             }
         };
 
-        X = new Mapper(depth * height * batchSize, width, 0) {
+        X = new Mapper(depth * height * batchSize, width, 0, nRad.xy) {
             @Override
             protected int srcStride(DStrideArray3d src) {
                 return src.ld();
@@ -78,8 +77,6 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
                 return (dst.is1D() ? src.entriesPerLine() : 1) * dst.ld();
             }
         };
-
-        this.nRad = nRad;
 
         workSpace2 = dim.copyDim();
         workSpace1 = dim.copyDim();
@@ -100,7 +97,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
      */
     private abstract class Mapper {
 
-        public final int numSteps, numThreads, dirOrd;
+        public final int numSteps, numThreads, dirOrd, nRad;
 
         /**
          *
@@ -111,10 +108,11 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
          * @param numThreads The number pixels on a face perpendicular to the
          * direction.
          */
-        public Mapper(int numThreads, int numSteps, int dirOrd) {
+        public Mapper(int numThreads, int numSteps, int dirOrd, int nRad) {
             this.numSteps = numSteps;
             this.numThreads = numThreads;
             this.dirOrd = dirOrd;
+            this.nRad = nRad;
         }
 
         /**

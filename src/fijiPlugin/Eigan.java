@@ -125,7 +125,6 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
                     P.to(tolerance)
             );
         }
-                
         return this;
     }
 
