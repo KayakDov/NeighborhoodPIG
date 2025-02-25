@@ -74,7 +74,8 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
         return new ImageCreator(handle, 
                 concat(sourceFileNames, " Azimuth"), 
                 stm.azimuthAngle(), 
-                useCoherence ? stm.getCoherence() : null
+                useCoherence ? stm.getCoherence() : null,
+                "Azimuth Angle Heatmap"
         );
     }
 
@@ -90,8 +91,9 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
                 handle, 
                 concat(sourceFileNames, " Zenith Angle"), 
                 stm.zenithAngle(), 
-                useCoherence ? stm.getCoherence() : null
-        );
+                useCoherence ? stm.getCoherence() : null,
+                "Zenith Angle Heatmap"
+        );        
     }
 
     /**
@@ -128,8 +130,8 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      */
     public static NeighborhoodPIG get(Handle handle, ImagePlus imp, NeighborhoodDim nRad, double tolerance) {//TODO: get image names
 
-        if (imp.hasImageStack() && imp.getNSlices() > 1 && imp.getNFrames() == 1)
-            HyperStackConverter.toHyperStack(imp, 1, 1, imp.getNSlices());
+//        if (imp.hasImageStack() && imp.getNSlices() == 1 && imp.getNFrames() > 1)
+//            HyperStackConverter.toHyperStack(imp, 1, 1, imp.getNSlices());
 
         try (DStrideArray3d gpuImmage = processImages(handle, imp)) {
 
@@ -228,17 +230,17 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
         int width = imp.getWidth();
         int height = imp.getHeight();
         int channels = imp.getNChannels();
-        int slices = imp.getNSlices();
+        int depth = imp.getNSlices();
         int frames = imp.getNFrames();
         int imgSize = width * height;
 
-        DStrideArray3d processedImage = new DStrideArray3d(height, width, slices, frames);
+        DStrideArray3d processedImage = new DStrideArray3d(height, width, depth, frames);
 
         double[] columnMajorSlice = new double[imgSize];
 
         // Iterate over frames, slices, and channels
         for (int frame = 1; frame <= frames; frame++) {
-            for (int slice = 1; slice <= slices; slice++) {
+            for (int slice = 1; slice <= depth; slice++) {
                 for (int channel = 1; channel <= channels; channel++) {
                     imp.setPosition(channel, slice, frame);
                     ImageProcessor ip = imp.getProcessor();

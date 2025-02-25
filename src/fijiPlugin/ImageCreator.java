@@ -2,7 +2,6 @@ package fijiPlugin;
 
 import JCudaWrapper.array.DStrideArray3d;
 import JCudaWrapper.array.IArray;
-import JCudaWrapper.array.IArray1d;
 import JCudaWrapper.array.IStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
@@ -15,7 +14,6 @@ import ij.process.ColorProcessor;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
-import java.util.Arrays;
 import javax.imageio.ImageIO;
 
 /**
@@ -34,6 +32,7 @@ public class ImageCreator extends Dimensions {
      */
     private final int[] cpuColors;
     private final String[] sliceNames;
+    private final String stackName;
     private final int colDist;
 
     /**
@@ -45,8 +44,9 @@ public class ImageCreator extends Dimensions {
      * @param orientation The tensor representing orientations.
      * @param coherence The tensor representing coherence values. pass null if
      * coherence should not be used
+     * @param stackName
      */
-    public ImageCreator(Handle handle, String[] sliceNames, DStrideArray3d orientation, DStrideArray3d coherence) {
+    public ImageCreator(Handle handle, String[] sliceNames, DStrideArray3d orientation, DStrideArray3d coherence, String stackName) {
         super(handle, orientation);
         colDist = orientation.ld();
         this.sliceNames = sliceNames;
@@ -56,34 +56,33 @@ public class ImageCreator extends Dimensions {
 
             int heightCoherence, ldCoherence;
             if (coherence == null) {
+                coherence = orientation;
                 heightCoherence = 0;
                 ldCoherence = -1;
             } else {
                 heightCoherence = coherence.entriesPerLine();
                 ldCoherence = coherence.ld();
             }
-            
+
             Kernel.run("colors", handle,
                     orientation.size(),
-                    
                     orientation,
                     P.to(orientation.ld()),
                     P.to(orientation.entriesPerLine()),
-                    
                     P.to(gpuColors),
                     P.to(gpuColors.ld()),
                     P.to(gpuColors.entriesPerLine()),
-                    
                     P.to(coherence),
                     P.to(heightCoherence),
                     P.to(ldCoherence)
             );
 
-            cpuColors = gpuColors.get(handle);           
-            
+            cpuColors = gpuColors.get(handle);
+
         }
 
         orientation.setProduct(handle, 0.5, orientation); // Restore original scale.
+        this.stackName = stackName;
     }
 
     /**
@@ -120,15 +119,11 @@ public class ImageCreator extends Dimensions {
     /**
      * Displays the tensor data as a heat map in Fiji, supporting multiple
      * frames and depths.
-     *
-     * @param initImageJ Does imageJ need to be initiated.
      */
-    public final void printToFiji(boolean initImageJ) {
+    public final void printToFiji() {
 
-        if (initImageJ) {
-            System.out.println("fijiPlugin.ImageCreator.printToFiji() initiating ImageJ");
-            new ImageJ();
-        }
+        System.out.println("fijiPlugin.ImageCreator.printToFiji() depth = " + depth);
+        System.out.println("fijiPlugin.ImageCreator.printToFiji() frames = " + batchSize);
 
         ImageStack stack = new ImageStack(width, height);
 
@@ -144,15 +139,17 @@ public class ImageCreator extends Dimensions {
             }
         }
 
-        ImagePlus imp = new ImagePlus("Orientation Heatmap", stack);
+        ImagePlus imp = new ImagePlus(stackName, stack);
 
-        if (depth > 1)
-            imp = HyperStackConverter.toHyperStack(
-                    imp,
-                    1,
-                    depth,
-                    batchSize
-            );
+        System.out.println("fijiPlugin.ImageCreator.printToFiji() " + imp.toString());
+        
+        if(batchSize > 1) imp = HyperStackConverter.toHyperStack(
+                imp,
+                1,
+                depth,
+                batchSize
+        );
+
         imp.show();
     }
 
