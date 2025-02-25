@@ -14,7 +14,7 @@ import java.util.Arrays;
 public class StructureTensorMatrix implements AutoCloseable {
 
     private final Eigan eigen;
-    private final DStrideArray3d azimuthalAngles, polarAngles, coherence;
+    private final DStrideArray3d azimuth, zenith, coherence;
     private final Handle handle;
 
     /**
@@ -42,15 +42,27 @@ public class StructureTensorMatrix implements AutoCloseable {
 
         eigen.setEigenVals().setEiganVectors();
 
-        azimuthalAngles = grad.copyDim();
-        polarAngles = grad.copyDim();
+        azimuth = grad.copyDim();
+        zenith = grad.copyDim();
         coherence = grad.copyDim();
 
         setVecs0ToPi();
+        unitizeVecs();
         setCoherence(tolerance);
         setOrientations(tolerance);
     }
 
+    /**
+     * Changes the eigenvectos to unit vectors.  This helps with converting them to spherical coordinates.
+     */
+    private void unitizeVecs(){
+        DStrideArray3d vecs = eigen.vectors1;
+        Kernel.run("toUnitVec", handle, coherence.size(), 
+                vecs, P.to(vecs.entriesPerLine()), P.to(vecs.ld()),
+                P.to(vecs), P.to(vecs.entriesPerLine()), P.to(vecs.ld())
+                );
+    }
+    
     /**
      * All the eigen vectors with y less than 0 are mulitplied by -1.
      *
@@ -59,7 +71,7 @@ public class StructureTensorMatrix implements AutoCloseable {
     public final DArray3d setVecs0ToPi() {
         DArray3d eVecs = eigen.vectors1;
         Kernel.run("vecToNematic", handle,
-                eigen.size(),
+                coherence.size(),
                 eVecs,
                 P.to(eVecs.ld()),
                 P.to(eVecs.entriesPerLine()),
@@ -77,19 +89,19 @@ public class StructureTensorMatrix implements AutoCloseable {
      */
     public final void setOrientations(double tolerance) {
 
-        Kernel.run("toSpherical",  handle, azimuthalAngles.size(),
+        Kernel.run("toSpherical",  handle, azimuth.size(),
                 
                 eigen.vectors1,                
                 P.to(eigen.vectors1.entriesPerLine()),
                 P.to(eigen.vectors1.ld()),
                 
-                P.to(azimuthalAngles),
-                P.to(azimuthalAngles.entriesPerLine()),
-                P.to(azimuthalAngles.ld()),
+                P.to(azimuth),
+                P.to(azimuth.entriesPerLine()),
+                P.to(azimuth.ld()),
                 
-                P.to(polarAngles),
-                P.to(polarAngles.entriesPerLine()),
-                P.to(polarAngles.ld()),
+                P.to(zenith),
+                P.to(zenith.entriesPerLine()),
+                P.to(zenith.ld()),
                 
                 P.to(.01)
         );
@@ -131,8 +143,8 @@ public class StructureTensorMatrix implements AutoCloseable {
      *
      * @return Thew matrix of orientations.
      */
-    public DStrideArray3d getAzimuthalAngles() {
-        return azimuthalAngles;
+    public DStrideArray3d azimuthAngle() {
+        return azimuth;
     }
 
     /**
@@ -140,8 +152,8 @@ public class StructureTensorMatrix implements AutoCloseable {
      *
      * @return Thew matrix of orientations.
      */
-    public DStrideArray3d getPolarAngles() {
-        return polarAngles;
+    public DStrideArray3d zenithAngle() {
+        return zenith;
     }
 
     /**
@@ -151,8 +163,8 @@ public class StructureTensorMatrix implements AutoCloseable {
     public void close() {
 
         eigen.close();
-        azimuthalAngles.close();
-        polarAngles.close();
+        azimuth.close();
+        zenith.close();
         coherence.close();
     }
 

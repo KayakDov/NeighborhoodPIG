@@ -46,11 +46,11 @@ public class GenDebugFile {
         return black;
     }
     
-    public static int[][] fadeToCorner(){
+    public static int[][] fadeToCorner(int depthDif){
         int[][] fadeToCorner = new int[9][9];
         for(int i = 0; i < 9; i++)
             for(int j = 0; j < 9; j++)
-                fadeToCorner[i][j] = (int)(255 * Math.sqrt((9 - i) * (9 - i) + (9 - j) * (9 - j))/13.0);
+                fadeToCorner[i][j] = (int)(255 * Math.sqrt((9 - i) * (9 - i) + (9 - j) * (9 - j) + depthDif*depthDif)/13.0);
         return fadeToCorner;
     }
     
@@ -66,7 +66,9 @@ public class GenDebugFile {
 
     public static void main(String[] args) {
         // Define pixel values for each point in a grid
-        int[][] pixelValues = uniform(3, 3, 255);
+        
+        int depth = 9;
+        int[][] pixelValues = fadeToCorner(depth);
 
         
         
@@ -89,7 +91,7 @@ public class GenDebugFile {
 
         // Save the image as a JPEG file
         try {
-            String saveTo = "images/input/debug/debugWhite.png";
+            String saveTo = "images/input/debug/" + depth + "debugWhite.png";
 
             FileSaver saver = new FileSaver(image);
             saver.saveAsPng(saveTo);

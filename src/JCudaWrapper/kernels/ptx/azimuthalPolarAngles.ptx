@@ -10,20 +10,20 @@
 .target sm_52
 .address_size 64
 
-	// .globl	azimuthalPolarAnglesKernel
+	// .globl	toSphericalKernel
 
-.visible .entry azimuthalPolarAnglesKernel(
-	.param .u32 azimuthalPolarAnglesKernel_param_0,
-	.param .u64 azimuthalPolarAnglesKernel_param_1,
-	.param .u32 azimuthalPolarAnglesKernel_param_2,
-	.param .u32 azimuthalPolarAnglesKernel_param_3,
-	.param .u64 azimuthalPolarAnglesKernel_param_4,
-	.param .u32 azimuthalPolarAnglesKernel_param_5,
-	.param .u32 azimuthalPolarAnglesKernel_param_6,
-	.param .u64 azimuthalPolarAnglesKernel_param_7,
-	.param .u32 azimuthalPolarAnglesKernel_param_8,
-	.param .u32 azimuthalPolarAnglesKernel_param_9,
-	.param .f64 azimuthalPolarAnglesKernel_param_10
+.visible .entry toSphericalKernel(
+	.param .u32 toSphericalKernel_param_0,
+	.param .u64 toSphericalKernel_param_1,
+	.param .u32 toSphericalKernel_param_2,
+	.param .u32 toSphericalKernel_param_3,
+	.param .u64 toSphericalKernel_param_4,
+	.param .u32 toSphericalKernel_param_5,
+	.param .u32 toSphericalKernel_param_6,
+	.param .u64 toSphericalKernel_param_7,
+	.param .u32 toSphericalKernel_param_8,
+	.param .u32 toSphericalKernel_param_9,
+	.param .f64 toSphericalKernel_param_10
 )
 {
 	.reg .pred 	%p<20>;
@@ -32,11 +32,11 @@
 	.reg .b64 	%rd<21>;
 
 
-	ld.param.u32 	%r10, [azimuthalPolarAnglesKernel_param_0];
-	ld.param.u64 	%rd2, [azimuthalPolarAnglesKernel_param_1];
-	ld.param.u32 	%r4, [azimuthalPolarAnglesKernel_param_2];
-	ld.param.u32 	%r5, [azimuthalPolarAnglesKernel_param_3];
-	ld.param.f64 	%fd23, [azimuthalPolarAnglesKernel_param_10];
+	ld.param.u32 	%r10, [toSphericalKernel_param_0];
+	ld.param.u64 	%rd2, [toSphericalKernel_param_1];
+	ld.param.u32 	%r4, [toSphericalKernel_param_2];
+	ld.param.u32 	%r5, [toSphericalKernel_param_3];
+	ld.param.f64 	%fd23, [toSphericalKernel_param_10];
 	mov.u32 	%r11, %ntid.x;
 	mov.u32 	%r12, %ctaid.x;
 	mov.u32 	%r13, %tid.x;
@@ -200,14 +200,14 @@ $L__BB0_4:
 	selp.f64 	%fd167, %fd74, %fd5, %p11;
 
 $L__BB0_7:
-	ld.param.u64 	%rd19, [azimuthalPolarAnglesKernel_param_1];
+	ld.param.u64 	%rd19, [toSphericalKernel_param_1];
 	cvta.to.global.u64 	%rd18, %rd19;
 	add.s64 	%rd17, %rd18, %rd9;
 	mov.f64 	%fd170, 0d7FF8000000000000;
-	ld.param.u64 	%rd16, [azimuthalPolarAnglesKernel_param_4];
-	ld.param.u32 	%r55, [azimuthalPolarAnglesKernel_param_6];
-	ld.param.u32 	%r54, [azimuthalPolarAnglesKernel_param_5];
-	ld.param.f64 	%fd165, [azimuthalPolarAnglesKernel_param_10];
+	ld.param.u64 	%rd16, [toSphericalKernel_param_4];
+	ld.param.u32 	%r55, [toSphericalKernel_param_6];
+	ld.param.u32 	%r54, [toSphericalKernel_param_5];
+	ld.param.f64 	%fd165, [toSphericalKernel_param_10];
 	div.s32 	%r37, %r1, %r54;
 	mul.lo.s32 	%r38, %r37, %r54;
 	sub.s32 	%r39, %r1, %r38;
@@ -382,9 +382,9 @@ $L__BB0_14:
 	add.rn.f64 	%fd170, %fd130, %fd129;
 
 $L__BB0_19:
-	ld.param.u64 	%rd20, [azimuthalPolarAnglesKernel_param_7];
-	ld.param.u32 	%r57, [azimuthalPolarAnglesKernel_param_9];
-	ld.param.u32 	%r56, [azimuthalPolarAnglesKernel_param_8];
+	ld.param.u64 	%rd20, [toSphericalKernel_param_7];
+	ld.param.u32 	%r57, [toSphericalKernel_param_9];
+	ld.param.u32 	%r56, [toSphericalKernel_param_8];
 	div.s32 	%r50, %r1, %r56;
 	mul.lo.s32 	%r51, %r50, %r56;
 	sub.s32 	%r52, %r1, %r51;

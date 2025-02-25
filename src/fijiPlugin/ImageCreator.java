@@ -62,8 +62,6 @@ public class ImageCreator extends Dimensions {
                 heightCoherence = coherence.entriesPerLine();
                 ldCoherence = coherence.ld();
             }
-
-            System.out.println("fijiPlugin.ImageCreator.<init>()\n" + orientation.toString());
             
             Kernel.run("colors", handle,
                     orientation.size(),

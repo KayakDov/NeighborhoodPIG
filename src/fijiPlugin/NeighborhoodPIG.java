@@ -72,8 +72,8 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
     public ImageCreator getAzimuthalAngles(boolean useCoherence) {
 
         return new ImageCreator(handle, 
-                concat(sourceFileNames, " Azimuthal Angles"), 
-                stm.getAzimuthalAngles(), 
+                concat(sourceFileNames, " Azimuth"), 
+                stm.azimuthAngle(), 
                 useCoherence ? stm.getCoherence() : null
         );
     }
@@ -85,11 +85,11 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * confidence (coherence)
      * @return A heat map of the orientation in the yz plane.
      */
-    public ImageCreator getPolarAngles(boolean useCoherence) {
+    public ImageCreator getZentihAngle(boolean useCoherence) {
         return new ImageCreator(
                 handle, 
-                concat(sourceFileNames, " Polar Angles"), 
-                stm.getPolarAngles(), 
+                concat(sourceFileNames, " Zenith Angle"), 
+                stm.zenithAngle(), 
                 useCoherence ? stm.getCoherence() : null
         );
     }

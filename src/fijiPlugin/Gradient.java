@@ -57,7 +57,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
                     P.to(x[0]), P.to(x[0].ld()),
                     P.to(x[1]), P.to(x[1].ld()),
                     P.to(x[2]), P.to(x[2].ld())
-            );
+            );            
         }
     }
 

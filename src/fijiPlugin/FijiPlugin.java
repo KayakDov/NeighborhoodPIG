@@ -81,11 +81,11 @@ public class FijiPlugin implements PlugIn {
                 Handle handle = new Handle();
                 NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, neighborhoodSize, defaultTolerance)) {
 
-            ImageCreator ic = np.getPolarAngles(useCoherence);
+            ImageCreator ic = np.getZentihAngle(useCoherence);
             ic.printToFiji(useCoherence);
 //            ic.printToFile("images/output/test2/");
             
-            if(imp.getNSlices() > imp.getNFrames()) np.getPolarAngles(useCoherence).printToFiji(false);
+            if(imp.getNSlices() > imp.getNFrames()) np.getZentihAngle(useCoherence).printToFiji(false);
 
             ij.IJ.showMessage("NeighborhoodPIG processing complete.");
         }
@@ -93,18 +93,18 @@ public class FijiPlugin implements PlugIn {
 
     public static void main(String[] args) {
 
-//            String imagePath = "images/input/5Tests/";
-        String imagePath = "images/input/5debugs/";
-//        String imagePath = "images/input/debug/";
+            String imagePath = "images/input/5Tests/";int depth = 1;
+//        String imagePath = "images/input/5debugs/";
+//        String imagePath = "images/input/debug/";int depth = 9;
 
         NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1); // Default neighborhood radius
         double tolerance = 1; // Default tolerance
-        int depth = 9;
+        
 
         try (Handle handle = new Handle();
                 NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, neighborhoodSize, tolerance)) {
 
-            np.getPolarAngles(true).printToFile("images/output/test2/");
+            np.getAzimuthalAngles(true).printToFile("images/output/test2/");
 //                np.getImageOrientationXY(true).printToFiji(true);
 
         }
