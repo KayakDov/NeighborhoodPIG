@@ -1,10 +1,6 @@
-package fijiPluginD;
+package fijiPlugin;
 
-import JCudaWrapper.array.Double.DArray1d;
-import JCudaWrapper.array.Double.DArray2d;
-import JCudaWrapper.array.Double.DArray3d;
-import JCudaWrapper.array.Double.DStrideArray3d;
-import JCudaWrapper.array.Int.IArray1d;
+import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Int.IStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
@@ -18,37 +14,37 @@ import JCudaWrapper.resourceManagement.Handle;
 public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spelling to eigen
 
     private final Handle handle;
-    private final double tolerance;
+    private final float tolerance;
 
     /**
      * Each layer in this matrix is for a different pixel, in column major
      * order.
      */
-    public final DStrideArray3d[][] mat;
+    public final FStrideArray3d[][] mat;
 
     /**
      * These are organized in the same columns, layers, and grids as the initial
      * picture. The rows are changed so that each set of 3 eigenvectors are
      * consecutive in each column.
      */
-    public final DStrideArray3d values;
+    public final FStrideArray3d values;
 
     /**
      * The first eigevector of each structureTensor with mathcin columns and
      * layers as the original pixels, and rows * 3.
      */
-    public final DStrideArray3d vectors1;
+    public final FStrideArray3d vectors1;
 
-    public Eigan(Handle handle, Dimensions dim, double tolerance) {
+    public Eigan(Handle handle, Dimensions dim, float tolerance) {
         super(handle, dim);
         this.handle = handle;
         this.tolerance = tolerance;
-        mat = new DStrideArray3d[3][3];
+        mat = new FStrideArray3d[3][3];
         for (int i = 0; i < 3; i++)
             for (int j = i; j < 3; j++)
                 mat[j][i] = mat[i][j] = dim.empty();
 
-        values = new DStrideArray3d(dim.height * 3, dim.width, dim.depth, dim.batchSize);
+        values = new FStrideArray3d(dim.height * 3, dim.width, dim.depth, dim.batchSize);
         vectors1 = values.copyDim();
 
     }
@@ -60,7 +56,7 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
      * @param col The column of the desired vector.
      * @return All the values of all the structure tensors at the given indices.
      */
-    public DStrideArray3d at(int row, int col) {
+    public FStrideArray3d at(int row, int col) {
         return mat[row][col];
     }
 

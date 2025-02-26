@@ -1,6 +1,6 @@
-package fijiPluginD;
+package fijiPlugin;
 
-import JCudaWrapper.array.Double.DStrideArray3d;
+import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.IJ;
 import ij.ImagePlus;
@@ -38,7 +38,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * square.
      * @param tolerance How close must a number be to 0 to be considered 0.
      */
-    private NeighborhoodPIG(Handle handle, DStrideArray3d image, String[] sourceFileNames, NeighborhoodDim neighborhoodSize, double tolerance) {
+    private NeighborhoodPIG(Handle handle, FStrideArray3d image, String[] sourceFileNames, NeighborhoodDim neighborhoodSize, float tolerance) {
         super(handle, image);
         
         this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
@@ -129,12 +129,12 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @param tolerance Close enough to 0.
      * @return A neighborhoodPIG.
      */
-    public static NeighborhoodPIG get(Handle handle, ImagePlus imp, NeighborhoodDim nRad, double tolerance) {//TODO: get image names
+    public static NeighborhoodPIG get(Handle handle, ImagePlus imp, NeighborhoodDim nRad, float tolerance) {//TODO: get image names
 
 //        if (imp.hasImageStack() && imp.getNSlices() == 1 && imp.getNFrames() > 1)
 //            HyperStackConverter.toHyperStack(imp, 1, 1, imp.getNSlices());
 
-        try (DStrideArray3d gpuImmage = processImages(handle, imp)) {
+        try (FStrideArray3d gpuImmage = processImages(handle, imp)) {
 
             return new NeighborhoodPIG(
                     handle,
@@ -160,14 +160,14 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @param tolerance Close enough to 0.
      * @return A neighborhoodPIG.
      */
-    public static NeighborhoodPIG get(Handle handle, String folderPath, int depth, NeighborhoodDim nRad, double tolerance) {
+    public static NeighborhoodPIG get(Handle handle, String folderPath, int depth, NeighborhoodDim nRad, float tolerance) {
         try {
 
             File[] imageFiles = getImageFiles(folderPath);
 
             BufferedImage firstImage = ImageIO.read(imageFiles[0]);
 
-            try (DStrideArray3d gpuImage = processImages(handle, imageFiles, firstImage.getHeight(), firstImage.getWidth(), depth)) {
+            try (FStrideArray3d gpuImage = processImages(handle, imageFiles, firstImage.getHeight(), firstImage.getWidth(), depth)) {
 
                 return new NeighborhoodPIG(
                         handle,
@@ -196,10 +196,10 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @param tolerance Close enough to 0.
      * @return A neighborhoodPIG.
      */
-    public static NeighborhoodPIG getWithIJ(Handle handle, String folderPath, int depth, NeighborhoodDim nRad, double tolerance) {
+    public static NeighborhoodPIG getWithIJ(Handle handle, String folderPath, int depth, NeighborhoodDim nRad, float tolerance) {
 
         ImagePlus ip = imagePlus(folderPath, depth);
-        try (DStrideArray3d gpuImage = processImages(handle, ip)) {
+        try (FStrideArray3d gpuImage = processImages(handle, ip)) {
 
             return new NeighborhoodPIG(
                     handle,
@@ -213,15 +213,15 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
     }
 
     /**
-     * Processes a hyperstack and returns a DArray containing the processed
+     * Processes a hyperstack and returns a FArray containing the processed
      * image data.
      *
-     * @param handle The handle used for DArray operations.
+     * @param handle The handle used for FArray operations.
      * @param imp The ImagePlus object representing the hyperstack.
-     * @return A DArray containing the image data in column-major order for all
+     * @return A FArray containing the image data in column-major order for all
      * frames, slices, and channels.
      */
-    public final static DStrideArray3d processImages(Handle handle, ImagePlus imp) {
+    public final static FStrideArray3d processImages(Handle handle, ImagePlus imp) {
         // Convert the image to grayscale if necessary
         if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32) {
             System.out.println("fijiPlugin.NeighborhoodPIG.processImages(): Converting image to grayscale.");
@@ -235,9 +235,9 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
         int frames = imp.getNFrames();
         int imgSize = width * height;
 
-        DStrideArray3d processedImage = new DStrideArray3d(height, width, depth, frames);
+        FStrideArray3d processedImage = new FStrideArray3d(height, width, depth, frames);
 
-        double[] columnMajorSlice = new double[imgSize];
+        float[] columnMajorSlice = new float[imgSize];
 
         // Iterate over frames, slices, and channels
         for (int frame = 1; frame <= frames; frame++) {
@@ -265,7 +265,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @param raster The raster being written from.
      * @param writeTo The array being written to.
      */
-    private static void toColMjr(Raster raster, double[] writeTo) {
+    private static void toColMjr(Raster raster, float[] writeTo) {
         for (int col = 0; col < raster.getWidth(); col++)
             for (int row = 0; row < raster.getHeight(); row++)
                 writeTo[col * raster.getHeight() + row] = raster.getSample(col, row, 0);
@@ -287,12 +287,12 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @throws IllegalArgumentException If no valid images are found in the
      * folder.
      */
-    public final static DStrideArray3d processImages(Handle handle, File[] pics, int height, int width, int depth) {
+    public final static FStrideArray3d processImages(Handle handle, File[] pics, int height, int width, int depth) {
 
         
-        DStrideArray3d pixelsGPU = new DStrideArray3d(height, width, depth, pics.length/depth);
+        FStrideArray3d pixelsGPU = new FStrideArray3d(height, width, depth, pics.length/depth);
         int imgSize = width * height;
-        double[] imgPixelsColMaj = new double[imgSize];
+        float[] imgPixelsColMaj = new float[imgSize];
 
         for(int i = 0; i < pics.length; i++) {
             try {

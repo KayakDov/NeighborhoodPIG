@@ -1,4 +1,4 @@
-package fijiPluginD;
+package fijiPlugin;
 
 /**
  * The dimensions of a neighborhood for the purpose of computing the structure

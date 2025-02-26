@@ -1,12 +1,11 @@
-package fijiPluginD;
+package fijiPlugin;
 
-import JCudaWrapper.array.Double.DStrideArray3d;
+import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Int.IArray;
 import JCudaWrapper.array.Int.IStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
-import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.plugin.HyperStackConverter;
@@ -14,7 +13,6 @@ import ij.process.ColorProcessor;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
-import java.util.Arrays;
 import javax.imageio.ImageIO;
 
 /**
@@ -47,7 +45,7 @@ public class ImageCreator extends Dimensions {
      * coherence should not be used
      * @param stackName
      */
-    public ImageCreator(Handle handle, String[] sliceNames, DStrideArray3d orientation, DStrideArray3d coherence, String stackName) {
+    public ImageCreator(Handle handle, String[] sliceNames, FStrideArray3d orientation, FStrideArray3d coherence, String stackName) {
         super(handle, orientation);
         colDist = orientation.ld();
         this.sliceNames = sliceNames;
@@ -81,7 +79,7 @@ public class ImageCreator extends Dimensions {
             cpuColors = gpuColors.get(handle);
         }
 
-        orientation.setProduct(handle, 0.5, orientation); // Restore original scale.
+        orientation.setProduct(handle, 0.5f, orientation); // Restore original scale.
         this.stackName = stackName;
     }
 

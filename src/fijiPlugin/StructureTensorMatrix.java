@@ -1,11 +1,10 @@
-package fijiPluginD;
+package fijiPlugin;
 
-import JCudaWrapper.array.Double.DArray3d;
-import JCudaWrapper.array.Double.DStrideArray3d;
+import JCudaWrapper.array.Float.FArray3d;
+import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
-import java.util.Arrays;
 
 /**
  *
@@ -14,7 +13,7 @@ import java.util.Arrays;
 public class StructureTensorMatrix implements AutoCloseable {
 
     private final Eigan eigen;
-    private final DStrideArray3d azimuth, zenith, coherence;
+    private final FStrideArray3d azimuth, zenith, coherence;
     private final Handle handle;
 
     /**
@@ -28,7 +27,7 @@ public class StructureTensorMatrix implements AutoCloseable {
      * point on the edge.
      * @param tolerance How close a number be to 0 to be considered 0.
      */
-    public StructureTensorMatrix(Handle handle, Gradient grad, NeighborhoodDim nRad, double tolerance) {
+    public StructureTensorMatrix(Handle handle, Gradient grad, NeighborhoodDim nRad, float tolerance) {
 
         this.handle = handle;
 
@@ -57,7 +56,7 @@ public class StructureTensorMatrix implements AutoCloseable {
      * Changes the eigenvectos to unit vectors.  This helps with converting them to spherical coordinates.
      */
     private void unitizeVecs(){
-        DStrideArray3d vecs = eigen.vectors1;
+        FStrideArray3d vecs = eigen.vectors1;
         Kernel.run("toUnitVec", handle, coherence.size(), 
                 vecs, P.to(vecs.entriesPerLine()), P.to(vecs.ld()),
                 P.to(vecs), P.to(vecs.entriesPerLine()), P.to(vecs.ld())
@@ -69,8 +68,8 @@ public class StructureTensorMatrix implements AutoCloseable {
      *
      * @return The eigenvectors.
      */
-    public final DArray3d setVecs0ToPi() {
-        DArray3d eVecs = eigen.vectors1;
+    public final FArray3d setVecs0ToPi() {
+        FArray3d eVecs = eigen.vectors1;
         Kernel.run("vecToNematic", handle,
                 coherence.size(),
                 eVecs,
@@ -88,7 +87,7 @@ public class StructureTensorMatrix implements AutoCloseable {
      *
      * @param tolerance What is considered 0.
      */
-    public final void setOrientations(double tolerance) {
+    public final void setOrientations(float tolerance) {
 
         Kernel.run("toSpherical",  handle, azimuth.size(),
                 
@@ -115,7 +114,7 @@ public class StructureTensorMatrix implements AutoCloseable {
      * @param tolerance Numbers closer to 0 than may be considered 0.
      * @return The coherence matrix.
      */
-    public final DStrideArray3d setCoherence(double tolerance) {
+    public final FStrideArray3d setCoherence(float tolerance) {
         Kernel.run("coherence", handle,
                 coherence.size(),
                 eigen.values,
@@ -135,7 +134,7 @@ public class StructureTensorMatrix implements AutoCloseable {
      *
      * @return The coherence matrix.
      */
-    public DStrideArray3d getCoherence() {
+    public FStrideArray3d getCoherence() {
         return coherence;
     }
 
@@ -144,7 +143,7 @@ public class StructureTensorMatrix implements AutoCloseable {
      *
      * @return Thew matrix of orientations.
      */
-    public DStrideArray3d azimuthAngle() {
+    public FStrideArray3d azimuthAngle() {
         return azimuth;
     }
 
@@ -153,7 +152,7 @@ public class StructureTensorMatrix implements AutoCloseable {
      *
      * @return Thew matrix of orientations.
      */
-    public DStrideArray3d zenithAngle() {
+    public FStrideArray3d zenithAngle() {
         return zenith;
     }
 

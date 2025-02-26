@@ -1,6 +1,7 @@
-package fijiPluginD;
+package fijiPlugin;
 
 import JCudaWrapper.array.Double.DStrideArray3d;
+import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.resourceManagement.Handle;
 
 /**
@@ -92,7 +93,7 @@ public abstract class Dimensions implements AutoCloseable{
      * @param handle The context.
      * @param copyFrom The item being copied.
      */
-    public Dimensions(Handle handle, DStrideArray3d copyFrom) {
+    public Dimensions(Handle handle, FStrideArray3d copyFrom) {
         this(handle, copyFrom.entriesPerLine(), copyFrom.linesPerLayer(), copyFrom.layersPerGrid(), copyFrom.batchSize);
     }
         
@@ -152,8 +153,8 @@ public abstract class Dimensions implements AutoCloseable{
      * An empty array with these dimensions.
      * @return An empty array with these dimensions.
      */
-    public DStrideArray3d empty(){
-        return new DStrideArray3d(height, width, depth, batchSize);
+    public FStrideArray3d empty(){
+        return new FStrideArray3d(height, width, depth, batchSize);
     }
 
 }

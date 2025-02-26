@@ -1,8 +1,7 @@
-package fijiPluginD;
+package fijiPlugin;
 
-import JCudaWrapper.array.Double.DArray;
-import JCudaWrapper.array.Double.DArray1d;
-import JCudaWrapper.array.Double.DStrideArray3d;
+import JCudaWrapper.array.Float.FArray;
+import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
@@ -21,7 +20,7 @@ import JCudaWrapper.resourceManagement.Handle;
 public class NeighborhoodProductSums extends Dimensions implements AutoCloseable {
 
 //    private final Vector halfNOnes;
-    private final DStrideArray3d workSpace1, workSpace2;
+    private final FStrideArray3d workSpace1, workSpace2;
     private final Kernel nSum;
     private final Mapper X, Y, Z;
 
@@ -35,18 +34,18 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
      * @param dim Dimensions from this will be copied.
      *
      */
-    public NeighborhoodProductSums(Handle handle, NeighborhoodDim nRad, DStrideArray3d dim) {
+    public NeighborhoodProductSums(Handle handle, NeighborhoodDim nRad, FStrideArray3d dim) {
         super(handle, dim);
 
         Z = new Mapper(height * width * batchSize, depth, 2, nRad.z) {
 
             @Override
-            protected int srcStride(DStrideArray3d src) {
+            protected int srcStride(FStrideArray3d src) {
                 return matZStride(src);
             }
 
             @Override
-            protected int dstStride(DStrideArray3d src, DArray dst) {
+            protected int dstStride(FStrideArray3d src, FArray dst) {
                 return dst.is1D()
                         ? src.entriesPerLine() * src.linesPerLayer() * dst.ld()
                         : matZStride(src);
@@ -55,25 +54,25 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
 
         Y = new Mapper(depth * width * batchSize, height, 1, nRad.xy) {
             @Override
-            protected int srcStride(DStrideArray3d src) {
+            protected int srcStride(FStrideArray3d src) {
                 return 1;
 
             }
 
             @Override
-            protected int dstStride(DStrideArray3d src, DArray dst) {
+            protected int dstStride(FStrideArray3d src, FArray dst) {
                 return dst.is1D() ? dst.ld() : 1;
             }
         };
 
         X = new Mapper(depth * height * batchSize, width, 0, nRad.xy) {
             @Override
-            protected int srcStride(DStrideArray3d src) {
+            protected int srcStride(FStrideArray3d src) {
                 return src.ld();
             }
 
             @Override
-            protected int dstStride(DStrideArray3d src, DArray dst) {
+            protected int dstStride(FStrideArray3d src, FArray dst) {
                 return (dst.is1D() ? src.entriesPerLine() : 1) * dst.ld();
             }
         };
@@ -87,7 +86,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
     /**
      * The Z stride size in a matrix.
      */
-    private static int matZStride(DArray mat) {
+    private static int matZStride(FArray mat) {
         return mat.ld() * mat.linesPerLayer();
     }    
 
@@ -121,7 +120,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
          * @param src The data being strode through.
          * @return The stride size.
          */
-        protected abstract int srcStride(DStrideArray3d src);
+        protected abstract int srcStride(FStrideArray3d src);
 
         /**
          * The stride size for the source.
@@ -130,7 +129,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
          *
          * @return The stride size.
          */
-        protected abstract int dstStride(DStrideArray3d src, DArray dst);
+        protected abstract int dstStride(FStrideArray3d src, FArray dst);
 
         /**
          * Maps the neighborhood sums in the given dimension.
@@ -141,7 +140,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
          * @param dir The dimension, 0 for X, 1 for Y, and 2 for Z.
          * @param ldTo The increment of the the destination matrices.
          */
-        public void neighborhoodSum(DStrideArray3d src, DArray dst) {
+        public void neighborhoodSum(FStrideArray3d src, FArray dst) {
 
             nSum.run(handle, //TODO: make sure nSum takes in ld.
                     numThreads,
@@ -174,7 +173,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
      * @param dst Store the result here in column major order. Note that the
      * increment of this vector is probably not one.
      */
-    public void set(DStrideArray3d a, DStrideArray3d b, DArray dst) {
+    public void set(FStrideArray3d a, FStrideArray3d b, FArray dst) {
         //TODO: fix workspace 1 height and ld
         Kernel.run("addEBEProduct", handle, 
                 a.size(), 

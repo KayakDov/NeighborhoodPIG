@@ -1,11 +1,9 @@
-package fijiPluginD;
+package fijiPlugin;
 
-import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.Int.IArray;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
-import JCudaWrapper.array.Double.DStrideArray3d;
+import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Int.IArray1d;
 import java.util.Arrays;
 
@@ -19,7 +17,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
     /**
      * 0 is the x dimension, 1 is the y dimension, and 2 is the z dimension.
      */
-    public final DStrideArray3d[] x;
+    public final FStrideArray3d[] x;
 
     /**
      * Compute gradients of an image in both the x and y directions. Gradients
@@ -31,9 +29,9 @@ public class Gradient extends Dimensions implements AutoCloseable {
      *
      *
      */
-    public Gradient(Handle handle, DStrideArray3d pic) {
+    public Gradient(Handle handle, FStrideArray3d pic) {
         super(handle, pic);
-        x = new DStrideArray3d[3];
+        x = new FStrideArray3d[3];
         Arrays.setAll(x, i -> pic.copyDim());
 
         //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
@@ -66,7 +64,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
      */
     @Override
     public void close() {
-        for (DStrideArray3d grad : x) grad.close();
+        for (FStrideArray3d grad : x) grad.close();
     }
 
     /**
@@ -81,7 +79,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
      * An empty array with the same dimensions as one of the gradients.
      * @return An empty array with the same dimensions as one of the gradients.
      */
-    public DStrideArray3d copyDim() {
+    public FStrideArray3d copyDim() {
         return x[0].copyDim();
     }
 

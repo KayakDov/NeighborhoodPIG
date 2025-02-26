@@ -1,4 +1,4 @@
-package fijiPluginD;
+package fijiPlugin;
 
 import JCudaWrapper.array.Array;
 import JCudaWrapper.resourceManagement.Handle;
@@ -65,7 +65,7 @@ public class FijiPlugin implements PlugIn {
 
         int defaultNeighborhoodXYRadius = 3;
         int defaultNeighborhoodZRadius = 1;
-        double defaultTolerance = 1;
+        float defaultTolerance = 1;
 
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
         gd.addNumericField("Neighborhood xy radius:", defaultNeighborhoodXYRadius);
@@ -103,7 +103,7 @@ public class FijiPlugin implements PlugIn {
 
 
         
-        double tolerance = 1; // Default tolerance
+        float tolerance = 1; // Default tolerance
         
 
         try (Handle handle = new Handle();
