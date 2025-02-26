@@ -1,6 +1,6 @@
 package MathSupport;
 
-import JCudaWrapper.array.DArray2d;
+import JCudaWrapper.array.Double.DArray2d;
 import static java.lang.Math.PI;
 import static java.lang.Math.cos;
 import static java.lang.Math.sin;

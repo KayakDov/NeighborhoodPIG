@@ -1,0 +1,143 @@
+package fijiPluginD;
+
+import JCudaWrapper.array.Double.DArray1d;
+import JCudaWrapper.array.Double.DArray2d;
+import JCudaWrapper.array.Double.DArray3d;
+import JCudaWrapper.array.Double.DStrideArray3d;
+import JCudaWrapper.array.Int.IArray1d;
+import JCudaWrapper.array.Int.IStrideArray3d;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
+import JCudaWrapper.resourceManagement.Handle;
+
+/**
+ * A set of 3x3 matrices, their eigenvectors and values.
+ *
+ * @author E. Dov Neimand
+ */
+public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spelling to eigen
+
+    private final Handle handle;
+    private final double tolerance;
+
+    /**
+     * Each layer in this matrix is for a different pixel, in column major
+     * order.
+     */
+    public final DStrideArray3d[][] mat;
+
+    /**
+     * These are organized in the same columns, layers, and grids as the initial
+     * picture. The rows are changed so that each set of 3 eigenvectors are
+     * consecutive in each column.
+     */
+    public final DStrideArray3d values;
+
+    /**
+     * The first eigevector of each structureTensor with mathcin columns and
+     * layers as the original pixels, and rows * 3.
+     */
+    public final DStrideArray3d vectors1;
+
+    public Eigan(Handle handle, Dimensions dim, double tolerance) {
+        super(handle, dim);
+        this.handle = handle;
+        this.tolerance = tolerance;
+        mat = new DStrideArray3d[3][3];
+        for (int i = 0; i < 3; i++)
+            for (int j = i; j < 3; j++)
+                mat[j][i] = mat[i][j] = dim.empty();
+
+        values = new DStrideArray3d(dim.height * 3, dim.width, dim.depth, dim.batchSize);
+        vectors1 = values.copyDim();
+
+    }
+
+    /**
+     * All the values of all the structure tensors at the given indices.
+     *
+     * @param row The row of the desired vector.
+     * @param col The column of the desired vector.
+     * @return All the values of all the structure tensors at the given indices.
+     */
+    public DStrideArray3d at(int row, int col) {
+        return mat[row][col];
+    }
+
+    /**
+     * Sets the eiganvalues.
+     *
+     *
+     * @return this
+     */
+    public final Eigan setEigenVals() {
+         
+        Kernel.run("eigenValsBatch", handle,
+                size(),
+                mat[0][0], P.to(mat[0][0].ld()),
+                P.to(mat[0][1]), P.to(mat[0][1].ld()),
+                P.to(mat[0][2]), P.to(mat[0][2].ld()),
+                P.to(mat[1][1]), P.to(mat[1][1].ld()),
+                P.to(mat[1][2]), P.to(mat[1][2].ld()),
+                P.to(mat[2][2]), P.to(mat[2][2].ld()),
+                P.to(mat[0][0].entriesPerLine()),
+                P.to(values),
+                P.to(values.ld()),
+                P.to(values.entriesPerLine()),
+                P.to(tolerance)
+        );
+        
+        
+        return this;
+    }
+
+    /**
+     * Sets the eiganvectors.
+     *
+     * @return this
+     */
+    public final Eigan setEiganVectors() {
+
+        try (IStrideArray3d pivotFlags = new IStrideArray3d(height * 3, width, depth, batchSize)) {
+
+            Kernel.run("eigenVecBatch3x3", handle,
+                    size(),
+                    mat[0][0], P.to(mat[0][0].ld()),
+                    P.to(mat[0][1]), P.to(mat[0][1].ld()),
+                    P.to(mat[0][2]), P.to(mat[0][2].ld()),
+                    P.to(mat[1][1]), P.to(mat[1][1].ld()),
+                    P.to(mat[1][2]), P.to(mat[1][2].ld()),
+                    P.to(mat[2][2]), P.to(mat[2][2].ld()),
+                    P.to(height),
+                    
+                    P.to(vectors1),
+                    P.to(vectors1.ld()),
+                    P.to(vectors1.entriesPerLine()),
+                    
+                    P.to(values),
+                    P.to(values.ld()),
+                    P.to(values.entriesPerLine()),
+                    
+                    P.to(pivotFlags),
+                    P.to(pivotFlags.ld()),
+                    P.to(pivotFlags.entriesPerLine()),
+                    
+                    P.to(tolerance)
+            );
+        }
+        return this;
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public void close() {
+        for(int i = 0; i < mat.length; i++)
+            for(int j = i; j < mat[0].length; j++)
+                mat[i][j].close();
+        
+        values.close();
+        vectors1.close();
+    }
+}

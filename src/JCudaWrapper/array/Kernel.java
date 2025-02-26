@@ -54,13 +54,14 @@ public class Kernel implements AutoCloseable {
      * @param name The name of the file without the .cu or .ptx at the end of
      * it. This should also be the name of the main function in the kernel with
      * the work "Kernel" appended.
+     * @param isDouble True if double values are to be used, false otherwise.
      */
-    public Kernel(String name) {
+    public Kernel(String name, boolean isDouble) {
         String fileName = name + ".ptx", functionName = name + "Kernel";
         this.module = new CUmodule();
 
         try (InputStream resourceStream = getClass().getClassLoader()
-                .getResourceAsStream("JCudaWrapper/kernels/ptx/" + fileName)) {
+                .getResourceAsStream("JCudaWrapper/kernels/ptx/" + (isDouble?"double/":"float/") + fileName)) {
 
             if (resourceStream == null)
                 throw new RuntimeException("Kernel file not found in JAR: " + fileName);
@@ -98,7 +99,7 @@ public class Kernel implements AutoCloseable {
      */
     public static void run(String name, Handle handle, int numThreads, Array source, Pointer... additionalArguments) {//TODO: organize this so vectors are always followed by their ld and height.
 
-        try (Kernel km = new Kernel(name)) {
+        try (Kernel km = new Kernel(name, false)) {
             km.run(handle, numThreads, source, additionalArguments);
         }
     }

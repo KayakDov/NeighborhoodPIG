@@ -1,6 +1,6 @@
 package main;
 
-import JCudaWrapper.array.DStrideArray3d;
+import JCudaWrapper.array.Double.DStrideArray3d;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;
 
