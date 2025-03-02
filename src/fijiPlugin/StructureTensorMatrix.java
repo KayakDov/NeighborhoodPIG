@@ -103,7 +103,7 @@ public class StructureTensorMatrix implements AutoCloseable {
                 P.to(zenith.entriesPerLine()),
                 P.to(zenith.ld()),
                 
-                P.to(.01)
+                P.to(.01f)
         );
 
     }
