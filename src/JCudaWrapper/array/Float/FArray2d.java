@@ -38,7 +38,7 @@ public class FArray2d extends Array2d implements FLineArray {
      * @param entriesPerLine The number of entries on each line of the array.
      */
     public FArray2d(int entriesPerLine, int numLines) {
-        super(entriesPerLine, numLines, Sizeof.DOUBLE);
+        super(entriesPerLine, numLines, Sizeof.FLOAT);
     }
 
     /**

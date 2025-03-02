@@ -34,6 +34,16 @@ public class P {
      * @param d A double that needs a pointer.
      * @return A pointer to a singleton array containing d.
      */
+    public static Pointer to(float d) {
+        return Pointer.to(new float[]{d});
+    }
+    
+    /**
+     * A pointer to a singleton array containing d.
+     *
+     * @param d A double that needs a pointer.
+     * @return A pointer to a singleton array containing d.
+     */
     public static Pointer to(boolean d) {
         return Pointer.to(new int[]{d?1:0});
     }

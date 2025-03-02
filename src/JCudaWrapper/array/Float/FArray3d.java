@@ -34,7 +34,7 @@ public class FArray3d extends Array3d implements FLineArray {
      * @param depth The number of layers.
      */
     public FArray3d(int entriesPerLine, int linesPerLayer, int depth) {
-        super(entriesPerLine, linesPerLayer, depth, Sizeof.DOUBLE);
+        super(entriesPerLine, linesPerLayer, depth, Sizeof.FLOAT);
     }
 
     /**

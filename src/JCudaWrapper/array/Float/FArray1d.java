@@ -29,7 +29,7 @@ public class FArray1d extends Array1d implements FArray {
      * @param size The number of integers that can be placed in the array.
      */
     public FArray1d(int size) {
-        super(size, Sizeof.DOUBLE);
+        super(size, Sizeof.FLOAT);
     }
 
     /**
@@ -131,7 +131,7 @@ public class FArray1d extends Array1d implements FArray {
      * @param resultInd The index of the array the answer should be put in.
      */
     public void dot(Handle handle, FArray1d x, float[] result, int resultInd) {
-        opCheck(JCublas2.cublasSdot(handle.get(), size(), x.pointer(), x.ld(), pointer(), ld(), Pointer.to(result).withByteOffset(resultInd * Sizeof.DOUBLE)));
+        opCheck(JCublas2.cublasSdot(handle.get(), size(), x.pointer(), x.ld(), pointer(), ld(), Pointer.to(result).withByteOffset(resultInd * Sizeof.FLOAT)));
 
     }
 
@@ -343,7 +343,7 @@ public class FArray1d extends Array1d implements FArray {
      */
     public void sumAbs(Handle handle, int length, int inc, float[] result, int toIndex) {
 
-        opCheck(JCublas2.cublasSasum(handle.get(), length, pointer(), inc, Pointer.to(result).withByteOffset(toIndex * Sizeof.DOUBLE)));
+        opCheck(JCublas2.cublasSasum(handle.get(), length, pointer(), inc, Pointer.to(result).withByteOffset(toIndex * Sizeof.FLOAT)));
     }
 
     /**

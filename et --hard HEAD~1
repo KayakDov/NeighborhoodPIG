@@ -1,0 +1,96 @@
+*   [33mf885470[m[33m ([m[1;35mrefs/stash[m[33m)[m WIP on main: 7b282f1 floats now work.  24 files at 4.2 MB
+[31m|[m[32m\[m  
+[31m|[m * [33mebd1e6d[m index on main: 7b282f1 floats now work.  24 files at 4.2 MB
+[31m|[m[31m/[m  
+* [33m7b282f1[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m floats now work.  24 files at 4.2 MB
+* [33m74a1caa[m[33m ([m[1;31morigin/main[m[33m)[m using floats
+* [33m379ebcf[m changed to floats
+* [33m5396e92[m Ignore everything in the images directory
+* [33m388bb10[m transitioning to float, buggy.
+* [33m30131bc[m transitioning from double to float.
+* [33m06836c3[m transitioning from double to float.
+* [33me28ab63[m maybe it works now in fiji for small data sets.
+* [33m4184583[m maybe it works for a few pictures.
+* [33m5eada5b[m passes debug tests for up to 32 sample test pictures and simple debug pictures.  Next step is to test on real data.
+* [33m55f292c[m seems to work on 30+ pictures.  Depth might not be working.
+* [33m1438133[m might be working for medium size tests.
+* [33m2d09d13[m works for very small arrays.
+* [33m064008f[m Added .log files to .gitignore
+* [33mbbeef2b[m Removed all .log files from repository
+* [33m88633a0[m eiganvec problem probably fixed.
+* [33m5e287a5[m code now runs to end, but doesn't seem to work.
+* [33m92f2adc[m ld squeared in sub array creation bug fixed.
+* [33mdf0a9a7[m gradient kernel fixed.
+* [33m1b1c2ee[m 3d stride sizer and toString bugs fixed.
+* [33m2928087[m bugs fixed for get, set, and creation of sub arrays in all 3 dimesnions.
+* [33m472b907[m process image set array index bug fixed.
+* [33mbc38932[m kernel compilation fixed..
+* [33mcfea8eb[m kernel compilation fixed..
+* [33ma908e5e[m compiles, not tested yet.
+* [33m80b3342[m major rewrite toward 2d and 3d arrays.  Working around matrix and other wrapper wrapper classes.
+* [33ma6742ed[m rewrting array for 3d arrays.  In the middle.  Big mess.
+* [33m03149d2[m array empty method removed and replaced with constructor.
+* [33m5145539[m everything seems to work except for large files.  Not tested on depth.
+* [33m11516ad[m ebe kernel written instead of diagonal matrix multiply.  Significant speed improvement.
+* [33mc530192[m coherence optional feature added.
+* [33ma8f413c[m seems to work in fiji now for one picture.
+* [33m05c0fa8[m Works for sequences of files.  Needs to be tested in fiji.  Needs to be tested for depth.  Does not work for large sequences.
+* [33m9078379[m file output names are now taken from input names.
+* [33m6a6f7b2[m coherence parenthasis bug fixed.
+* [33m6cffe45[m neighborhood sum wrong workspace bug fixed.
+* [33m7a99890[m fixed division by 0 error in eigen vals.
+* [33ma25001b[m image close bug fixed, though I'm not sure how.
+* [33m1d1798f[m depths hopefully repaired.
+* [33mbfecdad[m plugin and NieghborhoodPIG classes reorganized.
+* [33mbf9e6dc[m eigen val numerical bugs and math ceil bug fixed
+* [33ma866e7b[m maybe it works on fiji.  Needs to be tested on larger stack.  Image is glitchy.
+* [33mf296460[m eigen vec batch data allocation bug corected.
+* [33m9f00ad4[m eigen vec batch seems to be working.
+* [33ma8dbf3c[m making progress on generic eigenvector solver.
+* [33mfed4751[m runs and creates a bad image.
+* [33md68086c[m 3d eigen val workspace size bug fixed.
+* [33m240038d[m sum3d out of bounds bug fixed.
+* [33m251f84f[m code written for gpu 4d and needs debugging.
+* [33m91d5f51[m fijiDisplayOrientationHeatmap written and gradient probably works.
+* [33m9bfcbfe[m plugin fundementals seem to be working.  batch gradient written but not yet tested.
+* [33m773fe1b[m fiji interface seems to be working.
+* [33mf4ce12e[m neighborhood sum moved to kernel
+* [33mdc20772[m too many new arrays in picture generation bug fixed
+* [33m302371b[m pivot bug maybe fixed
+* [33mada44a0[m coherence integrated into rgb image.
+* [33mb9b9cde[m more dealocation on close bugs fixed, but some still remain.
+* [33m5527289[m dealocate on close for sub arrays bug resolved.
+* [33mf13c043[m progress isolating large Matrix toString crash bug.
+* [33m3016fe5[m seems to be working on center of bullseye.  Does not work on bigger pictures.
+* [33mb36f51a[m color bug fixed
+* [33m68d1374[m eigen vector kernel written and seems to be working.
+* [33mb595fed[m eigen vector finder now goes to row echelon form.  Still need to use the ref to find the null space.
+* [33m2489cbc[m eigen vec written to kernel.
+* [33m91597d2[m fixed cublasDgemv traqnpose parameter bug.
+* [33m43a3ba4[m error checking added to DAarray.  Other classes still need.
+* [33m6d55913[m gradient methods switched to addAndSet from add so as to clean empty vectors before writing in them.
+* [33m03e566f[m DArray.add is fixed with length/inc problem, but more DArray methods likely have the same bug.
+* [33m140f619[m matrix stride copyTo bug fixed.
+* [33m10a29af[m orientation collored row col -> col row bug fixed.
+* [33mba0d9dd[m fixed sub batch bug and arctan2 bug.  Still lots more bugs.
+* [33mc911ff8[m unpivot is disabled and everything seems to work for 2x2 and 3x3 eigen vectors.
+* [33mada50f8[m error in eigen vec algebra logic fixed, unpivot maybe fixed.
+* [33m19b1bf0[m unpivot hoepfully working. It survived a one matrix test.
+* [33m1ddf2c7[m fix vectorStride column bug.
+* [33mf71cfd0[m pivot bug fixed. STM handle bug fixed. getRows bug fixed.
+* [33m66d7935[m matrix batch mulitplication bugs fixed.
+* [33md3332b6[m map ebe divide bug fixed.
+* [33m92518e7[m vector.subvector bug fixed.
+* [33mb2c2040[m strides cleaned up.  Vec stride now extends matrix stride.  Extendion of apache commons matrix removed.
+* [33me04ee77[m strides cleaned up.  Vec stride now extends matrix stride.  Extendion of apache commons matrix removed.
+* [33m409caa8[m stride vec get vec bug fixed.
+* [33m7c945de[m batch mat vec bug fixed.
+* [33m9be6fc1[m sample added and matrices stride seperated from underlying matrix structure for greater abstraction.
+* [33m4c7ce96[m matrices Stride cleaned up, wrapper classes added here for convienience.
+* [33m5a26435[m nps cleaned.  Extra vectir wrapper class removed.
+* [33m8d95c66[m dX bug fixed
+* [33m3802666[m changes from wrapper incorporated.  Need to begin debugging.
+* [33mc70e2ef[m saving before resetting computer.
+* [33m933277a[m mulMatMatBatched failing tests.
+* [33m1f1f10c[m nearly ready for 2nd round of testing. Still needs: intigration with imageJ, including time and depth dimension to be developed.  Needs to work on computers without gpu as well.
+* [33mfe9aa59[m first commit

@@ -86,9 +86,7 @@ public class FijiPlugin implements PlugIn {
             
             np.getAzimuthalAngles(useCoherence).printToFiji();
             
-            if(imp.getNSlices() > 1) np.getZentihAngle(useCoherence).printToFiji();
-            
-            System.out.println("fijiPlugin.FijiPlugin.run() depth = " + imp.getNSlices());
+            if(imp.getNSlices() > 1) np.getZentihAngle(useCoherence).printToFiji();            
 
             ij.IJ.showMessage("NeighborhoodPIG processing complete.");
         }
@@ -100,7 +98,8 @@ public class FijiPlugin implements PlugIn {
 //        String imagePath = "images/input/5debugs/"; int depth = 9; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 //        String imagePath = "images/input/debug/";int depth = 9;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 //            String imagePath = "images/input/3dVictorData/part_2";int depth = 10; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
-
+//        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
+        
 
         
         float tolerance = 1; // Default tolerance

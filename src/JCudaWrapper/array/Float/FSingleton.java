@@ -26,7 +26,7 @@ public class FSingleton extends Singleton implements FArray{
      * Creates an empty singleton. 
      */
     public FSingleton() {
-        super(Sizeof.DOUBLE);
+        super(Sizeof.FLOAT);
     }
     
     
