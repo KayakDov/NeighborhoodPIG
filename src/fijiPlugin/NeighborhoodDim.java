@@ -9,16 +9,19 @@ package fijiPlugin;
  */
 public class NeighborhoodDim {
 
-    public final int xy, z;
+    public final int xyR, zR;
+    public final double layerRes;
 
     /**
      * @param xy The distance to the nearest side of the xy plane neighborhood
      * square.
      * @param z The distance to the nearest xy parallel cube surface.
+     * @param distBetweenAdjLayer The distance between adjacent layers as a multiple of the distance between xy pixels.
      */
-    public NeighborhoodDim(int xy, int z) {
-        this.xy = xy;
-        this.z = z;
+    public NeighborhoodDim(int xy, int z, double distBetweenAdjLayer) {
+        this.xyR = xy;
+        this.zR = z;
+        this.layerRes = distBetweenAdjLayer;
     }
 
 }

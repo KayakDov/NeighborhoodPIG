@@ -3,11 +3,7 @@
  */
 class Indices {
 public:
-    const int* dim;       ///< Reference to tensor dimensions.
-    const int gradient;   ///< Gradient index (0 = X, 1 = Y, 2 = Z).
-    const int srcFlatIndex;  ///< Flat memory index.
     const float* data;   ///< Pointer to tensor data.
-    const int idx;
 
     /**
      * Constructs Indices from a flat index.
@@ -16,49 +12,25 @@ public:
      * @param data Pointer to tensor data.
      */
     __device__ Indices(int idx, const int* dim, const float* data)
-        : dim(dim),
-          gradient(idx / dim[6]),
-          srcFlatIndex(((idx % dim[6]) / dim[0]) * dim[7] + idx % dim[0]),
-          data(data),
-          idx(idx) {}
-
-    /**
-     * Computes a shifted index value in the gradient's direction.
-     * @param offset Shift value.
-     * @return Flat index of the shifted position.
-     */
-    __device__ float shift(int offset) const {
-        int offsetIndex;
-        switch (gradient) {
-            case 0: offsetIndex = srcFlatIndex + dim[7] * offset; break;
-            case 1: offsetIndex = srcFlatIndex + offset; break;
-            case 2: offsetIndex = srcFlatIndex + dim[1] * dim[7] * offset; break;
-        }
-        return data[offsetIndex];
-    }
+        : data(data + ((idx % dim[6]) / dim[0]) * dim[7] + idx % dim[0]) {}
 
     /**
      * Computes the gradient using a stencil method.
+     * @param layerScale How many times greater is the physical distance between z layers than the real world distance between pixels in the xy plane.
+     * @param pixInc The increment between adjacent pixels in the current dimension.
      * @return Computed gradient value.
      */
-    __device__ float grad() const {
-        int loc, end;
-        switch (gradient) {
-            case 0: loc = (idx % dim[4]) / dim[0]; end = dim[1]; break;
-            case 1: loc = idx % dim[0];            end = dim[0]; break;
-            case 2: loc = (idx % dim[5]) / dim[4]; end = dim[2]; break;
-        }
+    __device__ float grad(int loc, int end, float layerScale, int pixInc) const {
 
+		float val;
 
-//		if(idx == 161) printf("id = %d with gradient id %d, has layer %d \n", idx, gradient, (idx % dim[5]) / dim[4]);
-//		if(idx >= 162) printf("id = %d with gradient id %d, has layer %d, note: tensor size = %d  and layer size = %d\n", idx, gradient, loc, dim[5], dim[4]);
-	//	if(idx == 171) printf("id = %d with gradient id %d, has layer %d \n", idx, gradient, loc);
-
-        if (end == 1) return 0.0; // Single element case.
-        if (loc == 0) return shift(1) - data[srcFlatIndex]; // Forward difference at start.
-        if (loc == end - 1) return data[srcFlatIndex] - shift(-1); // Backward difference at end.
-        if (loc == 1 || loc == end - 2) return (shift(1) - shift(-1)) / 2.0; // Central difference.
-        return (shift(-2) - 8.0*shift(-1) + 8.0*shift(1) - shift(2))/12.0; // Higher-order stencil.
+        if (end == 1) val = 0.0; // Single element case.
+        else if (loc == 0) val = data[pixInc] - data[0]; // Forward difference at start.
+        else if (loc == end - 1) val = data[0] - data[-pixInc]; // Backward difference at end.
+        else if (loc == 1 || loc == end - 2) val = (data[pixInc] - data[-pixInc]) / 2.0; // Central difference.
+        else val = (data[-2*pixInc] - 8.0*data[-pixInc] + 8.0*data[pixInc] - data[2*pixInc])/12.0; // Higher-order stencil.
+        
+        return layerScale == 1? val : val/layerScale;
     }
 
 };
@@ -100,7 +72,8 @@ extern "C" __global__ void batchGradientsKernel(
     const int n, 
     const float* mat, 
     const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6, ld = 7
-    float* dX, const int ldx, float* dY, const int ldy, float* dZ, const int ldz
+    float* dX, const int ldx, float* dY, const int ldy, float* dZ, const int ldz,
+    const float zLayerMult
 ) {    
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
         
@@ -109,9 +82,10 @@ extern "C" __global__ void batchGradientsKernel(
     const Indices indices(idx, dim, mat);
 
     const DstIndices to(dim[0], dim[6], idx);
-     
-    if(idx < dim[6])        dX[to.index(ldx)] = indices.grad();
-    else if(idx < 2*dim[6]) dY[to.index(ldy)] = indices.grad();
-    else                    dZ[to.index(ldz)] = indices.grad();
+    switch(idx / dim[6]){ 
+    	case 0: dX[to.index(ldx)] = indices.grad((idx % dim[4]) / dim[0], dim[1], 1, dim[7]); break;
+		case 1: dY[to.index(ldy)] = indices.grad(idx % dim[0],  dim[0], 1, 1); break;
+		case 2: dZ[to.index(ldz)] = indices.grad((idx % dim[5]) / dim[4], dim[2], zLayerMult, dim[1] * dim[7]);
+    }
 }
 

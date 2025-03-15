@@ -63,26 +63,25 @@ public class FijiPlugin implements PlugIn {
         
         if (!validImage(imp)) return;
 
-        int defaultNeighborhoodXYRadius = 3;
-        int defaultNeighborhoodZRadius = 1;
-        float defaultTolerance = 1;
-
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
-        gd.addNumericField("Neighborhood xy radius:", defaultNeighborhoodXYRadius);
-        if(imp.getNSlices() > 1) gd.addNumericField("Neighborhood z radius:", defaultNeighborhoodZRadius);
+        gd.addNumericField("Distance between layers as a multiple of the distance between pixels:", 1, 2);
+        gd.addNumericField("Neighborhood xy radius:", 30, 2);
+        if(imp.getNSlices() > 1) gd.addNumericField("Neighborhood z radius:", 1, 2);
         gd.addCheckbox("use coherence", false);
         gd.showDialog();
 
         if (gd.wasCanceled()) return;
+        
+        double layerDist = gd.getNextNumber();
 
-        NeighborhoodDim neighborhoodSize = new NeighborhoodDim((int) gd.getNextNumber(), imp.getNSlices() > 1? (int) gd.getNextNumber(): 0);
+        NeighborhoodDim neighborhoodSize = new NeighborhoodDim((int) gd.getNextNumber(), imp.getNSlices() > 1? (int) gd.getNextNumber(): 0, layerDist);
         boolean useCoherence = (boolean) gd.getNextBoolean();
 
-        if (!validParamaters(neighborhoodSize.xy) || !validParamaters(neighborhoodSize.z)) return;
-
+        if (!validParamaters(neighborhoodSize.xyR) || !validParamaters(neighborhoodSize.zR)) return;
+        
         try (
                 Handle handle = new Handle();
-                NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, neighborhoodSize, defaultTolerance)) {
+                NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, neighborhoodSize, 1)) {
             
             np.getAzimuthalAngles(useCoherence).printToFiji();
             
@@ -94,7 +93,7 @@ public class FijiPlugin implements PlugIn {
 
     public static void main(String[] args) {
 
-            String imagePath = "images/input/5Tests/";int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1);
+            String imagePath = "images/input/5Tests/";int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
 //        String imagePath = "images/input/5debugs/"; int depth = 9; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 //        String imagePath = "images/input/debug/";int depth = 9;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 //            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);

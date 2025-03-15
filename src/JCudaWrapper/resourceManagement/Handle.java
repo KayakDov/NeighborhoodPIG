@@ -5,8 +5,6 @@ import jcuda.driver.CUstream_flags;
 import jcuda.driver.JCudaDriver;
 import jcuda.jcublas.JCublas2;
 import jcuda.jcublas.cublasHandle;
-import jcuda.jcusolver.JCusolverDn;
-import jcuda.jcusolver.cusolverDnHandle;
 import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaStream_t;
 
@@ -101,27 +99,6 @@ public class Handle implements AutoCloseable {
         if (cuStream != null) JCudaDriver.cuStreamSynchronize(cuStream);
     }
 
-    /**
-     * The cuSolver handle for managing cuSolver operations.
-     */
-    private cusolverDnHandle solverHandle;
-
-    /**
-     * Returns the cuSOLVER handle associated with the stream, creating it if
-     * necessary.
-     *
-     * @return The {@link cusolverDnHandle} for performing cuSOLVER operations.
-     */
-    public cusolverDnHandle solverHandle() {
-        if (solverHandle == null) {
-            solverHandle = new cusolverDnHandle();
-            JCusolverDn.cusolverDnCreate(solverHandle);
-            JCusolverDn.cusolverDnSetStream(solverHandle, stream);            
-
-        }
-        return solverHandle;
-    }
-
 
 
     /**
@@ -154,7 +131,6 @@ public class Handle implements AutoCloseable {
         JCuda.cudaStreamDestroy(stream);
         isOpen = false;
 
-        if (solverHandle != null) JCusolverDn.cusolverDnDestroy(solverHandle);
         if (cuStream != null) JCudaDriver.cuStreamDestroy(cuStream);
 
     }

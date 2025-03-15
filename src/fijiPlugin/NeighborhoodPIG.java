@@ -43,7 +43,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
         
         this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
 
-        try (Gradient grad = new Gradient(handle, image)) {
+        try (Gradient grad = new Gradient(handle, image, neighborhoodSize)) {
             stm = new StructureTensorMatrix(handle, grad, neighborhoodSize, tolerance);
         }
     }
@@ -53,7 +53,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * Names chosen for these layers when none are provided.
      * @return A set of default names for the layers.
      */
-    public String[] defaultNames() {
+    public final String[] defaultNames() {
         String[] names = new String[depth * batchSize];
         int nameIndex = 0;
         for (int frameInd = 0; frameInd < batchSize; frameInd++)

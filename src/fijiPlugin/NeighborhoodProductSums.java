@@ -37,7 +37,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
     public NeighborhoodProductSums(Handle handle, NeighborhoodDim nRad, FStrideArray3d dim) {
         super(handle, dim);
 
-        Z = new Mapper(height * width * batchSize, depth, 2, nRad.z) {
+        Z = new Mapper(height * width * batchSize, depth, 2, nRad.zR) {
 
             @Override
             protected int srcStride(FStrideArray3d src) {
@@ -52,7 +52,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
             }
         };
 
-        Y = new Mapper(depth * width * batchSize, height, 1, nRad.xy) {
+        Y = new Mapper(depth * width * batchSize, height, 1, nRad.xyR) {
             @Override
             protected int srcStride(FStrideArray3d src) {
                 return 1;
@@ -65,7 +65,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
             }
         };
 
-        X = new Mapper(depth * height * batchSize, width, 0, nRad.xy) {
+        X = new Mapper(depth * height * batchSize, width, 0, nRad.xyR) {
             @Override
             protected int srcStride(FStrideArray3d src) {
                 return src.ld();

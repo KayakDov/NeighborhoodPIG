@@ -29,7 +29,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
      *
      *
      */
-    public Gradient(Handle handle, FStrideArray3d pic) {
+    public Gradient(Handle handle, FStrideArray3d pic, NeighborhoodDim layerDist) {
         super(handle, pic);
         x = new FStrideArray3d[3];
         Arrays.setAll(x, i -> pic.copyDim());
@@ -54,7 +54,8 @@ public class Gradient extends Dimensions implements AutoCloseable {
                     P.to(dim),
                     P.to(x[0]), P.to(x[0].ld()),
                     P.to(x[1]), P.to(x[1].ld()),
-                    P.to(x[2]), P.to(x[2].ld())
+                    P.to(x[2]), P.to(x[2].ld()),
+                    P.to(layerDist.layerRes)
             );            
         }
     }
