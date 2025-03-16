@@ -20,12 +20,14 @@ public class Gradient extends Dimensions implements AutoCloseable {
     public final FStrideArray3d[] x;
 
     /**
-     * Compute gradients of an image in both the x and y directions. Gradients
+     * Compute gradients of an image in both the x and y directions.Gradients
      * are computed using central differences for interior points and
      * forward/backward differences for boundary points.
      *
      * @param handle The context
      * @param pic The pixel intensity values matrix.
+     * @param layerDist Used for the distance between layers as a multiple of
+     * the distance between adjacent pixels.
      *
      *
      */
@@ -34,7 +36,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
         x = new FStrideArray3d[3];
         Arrays.setAll(x, i -> pic.copyDim());
 
-        //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+//TODO: check gradient method!
         int[] dimensions = new int[]{
             height, //0 -> height
             width, //1 -> width
@@ -56,7 +58,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
                     P.to(x[1]), P.to(x[1].ld()),
                     P.to(x[2]), P.to(x[2].ld()),
                     P.to(layerDist.layerRes)
-            );            
+            );
         }
     }
 
@@ -65,7 +67,9 @@ public class Gradient extends Dimensions implements AutoCloseable {
      */
     @Override
     public void close() {
-        for (FStrideArray3d grad : x) grad.close();
+        for (FStrideArray3d grad : x) {
+            grad.close();
+        }
     }
 
     /**
@@ -78,6 +82,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
 
     /**
      * An empty array with the same dimensions as one of the gradients.
+     *
      * @return An empty array with the same dimensions as one of the gradients.
      */
     public FStrideArray3d copyDim() {

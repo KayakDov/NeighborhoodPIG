@@ -72,7 +72,7 @@ public class FijiPlugin implements PlugIn {
 
         if (gd.wasCanceled()) return;
         
-        double layerDist = gd.getNextNumber();
+        float layerDist = (float)gd.getNextNumber();
 
         NeighborhoodDim neighborhoodSize = new NeighborhoodDim((int) gd.getNextNumber(), imp.getNSlices() > 1? (int) gd.getNextNumber(): 0, layerDist);
         boolean useCoherence = (boolean) gd.getNextBoolean();
@@ -95,21 +95,21 @@ public class FijiPlugin implements PlugIn {
 
             String imagePath = "images/input/5Tests/";int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
 //        String imagePath = "images/input/5debugs/"; int depth = 9; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
-//        String imagePath = "images/input/debug/";int depth = 9;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
+//        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
         
 
         
-        float tolerance = 1; // Default tolerance
+        float tolerance = 10f; // Default tolerance
         
 
         try (Handle handle = new Handle();
                 NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, neighborhoodSize, tolerance)) {
 
             np.getAzimuthalAngles(true).printToFile("images/output/test3/Azimuthal");
+            
             if(depth > 1) np.getZentihAngle(true).printToFile("images/output/test3/Zenith");
-
 
         }
         System.out.println("NeighborhoodPIG processing complete.");

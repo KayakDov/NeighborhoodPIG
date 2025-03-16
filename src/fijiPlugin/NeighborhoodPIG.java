@@ -40,7 +40,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      */
     private NeighborhoodPIG(Handle handle, FStrideArray3d image, String[] sourceFileNames, NeighborhoodDim neighborhoodSize, float tolerance) {
         super(handle, image);
-        
+
         this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
 
         try (Gradient grad = new Gradient(handle, image, neighborhoodSize)) {
@@ -48,17 +48,19 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
         }
     }
 
-    
     /**
      * Names chosen for these layers when none are provided.
+     *
      * @return A set of default names for the layers.
      */
     public final String[] defaultNames() {
         String[] names = new String[depth * batchSize];
         int nameIndex = 0;
-        for (int frameInd = 0; frameInd < batchSize; frameInd++)
-            for (int layerInd = 0; layerInd < depth; layerInd++)
+        for (int frameInd = 0; frameInd < batchSize; frameInd++) {
+            for (int layerInd = 0; layerInd < depth; layerInd++) {
                 names[nameIndex++] = "Frame " + frameInd + " Layer " + layerInd;
+            }
+        }
         return names;
 
     }
@@ -72,9 +74,9 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      */
     public ImageCreator getAzimuthalAngles(boolean useCoherence) {
 
-        return new ImageCreator(handle, 
-                concat(sourceFileNames, " Azimuth"), 
-                stm.azimuthAngle(), 
+        return new ImageCreator(handle,
+                concat(sourceFileNames, " Azimuth"),
+                stm.azimuthAngle(),
                 useCoherence ? stm.getCoherence() : null,
                 "Azimuth Angle Heatmap"
         );
@@ -89,12 +91,12 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      */
     public ImageCreator getZentihAngle(boolean useCoherence) {
         return new ImageCreator(
-                handle, 
-                concat(sourceFileNames, " Zenith Angle"), 
-                stm.zenithAngle(), 
+                handle,
+                concat(sourceFileNames, " Zenith Angle"),
+                stm.zenithAngle(),
                 useCoherence ? stm.getCoherence() : null,
                 "Zenith Angle Heatmap"
-        );        
+        );
     }
 
     /**
@@ -107,7 +109,9 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      */
     private String[] concat(String[] needsConcat, String concatination) {
         return Arrays.stream(needsConcat).map(nc -> {
-            if (nc == null) return concatination;
+            if (nc == null) {
+                return concatination;
+            }
             int dotIndex = nc.lastIndexOf('.');
             return dotIndex == -1 ? nc + concatination : nc.substring(0, dotIndex) + concatination + nc.substring(dotIndex);
         }).toArray(String[]::new);
@@ -123,8 +127,8 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      *
      * @param handle
      * @param imp The imagePlus from which the image data is taken.
-     * @param nRad The radius of a neighborhood. The neighborhood will
-     * be a square and the radius is the distance from the center to the nearest
+     * @param nRad The radius of a neighborhood. The neighborhood will be a
+     * square and the radius is the distance from the center to the nearest
      * edge.
      * @param tolerance Close enough to 0.
      * @return A neighborhoodPIG.
@@ -133,7 +137,6 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
 
 //        if (imp.hasImageStack() && imp.getNSlices() == 1 && imp.getNFrames() > 1)
 //            HyperStackConverter.toHyperStack(imp, 1, 1, imp.getNSlices());
-
         try (FStrideArray3d gpuImmage = processImages(handle, imp)) {
 
             return new NeighborhoodPIG(
@@ -153,8 +156,8 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @param handle
      * @param folderPath All images in the folder should have the sameheight and
      * width.
-     * @param nRad The radius of a neighborhood. The neighborhood will
-     * be a square and the radius is the distance from the center to the nearest
+     * @param nRad The radius of a neighborhood. The neighborhood will be a
+     * square and the radius is the distance from the center to the nearest
      * edge.
      * @param depth
      * @param tolerance Close enough to 0.
@@ -189,8 +192,8 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @param handle
      * @param folderPath All images in the folder should have the sameheight and
      * width.
-     * @param nRad The radius of a neighborhood. The neighborhood will
-     * be a square and the radius is the distance from the center to the nearest
+     * @param nRad The radius of a neighborhood. The neighborhood will be a
+     * square and the radius is the distance from the center to the nearest
      * edge.
      * @param depth
      * @param tolerance Close enough to 0.
@@ -247,9 +250,11 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
                     ImageProcessor ip = imp.getProcessor();
                     float[][] pixels = ip.getFloatArray();
 
-                    for (int col = 0; col < width; col++)
-                        for (int row = 0; row < height; row++)
+                    for (int col = 0; col < width; col++) {
+                        for (int row = 0; row < height; row++) {
                             columnMajorSlice[col * height + row] = pixels[col][row];
+                        }
+                    }
 
                     processedImage.getSubArray(frame - 1).getLayer(slice - 1).set(handle, columnMajorSlice);
                 }
@@ -266,9 +271,11 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @param writeTo The array being written to.
      */
     private static void toColMjr(Raster raster, float[] writeTo) {
-        for (int col = 0; col < raster.getWidth(); col++)
-            for (int row = 0; row < raster.getHeight(); row++)
+        for (int col = 0; col < raster.getWidth(); col++) {
+            for (int row = 0; row < raster.getHeight(); row++) {
                 writeTo[col * raster.getHeight() + row] = raster.getSample(col, row, 0);
+            }
+        }
     }
 
     /**
@@ -289,23 +296,22 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      */
     public final static FStrideArray3d processImages(Handle handle, File[] pics, int height, int width, int depth) {
 
-        
-        FStrideArray3d pixelsGPU = new FStrideArray3d(height, width, depth, pics.length/depth);
+        FStrideArray3d pixelsGPU = new FStrideArray3d(height, width, depth, pics.length / depth);
         int imgSize = width * height;
         float[] imgPixelsColMaj = new float[imgSize];
 
-        for(int i = 0; i < pics.length; i++) {
+        for (int i = 0; i < pics.length; i++) {
             try {
 
                 toColMjr(grayScale(ImageIO.read(pics[i])).getData(), imgPixelsColMaj);
 
-                pixelsGPU.getSubArray(i/depth).getLayer(i % depth).set(handle, imgPixelsColMaj);
+                pixelsGPU.getSubArray(i / depth).getLayer(i % depth).set(handle, imgPixelsColMaj);
 
             } catch (IOException e) {
                 throw new IllegalArgumentException("Error reading image file: " + pics[i].getName(), e);
             }
         }
-        
+
         return pixelsGPU;
     }
 
@@ -317,8 +323,9 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * is not.
      */
     private static BufferedImage grayScale(BufferedImage image) {
-        if (image == null)
+        if (image == null) {
             throw new IllegalArgumentException("Could not open image file.");
+        }
 
         if (image.getType() != BufferedImage.TYPE_BYTE_GRAY) {
             BufferedImage grayscaleImage = new BufferedImage(
@@ -347,8 +354,9 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * zero.
      */
     public static ImagePlus imagePlus(String folderPath, int depth) {
-        if (depth <= 0)
+        if (depth <= 0) {
             throw new IllegalArgumentException("Depth must be greater than zero.");
+        }
 
         File[] files = getImageFiles(folderPath);
 
@@ -378,16 +386,20 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @return True if the suffix is for a picture file and false otherwise.
      */
     private static boolean isPicture(File fileName) {
-        String suffix = fileName.getName()
-                .toLowerCase()
-                .substring(
-                        fileName.getName().lastIndexOf(".")
-                );
+        try {
+            String suffix = fileName.getName()
+                    .toLowerCase()
+                    .substring(
+                            fileName.getName().lastIndexOf(".") + 1
+                    );
 
-        return suffix.equals(".tif")
-                || suffix.equals(".jpg")
-                || suffix.equals(".jpeg")
-                || suffix.equals(".png");
+            return suffix.equals("tif")
+                    || suffix.equals("jpg")
+                    || suffix.equals("jpeg")
+                    || suffix.equals("png");
+        } catch (IndexOutOfBoundsException ex) {
+            return false;
+        }
     }
 
     /**
@@ -399,18 +411,19 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
     private static File[] getImageFiles(String parentDirectory) {
         File folder = new File(parentDirectory);
 
-        if (!folder.exists() || !folder.isDirectory())
+        if (!folder.exists() || !folder.isDirectory()) {
             throw new IllegalArgumentException("The provided path is not a valid folder.");
+        }
 
         File[] imageFiles = folder.listFiles(name -> isPicture(name));
 
-        if (imageFiles == null || imageFiles.length == 0)
+        if (imageFiles == null || imageFiles.length == 0) {
             throw new IllegalArgumentException("No image files found in the specified folder.");
+        }
 
         java.util.Arrays.sort(imageFiles);
 
         return imageFiles;
     }
-
 
 }

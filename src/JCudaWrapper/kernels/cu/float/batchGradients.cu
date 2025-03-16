@@ -12,23 +12,26 @@ public:
      * @param data Pointer to tensor data.
      */
     __device__ Indices(int idx, const int* dim, const float* data)
-        : data(data + ((idx % dim[6]) / dim[0]) * dim[7] + idx % dim[0]) {}
+        : data(data + ((idx % dim[6]) / dim[0]) * dim[7] + idx % dim[0]) {
+        
+        //if(idx < 27) printf("data = %d, thread = %d, batch size = %d, height = %d, ld = %d\n", ((idx % dim[6]) / dim[0]) * dim[7] + idx % dim[0], idx, dim[6], dim[0], dim[7]);
+        }
 
     /**
      * Computes the gradient using a stencil method.
      * @param layerScale How many times greater is the physical distance between z layers than the real world distance between pixels in the xy plane.
-     * @param pixInc The increment between adjacent pixels in the current dimension.
+     * @param i The increment between adjacent pixels in the current dimension.
      * @return Computed gradient value.
      */
-    __device__ float grad(int loc, int end, float layerScale, int pixInc) const {
+    __device__ float grad(int loc, int end, float layerScale, int step) const {
 
-		float val;
+	float val;
 
         if (end == 1) val = 0.0; // Single element case.
-        else if (loc == 0) val = data[pixInc] - data[0]; // Forward difference at start.
-        else if (loc == end - 1) val = data[0] - data[-pixInc]; // Backward difference at end.
-        else if (loc == 1 || loc == end - 2) val = (data[pixInc] - data[-pixInc]) / 2.0; // Central difference.
-        else val = (data[-2*pixInc] - 8.0*data[-pixInc] + 8.0*data[pixInc] - data[2*pixInc])/12.0; // Higher-order stencil.
+        else if (loc == 0) val = data[step] - data[0]; // Forward difference at start.
+        else if (loc == end - 1) val = data[0] - data[-step]; // Backward difference at end.
+        else if (loc == 1 || loc == end - 2) val = (data[step] - data[-step]) / 2.0; // Central difference.
+        else val = (data[-2*step] - 8.0*data[-step] + 8.0*data[step] - data[2*step])/12.0; // Higher-order stencil.
         
         return layerScale == 1? val : val/layerScale;
     }
@@ -63,7 +66,7 @@ public:
  * Kernel to compute gradients for batched tensors.
  * @param n Total number of elements in the gradients.
  * @param mat Pointer to input tensor data.
- * @param dim indices height -> 0, width -> 1, depth -> 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+ * @param dim indices height -> 0, width -> 1, depth -> 2, numTensors -> 3, layerSize -> 4, tensorSize -> 5, batchSize -> 6, ld -> 7
  * @param dX Output gradients along X direction.
  * @param dY Output gradients along Y direction.
  * @param dZ Output gradients along Z direction.
@@ -80,12 +83,12 @@ extern "C" __global__ void batchGradientsKernel(
     if (idx >= n) return;
 
     const Indices indices(idx, dim, mat);
-
     const DstIndices to(dim[0], dim[6], idx);
+
     switch(idx / dim[6]){ 
     	case 0: dX[to.index(ldx)] = indices.grad((idx % dim[4]) / dim[0], dim[1], 1, dim[7]); break;
-		case 1: dY[to.index(ldy)] = indices.grad(idx % dim[0],  dim[0], 1, 1); break;
-		case 2: dZ[to.index(ldz)] = indices.grad((idx % dim[5]) / dim[4], dim[2], zLayerMult, dim[1] * dim[7]);
+	case 1: dY[to.index(ldy)] = indices.grad(idx % dim[0],  dim[0], 1, 1); break;
+	case 2: dZ[to.index(ldz)] = indices.grad((idx % dim[5]) / dim[4], dim[2], zLayerMult, dim[1] * dim[7]);
     }
 }
 
