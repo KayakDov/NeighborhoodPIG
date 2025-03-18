@@ -1,5 +1,6 @@
 package fijiPlugin;
 
+import imageWork.ColorImageCreator;
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.IJ;
@@ -8,6 +9,8 @@ import ij.ImageStack;
 import ij.io.Opener;
 import ij.plugin.HyperStackConverter;
 import ij.process.ImageProcessor;
+import imageWork.GrayScaleImageCreator;
+import imageWork.ImageCreator;
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
 import java.io.File;
@@ -68,35 +71,50 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
     /**
      * A heat map of the orientation in the xy plane.
      *
+     * @param color True for a color image, false for grayscale.
      * @param useCoherence True if pixel intensity should be tied to orientation
      * confidence (coherence)
      * @return A heat map of the orientation in the xy plane.
      */
-    public ImageCreator getAzimuthalAngles(boolean useCoherence) {
+    public ImageCreator getAzimuthalAngles(boolean color, boolean useCoherence) {
 
-        return new ImageCreator(handle,
+        return color ? new ColorImageCreator(handle,
                 concat(sourceFileNames, " Azimuth"),
+                "Azimuth Angle Heatmap",
                 stm.azimuthAngle(),
-                useCoherence ? stm.getCoherence() : null,
-                "Azimuth Angle Heatmap"
-        );
+                useCoherence ? stm.getCoherence() : null
+        )
+                : new GrayScaleImageCreator(
+                        concat(sourceFileNames, " Azimuth"),
+                        "Azimuth Angle Heatmap",
+                        handle,
+                        useCoherence ? stm.getCoherence() : stm.azimuthAngle()
+                );
     }
 
     /**
      * A heat map of the orientation in the yz plane.
      *
+     * @param color True for a color image, false for grayscale.
      * @param useCoherence True if pixel intensity should be tied to orientation
-     * confidence (coherence)
+     * confidence (coherence). If a grayscale image is requested, than set to
+     * true to get the coherence.
      * @return A heat map of the orientation in the yz plane.
      */
-    public ImageCreator getZentihAngle(boolean useCoherence) {
-        return new ImageCreator(
+    public ImageCreator getZenithAngles(boolean color, boolean useCoherence) {
+        return color ? new ColorImageCreator(
                 handle,
                 concat(sourceFileNames, " Zenith Angle"),
+                "Zenith Angle Heatmap",
                 stm.zenithAngle(),
-                useCoherence ? stm.getCoherence() : null,
-                "Zenith Angle Heatmap"
-        );
+                useCoherence ? stm.getCoherence() : null
+        )
+                : new GrayScaleImageCreator(
+                        concat(sourceFileNames, useCoherence ? " Coherence" : " Zenith Angle"),
+                        useCoherence ? "Coherence" : "Zenith Angle Heatmap",
+                        handle,
+                        useCoherence ? stm.getCoherence() : stm.zenithAngle()
+                );
     }
 
     /**

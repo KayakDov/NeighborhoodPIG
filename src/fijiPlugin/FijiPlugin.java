@@ -53,7 +53,7 @@ public class FijiPlugin implements PlugIn {
 
         return true;
     }
-
+    
     @Override
     public void run(String string) {
         
@@ -67,7 +67,7 @@ public class FijiPlugin implements PlugIn {
         gd.addNumericField("Distance between layers as a multiple of the distance between pixels:", 1, 2);
         gd.addNumericField("Neighborhood xy radius:", 30, 2);
         if(imp.getNSlices() > 1) gd.addNumericField("Neighborhood z radius:", 1, 2);
-        gd.addCheckbox("use coherence", false);
+        gd.addCheckbox("generate coherence", false);
         gd.showDialog();
 
         if (gd.wasCanceled()) return;
@@ -83,9 +83,13 @@ public class FijiPlugin implements PlugIn {
                 Handle handle = new Handle();
                 NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, neighborhoodSize, 1)) {
             
-            np.getAzimuthalAngles(useCoherence).printToFiji();
+            np.getAzimuthalAngles(false, false).printToFiji();
             
-            if(imp.getNSlices() > 1) np.getZentihAngle(useCoherence).printToFiji();            
+            if(imp.getNSlices() > 1) np.getZenithAngles(false, false).printToFiji();
+            
+            if(useCoherence) np.getAzimuthalAngles(false, true).printToFiji();
+            
+            
 
             ij.IJ.showMessage("NeighborhoodPIG processing complete.");
         }
@@ -107,9 +111,9 @@ public class FijiPlugin implements PlugIn {
         try (Handle handle = new Handle();
                 NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, neighborhoodSize, tolerance)) {
 
-            np.getAzimuthalAngles(true).printToFile("images/output/test3/Azimuthal");
+            np.getAzimuthalAngles(true, true).printToFile("images/output/test3/Azimuthal");
             
-            if(depth > 1) np.getZentihAngle(true).printToFile("images/output/test3/Zenith");
+            if(depth > 1) np.getZenithAngles(true, true).printToFile("images/output/test3/Zenith");
 
         }
         System.out.println("NeighborhoodPIG processing complete.");

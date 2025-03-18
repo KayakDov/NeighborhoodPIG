@@ -1,4 +1,4 @@
-package fijiPlugin;
+package imageWork;
 
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Int.IArray;
@@ -6,6 +6,7 @@ import JCudaWrapper.array.Int.IStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
+import fijiPlugin.Dimensions;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.plugin.HyperStackConverter;
@@ -24,34 +25,23 @@ import javax.imageio.ImageIO;
  *
  * @author E. Dov Neimand
  */
-public class ImageCreator extends Dimensions {
+public class ColorImageCreator extends ImageCreator {
+
+    protected final int[] cpuColors;
 
     /**
-     * Array storing color data for each tensor element.
-     */
-    private final int[] cpuColors;
-    private final String[] sliceNames;
-    private final String stackName;
-    private final int colDist;
-
-    /**
-     * Constructs an ImageCreator with the given orientations and coherence
-     * tensors.
      *
-     * @param handle The GPU computation context.
+     * @param handle
      * @param sliceNames The names of the slices.
-     * @param orientation The tensor representing orientations.
-     * @param coherence The tensor representing coherence values. pass null if
-     * coherence should not be used
-     * @param stackName
+     * @param stackName The name of the stack.
+     * @param orientation The dimensions.
+     * @param coherence The intensity of each color.
      */
-    public ImageCreator(Handle handle, String[] sliceNames, FStrideArray3d orientation, FStrideArray3d coherence, String stackName) {
-        super(handle, orientation);
-        colDist = orientation.ld();
-        this.sliceNames = sliceNames;
-        orientation.setProduct(handle, 2, orientation);       
-        
-        try (IArray gpuColors = new IStrideArray3d(height, width, depth, batchSize)) {
+    public ColorImageCreator(Handle handle, String[] sliceNames, String stackName, FStrideArray3d orientation, FStrideArray3d coherence) {
+        super(sliceNames, stackName, handle, orientation);
+        orientation.setProduct(handle, 2, orientation);
+
+        try (IArray gpuColors = new IStrideArray3d(orientation.entriesPerLine(), orientation.linesPerLayer(), orientation.layersPerGrid(), orientation.batchSize())) {
 
             int heightCoherence, ldCoherence;
             if (coherence == null) {
@@ -76,11 +66,11 @@ public class ImageCreator extends Dimensions {
                     P.to(ldCoherence)
             );
 
-            cpuColors = gpuColors.get(handle);
+            orientation.setProduct(handle, 0.5f, orientation);
+            this.cpuColors = gpuColors.get(handle);
+            
         }
 
-        orientation.setProduct(handle, 0.5f, orientation); // Restore original scale.
-        this.stackName = stackName;
     }
 
     /**
@@ -129,9 +119,11 @@ public class ImageCreator extends Dimensions {
             for (int layerIndex = 0; layerIndex < depth; layerIndex++) {
                 ColorProcessor cp = new ColorProcessor(width, height);
 
-                for (int x = 0; x < width; x++)
-                    for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++) {
+                    for (int y = 0; y < height; y++) {
                         cp.set(x, y, getPixelInt(frameIndex, layerIndex, x, y));
+                    }
+                }
 
                 stack.addSlice(sliceNames[frameIndex * depth + layerIndex], cp);
             }
@@ -140,13 +132,15 @@ public class ImageCreator extends Dimensions {
         ImagePlus imp = new ImagePlus(stackName, stack);
 
         System.out.println("fijiPlugin.ImageCreator.printToFiji() " + imp.toString());
-        
-        if(batchSize > 1) imp = HyperStackConverter.toHyperStack(
-                imp,
-                1,
-                depth,
-                batchSize
-        );
+
+        if (batchSize > 1) {
+            imp = HyperStackConverter.toHyperStack(
+                    imp,
+                    1,
+                    depth,
+                    batchSize
+            );
+        }
 
         imp.show();
     }
@@ -159,11 +153,13 @@ public class ImageCreator extends Dimensions {
     public void printToFile(String writeToFolder) {
         // Ensure the folder exists, create it if it doesn't.
         File directory = new File(writeToFolder);
-        if (!directory.exists()) directory.mkdirs();
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
 
-        int[] pixelRGB = new int[3];        
+        int[] pixelRGB = new int[3];
 
-        for (int frame = 0; frame < batchSize; frame++)
+        for (int frame = 0; frame < batchSize; frame++) {
             for (int layer = 0; layer < depth; layer++) {
                 BufferedImage image = createImage(frame, layer, pixelRGB);
 
@@ -180,6 +176,7 @@ public class ImageCreator extends Dimensions {
                     e.printStackTrace();
                 }
             }
+        }
     }
 
     /**
@@ -194,11 +191,12 @@ public class ImageCreator extends Dimensions {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         WritableRaster raster = image.getRaster();
 
-        for (int row = 0; row < height; row++)
+        for (int row = 0; row < height; row++) {
             for (int col = 0; col < width; col++) {
                 getPixelArray(frame, layer, col, row, pixelRGB);
                 raster.setPixel(col, row, pixelRGB);
             }
+        }
 
         return image;
     }

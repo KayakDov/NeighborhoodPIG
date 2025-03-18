@@ -1,4 +1,4 @@
-package fijiPlugin;
+package imageWork;
 
 import JCudaWrapper.array.Double.DArray3d;
 import java.io.File;
