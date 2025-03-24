@@ -8,6 +8,7 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.io.Opener;
 import ij.plugin.HyperStackConverter;
+import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 import imageWork.GrayScaleImageCreator;
 import imageWork.ImageCreator;
@@ -115,6 +116,51 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
                         handle,
                         useCoherence ? stm.getCoherence() : stm.zenithAngle()
                 );
+    }
+
+    /**
+     * An image of all the nematic vectors
+     * @param spacing The space between the vectors.
+     * @param vecMag The magnitude of the vectors to be drawn.
+     * @return An image of all the nematic vectors
+     */
+    public ImagePlus getVectorPicture(int spacing, int vecMag) {
+        
+        int spacedWitdh = width * spacing, spacedHeight = height*spacing;
+        
+        ImageStack stack = new ImageStack(spacedWitdh, spacedHeight);
+        FloatProcessor[] fp = new FloatProcessor[depth*spacing];
+        Arrays.setAll(fp, i -> new FloatProcessor(spacedWitdh, spacedHeight));
+
+        int frameSize = stm.getCoherence().subArraySize();
+        
+        float[] vecs = new float[frameSize*3];
+        float[] coherence = new float[frameSize];
+        
+        for (int t = 0; t < batchSize; t++) {//TODO: paralellize at this level,  It may be that multiple Handles are needed.
+
+            stm.getEigen().vectors1.getSubArray(t).get(handle, vecs);
+            stm.getCoherence().getSubArray(t).get(handle, coherence);
+
+            int r = vecMag / 2;
+
+            for (int i = 0, vecOrd = 0; i < vecs.length; i += 3, vecOrd++) //TODO: or at this level depending on needs.
+                for (int mag = -r; mag < r; mag++) {
+                    int x = spacing * (vecOrd / height) + Math.round(mag * vecs[i]),
+                            y = spacing * (vecOrd % height) + Math.round(mag * vecs[i + 1]),
+                            z = spacing * (vecOrd / layerSize()) + Math.round(mag * vecs[i + 2]);
+                    if (x >= 0 && y >= 0 && z >= 0 && x < width && y < height && z < depth)
+                        fp[z].setf(x, y, coherence[i / 3]);
+
+                }
+
+            for (int z = 0; z < depth; z++)
+                stack.addSlice(sourceFileNames[z] + " Nematics", fp[z]);
+        }
+
+        ImagePlus image = new ImagePlus("Nematics", stack);
+        image.setDimensions(1, depth, batchSize);
+        return image;
     }
 
     /**

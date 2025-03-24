@@ -65,14 +65,6 @@ public class GrayScaleImageCreator extends ImageCreator {
                     for (int row = 0; row < height; row++)
                         fp.setf(col, row, pixelIntensity[colInd + row]);
 
-//                System.arraycopy(
-//                        pixelIntensity, 
-//                        (t * depth + z) * width * height, 
-//                        sliceData, 
-//                        0, 
-//                        width * height
-//                );
-//                
                     stack.addSlice(
                             sliceNames[z],
                             fp
