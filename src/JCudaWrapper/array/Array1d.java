@@ -33,7 +33,7 @@ public abstract class Array1d implements Array {
         this.bytesPerEntry = bytesPerElement;
         opCheck(JCuda.cudaMalloc(pointer, size * bytesPerElement));
         this.size = size;
-        allocatedArrays.add(pointer);
+        Array.recordMemAloc(pointer);
         ld = 1;
     }
 

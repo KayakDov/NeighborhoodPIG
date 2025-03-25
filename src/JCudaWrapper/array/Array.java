@@ -18,7 +18,19 @@ import jcuda.runtime.cudaPitchedPtr;
  */
 public interface Array extends AutoCloseable {
 
-    public static Set<Pointer> allocatedArrays = Collections.synchronizedSet(new HashSet<>());
+    static Set<Pointer> allocatedArrays = Collections.synchronizedSet(new HashSet<>());
+
+    /**
+     * This is a debugging tool. Records that memory has been allocated. This
+     * should be called every time memory is allocated and is a tool to prevent
+     * memory leaks.
+     *
+     * @param p The pointer to the allocated memory.
+     */
+    public static void recordMemAloc(Pointer p) {
+        allocatedArrays.add(p);
+        System.out.println("JCudaWrapper.array.Array.recordMemAloc() " + p.toString());
+    }
 
     /**
      * Fill modes. Use lower to indicate a lower triangle, upper to indicate an
@@ -177,7 +189,6 @@ public interface Array extends AutoCloseable {
             throw new RuntimeException("Operation failed: " + cudaError.stringFor(errorCode));
     }
 
-
     /**
      * The number of lines in the array. It's 1 for 1d arrays, and more for 2d
      * or 3d arrays.
@@ -224,7 +235,8 @@ public interface Array extends AutoCloseable {
      * @param check These all must be true.
      */
     public default void confirm(boolean... check) {
-        for (int i = 0; i < check.length; i++) if (!check[i])
+        for (int i = 0; i < check.length; i++)
+            if (!check[i])
                 throw new IllegalArgumentException("Argument number " + i);
     }
 

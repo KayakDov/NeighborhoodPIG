@@ -170,7 +170,7 @@ public class ColorImageCreator extends ImageCreator {
 
                 try {
                     ImageIO.write(image, fileType, outputFile);
-                    System.out.println("Image printed to " + outputFile);
+                    System.out.println("Image printed to " + outputFile); 
                 } catch (Exception e) {
                     System.err.println("Error writing image to file: " + outputFile.getAbsolutePath());
                     e.printStackTrace();

@@ -52,10 +52,11 @@ public abstract class Array3d extends LineArray implements Array {
         super(entriesPerLine, linesPerLayer, bytesPerEntry);
 
         this.layersPerGrid = numLayers;
-        cudaExtent extent = new cudaExtent(entriesPerLine * bytesPerEntry, linesPerLayer, numLayers);
-
-        opCheck(JCuda.cudaMalloc3D(pointer, extent));
-        Array.allocatedArrays.add(pointer.ptr);
+        opCheck(JCuda.cudaMalloc3D(
+                pointer, 
+                new cudaExtent(entriesPerLine * bytesPerEntry, linesPerLayer, numLayers))
+        );
+        Array.recordMemAloc(pointer.ptr);
     }
 
     /**
@@ -77,30 +78,31 @@ public abstract class Array3d extends LineArray implements Array {
 
         this.pointer.ptr = from.pointer(startEntry + (startLine + startLayer * linesPerLayer()) * ld());
     }
-    
+
     /**
      * Constructs this array from a 1d array.
+     *
      * @param src The src array which shares memory with this array.
      * @param entriesPerLine The number of entries in each line.
      * @param linesPerLayer The number of lines in each layer.
      */
-    public Array3d(Array src, int entriesPerLine, int linesPerLayer){
+    public Array3d(Array src, int entriesPerLine, int linesPerLayer) {
         this(src, entriesPerLine, entriesPerLine, linesPerLayer);
     }
-        
+
     /**
      * Constructs this array from a 1d array.
+     *
      * @param src The src array which shares memory with this array.
      * @param entriesPerLine The number of entries in each line.
-     * @param ld The number of elements that could be fit between the first 
+     * @param ld The number of elements that could be fit between the first
      * element of each line.
      * @param linesPerLayer The number of lines in each layer.
      */
-    public Array3d(Array src, int entriesPerLine, int ld, int linesPerLayer){
+    public Array3d(Array src, int entriesPerLine, int ld, int linesPerLayer) {
         super(src, entriesPerLine, ld, linesPerLayer);
-        layersPerGrid = src.size()/(ld * linesPerLayer);
+        layersPerGrid = src.size() / (ld * linesPerLayer);
     }
-    
 
     private cudaExtent extent;
     private cudaMemcpy3DParms getParams;
@@ -131,7 +133,8 @@ public abstract class Array3d extends LineArray implements Array {
             getParams.srcPtr = pitchedPointer();
             getParams.extent = extent();
             return getParams;
-        } else return getParams;
+        } else
+            return getParams;
     }
 
     /**
@@ -144,7 +147,8 @@ public abstract class Array3d extends LineArray implements Array {
             setParams.dstPtr = pitchedPointer();
             setParams.extent = extent();
             return setParams;
-        } else return setParams;
+        } else
+            return setParams;
     }
 
     /**
@@ -155,10 +159,10 @@ public abstract class Array3d extends LineArray implements Array {
         getParams = getParams();
 
         getParams.kind = cudaMemcpyKind.cudaMemcpyDeviceToDevice;
-        getParams.dstPtr = 
-                dst instanceof LineArray? 
-                ((LineArray)dst).pitchedPointer(): 
-                ((Array1d)dst).pitchedPointer(entriesPerLine(), linesPerLayer());
+        getParams.dstPtr
+                = dst instanceof LineArray
+                        ? ((LineArray) dst).pitchedPointer()
+                        : ((Array1d) dst).pitchedPointer(entriesPerLine(), linesPerLayer());
 
         opCheck(JCuda.cudaMemcpy3DAsync(getParams, handle.getStream()));
     }
@@ -231,17 +235,17 @@ public abstract class Array3d extends LineArray implements Array {
     private Singleton get(int entry, int line, int layer) {
         return get(layer * linesPerLayer() * entriesPerLine() + line * entriesPerLine() + entry);
     }
-    
 
     /**
      * The number of layers.
+     *
      * @return The number of layers.
      */
     @Override
     public int layersPerGrid() {
         return layersPerGrid;
     }
-    
+
     /**
      * Constructs a sub array.
      *
@@ -255,22 +259,24 @@ public abstract class Array3d extends LineArray implements Array {
      * @return A sub array of this array.
      */
     abstract public Array3d sub(int startEntry, int numEntryPerLine, int startLine, int numLines, int startLayer, int numLayers);
-    
+
     /**
      * The layer at the given index.
+     *
      * @param index The index of the desired layer.
      * @return The layer at the given index.
      */
-    public Array2d layer(int index){
+    public Array2d layer(int index) {
         return sub(0, entriesPerLine(), 0, linesPerLayer(), index, index + 1).as2d();
     }
-    
+
     /**
      * The index on each layer at the given entry and line index.
+     *
      * @param entryIndex The entry index in each line.
      * @param lineIndex The line index on each layer.
      * @return The index on each layer at the given entry and line index.
      */
     abstract public Array1d depth(int entryIndex, int lineIndex);
-    
+
 }

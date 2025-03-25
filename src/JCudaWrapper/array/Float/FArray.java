@@ -23,11 +23,13 @@ public interface FArray extends Array {
      */
     public default void get(Handle handle, float[] dst) {
         if (ld() > 1) {
-            FArray1d gpuArray = new FArray1d(dst.length);
-            get(handle, gpuArray);
-            handle.synch();
-            gpuArray.get(handle, Pointer.to(dst));
-        } else get(handle, Pointer.to(dst));
+            try (FArray1d gpuArray = new FArray1d(dst.length)) {
+                get(handle, gpuArray);
+                handle.synch();
+                gpuArray.get(handle, Pointer.to(dst));
+            }
+        } else
+            get(handle, Pointer.to(dst));
     }
 
     /**
@@ -36,7 +38,7 @@ public interface FArray extends Array {
      * @param handle handle to the cuBLAS library context.
      */
     public float[] get(Handle handle);
-    
+
     /**
      * Copies to here with increments.
      *
@@ -50,7 +52,7 @@ public interface FArray extends Array {
     }
 
     /**
-     * Guaranteed to throw an exception.  TODO: implement this method.
+     * Guaranteed to throw an exception. TODO: implement this method.
      *
      * @throws UnsupportedOperationException always
      * @deprecated Unsupported operation.
@@ -75,7 +77,8 @@ public interface FArray extends Array {
      * Sets this array to the values in the source CPU array.
      *
      * @param handle The context.
-     * @param srcCPUArray A CPU array. It should be the same length as this array.
+     * @param srcCPUArray A CPU array. It should be the same length as this
+     * array.
      * @return this array.
      */
     public default FArray set(Handle handle, float... srcCPUArray) {
@@ -105,32 +108,34 @@ public interface FArray extends Array {
         ));
         return this;
     }
-    
+
     /**
-     * A one-dimensional representation of this array. 
+     * A one-dimensional representation of this array.
+     *
      * @return A 1D representation of this array.
      */
     public default FArray1d as1d() {
         return new FArray1d(this, 0, size(), 1);
     }
-    
+
     /**
      * {@inheritDoc}
-     */    
+     */
     @Override
     public default FArray2d as2d() {
         return new FArray2d(this, entriesPerLine());
     }
-    
+
     /**
      * A 3D representation of this array.
+     *
      * @param linesPerLayer Number of lines per layer.
      * @return A 3D representation of this array.
      */
     public default FArray3d as3d(int linesPerLayer) {
         return new FArray3d(this, entriesPerLine(), linesPerLayer);
     }
-    
+
     /**
      * Scales this vector by the scalar multiplier:
      *

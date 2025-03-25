@@ -118,7 +118,7 @@ public class FijiPlugin implements PlugIn {
 
             if (depth > 1)
                 np.getZenithAngles(true, true).printToFile("images/output/test3/Zenith");
-
+            
             np.getVectorPicture(5, 5);
 
         }
