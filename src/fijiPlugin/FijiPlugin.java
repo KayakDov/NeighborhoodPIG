@@ -100,6 +100,7 @@ public class FijiPlugin implements PlugIn {
 
             ij.IJ.showMessage("NeighborhoodPIG processing complete.");
         }
+        if(!Array.allocatedArrays.isEmpty()) throw new RuntimeException("Neighborhood PIG has a GPU memory leak.");
     }
 
     public static void main(String[] args) {
@@ -124,7 +125,7 @@ public class FijiPlugin implements PlugIn {
         }
         System.out.println("NeighborhoodPIG processing complete.");
 
-        System.out.println("fijiPlugin.FijiPlugin.main() - unclosed arrays: " + Array.allocatedArrays.toString());
+        if(!Array.allocatedArrays.isEmpty()) throw new RuntimeException("Neighborhood PIG has a GPU memory leak.");
 
     }
 

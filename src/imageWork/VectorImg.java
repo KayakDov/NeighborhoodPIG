@@ -101,7 +101,7 @@ public class VectorImg extends Dimensions {
         ImageStack stack = new ImageStack(space.width(), space.height());
 
         FloatProcessor[] fp = new FloatProcessor[space.depth()];
-        Arrays.setAll(fp, i -> new FloatProcessor(space.width(), space.height()));
+        Arrays.setAll(fp, i -> new FloatProcessor(space.width(), space.height()));//TODO: reduce memory impact by going through these 2* width at a time instead of all of them.
 
         float[] gridIntensity = new float[tensorSize()];
         VecManager gridVecs = new VecManager(tensorSize() * 3);
