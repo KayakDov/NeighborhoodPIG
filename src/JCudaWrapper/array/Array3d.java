@@ -155,7 +155,10 @@ public abstract class Array3d extends LineArray implements Array {
         getParams = getParams();
 
         getParams.kind = cudaMemcpyKind.cudaMemcpyDeviceToDevice;
-        getParams.dstPtr = dst.pitchedPointer();
+        getParams.dstPtr = 
+                dst instanceof LineArray? 
+                ((LineArray)dst).pitchedPointer(): 
+                ((Array1d)dst).pitchedPointer(entriesPerLine(), linesPerLayer());
 
         opCheck(JCuda.cudaMemcpy3DAsync(getParams, handle.getStream()));
     }

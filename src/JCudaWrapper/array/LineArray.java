@@ -96,9 +96,8 @@ public abstract class LineArray implements Array {
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
+     * The pitch of the pointer.
+     */    
     public int pitch() {
         return (int) pointer.pitch;
     }
@@ -155,7 +154,6 @@ public abstract class LineArray implements Array {
     /**
      * {@inheritDoc}
      */
-    @Override
     public cudaPitchedPtr pitchedPointer() {
         return pointer;
     }

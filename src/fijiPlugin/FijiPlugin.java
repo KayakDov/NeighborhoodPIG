@@ -5,6 +5,8 @@ import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
+import ij3d.Image3DUniverse;
+
 
 /**
  *
@@ -25,7 +27,7 @@ public class FijiPlugin implements PlugIn {
             ij.IJ.showMessage("No image open.");
             return false;
         }
-        
+
         // Ensure the image is grayscale
         if (imp.getType() != ImagePlus.GRAY32
                 && imp.getType() != ImagePlus.GRAY16
@@ -53,73 +55,76 @@ public class FijiPlugin implements PlugIn {
 
         return true;
     }
-    
+
     @Override
     public void run(String string) {
-        
+
         ImagePlus imp = ij.WindowManager.getCurrentImage();
-        
+
         imp.setOpenAsHyperStack(true);
-        
-        if (!validImage(imp)) return;
+
+        if (!validImage(imp))
+            return;
 
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
         gd.addNumericField("Distance between layers as a multiple of the distance between pixels:", 1, 2);
         gd.addNumericField("Neighborhood xy radius:", 30, 2);
-        if(imp.getNSlices() > 1) gd.addNumericField("Neighborhood z radius:", 1, 2);
+        if (imp.getNSlices() > 1)
+            gd.addNumericField("Neighborhood z radius:", 1, 2);
         gd.addCheckbox("generate coherence", false);
         gd.showDialog();
 
-        if (gd.wasCanceled()) return;
-        
-        float layerDist = (float)gd.getNextNumber();
+        if (gd.wasCanceled())
+            return;
 
-        NeighborhoodDim neighborhoodSize = new NeighborhoodDim((int) gd.getNextNumber(), imp.getNSlices() > 1? (int) gd.getNextNumber(): 0, layerDist);
+        float layerDist = (float) gd.getNextNumber();
+
+        NeighborhoodDim neighborhoodSize = new NeighborhoodDim((int) gd.getNextNumber(), imp.getNSlices() > 1 ? (int) gd.getNextNumber() : 0, layerDist);
         boolean useCoherence = (boolean) gd.getNextBoolean();
 
-        if (!validParamaters(neighborhoodSize.xyR) || !validParamaters(neighborhoodSize.zR)) return;
-        
+        if (!validParamaters(neighborhoodSize.xyR) || !validParamaters(neighborhoodSize.zR))
+            return;
+
         try (
-                Handle handle = new Handle();
-                NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, neighborhoodSize, 1)) {
-            
+                Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, neighborhoodSize, 1)) {
+
             np.getAzimuthalAngles(false, false).printToFiji();
-            
-            if(imp.getNSlices() > 1) np.getZenithAngles(false, false).printToFiji();
-            
+
+            if (imp.getNSlices() > 1)
+                np.getZenithAngles(false, false).printToFiji();
+
             np.getVectorPicture(5, 5);
-            
-            if(useCoherence) np.getAzimuthalAngles(false, true).printToFiji();
-                        
+
+            if (useCoherence)
+                np.getAzimuthalAngles(false, true).printToFiji();
+
             ij.IJ.showMessage("NeighborhoodPIG processing complete.");
         }
     }
 
     public static void main(String[] args) {
 
-            String imagePath = "images/input/5Tests/";int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
-//        String imagePath = "images/input/5debugs/"; int depth = 9; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
+//        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
+        String imagePath = "images/input/5debugs/"; int depth = 9; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
-        
 
-        
         float tolerance = 10f; // Default tolerance
-        
 
-        try (Handle handle = new Handle();
-                NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, neighborhoodSize, tolerance)) {
+        try (Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, neighborhoodSize, tolerance)) {
 
             np.getAzimuthalAngles(true, true).printToFile("images/output/test3/Azimuthal");
-            
-            if(depth > 1) np.getZenithAngles(true, true).printToFile("images/output/test3/Zenith");
+
+            if (depth > 1)
+                np.getZenithAngles(true, true).printToFile("images/output/test3/Zenith");
+
+            np.getVectorPicture(5, 5);
 
         }
         System.out.println("NeighborhoodPIG processing complete.");
-        
-        System.out.println("fijiPlugin.FijiPlugin.main() - unclosed arrays: " + Array.allocatedArrays.toString());
 
+        System.out.println("fijiPlugin.FijiPlugin.main() - unclosed arrays: " + Array.allocatedArrays.toString());
 
     }
 

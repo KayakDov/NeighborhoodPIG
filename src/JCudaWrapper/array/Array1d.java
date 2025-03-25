@@ -64,15 +64,20 @@ public abstract class Array1d implements Array {
     }
 
     /**
-     * {@inheritDoc}
+     * Constructs a pitched pointer for this 1d array, so that this array can be
+     * copied to or from by a multi dimensional array.
+     *
+     * @param entriesPerLine This should be the entries per line in the other array
+     * @param linesPerLayer The number of lines in each layer of the other array.
+     * 
+     * @return A pitched pointer to this array.
      */
-    @Override
-    public cudaPitchedPtr pitchedPointer() {
+    public cudaPitchedPtr pitchedPointer(int entriesPerLine, int linesPerLayer) {
         cudaPitchedPtr cpp = new cudaPitchedPtr();
         cpp.ptr = pointer;
-        cpp.pitch = size * bytesPerEntry;
+        cpp.pitch = entriesPerLine * bytesPerEntry;
         cpp.xsize = cpp.pitch;
-        cpp.ysize = 1;
+        cpp.ysize = linesPerLayer;
         return cpp;
     }
 

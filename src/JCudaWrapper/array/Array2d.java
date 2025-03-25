@@ -5,6 +5,7 @@ import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaMemcpyKind;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.HashSet;
+import jcuda.driver.JCudaDriver;
 
 /**
  * Represents a 2D GPU array with memory allocated on the device. This class
@@ -100,7 +101,7 @@ public abstract class Array2d extends LineArray {
     public Array2d set(Handle handle, Pointer srcCPUArray) {
         
         int width = entriesPerLine() * bytesPerEntry();
-        
+                
         opCheck(JCuda.cudaMemcpy2DAsync(
                 pointer(),
                 pitch(),
@@ -111,6 +112,7 @@ public abstract class Array2d extends LineArray {
                 cudaMemcpyKind.cudaMemcpyHostToDevice,
                 handle.getStream()
         ));
+        
         return this;
     }
 
@@ -119,8 +121,9 @@ public abstract class Array2d extends LineArray {
      */
     @Override
     public void get(Handle handle, Array dst) {
-        opCheck(JCuda.cudaMemcpy2DAsync(dst.pointer(),
-                dst.pitch(),
+        opCheck(JCuda.cudaMemcpy2DAsync(
+                dst.pointer(),
+                (dst instanceof LineArray? ((LineArray)dst).pitch() : entriesPerLine()*bytesPerEntry),
                 pointer(),
                 pitch(),
                 entriesPerLine() * bytesPerEntry(),

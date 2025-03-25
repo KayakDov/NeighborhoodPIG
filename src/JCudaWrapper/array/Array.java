@@ -36,13 +36,6 @@ public interface Array extends AutoCloseable {
     Pointer pointer();
 
     /**
-     * The pitched pointer for this array.
-     *
-     * @return The pitched pointer for this array.
-     */
-    cudaPitchedPtr pitchedPointer();
-
-    /**
      * The number of bytes consumed by each element in this array.
      *
      * @return The number of bytes consumed by each element in this array.
@@ -184,14 +177,6 @@ public interface Array extends AutoCloseable {
             throw new RuntimeException("Operation failed: " + cudaError.stringFor(errorCode));
     }
 
-    /**
-     * The number of bytes in a section.
-     *
-     * @return The number of bytes in a section.
-     */
-    public default int pitch() {
-        return size() * bytesPerEntry();
-    }
 
     /**
      * The number of lines in the array. It's 1 for 1d arrays, and more for 2d
