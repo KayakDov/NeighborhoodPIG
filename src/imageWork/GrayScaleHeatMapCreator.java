@@ -18,7 +18,7 @@ import java.io.File;
  *
  * @author E. Dov Neimand
  */
-public class GrayScaleImageCreator extends ImageCreator {
+public class GrayScaleHeatMapCreator extends HeatMapCreator {
 
     /**
      * Array storing pixel intensity values.
@@ -33,7 +33,7 @@ public class GrayScaleImageCreator extends ImageCreator {
      * @param handle The handle for GPU resource management.
      * @param image The tensor data used to generate the grayscale image.
      */
-    public GrayScaleImageCreator(String[] sliceNames, String stackName, Handle handle, FStrideArray3d image) {
+    public GrayScaleHeatMapCreator(String[] sliceNames, String stackName, Handle handle, FStrideArray3d image) {
         super(sliceNames, stackName, handle, image);
         pixelIntensity = image.get(handle);
     }
@@ -74,16 +74,7 @@ public class GrayScaleImageCreator extends ImageCreator {
             }
         }
 
-        ImagePlus image = new ImagePlus(stackName, stack);
-        if (batchSize > 1) {
-            image = HyperStackConverter.toHyperStack(
-                    image,
-                    1,
-                    depth,
-                    batchSize
-            );
-        }
-        return image;
+        return setToHyperStack(new ImagePlus(stackName, stack));
     }
 
     /**

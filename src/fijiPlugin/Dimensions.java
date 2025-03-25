@@ -103,8 +103,8 @@ public abstract class Dimensions implements AutoCloseable{
      * @param handle The context.
      * @param copyFrom The item being copied.
      */
-    public Dimensions(Handle handle, Dimensions copyFrom) {
-        this(handle, copyFrom.height, copyFrom.width, copyFrom.depth, copyFrom.batchSize);
+    public Dimensions(Dimensions copyFrom) {
+        this(copyFrom.handle, copyFrom.height, copyFrom.width, copyFrom.depth, copyFrom.batchSize);
     }
     
     /**

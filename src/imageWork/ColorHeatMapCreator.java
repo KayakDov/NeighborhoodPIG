@@ -25,7 +25,7 @@ import javax.imageio.ImageIO;
  *
  * @author E. Dov Neimand
  */
-public class ColorImageCreator extends ImageCreator {
+public class ColorHeatMapCreator extends HeatMapCreator {
 
     protected final int[] cpuColors;
 
@@ -37,7 +37,7 @@ public class ColorImageCreator extends ImageCreator {
      * @param orientation The dimensions.
      * @param coherence The intensity of each color.
      */
-    public ColorImageCreator(Handle handle, String[] sliceNames, String stackName, FStrideArray3d orientation, FStrideArray3d coherence) {
+    public ColorHeatMapCreator(Handle handle, String[] sliceNames, String stackName, FStrideArray3d orientation, FStrideArray3d coherence) {
         super(sliceNames, stackName, handle, orientation);
         orientation.setProduct(handle, 2, orientation);
 
@@ -133,16 +133,7 @@ public class ColorImageCreator extends ImageCreator {
 
         System.out.println("fijiPlugin.ImageCreator.printToFiji() " + imp.toString());
 
-        if (batchSize > 1) {
-            imp = HyperStackConverter.toHyperStack(
-                    imp,
-                    1,
-                    depth,
-                    batchSize
-            );
-        }
-
-        imp.show();
+        setToHyperStack(imp).show();
     }
 
     /**

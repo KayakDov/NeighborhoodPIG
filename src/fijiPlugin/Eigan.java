@@ -36,7 +36,7 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
     public final FStrideArray3d vectors1;
 
     public Eigan(Handle handle, Dimensions dim, float tolerance) {
-        super(handle, dim);
+        super(dim);
         this.handle = handle;
         this.tolerance = tolerance;
         mat = new FStrideArray3d[3][3];

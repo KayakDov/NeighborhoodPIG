@@ -93,7 +93,7 @@ public class FijiPlugin implements PlugIn {
             if (imp.getNSlices() > 1)
                 np.getZenithAngles(false, false).printToFiji();
 
-            np.getVectorPicture(5, 5);
+            np.getVectorImg(5, 8).show();
 
             if (useCoherence)
                 np.getAzimuthalAngles(false, true).printToFiji();
@@ -119,7 +119,7 @@ public class FijiPlugin implements PlugIn {
             if (depth > 1)
                 np.getZenithAngles(true, true).printToFile("images/output/test3/Zenith");
             
-            np.getVectorPicture(5, 5);
+            np.getVectorImg(5, 5).show();
 
         }
         System.out.println("NeighborhoodPIG processing complete.");

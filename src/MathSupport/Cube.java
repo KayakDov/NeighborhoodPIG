@@ -81,7 +81,7 @@ public class Cube {
      *
      * @return the width of the cube
      */
-    public int getWidth() {
+    public int width() {
         return maxX - minX;
     }
     
@@ -90,7 +90,7 @@ public class Cube {
      *
      * @return the height of the cube
      */
-    public int getHeight() {
+    public int height() {
         return maxY - minY;
     }
     
@@ -99,7 +99,7 @@ public class Cube {
      *
      * @return the depth of the cube
      */
-    public int getDepth() {
+    public int depth() {
         return maxZ - minZ;
     }
     
@@ -145,5 +145,13 @@ public class Cube {
      */
     public Cube translate(int xShift, int yShift, int Shift){
         return new Cube(minX + xShift, maxX + xShift, minY + yShift, maxY + yShift, minZ + Shift, maxZ + Shift);
+    }
+    /**
+     * Creates a new scew that is this cube scaled.
+     * @param t The scalar.
+     * @return  A new cube.
+     */
+    public Cube scale(int t){
+        return new Cube(minX * t, maxX * t, minY * t, maxY * t, minZ * t, maxZ * t);
     }
 }
