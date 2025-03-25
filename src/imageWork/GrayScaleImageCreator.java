@@ -6,6 +6,7 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.FloatProcessor;
 import ij.io.FileSaver;
+import ij.plugin.HyperStackConverter;
 import java.io.File;
 
 /**
@@ -52,29 +53,36 @@ public class GrayScaleImageCreator extends ImageCreator {
      * @return The image plus for this image.
      */
     private ImagePlus getIP() {
-        ImageStack stack = new ImageStack(width, height);
-        FloatProcessor fp = new FloatProcessor(width, height);
+        ImageStack stack = new ImageStack(width, height);        
 
         for (int t = 0; t < batchSize; t++) {
-            int frameInd = t * width * height * depth;
+            int frameInd = t * width * height * depth;            
             for (int z = 0; z < depth; z++) {
-                int layerInd = frameInd + z * width * height;
                 
+                FloatProcessor fp = new FloatProcessor(width, height);
+                int layerInd = frameInd + z * width * height;
+
                 for (int col = 0; col < width; col++) {
                     int colInd = layerInd + col * height;
                     for (int row = 0; row < height; row++)
                         fp.setf(col, row, pixelIntensity[colInd + row]);
-
-                    stack.addSlice(
-                            sliceNames[z],
-                            fp
-                    );
                 }
+                stack.addSlice(
+                        sliceNames[z],
+                        fp
+                );
             }
         }
 
         ImagePlus image = new ImagePlus(stackName, stack);
-        image.setDimensions(1, depth, batchSize);
+        if (batchSize > 1) {
+            image = HyperStackConverter.toHyperStack(
+                    image,
+                    1,
+                    depth,
+                    batchSize
+            );
+        }
         return image;
     }
 

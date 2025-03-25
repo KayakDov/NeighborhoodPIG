@@ -10,7 +10,6 @@ import jcuda.jcublas.cublasFillMode;
 import jcuda.jcublas.cublasOperation;
 import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaError;
-import jcuda.runtime.cudaPitchedPtr;
 
 /**
  *
@@ -29,7 +28,7 @@ public interface Array extends AutoCloseable {
      */
     public static void recordMemAloc(Pointer p) {
         allocatedArrays.add(p);
-        System.out.println("JCudaWrapper.array.Array.recordMemAloc() " + p.toString());
+//        System.out.println("JCudaWrapper.array.Array.recordMemAloc() " + p.toString());
     }
 
     /**
