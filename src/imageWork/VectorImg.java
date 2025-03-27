@@ -9,6 +9,7 @@ import ij.ImageStack;
 import ij.process.FloatProcessor;
 import java.awt.Dimension;
 import java.util.Arrays;
+import java.util.stream.IntStream;
 
 /**
  * This class extends {@link Dimensions} and provides functionality to create an
@@ -77,7 +78,7 @@ public class VectorImg extends Dimensions {
 
     /**
      * Constructs a new VectorImg with the specified handle and dimensions.
-     *     
+     *
      * @param dims The dimensions of the image.
      */
     public VectorImg(Dimensions dims) {
@@ -96,40 +97,45 @@ public class VectorImg extends Dimensions {
      */
     public ImagePlus get(FStrideArray3d vecs, FStrideArray3d intensity, int spacing, int vecMag, String[] sourceFileNames) {
 
-        Cube space = new Cube(width + 2, height + 2, depth + 2).scale(spacing);
-        
-        ImageStack stack = new ImageStack(space.width(), space.height());
+        Cube space = new Cube((width - 1) * spacing + vecMag, (height - 1) * spacing + vecMag, (depth - 1) * spacing + vecMag);
 
-        FloatProcessor[] fp = new FloatProcessor[space.depth()];
-        Arrays.setAll(fp, i -> new FloatProcessor(space.width(), space.height()));//TODO: reduce memory impact by going through these 2* width at a time instead of all of them.
+        ImageStack stack = new ImageStack(space.width(), space.height());
+        FloatProcessor[] fp = new FloatProcessor[space.depth() + 1];
+        
+        System.out.println("imageWork.VectorImg.get() A");
+        
+        Arrays.setAll(fp, i -> new FloatProcessor(space.width(), space.height()));
+        
+        System.out.println("imageWork.VectorImg.get() B");
+        
 
         float[] gridIntensity = new float[tensorSize()];
         VecManager gridVecs = new VecManager(tensorSize() * 3);
         float[] vec = new float[3];
 
-        for (int t = 0; t < batchSize; t++) {//TODO: paralellize at this level,  It may be that multiple Handles are needed.
+        for (int t = 0; t < batchSize; t++) {
 
             gridVecs.setFrom(vecs, t);
             intensity.getSubArray(t).get(handle, gridIntensity);
 
             int r = vecMag / 2;
 
-            for (int layer = 0; layer < depth; layer++)
+            for (int layer = 0; layer < depth; layer++) 
                 for (int col = 0; col < width; col++)
                     for (int row = 0; row < height; row++)
                         for (int mag = -r; mag < r; mag++) {
                             gridVecs.get(row, col, layer, vec);
-                            int x = spacing + spacing * col + Math.round(mag * vec[0]),
-                                    y = spacing + spacing * row + Math.round(mag * vec[1]),
-                                    z = spacing + spacing * layer + Math.round(mag * vec[2]);
-                            if (space.contains(x, y, z))
-                                fp[z].setf(x, y, gridIntensity[layer * layerSize() + col * height + row]);
+                            int x = r + spacing * col + Math.round(mag * vec[0]),
+                                    y = r + spacing * row + Math.round(mag * vec[1]),
+                                    z = r + spacing * layer + Math.round(mag * vec[2]);
+                            fp[z].setf(x, y, gridIntensity[layer * layerSize() + col * height + row]);
 
                         }
-            for (int z = 0; z < space.depth(); z++)
-                stack.addSlice(z + " Nematics", fp[z]);
+            
 
         }
+        
+        Arrays.stream(fp).forEach(ip -> stack.addSlice(ip));
 
         ImagePlus image = new ImagePlus("Nematics", stack);
         image.setDimensions(1, depth, batchSize);
