@@ -1,5 +1,6 @@
 package fijiPlugin;
 
+import FijiInput.UserInput;
 import imageWork.ColorHeatMapCreator;
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.resourceManagement.Handle;
@@ -7,8 +8,6 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.io.Opener;
-import ij.plugin.HyperStackConverter;
-import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 import imageWork.GrayScaleHeatMapCreator;
 import imageWork.HeatMapCreator;
@@ -20,7 +19,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 import javax.imageio.ImageIO;
 
 /**
@@ -43,13 +41,13 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * square.
      * @param tolerance How close must a number be to 0 to be considered 0.
      */
-    private NeighborhoodPIG(Handle handle, FStrideArray3d image, String[] sourceFileNames, NeighborhoodDim neighborhoodSize, float tolerance) {
+    private NeighborhoodPIG(Handle handle, FStrideArray3d image, String[] sourceFileNames, UserInput ui) {
         super(handle, image);
 
         this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
 
-        try (Gradient grad = new Gradient(handle, image, neighborhoodSize)) {
-            stm = new StructureTensorMatrix(handle, grad, neighborhoodSize, tolerance);
+        try (Gradient grad = new Gradient(handle, image, ui.neighborhoodSize)) {
+            stm = new StructureTensorMatrix(handle, grad, ui);
         }
     }
 
@@ -164,13 +162,10 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      *
      * @param handle
      * @param imp The imagePlus from which the image data is taken.
-     * @param nRad The radius of a neighborhood. The neighborhood will be a
-     * square and the radius is the distance from the center to the nearest
-     * edge.
-     * @param tolerance Close enough to 0.
+     * @param ui Input submited by the user.
      * @return A neighborhoodPIG.
      */
-    public static NeighborhoodPIG get(Handle handle, ImagePlus imp, NeighborhoodDim nRad, float tolerance) {//TODO: get image names
+    public static NeighborhoodPIG get(Handle handle, ImagePlus imp, UserInput ui) {
 
 //        if (imp.hasImageStack() && imp.getNSlices() == 1 && imp.getNFrames() > 1)
 //            HyperStackConverter.toHyperStack(imp, 1, 1, imp.getNSlices());
@@ -180,8 +175,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
                     handle,
                     gpuImmage,
                     imp.getImageStack().getSliceLabels(),
-                    nRad,
-                    tolerance
+                    ui
             );
         }
 
@@ -193,14 +187,11 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @param handle
      * @param folderPath All images in the folder should have the sameheight and
      * width.
-     * @param nRad The radius of a neighborhood. The neighborhood will be a
-     * square and the radius is the distance from the center to the nearest
-     * edge.
+     * @param ui The input from the user.
      * @param depth
-     * @param tolerance Close enough to 0.
      * @return A neighborhoodPIG.
      */
-    public static NeighborhoodPIG get(Handle handle, String folderPath, int depth, NeighborhoodDim nRad, float tolerance) {
+    public static NeighborhoodPIG get(Handle handle, String folderPath, int depth, UserInput ui) {
         try {
 
             File[] imageFiles = getImageFiles(folderPath);
@@ -213,8 +204,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
                         handle,
                         gpuImage,
                         Arrays.stream(imageFiles).map(File::getName).toArray(String[]::new),
-                        nRad,
-                        tolerance
+                        ui
                 );
             }
         } catch (IOException ex) {
@@ -232,11 +222,12 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @param nRad The radius of a neighborhood. The neighborhood will be a
      * square and the radius is the distance from the center to the nearest
      * edge.
+     * @param ui User set specifications.
      * @param depth
      * @param tolerance Close enough to 0.
      * @return A neighborhoodPIG.
      */
-    public static NeighborhoodPIG getWithIJ(Handle handle, String folderPath, int depth, NeighborhoodDim nRad, float tolerance) {
+    public static NeighborhoodPIG getWithIJ(Handle handle, String folderPath, int depth, UserInput ui) {
 
         ImagePlus ip = imagePlus(folderPath, depth);
         try (FStrideArray3d gpuImage = processImages(handle, ip)) {
@@ -245,8 +236,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
                     handle,
                     gpuImage,
                     new File(folderPath).list(),
-                    nRad,
-                    tolerance
+                    ui
             );
         }
 

@@ -65,7 +65,7 @@ public class FijiPlugin implements PlugIn {
             return;
 
         try (
-                Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, ui.neighborhoodSize, ui.tolerance)) {
+                Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, ui)) {
 
             if (ui.heatMap) {
                 np.getAzimuthalAngles(false, false).printToFiji();
@@ -92,23 +92,21 @@ public class FijiPlugin implements PlugIn {
     public static void defaultRun() {
 
 //        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
-        String imagePath = "images/input/5debugs/";
-        int depth = 9;
-        NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
+        String imagePath = "images/input/5debugs/"; int depth = 9; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 
         float tolerance = 10f; // Default tolerance
 
-        try (Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, neighborhoodSize, tolerance)) {
+        try (Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, UserInput.defaultVals(neighborhoodSize))) {
 
             np.getAzimuthalAngles(true, true).printToFile("images/output/test3/Azimuthal");
 
             if (depth > 1)
                 np.getZenithAngles(true, true).printToFile("images/output/test3/Zenith");
 
-            np.getVectorImg(5, 5).show();
+            np.getVectorImg(8, 6);
 
         }
         System.out.println("NeighborhoodPIG processing complete.");

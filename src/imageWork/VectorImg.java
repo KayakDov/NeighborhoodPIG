@@ -101,13 +101,12 @@ public class VectorImg extends Dimensions {
 
         ImageStack stack = new ImageStack(space.width(), space.height());
         FloatProcessor[] fp = new FloatProcessor[space.depth() + 1];
-        
+
         System.out.println("imageWork.VectorImg.get() A");
-        
+
         Arrays.setAll(fp, i -> new FloatProcessor(space.width(), space.height()));
-        
+
         System.out.println("imageWork.VectorImg.get() B");
-        
 
         float[] gridIntensity = new float[tensorSize()];
         VecManager gridVecs = new VecManager(tensorSize() * 3);
@@ -120,7 +119,7 @@ public class VectorImg extends Dimensions {
 
             int r = vecMag / 2;
 
-            for (int layer = 0; layer < depth; layer++) 
+            IntStream.range(0, depth).parallel().forEach(layer -> {
                 for (int col = 0; col < width; col++)
                     for (int row = 0; row < height; row++)
                         for (int mag = -r; mag < r; mag++) {
@@ -131,10 +130,9 @@ public class VectorImg extends Dimensions {
                             fp[z].setf(x, y, gridIntensity[layer * layerSize() + col * height + row]);
 
                         }
-            
-
+            });
         }
-        
+
         Arrays.stream(fp).forEach(ip -> stack.addSlice(ip));
 
         ImagePlus image = new ImagePlus("Nematics", stack);

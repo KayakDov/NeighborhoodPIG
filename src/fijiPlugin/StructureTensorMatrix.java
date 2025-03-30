@@ -1,5 +1,6 @@
 package fijiPlugin;
 
+import FijiInput.UserInput;
 import JCudaWrapper.array.Float.FArray3d;
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Kernel;
@@ -22,18 +23,16 @@ public class StructureTensorMatrix implements AutoCloseable {
      *
      * @param handle The context.
      * @param grad The pixel intensity gradient of the image.
-     * @param nRad A square window considered a neighborhood around a
-     * point. This is the distance from the center of the square to the nearest
-     * point on the edge.
-     * @param tolerance How close a number be to 0 to be considered 0.
+     * @param ui User selected specifications.
+     * 
      */
-    public StructureTensorMatrix(Handle handle, Gradient grad, NeighborhoodDim nRad, float tolerance) {
+    public StructureTensorMatrix(Handle handle, Gradient grad, UserInput ui) {
 
         this.handle = handle;
 
-        eigen = new Eigan(handle, grad, tolerance);
+        eigen = new Eigan(handle, grad, ui.inverseRes, ui.tolerance);
 
-        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, nRad, grad.x[0])) {
+        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, ui.neighborhoodSize, grad.x[0])) {
             for (int i = 0; i < 3; i++)
                 for (int j = i; j < 3; j++)
                     nps.set(grad.x[i], grad.x[j], eigen.at(i, j));
@@ -47,9 +46,9 @@ public class StructureTensorMatrix implements AutoCloseable {
 
         setVecs0ToPi();
         unitizeVecs();
-        setCoherence(tolerance);
+        setCoherence(ui.tolerance);
                 
-        setOrientations(tolerance);
+        setOrientations(ui.tolerance);
     }
 
     /**

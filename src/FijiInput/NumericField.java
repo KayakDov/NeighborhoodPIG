@@ -25,7 +25,7 @@ public class NumericField extends Field{
      * The user selected value.
      * @return The user selected value.
      */
-    public float getVal() {
+    public float val() {
         return Float.parseFloat(((java.awt.TextField) gd.getNumericFields().get(index)).getText());
     }
 }

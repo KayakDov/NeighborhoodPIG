@@ -49,6 +49,12 @@ public class UserInput {
     public final float tolerance;
 
     /**
+     * 1 in every how many pixels has its structure tensor eiganvector computed
+     * computed.
+     */
+    public final int inverseRes;
+
+    /**
      * Constructs a UserInput object with the specified parameters.
      *
      * @param neighborhoodSize The dimensions of the neighborhood.
@@ -59,7 +65,7 @@ public class UserInput {
      * @param vfMag The magnitude of the vectors in the vector field.
      * @param tolerance The tolerance value.
      */
-    private UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, boolean useCoherence, int vfSpacing, int vfMag, float tolerance) {
+    private UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, boolean useCoherence, int vfSpacing, int vfMag, float tolerance, int inverseRes) {
         this.neighborhoodSize = neighborhoodSize;
         this.heatMap = heatMap;
         this.vectorField = vectorField;
@@ -67,6 +73,7 @@ public class UserInput {
         this.vfSpacing = vfSpacing;
         this.vfMag = vfMag;
         this.tolerance = tolerance;
+        this.inverseRes = inverseRes;
     }
 
     /**
@@ -77,24 +84,27 @@ public class UserInput {
      * @throws UserCanceled If the user cancels the dialog box.
      */
     public static UserInput fromDiolog(ImagePlus imp) throws UserCanceled {
-        
+
         boolean hasZ = imp.getNSlices() > 1;
-        
+
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
         NumericField layerDist = new NumericField("Distance between layers as a multiple of the distance between pixels:", 1, gd);
         NumericField xyR = new NumericField("Neighborhood xy radius:", 30, gd);
         NumericField zR = null;
-        if (hasZ) zR = new NumericField("Neighborhood z radius:", 1, gd);
+        if (hasZ)
+            zR = new NumericField("Neighborhood z radius:", 1, gd);
         BooleanField heatmap = new BooleanField("heatmap", true, gd);
         BooleanField vector = new BooleanField("vector field", false, gd);
         BooleanField coherence = new BooleanField("generate coherence", false, gd);
-        
+        NumericField inverseRes = new NumericField("Inverse Resolution:", 1, gd);
+
         gd.showDialog();
-        
-        if (gd.wasCanceled()) throw new UserCanceled();
+
+        if (gd.wasCanceled())
+            throw new UserCanceled();
 
         NumericField spacing = null, mag = null;
-        
+
         if (vector.is()) {
             GenericDialog vfDialog = new GenericDialog("Vector Field Parameters");
             spacing = new NumericField("Vector Field Spacing:", 8, vfDialog);
@@ -102,18 +112,26 @@ public class UserInput {
             vfDialog.showDialog();
         }
 
-        
         return new UserInput(
-                new NeighborhoodDim((int) xyR.getVal(), hasZ ?  (int)zR.getVal(): 0, (int)layerDist.getVal()),
+                new NeighborhoodDim((int) xyR.val(), hasZ ? (int) zR.val() : 0, (int) layerDist.val()),
                 heatmap.is(),
                 vector.is(),
                 coherence.is(),
-                vector.is()?(int)spacing.getVal():0,
-                vector.is()?(int)mag.getVal():0,
-                1
+                vector.is() ? (int) spacing.val() : 0,
+                vector.is() ? (int) mag.val() : 0,
+                1,
+                (int) inverseRes.val()
         );
     }
 
+    /**
+     * Some default values for testing purposes.
+     * @return 
+     */
+    public static UserInput defaultVals(NeighborhoodDim nd){
+        return new UserInput(nd, true, false, true, 0, 0, 1, 1);
+    }
+    
     /**
      * Checks if the parameters are valid.
      *
