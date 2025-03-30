@@ -1,5 +1,7 @@
 package fijiPlugin;
 
+import FijiInput.UserCanceled;
+import FijiInput.UserInput;
 import JCudaWrapper.array.Array;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
@@ -7,6 +9,8 @@ import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 import ij.process.ImageConverter;
 import ij3d.Image3DUniverse;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -40,23 +44,6 @@ public class FijiPlugin implements PlugIn {
         return true;
     }
 
-    /**
-     * Checks if the parameters are valid.
-     *
-     * @param nRad The neighborhood radius.
-     * @param tol The tolerance.
-     * @return true if the parameters are valid, false otherwise.
-     */
-    private static boolean validParamaters(int nRad) {
-
-        if (nRad < 0) {
-            ij.IJ.showMessage("Neighborhood size must be a positive number.");
-            return false;
-        }
-
-        return true;
-    }
-
     @Override
     public void run(String string) {
 
@@ -67,35 +54,30 @@ public class FijiPlugin implements PlugIn {
         if (!validImage(imp))
             return;
 
-        GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
-        gd.addNumericField("Distance between layers as a multiple of the distance between pixels:", 1, 2);
-        gd.addNumericField("Neighborhood xy radius:", 30, 2);
-        if (imp.getNSlices() > 1)
-            gd.addNumericField("Neighborhood z radius:", 1, 2);
-        gd.addCheckbox("generate coherence", false);
-        gd.showDialog();
-
-        if (gd.wasCanceled())
+        UserInput ui;
+        try {
+            ui = UserInput.fromDiolog(imp);
+        } catch (UserCanceled ex) {
             return;
+        }
 
-        float layerDist = (float) gd.getNextNumber();
-
-        NeighborhoodDim neighborhoodSize = new NeighborhoodDim((int) gd.getNextNumber(), imp.getNSlices() > 1 ? (int) gd.getNextNumber() : 0, layerDist);
-        boolean useCoherence = (boolean) gd.getNextBoolean();
-
-        if (!validParamaters(neighborhoodSize.xyR) || !validParamaters(neighborhoodSize.zR))
+        if (!ui.validParamaters())
             return;
 
         try (
-                Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, neighborhoodSize, 1)) {
+                Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, ui.neighborhoodSize, ui.tolerance)) {
 
-            np.getAzimuthalAngles(false, false).printToFiji();
+            if (ui.heatMap) {
+                np.getAzimuthalAngles(false, false).printToFiji();
 
-            if (imp.getNSlices() > 1)
-                np.getZenithAngles(false, false).printToFiji();
+                if (imp.getNSlices() > 1)
+                    np.getZenithAngles(false, false).printToFiji();
+            }
 
-            np.getVectorImg(20, 8).show();
-            if (useCoherence)
+            if (ui.vectorField)
+                np.getVectorImg(20, 8).show();
+
+            if (ui.useCoherence)
                 np.getAzimuthalAngles(false, true).printToFiji();
 
             ij.IJ.showMessage("NeighborhoodPIG processing complete.");
@@ -107,8 +89,8 @@ public class FijiPlugin implements PlugIn {
     /**
      * The main to be run if there are no command line arguments.
      */
-    public static void defaultRun(){
-        
+    public static void defaultRun() {
+
 //        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
         String imagePath = "images/input/5debugs/";
         int depth = 9;
@@ -135,14 +117,13 @@ public class FijiPlugin implements PlugIn {
             throw new RuntimeException("Neighborhood PIG has a GPU memory leak.");
 
     }
-    
-    
+
     public static void main(String[] args) {
-        if(args.length == 0){
+        if (args.length == 0) {
             defaultRun();
             return;
         }
-        
+
     }
 
 }

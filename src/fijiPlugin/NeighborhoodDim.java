@@ -24,4 +24,11 @@ public class NeighborhoodDim {
         this.layerRes = distBetweenAdjLayer;
     }
 
+    /**
+     * Checks if the values stored here are valid.
+     * @return True if all values are positive.
+     */
+    public boolean valid(){
+        return xyR > 0 && zR > 0 && layerRes > 0;
+    }
 }
