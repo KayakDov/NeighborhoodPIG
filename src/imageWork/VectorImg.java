@@ -102,17 +102,13 @@ public class VectorImg extends Dimensions {
         ImageStack stack = new ImageStack(space.width(), space.height());
         FloatProcessor[] fp = new FloatProcessor[space.depth() + 1];
 
-        System.out.println("imageWork.VectorImg.get() A");
-
         Arrays.setAll(fp, i -> new FloatProcessor(space.width(), space.height()));
-
-        System.out.println("imageWork.VectorImg.get() B");
 
         float[] gridIntensity = new float[tensorSize()];
         VecManager gridVecs = new VecManager(tensorSize() * 3);
         float[] vec = new float[3];
 
-        for (int t = 0; t < batchSize; t++) {
+        IntStream.range(0, batchSize).parallel().forEach( t -> {
 
             gridVecs.setFrom(vecs, t);
             intensity.getSubArray(t).get(handle, gridIntensity);
@@ -131,7 +127,8 @@ public class VectorImg extends Dimensions {
 
                         }
             });
-        }
+        });
+        
 
         Arrays.stream(fp).forEach(ip -> stack.addSlice(ip));
 
@@ -140,14 +137,4 @@ public class VectorImg extends Dimensions {
         return image;
     }
 
-    /**
-     * Guaranteed to throw an exception. TODO: implement this method.
-     *
-     * @throws UnsupportedOperationException always
-     * @deprecated Unsupported operation.
-     */
-    @Override
-    public void close() throws Exception {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
 }

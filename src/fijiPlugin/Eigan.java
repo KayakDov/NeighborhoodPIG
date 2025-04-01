@@ -15,6 +15,7 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
 
     private final Handle handle;
     private final float tolerance;
+    private int downsampleFactorXY;
 
     /**
      * Each layer in this matrix is for a different pixel, in column major
@@ -35,8 +36,16 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
      */
     public final FStrideArray3d vectors1;
 
-    public Eigan(Handle handle, Dimensions dim, float tolerance) {
+    /**
+     *
+     * @param handle
+     * @param dim
+     * @param downSampleFactorXY 1 in every how many pixels get evaluated in the x and y dimensions.
+     * @param tolerance
+     */
+    public Eigan(Handle handle, Dimensions dim, int downSampleFactorXY, float tolerance) {
         super(dim);
+        this.downsampleFactorXY = downSampleFactorXY;
         this.handle = handle;
         this.tolerance = tolerance;
         mat = new FStrideArray3d[3][3];
@@ -44,7 +53,7 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
             for (int j = i; j < 3; j++)
                 mat[j][i] = mat[i][j] = dim.empty();
 
-        values = new FStrideArray3d(dim.height * 3, dim.width, dim.depth, dim.batchSize);
+        values = new FStrideArray3d((dim.height/downSampleFactorXY) * 3, dim.width/downSampleFactorXY, dim.depth, dim.batchSize);
         vectors1 = values.copyDim();
 
     }
@@ -80,7 +89,8 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
                 P.to(values),
                 P.to(values.ld()),
                 P.to(values.entriesPerLine()),
-                P.to(tolerance)
+                P.to(tolerance),
+                P.to(downsampleFactorXY)
         );
         
         
@@ -94,7 +104,7 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
      */
     public final Eigan setEiganVectors() {
 
-        try (IStrideArray3d pivotFlags = new IStrideArray3d(height * 3, width, depth, batchSize)) {
+        try (IStrideArray3d pivotFlags = new IStrideArray3d(values.entriesPerLine(), values.linesPerLayer(), values.layersPerGrid(), values.batchSize)) {//TODO: this should probably use downsample size to be smaller.
 
             Kernel.run("eigenVecBatch3x3", handle,
                     size(),
@@ -118,9 +128,11 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
                     P.to(pivotFlags.ld()),
                     P.to(pivotFlags.entriesPerLine()),
                     
-                    P.to(tolerance)
+                    P.to(tolerance),
+                    P.to(downsampleFactorXY)
             );
         }
+        
         return this;
     }
 

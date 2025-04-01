@@ -5,8 +5,9 @@ class Val{
 private:
     const int height;
     const int idx;
+    const int downsampleFactorXY;
 public:
-    __device__ Val(int idx, int height): idx(idx), height(height){}
+    __device__ Val(const int idx, const int height, const int downsampleFactorXY): idx(idx), height(height), downsampleFactorXY(downsampleFactorXY){}
     /**
      * Retrieves a value from a column-major order matrix.
      *
@@ -14,8 +15,8 @@ public:
      * @param ld The leading dimension (stride between columns in memory).
      * @return The value at the corresponding column-major index.
      */
-    __device__ float get(const float* src, int ld) const{
-	return src[(idx / height) * ld + (idx % height)];
+    __device__ float get(const float* src, const int ld) const{
+	return src[(downsampleFactorXY * (idx / height)) * ld + downsampleFactorXY * (idx % (height/downsampleFactorXY))];
     }
 };
 
@@ -173,11 +174,12 @@ __device__ void cubicRoot(const float& b, const float& c, const float& d, const 
 /**
  * CUDA Kernel to compute eigenvalues of a batch of 3x3 symmetric matrices.
  *
- * @param n Number of matrices.
+ * @param n Number of matrices fordownsampleFactorXY = 1, even if it's not.
  * @param srcHeight Height of the input matrices.
  * @param dst Pointer to the output eigenvalues.
  * @param ldDst Leading dimension of output.
  * @param tolerance Numerical tolerance for root computation.
+ * @param 1 of every how many structure tensors should be evaluated in the x and y dimensions.
  */
 extern "C" __global__ void eigenValsBatchKernel(
     const int n, 
@@ -189,13 +191,14 @@ extern "C" __global__ void eigenValsBatchKernel(
     const float* zz, const int ldzz, 
     const int srcHeight, 
     float* dst, const int ldDst, int heightDst, 
-    float tolerance
+    const float tolerance,
+    const int downsampleFactorXY
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx >= n) return;
+    if (idx >= n/downsampleFactorXY/downsampleFactorXY) return;
     
-    Val src(idx, srcHeight);
+    Val src(idx, srcHeight, downsampleFactorXY);
     
     Matrix3x3 matrix(
     	src.get(xx, ldxx), 

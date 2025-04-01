@@ -30,7 +30,7 @@ public class StructureTensorMatrix implements AutoCloseable {
 
         this.handle = handle;
 
-        eigen = new Eigan(handle, grad, ui.inverseRes, ui.tolerance);
+        eigen = new Eigan(handle, grad, ui.downsampleFactorXY, ui.tolerance);
 
         try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, ui.neighborhoodSize, grad.x[0])) {
             for (int i = 0; i < 3; i++)
@@ -40,9 +40,9 @@ public class StructureTensorMatrix implements AutoCloseable {
         
         eigen.setEigenVals().setEiganVectors();
 
-        azimuth = grad.copyDim();
-        zenith = grad.copyDim();
-        coherence = grad.copyDim();
+        azimuth = new FStrideArray3d(eigen.vectors1.entriesPerLine()/3, eigen.vectors1.linesPerLayer(), eigen.vectors1.layersPerGrid(), eigen.vectors1.batchSize);
+        zenith = azimuth.copyDim();
+        coherence = azimuth.copyDim();
 
         setVecs0ToPi();
         unitizeVecs();

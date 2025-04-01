@@ -14,8 +14,9 @@ class Get{
 private:
     const int height;
     const int idx;
+    const int downSampleFactorXY;
 public:
-    __device__ Get(const int idx, const int height): idx(idx), height(height){}
+    __device__ Get(const int idx, const int height, const int downSampleFactorXY): idx(idx), height(height), downSampleFactorXY(downSampleFactorXY){}
     
     /**
      * @brief Retrieves a value from a column-major order matrix.
@@ -45,7 +46,7 @@ public:
      * @return The computed column-major index.
      */
     __device__ int ind(const int height, const int ld) const{
-		return (idx / height) * ld + idx % height;
+		return (downSampleFactorXY * (idx / height)) * ld + downSampleFactorXY * (idx % (height / downSampleFactorXY));
     }
     
     /**
@@ -148,15 +149,15 @@ public:
     /**
      * @brief Constructor for Matrix.
      * @param xx, xy, xz, yy, yz, zz Matrix elements.
-     * @param eigenVal Eigenvalue for computation.
+     * @param eVal Eigenvalue for computation.
      * @param isPivot Pointer to pivot flag array.
      * @param tolerance Numerical tolerance for pivot detection.
      */
-    __device__ Matrix(float xx, float xy, float xz, float yy, float yz, float zz, float eigenVal, int* isPivot, float tolerance) 
+    __device__ Matrix(float xx, float xy, float xz, float yy, float yz, float zz, float eVal, int* isPivot, float tolerance) 
     : isPivot(isPivot), tolerance(tolerance) {
-        mat[0][0] = xx - eigenVal; mat[0][1] = xy; mat[0][2] = xz;
-        mat[1][0] = xy; mat[1][1] = yy - eigenVal; mat[1][2] = yz;
-        mat[2][0] = xz; mat[2][1] = yz; mat[2][2] = zz - eigenVal;
+        mat[0][0] = xx - eVal; mat[0][1] = xy; mat[0][2] = xz;
+        mat[1][0] = xy; mat[1][1] = yy - eVal; mat[1][2] = yz;
+        mat[2][0] = xz; mat[2][1] = yz; mat[2][2] = zz - eVal;
     }
 
 
@@ -261,7 +262,7 @@ public:
  * @param ldsrc Leading dimension of the source matrices.
  * @param eVectors Pointer to the resulting eigenvectors.
  * @param width Number of columns in each matrix.
- * @param eigenValues Pointer to all the eigenValues, including those that will not be used.  Be sure to increment valIndex over multiple runs of this kernel so that they are all used.
+ * @param eValues Pointer to all the eValues, including those that will not be used.  Be sure to increment valIndex over multiple runs of this kernel so that they are all used.
  * @param workspacePivotFlags Pointer to workspace memory for pivot flags.
  * @param tolerance Tolerance for row echelon pivot detection.
  * @param ldEVec the leading dimension of the eigen vectors.
@@ -282,27 +283,27 @@ extern "C" __global__ void eigenVecBatch3x3Kernel(
      const int ldEVec,
      const int heightEVec,
          
-     const float* eigenValues,
+     const float* eValues,
      const int ldEVal,
      const int heightEVal,
      
      int* workspacePivotFlags,
      const int ldPivot,
      const int heightPivot, 
-     
-     
-     const float tolerance
+          
+     const float tolerance,
+     const int downSampleFactorXY
 ) {    
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= batchSize) return;
+    if (idx >= batchSize/downSampleFactorXY/downSampleFactorXY) return;
     
-    Get getx3(3*idx, heightEVal);
+    Get getx3(3*idx, heightEVal, 1);
     
     int* isPivot = workspacePivotFlags + getx3.ind(heightPivot, ldPivot);    
     
-    float eigenVal = getx3.val(eigenValues, ldEVal);    
+    float eVal = getx3.val(eValues, ldEVal);    
     
-    Get get(idx, srcHeight);
+    Get get(idx, srcHeight, downSampleFactorXY);
     Matrix mat(
         get.val(xx, ldxx), 
         get.val(xy, ldxy), 
@@ -310,10 +311,15 @@ extern "C" __global__ void eigenVecBatch3x3Kernel(
         get.val(yy, ldyy), 
         get.val(yz, ldyz), 
         get.val(zz, ldzz),
-        eigenVal,
-        isPivot, 
-		tolerance
+        eVal,
+        isPivot,
+        tolerance
     );
+    
+    if(idx == 1) {
+	mat.print();
+	printf("eVal = %f\n", eVal);
+    }
     
     float* eVec = eVectors + getx3.ind(heightEVec, ldEVec);
     int numFreeVariables = mat.rowEchelon();

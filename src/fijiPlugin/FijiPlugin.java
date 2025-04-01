@@ -5,12 +5,8 @@ import FijiInput.UserInput;
 import JCudaWrapper.array.Array;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
-import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 import ij.process.ImageConverter;
-import ij3d.Image3DUniverse;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -91,13 +87,11 @@ public class FijiPlugin implements PlugIn {
      */
     public static void defaultRun() {
 
-//        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
-        String imagePath = "images/input/5debugs/"; int depth = 9; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
+        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
+//        String imagePath = "images/input/5debugs/"; int depth = 9; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
-
-        float tolerance = 10f; // Default tolerance
 
         try (Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, UserInput.defaultVals(neighborhoodSize))) {
 

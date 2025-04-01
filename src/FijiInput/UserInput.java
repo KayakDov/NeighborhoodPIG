@@ -50,9 +50,9 @@ public class UserInput {
 
     /**
      * 1 in every how many pixels has its structure tensor eiganvector computed
-     * computed.
+     * computed in the X any Y dimensions.
      */
-    public final int inverseRes;
+    public final int downsampleFactorXY;
 
     /**
      * Constructs a UserInput object with the specified parameters.
@@ -73,7 +73,7 @@ public class UserInput {
         this.vfSpacing = vfSpacing;
         this.vfMag = vfMag;
         this.tolerance = tolerance;
-        this.inverseRes = inverseRes;
+        this.downsampleFactorXY = inverseRes;
     }
 
     /**
@@ -88,16 +88,22 @@ public class UserInput {
         boolean hasZ = imp.getNSlices() > 1;
 
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
-        NumericField layerDist = new NumericField("Distance between layers as a multiple of the distance between pixels:", 1, gd);
+        
+        
         NumericField xyR = new NumericField("Neighborhood xy radius:", 30, gd);
-        NumericField zR = null;
-        if (hasZ)
-            zR = new NumericField("Neighborhood z radius:", 1, gd);
+        
         BooleanField heatmap = new BooleanField("heatmap", true, gd);
         BooleanField vector = new BooleanField("vector field", false, gd);
         BooleanField coherence = new BooleanField("generate coherence", false, gd);
-        NumericField inverseRes = new NumericField("Inverse Resolution:", 1, gd);
+        NumericField inverseRes = new NumericField("Downsample Factor XY:", 1, gd);
 
+        NumericField layerDist = null;
+        NumericField zR = null;
+        if (hasZ){
+            zR = new NumericField("Neighborhood z radius:", 1, gd);
+            layerDist = new NumericField("Distance between layers as a multiple of the distance between pixels:", 1, gd);
+        }
+        
         gd.showDialog();
 
         if (gd.wasCanceled())
@@ -108,28 +114,29 @@ public class UserInput {
         if (vector.is()) {
             GenericDialog vfDialog = new GenericDialog("Vector Field Parameters");
             spacing = new NumericField("Vector Field Spacing:", 8, vfDialog);
-            mag = new NumericField("Vector Field Magnitude:", 6, vfDialog);
+            mag = new NumericField("Vector Magnitude:", 6, vfDialog);
             vfDialog.showDialog();
         }
 
         return new UserInput(
-                new NeighborhoodDim((int) xyR.val(), hasZ ? (int) zR.val() : 0, (int) layerDist.val()),
+                new NeighborhoodDim((int) xyR.val(), hasZ ? (int) zR.val() : 0, hasZ? (int) layerDist.val(): 1),
                 heatmap.is(),
                 vector.is(),
                 coherence.is(),
                 vector.is() ? (int) spacing.val() : 0,
                 vector.is() ? (int) mag.val() : 0,
-                1,
+                10f,
                 (int) inverseRes.val()
         );
     }
 
     /**
      * Some default values for testing purposes.
+     * @param nd The neighborhood dimensions.
      * @return 
      */
     public static UserInput defaultVals(NeighborhoodDim nd){
-        return new UserInput(nd, true, false, true, 0, 0, 1, 1);
+        return new UserInput(nd, true, false, true, 0, 0, 10f, 1);
     }
     
     /**

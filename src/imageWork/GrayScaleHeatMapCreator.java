@@ -8,6 +8,7 @@ import ij.process.FloatProcessor;
 import ij.io.FileSaver;
 import ij.plugin.HyperStackConverter;
 import java.io.File;
+import java.util.stream.IntStream;
 
 /**
  * A class for creating grayscale images from tensor data.
@@ -53,12 +54,13 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
      * @return The image plus for this image.
      */
     private ImagePlus getIP() {
-        ImageStack stack = new ImageStack(width, height);        
+        ImageStack stack = new ImageStack(width, height);
 
-        for (int t = 0; t < batchSize; t++) {
-            int frameInd = t * width * height * depth;            
-            for (int z = 0; z < depth; z++) {
-                
+        IntStream.range(0, batchSize).parallel().forEach(t -> {
+            int frameInd = t * width * height * depth;
+            
+            IntStream.range(0, depth).parallel().forEach(z -> {
+
                 FloatProcessor fp = new FloatProcessor(width, height);
                 int layerInd = frameInd + z * width * height;
 
@@ -71,8 +73,8 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
                         sliceNames[z],
                         fp
                 );
-            }
-        }
+            });
+        });
 
         return setToHyperStack(new ImagePlus(stackName, stack));
     }
@@ -97,11 +99,4 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
         saver.saveAsTiff(filePath);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void close() throws Exception {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
 }

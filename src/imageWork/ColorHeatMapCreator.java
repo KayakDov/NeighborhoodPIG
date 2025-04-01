@@ -192,9 +192,4 @@ public class ColorHeatMapCreator extends HeatMapCreator {
         return image;
     }
 
-    @Override
-    public void close() throws Exception {
-
-    }
-
 }

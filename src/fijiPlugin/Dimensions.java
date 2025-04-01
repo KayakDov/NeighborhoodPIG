@@ -18,7 +18,7 @@ import JCudaWrapper.resourceManagement.Handle;
  *
  * @author E.Dov Neimand
  */
-public abstract class Dimensions implements AutoCloseable{
+public class Dimensions{
 
     /**
      * The height (number of rows) of the tensor.
@@ -156,5 +156,6 @@ public abstract class Dimensions implements AutoCloseable{
     public FStrideArray3d empty(){
         return new FStrideArray3d(height, width, depth, batchSize);
     }
+    
 
 }
