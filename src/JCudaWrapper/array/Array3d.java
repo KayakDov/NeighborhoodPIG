@@ -53,30 +53,31 @@ public abstract class Array3d extends LineArray implements Array {
 
         this.layersPerGrid = numLayers;
         opCheck(JCuda.cudaMalloc3D(
-                pointer, 
+                pointer,
                 new cudaExtent(entriesPerLine * bytesPerEntry, linesPerLayer, numLayers))
         );
         Array.recordMemAloc(pointer.ptr);
     }
 
     /**
-     * Constructs a sub array.
+     * Constructs a sub array. This sub array will have the same number of lines
+     * per layer as this array, but may have other dimensions modified. This is
+     * because a 3d array is essentially a line array.
      *
      * @param from The array this one is to be a sub array of.
-     * @param startLine The index of first line on each layer to start this 3d
-     * array.
-     * @param numLines The number of lines on each layer.
      * @param startEntry The index of the first entry on each line.
-     * @param numEntryPerLine The number of entries on each line.
+     * @param entryPerLine The number of entries on each line.
      * @param startLayer The index of the first layer.
      * @param numLayers The number of layers.
      */
-    protected Array3d(LineArray from, int startLine, int numLines, int startEntry, int numEntryPerLine, int startLayer, int numLayers) {
-        super(from, startEntry, numEntryPerLine, startLine, numLines);
+    protected Array3d(LineArray from, int startEntry, int entryPerLine, int startLayer, int numLayers) {
+        super(from, 
+                startEntry, entryPerLine, 
+                startLayer * from.linesPerLayer(), from.linesPerLayer());
 
         this.layersPerGrid = numLayers;
 
-        this.pointer.ptr = from.pointer(startEntry + (startLine + startLayer * linesPerLayer()) * ld());
+        this.pointer.ptr = from.pointer(startEntry + startLayer * linesPerLayer() * ld());
     }
 
     /**
@@ -249,16 +250,13 @@ public abstract class Array3d extends LineArray implements Array {
     /**
      * Constructs a sub array.
      *
-     * @param startLine The index of first line on each layer to start this 3d
-     * array.
-     * @param numLines The number of lines on each layer.
      * @param startEntry The index of the first entry on each line.
      * @param numEntryPerLine The number of entries on each line.
      * @param startLayer The index of the first layer.
      * @param numLayers The number of layers.
      * @return A sub array of this array.
      */
-    abstract public Array3d sub(int startEntry, int numEntryPerLine, int startLine, int numLines, int startLayer, int numLayers);
+    abstract public Array3d sub(int startEntry, int numEntryPerLine, int startLayer, int numLayers);
 
     /**
      * The layer at the given index.
@@ -267,7 +265,7 @@ public abstract class Array3d extends LineArray implements Array {
      * @return The layer at the given index.
      */
     public Array2d layer(int index) {
-        return sub(0, entriesPerLine(), 0, linesPerLayer(), index, index + 1).as2d();
+        return sub(0, entriesPerLine(), index, index + 1).as2d();
     }
 
     /**

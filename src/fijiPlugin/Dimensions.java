@@ -1,6 +1,5 @@
 package fijiPlugin;
 
-import JCudaWrapper.array.Double.DStrideArray3d;
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.resourceManagement.Handle;
 
@@ -36,11 +35,6 @@ public class Dimensions{
     public final int depth;
 
     /**
-     * The stride size (distance between elements in memory).
-     */
-    public final int strideSize;
-
-    /**
      * The batch size (number of tensors in a batch).
      */
     public final int batchSize;
@@ -56,37 +50,20 @@ public class Dimensions{
      * @param width The width (number of columns) of the tensor.
      * @param depth The depth (number of layers) of the tensor.
      * @param layerDist The distance between consecutive layers in memory.
-     * @param strideSize The stride size (distance between elements in memory).
      * @param batchSize The number of tensors in a batch.
      */
-    public Dimensions(Handle handle, int height, int width, int depth, int layerDist, int strideSize, int batchSize) {
+    public Dimensions(Handle handle, int height, int width, int depth, int batchSize) {
         this.handle = handle;
         this.height = height;
         this.width = width;
         this.depth = depth;
-        this.strideSize = strideSize;
         this.batchSize = batchSize;
 
         if ((long) width * height * depth * batchSize > Integer.MAX_VALUE)
             throw new IllegalArgumentException("Image size exceeds array limit.");
 
     }
-    
-    /**
-     * Constructs a new TensorOrd3dStrideDim with the specified dimensions,
-     * strides, and batch size.
-     *
-     * @param handle The handle.
-     * @param height The height (number of rows) of the tensor.
-     * @param width The width (number of columns) of the tensor.
-     * @param depth The depth (number of layers) of the tensor.
-     * @param batchSize The number of tensors in a batch.
-     */
-    public Dimensions(Handle handle, int height, int width, int depth, int batchSize) {
-        this(handle, height, width, depth, height*width, height*width*depth, batchSize);
-    }
-
-    
+        
     /**
      * Copy constructor.
      *
@@ -141,7 +118,6 @@ public class Dimensions{
                 + "height =" + height
                 + ", width =" + width
                 + ", depth =" + depth
-                + ", strideSize =" + strideSize
                 + ", batchSize =" + batchSize
                 + ", layerSize =" + layerSize()
                 + ", tensorSize =" + tensorSize()

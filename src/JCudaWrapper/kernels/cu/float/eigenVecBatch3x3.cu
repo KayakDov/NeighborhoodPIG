@@ -16,7 +16,7 @@ private:
     const int idx;
     const int downSampleFactorXY;
 public:
-    __device__ Get(const int idx, const int height, const int downSampleFactorXY): idx(idx), height(height), downSampleFactorXY(downSampleFactorXY){}
+    __device__ Get(const int idx, const int height, const int downSampleFactorXY): idx(idx * downSampleFactorXY), height(height), downSampleFactorXY(downSampleFactorXY){}
     
     /**
      * @brief Retrieves a value from a column-major order matrix.
@@ -46,7 +46,7 @@ public:
      * @return The computed column-major index.
      */
     __device__ int ind(const int height, const int ld) const{
-		return (downSampleFactorXY * (idx / height)) * ld + downSampleFactorXY * (idx % (height / downSampleFactorXY));
+		return downSampleFactorXY * (idx / height) * ld + idx % height;
     }
     
     /**
@@ -315,11 +315,6 @@ extern "C" __global__ void eigenVecBatch3x3Kernel(
         isPivot,
         tolerance
     );
-    
-    if(idx == 1) {
-	mat.print();
-	printf("eVal = %f\n", eVal);
-    }
     
     float* eVec = eVectors + getx3.ind(heightEVec, ldEVec);
     int numFreeVariables = mat.rowEchelon();

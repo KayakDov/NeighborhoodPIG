@@ -47,7 +47,7 @@ public class VectorImg extends Dimensions {
          * @param gridIndex The index of the grid to retrieve data from.
          */
         public void setFrom(FStrideArray3d gpuStrideArray, int gridIndex) {
-            gpuStrideArray.getSubArray(gridIndex).get(handle, vecs);
+            gpuStrideArray.getGrid(gridIndex).get(handle, vecs);
         }
 
         /**
@@ -111,7 +111,7 @@ public class VectorImg extends Dimensions {
         IntStream.range(0, batchSize).parallel().forEach( t -> {
 
             gridVecs.setFrom(vecs, t);
-            intensity.getSubArray(t).get(handle, gridIntensity);
+            intensity.getGrid(t).get(handle, gridIntensity);
 
             int r = vecMag / 2;
 

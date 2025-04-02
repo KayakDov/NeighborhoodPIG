@@ -32,7 +32,7 @@ public class IArray3d extends Array3d implements IArray{
      * @deprecated Unsupported operation.
      */
     @Override
-    public Array3d sub(int startEntry, int numEntryPerLine, int startLine, int numLines, int startLayer, int numLayers) {
+    public Array3d sub(int startEntry, int numEntryPerLine, int startLayer, int numLayers) {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 

@@ -40,23 +40,20 @@ public class DArray3d extends Array3d implements DLineArray {
      * Constructs a sub array.
      *
      * @param src The array this one is to be a sub array of.
-     * @param startLine The index of first line on each layer to start this 3d
-     * array.
-     * @param numLines The number of lines on each layer.
      * @param startEntry The index of the first entry on each line.
      * @param numEntryPerLine The number of entries on each line.
      * @param startLayer The index of the first layer.
      * @param numLayers The number of layers.
      */
-    public DArray3d(LineArray src, int startEntry, int numEntryPerLine, int startLine, int numLines, int startLayer, int numLayers) {
-        super(src, startLine, numLines, startEntry, numEntryPerLine, startLayer, numLayers);
+    public DArray3d(LineArray src, int startEntry, int numEntryPerLine, int startLayer, int numLayers) {
+        super(src, startEntry, numEntryPerLine, startLayer, numLayers);
     }
 
     /**
      * {@inheritDoc }
      */
-    public DArray3d sub(int startEntry, int numEntryPerLine, int startLine, int numLines, int startLayer, int numLayers) {
-        return new DArray3d(this, startEntry, numEntryPerLine, startLine, numLines, startLayer, numLayers);
+    public DArray3d sub(int startEntry, int numEntryPerLine, int startLayer, int numLayers) {
+        return new DArray3d(this, startEntry, numEntryPerLine,startLayer, numLayers);
     }
 
     /**

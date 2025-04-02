@@ -99,12 +99,11 @@ public class IStrideArray3d extends IArray3d implements StrideArray {
      * {@inheritDoc }
      */
     @Override
-    public DArray3d getSubArray(int arrayIndex) {
+    public DArray3d getGrid(int arrayIndex) {
         
         return new DArray3d(
                 this,
-                0, entriesPerLine(), 
-                0, linesPerLayer(),
+                0, entriesPerLine(),                 
                 layersPerGrid() * arrayIndex,
                 layersPerGrid()
         );
@@ -128,7 +127,7 @@ public class IStrideArray3d extends IArray3d implements StrideArray {
         StringBuilder sb = new StringBuilder();
 
         for (int i = 0; i < batchSize(); i++)
-            sb.append(getSubArray(i).toString()).append("\n");
+            sb.append(getGrid(i).toString()).append("\n");
         
         return sb.toString();
     }

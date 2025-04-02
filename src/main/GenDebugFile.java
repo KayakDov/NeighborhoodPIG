@@ -17,23 +17,21 @@ import ij.io.Opener;
  */
 public class GenDebugFile {
 
+    public static int[][] blackWithWhiteBorderY(int height, int width, int borderThickness) {
 
-    public static int[][] blackWithWhiteBorderY(int height, int width) {
-        
         int[][] black = new int[height][width];
-        for (int i = 0; i < height; i++)
-            for (int j = 0; j < width; j++)
-                black[i][j] = 0;
 
         for (int i = 0; i < width; i++) {
-            black[0][i] = 255; // left
-            black[height - 1][i] = 255; // right
+            for (int j = 0; j < borderThickness; j++) {
+                black[j][i] = 255;
+                black[height - 1 - j][i] = 255;
+            }
         }
         return black;
     }
-    
+
     public static int[][] blackWithWhiteBorderX(int height, int width) {
-        
+
         int[][] black = new int[height][width];
         for (int i = 0; i < height; i++)
             for (int j = 0; j < width; j++)
@@ -45,33 +43,29 @@ public class GenDebugFile {
         }
         return black;
     }
-    
-    public static int[][] fadeToCorner(int depthDif){
+
+    public static int[][] fadeToCorner(int depthDif) {
         int[][] fadeToCorner = new int[9][9];
-        for(int i = 0; i < 9; i++)
-            for(int j = 0; j < 9; j++)
-                fadeToCorner[i][j] = (int)(255 * Math.sqrt((9 - i) * (9 - i) + (9 - j) * (9 - j) + depthDif*depthDif)/13.0);
+        for (int i = 0; i < 9; i++)
+            for (int j = 0; j < 9; j++)
+                fadeToCorner[i][j] = (int) (255 * Math.sqrt((9 - i) * (9 - i) + (9 - j) * (9 - j) + depthDif * depthDif) / 13.0);
         return fadeToCorner;
     }
-    
-    public static int[][] uniform(int height, int width, int color){
+
+    public static int[][] uniform(int height, int width, int color) {
         int[][] uniform = new int[height][width];
-        for(int i = 0; i < width; i++)
-            for(int j = 0; j < height; j++)
+        for (int i = 0; i < width; i++)
+            for (int j = 0; j < height; j++)
                 uniform[i][j] = color;
         return uniform;
     }
-    
-    
 
     public static void main(String[] args) {
         // Define pixel values for each point in a grid
-        
-        int depth = 9;
-        int[][] pixelValues = fadeToCorner(depth);
 
-        
-        
+        int depth = 1;
+        int[][] pixelValues = blackWithWhiteBorderY(19, 6, 2);
+
         int width = pixelValues[0].length;
         int height = pixelValues.length;
 
@@ -96,20 +90,18 @@ public class GenDebugFile {
             FileSaver saver = new FileSaver(image);
             saver.saveAsPng(saveTo);
             System.out.println("Image saved as: " + saveTo + ": " + height + "x" + width);
-            
+
 //            printPixels(new File(saveTo));
         } catch (Exception e) {
             e.printStackTrace();
         }
-        
-        
+
     }
-    
-    
-    
+
     /**
-     * 
-     * TODO: delete this method.  It is only for debugging.
+     *
+     * TODO: delete this method. It is only for debugging.
+     *
      * @brief Reads an image and prints the pixel intensities to the standard
      * output.
      *

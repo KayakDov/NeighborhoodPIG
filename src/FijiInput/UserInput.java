@@ -52,7 +52,7 @@ public class UserInput {
      * 1 in every how many pixels has its structure tensor eiganvector computed
      * computed in the X any Y dimensions.
      */
-    public final int downsampleFactorXY;
+    public final int downSampleFactorXY;
 
     /**
      * Constructs a UserInput object with the specified parameters.
@@ -73,7 +73,7 @@ public class UserInput {
         this.vfSpacing = vfSpacing;
         this.vfMag = vfMag;
         this.tolerance = tolerance;
-        this.downsampleFactorXY = inverseRes;
+        this.downSampleFactorXY = inverseRes;
     }
 
     /**
@@ -146,5 +146,14 @@ public class UserInput {
      */
     public boolean validParamaters() {
         return neighborhoodSize.valid() && vfSpacing >= 0 && vfMag >= 0 && tolerance > 0;
+    }
+    
+    /**
+     * The greatest multiple of downSample that is less than origSample. 
+     * @param origSample An integer.
+     * @return The greatest multiple of downSample that is less than origSample. 
+     */
+    public int downSample(int origSample){
+        return (origSample/downSampleFactorXY)*downSampleFactorXY;
     }
 }

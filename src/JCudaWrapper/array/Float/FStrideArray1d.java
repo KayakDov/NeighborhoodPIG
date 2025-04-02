@@ -137,7 +137,7 @@ public class FStrideArray1d extends FArray1d implements StrideArray {
      * {@inheritDoc }
      */
     @Override
-    public FArray1d getSubArray(int arrayIndex) {
+    public FArray1d getGrid(int arrayIndex) {
         return new FArray1d(this, arrayIndex * strideLines(), arrayIndex * strideLines() + subArraySize());
     }
 

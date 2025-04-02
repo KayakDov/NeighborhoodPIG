@@ -15,7 +15,7 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
 
     private final Handle handle;
     private final float tolerance;
-    private int downsampleFactorXY;
+    private final int downsampleFactorXY;
 
     /**
      * Each layer in this matrix is for a different pixel, in column major

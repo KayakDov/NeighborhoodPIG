@@ -44,6 +44,9 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
     private NeighborhoodPIG(Handle handle, FStrideArray3d image, String[] sourceFileNames, UserInput ui) {
         super(handle, image);
 
+        if (image.entriesPerLine() % ui.downSampleFactorXY != 0 || image.linesPerLayer() % ui.downSampleFactorXY != 0 )
+            throw new RuntimeException("image height must be divisible by downFactor.  Try cropping it.");
+
         this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
 
         try (Gradient grad = new Gradient(handle, image, ui.neighborhoodSize)) {
@@ -119,17 +122,18 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
 
     /**
      * An image of all the nematic vectors
+     *
      * @param spacing The space between the vectors.
      * @param vecMag The magnitude of the vectors to be drawn.
      * @return An image of all the nematic vectors
      */
     public ImagePlus getVectorImg(int spacing, int vecMag) {
-        
+
         return new VectorImg(new Dimensions(handle, stm.getCoherence())).get(
-                stm.getEigen().vectors1, 
-                stm.getCoherence(), 
-                spacing, 
-                vecMag, 
+                stm.getEigen().vectors1,
+                stm.getCoherence(),
+                spacing,
+                vecMag,
                 sourceFileNames
         );
     }
@@ -198,8 +202,12 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
 
             BufferedImage firstImage = ImageIO.read(imageFiles[0]);
 
-            try (FStrideArray3d gpuImage = processImages(handle, imageFiles, firstImage.getHeight(), firstImage.getWidth(), depth)) {
-
+            int width = ui.downSample(firstImage.getWidth()), 
+                    height = ui.downSample(firstImage.getHeight());
+            
+            
+            try (FStrideArray3d gpuImage = processImages(handle, imageFiles, height, width, depth)) {
+                
                 return new NeighborhoodPIG(
                         handle,
                         gpuImage,
@@ -283,7 +291,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
                         }
                     }
 
-                    processedImage.getSubArray(frame - 1).getLayer(slice - 1).set(handle, columnMajorSlice);
+                    processedImage.getGrid(frame - 1).getLayer(slice - 1).set(handle, columnMajorSlice);
                 }
             }
         }
@@ -330,9 +338,12 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
         for (int i = 0; i < pics.length; i++) {
             try {
 
-                toColMjr(grayScale(ImageIO.read(pics[i])).getData(), imgPixelsColMaj);
+                BufferedImage bi = ImageIO.read(pics[i]);
+                if(width < bi.getWidth() || height < bi.getHeight()) bi = bi.getSubimage(0, 0, width, height);
+                
+                toColMjr(grayScale(bi).getData(), imgPixelsColMaj);
 
-                pixelsGPU.getSubArray(i / depth).getLayer(i % depth).set(handle, imgPixelsColMaj);
+                pixelsGPU.getGrid(i / depth).getLayer(i % depth).set(handle, imgPixelsColMaj);
 
             } catch (IOException e) {
                 throw new IllegalArgumentException("Error reading image file: " + pics[i].getName(), e);

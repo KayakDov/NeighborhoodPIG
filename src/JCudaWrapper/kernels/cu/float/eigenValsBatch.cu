@@ -5,9 +5,9 @@ class Val{
 private:
     const int height;
     const int idx;
-    const int downsampleFactorXY;
+    const int downSampleFactorXY;
 public:
-    __device__ Val(const int idx, const int height, const int downsampleFactorXY): idx(idx), height(height), downsampleFactorXY(downsampleFactorXY){}
+    __device__ Val(const int idx, const int height, const int downSampleFactorXY): idx(idx*downSampleFactorXY), height(height), downSampleFactorXY(downSampleFactorXY){}
     /**
      * Retrieves a value from a column-major order matrix.
      *
@@ -16,7 +16,7 @@ public:
      * @return The value at the corresponding column-major index.
      */
     __device__ float get(const float* src, const int ld) const{
-	return src[(downsampleFactorXY * (idx / height)) * ld + downsampleFactorXY * (idx % (height/downsampleFactorXY))];
+	return src[downSampleFactorXY * (idx / height) * ld + idx % height];
     }
 };
 
@@ -174,7 +174,7 @@ __device__ void cubicRoot(const float& b, const float& c, const float& d, const 
 /**
  * CUDA Kernel to compute eigenvalues of a batch of 3x3 symmetric matrices.
  *
- * @param n Number of matrices fordownsampleFactorXY = 1, even if it's not.
+ * @param n Number of matrices fordownSampleFactorXY = 1, even if it's not.
  * @param srcHeight Height of the input matrices.
  * @param dst Pointer to the output eigenvalues.
  * @param ldDst Leading dimension of output.
@@ -192,13 +192,13 @@ extern "C" __global__ void eigenValsBatchKernel(
     const int srcHeight, 
     float* dst, const int ldDst, int heightDst, 
     const float tolerance,
-    const int downsampleFactorXY
+    const int downSampleFactorXY
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
-    if (idx >= n/downsampleFactorXY/downsampleFactorXY) return;
+    if (idx >= n/downSampleFactorXY/downSampleFactorXY) return;
     
-    Val src(idx, srcHeight, downsampleFactorXY);
+    Val src(idx, srcHeight, downSampleFactorXY);
     
     Matrix3x3 matrix(
     	src.get(xx, ldxx), 

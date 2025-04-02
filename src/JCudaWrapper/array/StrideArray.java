@@ -29,7 +29,7 @@ public interface StrideArray extends Array {
      * @param arrayIndex The stride of the desired subarray.
      * @return The sub array the given stride.
      */
-    public Array getSubArray(int arrayIndex);
+    public Array getGrid(int arrayIndex);
     
     
     /**

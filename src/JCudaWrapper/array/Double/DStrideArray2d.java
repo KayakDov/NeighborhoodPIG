@@ -152,7 +152,7 @@ public class DStrideArray2d extends DArray2d implements StrideArray {
      * {@inheritDoc }
      */
     @Override
-    public DArray2d getSubArray(int arrayIndex) {
+    public DArray2d getGrid(int arrayIndex) {
         return new DArray2d(this, 0, entriesPerLine(), arrayIndex*ld()*linesPerLayer(), linesPerLayer());
     }
 

@@ -1,5 +1,6 @@
 package JCudaWrapper.array.Float;
 
+import JCudaWrapper.array.LineArray;
 import JCudaWrapper.array.StrideArray;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Pointer;
@@ -30,14 +31,19 @@ public class FStrideArray3d extends FArray3d implements StrideArray {
      * Constructs this array from a 1d array.
      *
      * @param src The src array which shares memory with this array.
+     * @param startEntry The index of the first entry within each line.
      * @param entriesPerLine The number of entries in each line.
-     * @param linesPerLayer The number of lines in each layer.
-     * @param layersPerGrid The number of layers in a grid.
      * @param numGrids The number of grids in the batch.
+     * @param startGrid The index of the first grid.
      */
-    public FStrideArray3d(FArray src, int entriesPerLine, int linesPerLayer, int layersPerGrid, int numGrids) {
-        super(src, entriesPerLine, linesPerLayer, layersPerGrid * numGrids);
-        this.strideLines = ld() * linesPerLayer * layersPerGrid;
+    public FStrideArray3d(LineArray src, int startEntry, int entriesPerLine, int startGrid, int numGrids) {
+        super(
+                src,
+                startEntry, entriesPerLine,
+                startGrid * src.layersPerGrid(), numGrids * src.layersPerGrid()
+        );
+
+        this.strideLines = ld() * src.linesPerLayer() * src.layersPerGrid();
         this.batchSize = numGrids;
     }
 
@@ -121,13 +127,12 @@ public class FStrideArray3d extends FArray3d implements StrideArray {
      * {@inheritDoc }
      */
     @Override
-    public FArray3d getSubArray(int arrayIndex) {
-        
+    public FArray3d getGrid(int gridIndex) {
+
         return new FArray3d(
                 this,
-                0, entriesPerLine(), 
-                0, linesPerLayer(),
-                layersPerGrid() * arrayIndex,
+                0, entriesPerLine(),
+                layersPerGrid() * gridIndex,
                 layersPerGrid()
         );
     }
@@ -150,8 +155,8 @@ public class FStrideArray3d extends FArray3d implements StrideArray {
         StringBuilder sb = new StringBuilder();
 
         for (int i = 0; i < batchSize(); i++)
-            sb.append(getSubArray(i).toString()).append("\n");
-        
+            sb.append(getGrid(i).toString()).append("\n");
+
         return sb.toString();
     }
 
@@ -160,9 +165,8 @@ public class FStrideArray3d extends FArray3d implements StrideArray {
      */
     @Override
     public FStrideArray3d set(Handle handle, float... srcCPUArray) {
-        super.set(handle, srcCPUArray); 
+        super.set(handle, srcCPUArray);
         return this;
     }
 
-    
 }

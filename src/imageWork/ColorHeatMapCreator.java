@@ -6,10 +6,8 @@ import JCudaWrapper.array.Int.IStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
-import fijiPlugin.Dimensions;
 import ij.ImagePlus;
 import ij.ImageStack;
-import ij.plugin.HyperStackConverter;
 import ij.process.ColorProcessor;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
@@ -39,7 +37,7 @@ public class ColorHeatMapCreator extends HeatMapCreator {
      */
     public ColorHeatMapCreator(Handle handle, String[] sliceNames, String stackName, FStrideArray3d orientation, FStrideArray3d coherence) {
         super(sliceNames, stackName, handle, orientation);
-        orientation.setProduct(handle, 2, orientation);
+        orientation.setProduct(handle, 2f, orientation);
 
         try (IArray gpuColors = new IStrideArray3d(orientation.entriesPerLine(), orientation.linesPerLayer(), orientation.layersPerGrid(), orientation.batchSize())) {
 
@@ -131,8 +129,6 @@ public class ColorHeatMapCreator extends HeatMapCreator {
 
         ImagePlus imp = new ImagePlus(stackName, stack);
 
-        System.out.println("fijiPlugin.ImageCreator.printToFiji() " + imp.toString());
-
         setToHyperStack(imp).show();
     }
 
@@ -141,12 +137,12 @@ public class ColorHeatMapCreator extends HeatMapCreator {
      *
      * @param writeToFolder The folder where images will be saved.
      */
+    @Override
     public void printToFile(String writeToFolder) {
         // Ensure the folder exists, create it if it doesn't.
         File directory = new File(writeToFolder);
-        if (!directory.exists()) {
-            directory.mkdirs();
-        }
+        if (!directory.exists()) directory.mkdirs();
+        
 
         int[] pixelRGB = new int[3];
 
