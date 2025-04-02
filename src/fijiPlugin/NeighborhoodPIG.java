@@ -173,7 +173,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
 
 //        if (imp.hasImageStack() && imp.getNSlices() == 1 && imp.getNFrames() > 1)
 //            HyperStackConverter.toHyperStack(imp, 1, 1, imp.getNSlices());
-        try (FStrideArray3d gpuImmage = processImages(handle, imp)) {
+        try (FStrideArray3d gpuImmage = processImages(handle, imp, ui)) {
 
             return new NeighborhoodPIG(
                     handle,
@@ -238,7 +238,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
     public static NeighborhoodPIG getWithIJ(Handle handle, String folderPath, int depth, UserInput ui) {
 
         ImagePlus ip = imagePlus(folderPath, depth);
-        try (FStrideArray3d gpuImage = processImages(handle, ip)) {
+        try (FStrideArray3d gpuImage = processImages(handle, ip, ui)) {
 
             return new NeighborhoodPIG(
                     handle,
@@ -259,15 +259,15 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @return A FArray containing the image data in column-major order for all
      * frames, slices, and channels.
      */
-    public final static FStrideArray3d processImages(Handle handle, ImagePlus imp) {
+    public final static FStrideArray3d processImages(Handle handle, ImagePlus imp, UserInput ui) {
         // Convert the image to grayscale if necessary
         if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32) {
             System.out.println("fijiPlugin.NeighborhoodPIG.processImages(): Converting image to grayscale.");
             IJ.run(imp, "32-bit", "");
         }
 
-        int width = imp.getWidth();
-        int height = imp.getHeight();
+        int width = ui.downSample(imp.getWidth());
+        int height = ui.downSample(imp.getHeight());
         int channels = imp.getNChannels();
         int depth = imp.getNSlices();
         int frames = imp.getNFrames();
