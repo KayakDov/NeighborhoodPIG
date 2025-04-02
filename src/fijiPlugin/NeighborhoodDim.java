@@ -29,6 +29,6 @@ public class NeighborhoodDim {
      * @return True if all values are positive.
      */
     public boolean valid(){
-        return xyR > 0 && zR > 0 && layerRes > 0;
+        return xyR >= 0 && zR >= 0 && layerRes >= 0;
     }
 }

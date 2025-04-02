@@ -54,15 +54,18 @@ public class FijiPlugin implements PlugIn {
         try {
             ui = UserInput.fromDiolog(imp);
         } catch (UserCanceled ex) {
+            System.out.println("fijiPlugin.FijiPlugin.run() User canceled diolog.");
             return;
         }
 
-        if (!ui.validParamaters())
+        if (!ui.validParamaters()){
+            System.out.println("fijiPlugin.FijiPlugin.run() Invalid Parameters!");
             return;
+        }
 
         try (
                 Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, ui)) {
-
+            
             if (ui.heatMap) {
                 np.getAzimuthalAngles(false, false).printToFiji();
 

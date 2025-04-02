@@ -225,14 +225,10 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * A factory method for a neighborhood pig.
      *
      * @param handle
-     * @param folderPath All images in the folder should have the sameheight and
+     * @param folderPath All images in the folder should have the same height and
      * width.
-     * @param nRad The radius of a neighborhood. The neighborhood will be a
-     * square and the radius is the distance from the center to the nearest
-     * edge.
      * @param ui User set specifications.
      * @param depth
-     * @param tolerance Close enough to 0.
      * @return A neighborhoodPIG.
      */
     public static NeighborhoodPIG getWithIJ(Handle handle, String folderPath, int depth, UserInput ui) {
