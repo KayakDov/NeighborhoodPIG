@@ -113,8 +113,8 @@ public class UserInput {
 
         if (vector.is()) {
             GenericDialog vfDialog = new GenericDialog("Vector Field Parameters");
-            spacing = new NumericField("Vector Field Spacing:", 8, vfDialog);
-            mag = new NumericField("Vector Magnitude:", 6, vfDialog);
+            spacing = new NumericField("Vector Field Spacing:", 5, vfDialog);
+            mag = new NumericField("Vector Magnitude:", 3, vfDialog);
             vfDialog.showDialog();
         }
 
