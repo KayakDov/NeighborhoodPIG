@@ -16,7 +16,9 @@ private:
     const int idx;
     const int downSampleFactorXY;
 public:
-    __device__ Get(const int idx, const int height, const int downSampleFactorXY): idx(idx * downSampleFactorXY), height(height), downSampleFactorXY(downSampleFactorXY){}
+    __device__ Get(const int inputIdx, const int height, const int downSampleFactorXY)
+: idx(inputIdx * downSampleFactorXY), height(height), downSampleFactorXY(downSampleFactorXY) {}
+
     
     /**
      * @brief Retrieves a value from a column-major order matrix.
@@ -140,8 +142,7 @@ public:
  */
 class Matrix {
 private:
-    float mat[3][3];     
-    int* isPivot; ///< Pointer to an array indicating pivot columns.
+    float mat[3][3];
     const float tolerance;
     
 
@@ -150,11 +151,10 @@ public:
      * @brief Constructor for Matrix.
      * @param xx, xy, xz, yy, yz, zz Matrix elements.
      * @param eVal Eigenvalue for computation.
-     * @param isPivot Pointer to pivot flag array.
      * @param tolerance Numerical tolerance for pivot detection.
      */
-    __device__ Matrix(float xx, float xy, float xz, float yy, float yz, float zz, float eVal, int* isPivot, float tolerance) 
-    : isPivot(isPivot), tolerance(tolerance) {
+    __device__ Matrix(float xx, float xy, float xz, float yy, float yz, float zz, float eVal, float tolerance) 
+    :tolerance(tolerance) {
         mat[0][0] = xx - eVal; mat[0][1] = xy; mat[0][2] = xz;
         mat[1][0] = xy; mat[1][1] = yy - eVal; mat[1][2] = yz;
         mat[2][0] = xz; mat[2][1] = yz; mat[2][2] = zz - eVal;
@@ -221,18 +221,10 @@ public:
         int numFreeVariables = 0;
         int row = 0;
 
-        for (int col = 0; col < 3; col++) {            
-            if (reduceToRowEchelon(row, col)) {
-                row++;
-                isPivot[col] = 1;
-            } else {
-                isPivot[col] = 0;
-                numFreeVariables++;
-            }
-        }
-
-        if (fabs(mat[0][0]) < tolerance) isPivot[0] = 0;
-
+        for (int col = 0; col < 3; col++)           
+            if (reduceToRowEchelon(row, col)) row++;
+            else numFreeVariables++;
+            
         return numFreeVariables;
     }
     
@@ -240,7 +232,7 @@ public:
      * Prints the matrix for debuging purposes.
      */
     __device__ void print() {
-        printf("Matrix:\n");
+        printf("\nMatrix:\n");
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 printf("%f ", mat[i][j]);
@@ -254,6 +246,48 @@ public:
 
 
 /**
+ * @class Vec
+ * @brief A simple wrapper for a float array representing a 3D vector.
+ */
+class Vec {
+private:
+    float* data;
+public:
+    /**
+     * @brief Constructs a Vec object.
+     * @param data Pointer to the float array (size 3) representing the vector.
+     */
+    __device__ Vec(float* data):data(data){}
+
+    /**
+     * @brief Sets the components of the vector.
+     * @param x The x-component.
+     * @param y The y-component.
+     * @param z The z-component.
+     */
+    __device__ void set(float x, float y, float z){
+        data[0] = x; data[1] = y; data[2] = z;
+    }
+
+    /**
+     * @brief Accesses a component of the vector using array-like indexing.
+     * @param i The index of the component (0 for x, 1 for y, 2 for z).
+     * @return A reference to the requested vector component.
+     */
+    __device__ float& operator[](int i) {
+        return data[i];
+    }
+    
+    /**
+     * @brief Prints the components of the vector to the standard output.
+     * The output format is "(x, y, z)".
+     */
+    __device__ void print() const {
+        printf("(%f, %f, %f)", data[0], data[1], data[2]);
+    }
+};
+
+/**
  * This method should be called on a fresh copy of the matrices for which the vectors are sought for each eigenvalue.  Each time with an incremented value of valIndex.
  *
  * @brief CUDA kernel to compute eigenvectors in batch using row echelon form.
@@ -262,12 +296,12 @@ public:
  * @param ldsrc Leading dimension of the source matrices.
  * @param eVectors Pointer to the resulting eigenvectors.
  * @param width Number of columns in each matrix.
- * @param eValues Pointer to all the eValues, including those that will not be used.  Be sure to increment valIndex over multiple runs of this kernel so that they are all used.
+ * @param eValues Pointer to all the eValues, including those that will not be used.  Be sure to increment valIndex over multiple runs of this kernel so that they are all used.Be sure the first values is the desired eigen value of each set of 3.
  * @param workspacePivotFlags Pointer to workspace memory for pivot flags.
  * @param tolerance Tolerance for row echelon pivot detection.
  * @param ldEVec the leading dimension of the eigen vectors.
  * @param ldSrc the leading dimension of the sourver matrix.
- * @param valIndex The index of the desired eigen value. 
+ * @param vecIndex The index of the desired eigen value. 
  */
 extern "C" __global__ void eigenVecBatch3x3Kernel(
      const int batchSize, 
@@ -287,20 +321,15 @@ extern "C" __global__ void eigenVecBatch3x3Kernel(
      const int ldEVal,
      const int heightEVal,
      
-     int* workspacePivotFlags,
-     const int ldPivot,
-     const int heightPivot, 
-          
-     const float tolerance,
-     const int downSampleFactorXY
+     const int downSampleFactorXY,
+     int vecInd,
+     const float tolerance
 ) {    
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= batchSize/downSampleFactorXY/downSampleFactorXY) return;
     
     Get getx3(3*idx, heightEVal, 1);
-    
-    int* isPivot = workspacePivotFlags + getx3.ind(heightPivot, ldPivot);    
-    
+         
     float eVal = getx3.val(eValues, ldEVal);    
     
     Get get(idx, srcHeight, downSampleFactorXY);
@@ -312,27 +341,38 @@ extern "C" __global__ void eigenVecBatch3x3Kernel(
         get.val(yz, ldyz), 
         get.val(zz, ldzz),
         eVal,
-        isPivot,
         tolerance
     );
     
-    float* eVec = eVectors + getx3.ind(heightEVec, ldEVec);
-    int numFreeVariables = mat.rowEchelon();
-
-    int col = 2;
+    Vec vec(eVectors + getx3.ind(heightEVec, ldEVec));
+  
+//    if(idx == 1) mat.print();
     
-    while(isPivot[col]) eVec[col--] = 0;    
-
-    eVec[col--] = 1;
+    switch(mat.rowEchelon()){
     
-    for (int row = col; row >= 0 && col >= 0; col--) {	
-    	eVec[col] = 0;	
-		if(isPivot[col]){         
-            for (int i = col + 1; i < 3; i++) 
-                eVec[col] -= eVec[i] * mat(row, i);
-            eVec[col] /= mat(row, col);
-            row--;
-        }
+	case 1:
+	    if(fabs(mat(0, 0)) <= tolerance) vec.set(1, 0, 0);
+	    else if(fabs(mat(1, 1)) <= tolerance) vec.set(-mat(0,1)/mat(0,0), 1, 0);
+	    else {vec[2] = 1; vec[1] = -mat(1,2)/mat(1,1); vec[0] = (-mat(0,2) - mat(0,1)*vec[1])/mat(0,0);}
+	    break;
+	case 2:
+	    if(fabs(mat(0,0)) <= tolerance)
+	        if(fabs(mat(0, 1)) <= tolerance)
+	            if(vecInd % 2 == 0) vec.set(1, 0, 0);
+	            else vec.set(0, 1, 0);
+	        else if(vecInd % 2 == 0) vec.set(0, -mat(0, 2)/mat(0, 1), 1);
+	            else vec.set(1, 0, 0);
+	    else if(vecInd % 2 == 0) vec.set(-mat(0, 1)/mat(0, 0), 1, 0);
+	    else vec.set(-mat(0, 2)/mat(0, 0), 0, 1);
+	    break;
+	case 3:
+	    switch(vecInd){
+	        case 0: vec.set(1, 0, 0); break;
+	        case 1: vec.set(0, 1, 0); break;
+	        case 2: vec.set(0, 0, 1);
+	    }	    
     }
- //   if(idx == 0) printf("eVec = (%f, %f, %f)\n", eVec[0], eVec[1], eVec[2]);//mat.print();
+
+  //  if(idx == 1) vec.print();
+    
 }

@@ -5,6 +5,8 @@ import JCudaWrapper.array.Int.IStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.Arrays;
+import jcuda.Pointer;
 
 /**
  * A set of 3x3 matrices, their eigenvectors and values.
@@ -13,7 +15,6 @@ import JCudaWrapper.resourceManagement.Handle;
  */
 public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spelling to eigen
 
-    private final Handle handle;
     private final float tolerance;
     private final int downsampleFactorXY;
 
@@ -34,27 +35,27 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
      * The first eigevector of each structureTensor with mathcin columns and
      * layers as the original pixels, and rows * 3.
      */
-    public final FStrideArray3d vectors1;
+    public final FStrideArray3d[] vectors;
 
     /**
      *
      * @param handle
      * @param dim
-     * @param downSampleFactorXY 1 in every how many pixels get evaluated in the x and y dimensions.
+     * @param downSampleFactorXY 1 in every how many pixels get evaluated in the
+     * x and y dimensions.
      * @param tolerance
      */
     public Eigan(Handle handle, Dimensions dim, int downSampleFactorXY, float tolerance) {
         super(dim);
         this.downsampleFactorXY = downSampleFactorXY;
-        this.handle = handle;
         this.tolerance = tolerance;
         mat = new FStrideArray3d[3][3];
         for (int i = 0; i < 3; i++)
             for (int j = i; j < 3; j++)
                 mat[j][i] = mat[i][j] = dim.empty();
 
-        values = new FStrideArray3d((dim.height/downSampleFactorXY) * 3, dim.width/downSampleFactorXY, dim.depth, dim.batchSize);
-        vectors1 = values.copyDim();
+        values = new FStrideArray3d((dim.height / downSampleFactorXY) * 3, dim.width / downSampleFactorXY, dim.depth, dim.batchSize);
+        vectors = new FStrideArray3d[]{values.copyDim(), values.copyDim(), values.copyDim()};
 
     }
 
@@ -76,7 +77,7 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
      * @return this
      */
     public final Eigan setEigenVals() {
-         
+
         Kernel.run("eigenValsBatch", handle,
                 size(),
                 mat[0][0], P.to(mat[0][0].ld()),
@@ -92,8 +93,7 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
                 P.to(tolerance),
                 P.to(downsampleFactorXY)
         );
-        
-        
+
         return this;
     }
 
@@ -104,8 +104,7 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
      */
     public final Eigan setEiganVectors() {
 
-        try (IStrideArray3d pivotFlags = new IStrideArray3d(values.entriesPerLine(), values.linesPerLayer(), values.layersPerGrid(), values.batchSize)) {//TODO: this should probably use downsample size to be smaller.
-
+        for (int i = 0; i < 3; i++)
             Kernel.run("eigenVecBatch3x3", handle,
                     size(),
                     mat[0][0], P.to(mat[0][0].ld()),
@@ -115,23 +114,21 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
                     P.to(mat[1][2]), P.to(mat[1][2].ld()),
                     P.to(mat[2][2]), P.to(mat[2][2].ld()),
                     P.to(height),
-                    
-                    P.to(vectors1),
-                    P.to(vectors1.ld()),
-                    P.to(vectors1.entriesPerLine()),
-                    
-                    P.to(values),
+
+                    P.to(vectors[i]),
+                    P.to(vectors[i].ld()),
+                    P.to(vectors[i].entriesPerLine()),
+
+                    Pointer.to(values.pointer(i)),
                     P.to(values.ld()),
                     P.to(values.entriesPerLine()),
-                    
-                    P.to(pivotFlags),
-                    P.to(pivotFlags.ld()),
-                    P.to(pivotFlags.entriesPerLine()),
-                    
-                    P.to(tolerance),
-                    P.to(downsampleFactorXY)
+
+                    P.to(downsampleFactorXY),
+                    P.to(i),
+                    P.to(tolerance)
             );
-        }
+
+//        System.out.println("fijiPlugin.Eigan.setEiganVectors() \n" + Arrays.toString(vectors));
         
         return this;
     }
@@ -141,11 +138,11 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
      */
     @Override
     public void close() {
-        for(int i = 0; i < mat.length; i++)
-            for(int j = i; j < mat[0].length; j++)
+        for (int i = 0; i < mat.length; i++)
+            for (int j = i; j < mat[0].length; j++)
                 mat[i][j].close();
-        
+
         values.close();
-        vectors1.close();
+        Arrays.stream(vectors).forEach(a -> a.close());
     }
 }

@@ -24,7 +24,7 @@ public class StructureTensorMatrix implements AutoCloseable {
      * @param handle The context.
      * @param grad The pixel intensity gradient of the image.
      * @param ui User selected specifications.
-     * 
+     *
      */
     public StructureTensorMatrix(Handle handle, Gradient grad, UserInput ui) {
 
@@ -37,48 +37,51 @@ public class StructureTensorMatrix implements AutoCloseable {
                 for (int j = i; j < 3; j++)
                     nps.set(grad.x[i], grad.x[j], eigen.at(i, j));
         }
-        
+
         eigen.setEigenVals().setEiganVectors();
 
-        azimuth = new FStrideArray3d(eigen.vectors1.entriesPerLine()/3, eigen.vectors1.linesPerLayer(), eigen.vectors1.layersPerGrid(), eigen.vectors1.batchSize);
+        azimuth = new FStrideArray3d(grad.height / ui.downSampleFactorXY, grad.width / ui.downSampleFactorXY, grad.depth, grad.batchSize);
         zenith = azimuth.copyDim();
         coherence = azimuth.copyDim();
 
         setVecs0ToPi();
         unitizeVecs();
         setCoherence(ui.tolerance);
-                
+
         setOrientations(ui.tolerance);
     }
 
     /**
-     * Changes the eigenvectos to unit vectors.  This helps with converting them to spherical coordinates.
+     * Changes the eigenvectos to unit vectors. This helps with converting them
+     * to spherical coordinates.
      */
-    private void unitizeVecs(){
-        FStrideArray3d vecs = eigen.vectors1;
-        Kernel.run("toUnitVec", handle, coherence.size(), 
-                vecs, P.to(vecs.entriesPerLine()), P.to(vecs.ld()),
-                P.to(vecs), P.to(vecs.entriesPerLine()), P.to(vecs.ld())
-                );
+    private void unitizeVecs() {
+        for (int i = 0; i < 3; i++) {//TODO: Do I need to unetize all the eigen vectors, or just some of them?  Do I need to compute all the eigen vectors, or just some of them?
+            FStrideArray3d vecs = eigen.vectors[i];
+            Kernel.run("toUnitVec", handle, coherence.size(),
+                    vecs, P.to(vecs.entriesPerLine()), P.to(vecs.ld()),
+                    P.to(vecs), P.to(vecs.entriesPerLine()), P.to(vecs.ld())
+            );
+        }
     }
-    
+
     /**
      * All the eigen vectors with y less than 0 are mulitplied by -1.
      *
-     * @return The eigenvectors.
      */
-    public final FArray3d setVecs0ToPi() {
-        FArray3d eVecs = eigen.vectors1;
-        Kernel.run("vecToNematic", handle,
-                coherence.size(),
-                eVecs,
-                P.to(eVecs.ld()),
-                P.to(eVecs.entriesPerLine()),
-                P.to(eVecs),
-                P.to(eVecs.ld()),
-                P.to(eVecs.entriesPerLine())
-        );
-        return eVecs;
+    public final void setVecs0ToPi() {
+        for (int i = 0; i < 3; i++) {
+            FArray3d eVecs = eigen.vectors[i];
+            Kernel.run("vecToNematic", handle,
+                    coherence.size(),
+                    eVecs,
+                    P.to(eVecs.ld()),
+                    P.to(eVecs.entriesPerLine()),
+                    P.to(eVecs),
+                    P.to(eVecs.ld()),
+                    P.to(eVecs.entriesPerLine())
+            );
+        }
     }
 
     /**
@@ -88,20 +91,16 @@ public class StructureTensorMatrix implements AutoCloseable {
      */
     public final void setOrientations(float tolerance) {
 
-        Kernel.run("toSpherical",  handle, azimuth.size(),
-                
-                eigen.vectors1,                
-                P.to(eigen.vectors1.entriesPerLine()),
-                P.to(eigen.vectors1.ld()),
-                
+        Kernel.run("toSpherical", handle, azimuth.size(),
+                eigen.vectors[0],
+                P.to(eigen.vectors[0].entriesPerLine()),
+                P.to(eigen.vectors[0].ld()),
                 P.to(azimuth),
                 P.to(azimuth.entriesPerLine()),
                 P.to(azimuth.ld()),
-                
                 P.to(zenith),
                 P.to(zenith.entriesPerLine()),
                 P.to(zenith.ld()),
-                
                 P.to(.01f)
         );
 
@@ -178,14 +177,12 @@ public class StructureTensorMatrix implements AutoCloseable {
 
     @Override
     public String toString() {
-        return "xx\n" + eigen.at(0, 0).toString() + 
-                "\n\nxy\n" + eigen.at(0, 1).toString() + 
-                "\n\nxz\n" + eigen.at(0, 2).toString() + 
-                "\n\nyy\n" + eigen.at(1, 1).toString() + 
-                "\n\nyz\n" + eigen.at(1, 2).toString() + 
-                "\n\nzz\n" + eigen.at(2, 2).toString();
+        return "xx\n" + eigen.at(0, 0).toString()
+                + "\n\nxy\n" + eigen.at(0, 1).toString()
+                + "\n\nxz\n" + eigen.at(0, 2).toString()
+                + "\n\nyy\n" + eigen.at(1, 1).toString()
+                + "\n\nyz\n" + eigen.at(1, 2).toString()
+                + "\n\nzz\n" + eigen.at(2, 2).toString();
     }
-    
-    
 
 }

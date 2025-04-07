@@ -40,7 +40,7 @@ public class FijiPlugin implements PlugIn {
         return true;
     }
 
-    //TODO (1) remove NaN vaslues.  (2) get same results as OrientationJ.  (3) fix vector field for superimposition.
+    //TODO (1) remove NaN vaslues.  (2) get same results as OrientationJ.
     
     @Override
     public void run(String string) {
