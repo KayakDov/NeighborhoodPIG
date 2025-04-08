@@ -38,7 +38,7 @@ public class StructureTensorMatrix implements AutoCloseable {
                     nps.set(grad.x[i], grad.x[j], eigen.at(i, j));
         }
 
-        eigen.setEigenVals().setEiganVectors();
+        eigen.setEigenVals().setEiganVectors(grad.depth > 1 ? 2 : 1);
 
         azimuth = new FStrideArray3d(grad.height / ui.downSampleFactorXY, grad.width / ui.downSampleFactorXY, grad.depth, grad.batchSize);
         zenith = azimuth.copyDim();
@@ -57,7 +57,7 @@ public class StructureTensorMatrix implements AutoCloseable {
      */
     private void unitizeVecs() {
         for (int i = 0; i < 3; i++) {//TODO: Do I need to unetize all the eigen vectors, or just some of them?  Do I need to compute all the eigen vectors, or just some of them?
-            FStrideArray3d vecs = eigen.vectors[i];
+            FStrideArray3d vecs = eigen.vectors;
             Kernel.run("toUnitVec", handle, coherence.size(),
                     vecs, P.to(vecs.entriesPerLine()), P.to(vecs.ld()),
                     P.to(vecs), P.to(vecs.entriesPerLine()), P.to(vecs.ld())
@@ -70,18 +70,16 @@ public class StructureTensorMatrix implements AutoCloseable {
      *
      */
     public final void setVecs0ToPi() {
-        for (int i = 0; i < 3; i++) {
-            FArray3d eVecs = eigen.vectors[i];
-            Kernel.run("vecToNematic", handle,
-                    coherence.size(),
-                    eVecs,
-                    P.to(eVecs.ld()),
-                    P.to(eVecs.entriesPerLine()),
-                    P.to(eVecs),
-                    P.to(eVecs.ld()),
-                    P.to(eVecs.entriesPerLine())
-            );
-        }
+        FArray3d eVecs = eigen.vectors;
+        Kernel.run("vecToNematic", handle,
+                coherence.size(),
+                eVecs,
+                P.to(eVecs.ld()),
+                P.to(eVecs.entriesPerLine()),
+                P.to(eVecs),
+                P.to(eVecs.ld()),
+                P.to(eVecs.entriesPerLine())
+        );
     }
 
     /**
@@ -92,9 +90,9 @@ public class StructureTensorMatrix implements AutoCloseable {
     public final void setOrientations(float tolerance) {
 
         Kernel.run("toSpherical", handle, azimuth.size(),
-                eigen.vectors[0],
-                P.to(eigen.vectors[0].entriesPerLine()),
-                P.to(eigen.vectors[0].ld()),
+                eigen.vectors,
+                P.to(eigen.vectors.entriesPerLine()),
+                P.to(eigen.vectors.ld()),
                 P.to(azimuth),
                 P.to(azimuth.entriesPerLine()),
                 P.to(azimuth.ld()),

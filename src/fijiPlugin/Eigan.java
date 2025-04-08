@@ -35,7 +35,7 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
      * The first eigevector of each structureTensor with mathcin columns and
      * layers as the original pixels, and rows * 3.
      */
-    public final FStrideArray3d[] vectors;
+    public final FStrideArray3d vectors;
 
     /**
      *
@@ -55,7 +55,7 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
                 mat[j][i] = mat[i][j] = dim.empty();
 
         values = new FStrideArray3d((dim.height / downSampleFactorXY) * 3, dim.width / downSampleFactorXY, dim.depth, dim.batchSize);
-        vectors = new FStrideArray3d[]{values.copyDim(), values.copyDim(), values.copyDim()};
+        vectors = values.copyDim();
 
     }
 
@@ -100,36 +100,33 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
     /**
      * Sets the eiganvectors.
      *
+     * @param vecsIndex, 0 for the first eigen vector of each matrix, 1 for the
+     * second, or 2 for the third.
      * @return this
      */
-    public final Eigan setEiganVectors() {
+    public final Eigan setEiganVectors(int vecsIndex) {
 
-        for (int i = 0; i < 3; i++)
-            Kernel.run("eigenVecBatch3x3", handle,
-                    size(),
-                    mat[0][0], P.to(mat[0][0].ld()),
-                    P.to(mat[0][1]), P.to(mat[0][1].ld()),
-                    P.to(mat[0][2]), P.to(mat[0][2].ld()),
-                    P.to(mat[1][1]), P.to(mat[1][1].ld()),
-                    P.to(mat[1][2]), P.to(mat[1][2].ld()),
-                    P.to(mat[2][2]), P.to(mat[2][2].ld()),
-                    P.to(height),
-
-                    P.to(vectors[i]),
-                    P.to(vectors[i].ld()),
-                    P.to(vectors[i].entriesPerLine()),
-
-                    Pointer.to(values.pointer(i)),
-                    P.to(values.ld()),
-                    P.to(values.entriesPerLine()),
-
-                    P.to(downsampleFactorXY),
-                    P.to(i),
-                    P.to(tolerance)
-            );
+        Kernel.run("eigenVecBatch3x3", handle,
+                size(),
+                mat[0][0], P.to(mat[0][0].ld()),
+                P.to(mat[0][1]), P.to(mat[0][1].ld()),
+                P.to(mat[0][2]), P.to(mat[0][2].ld()),
+                P.to(mat[1][1]), P.to(mat[1][1].ld()),
+                P.to(mat[1][2]), P.to(mat[1][2].ld()),
+                P.to(mat[2][2]), P.to(mat[2][2].ld()),
+                P.to(height),
+                P.to(vectors),
+                P.to(vectors.ld()),
+                P.to(vectors.entriesPerLine()),
+                Pointer.to(values.pointer(vecsIndex)),
+                P.to(values.ld()),
+                P.to(values.entriesPerLine()),
+                P.to(downsampleFactorXY),
+                P.to(vecsIndex),
+                P.to(tolerance)
+        );
 
 //        System.out.println("fijiPlugin.Eigan.setEiganVectors() \n" + Arrays.toString(vectors));
-        
         return this;
     }
 
@@ -143,6 +140,6 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
                 mat[i][j].close();
 
         values.close();
-        Arrays.stream(vectors).forEach(a -> a.close());
+        vectors.close();
     }
 }

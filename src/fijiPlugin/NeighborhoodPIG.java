@@ -132,7 +132,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
         return new VectorImg(
                 new Dimensions(handle, stm.getCoherence()), 
                 vecMag, 
-                stm.getEigen().vectors[0], 
+                stm.getEigen().vectors, 
                 stm.getCoherence(), 
                 spacing
         ).get();
