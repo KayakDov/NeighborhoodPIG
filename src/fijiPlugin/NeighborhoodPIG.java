@@ -28,7 +28,7 @@ import javax.imageio.ImageIO;
  */
 public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
 
-    public final StructureTensorMatrix stm; //TODO: this should probably be made private
+    public final StructureTensorMatrices stm; //TODO: this should probably be made private
 
     public final static boolean D3 = true, D2 = false;
 
@@ -50,7 +50,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
         this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
 
         try (Gradient grad = new Gradient(handle, image, ui.neighborhoodSize)) {
-            stm = new StructureTensorMatrix(handle, grad, ui);
+            stm = new StructureTensorMatrices(handle, grad, ui);
         }
     }
 
@@ -82,8 +82,8 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
     public HeatMapCreator getAzimuthalAngles(boolean color, boolean useCoherence) {
 
         return color ? new ColorHeatMapCreator(handle,
-                concat(sourceFileNames, " Azimuth"),
-                "Azimuth Angle Heatmap",
+                concat(sourceFileNames, useCoherence? " Coherence":" Azimuth"),
+                useCoherence?"Coherence":"Azimuth Angle Heatmap",
                 stm.azimuthAngle(),
                 useCoherence ? stm.getCoherence() : null
         )
@@ -125,15 +125,16 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      *
      * @param spacing The space between the vectors.
      * @param vecMag The magnitude of the vectors to be drawn.
+     * @param useCoherence True to use coherence, false to set all vector intensities to 1.
      * @return An image of all the nematic vectors
      */
-    public ImagePlus getVectorImg(int spacing, int vecMag) {
+    public ImagePlus getVectorImg(int spacing, int vecMag, boolean useCoherence) {
 
         return new VectorImg(
                 new Dimensions(handle, stm.getCoherence()), 
                 vecMag, 
                 stm.getEigen().vectors, 
-                stm.getCoherence(), 
+                useCoherence ? stm.getCoherence(): null, 
                 spacing
         ).get();
     }

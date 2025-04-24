@@ -6,9 +6,9 @@ package MathSupport;
  * The cube is defined by its minimum and maximum coordinates along the X, Y, and Z axes.
  * It contains all points (x, y, z) satisfying:
  * <pre>
- *   minX ≤ x < maxX,
- *   minY ≤ y < maxY,
- *   minZ ≤ z < maxZ.
+ *   min.getX() ≤ x < max.getX(),
+ *   min.getY() ≤ y < max.getY(),
+ *   min.getZ() ≤ z < max.getZ().
  * </pre>
  * </p>
  * 
@@ -16,53 +16,20 @@ package MathSupport;
  */
 public class Cube {
 
-    /**
-     * The minimum x-coordinate (inclusive).
-     */
-    public final int minX;
-    
-    /**
-     * The maximum x-coordinate (exclusive).
-     */
-    public final int maxX;
-    
-    /**
-     * The minimum y-coordinate (inclusive).
-     */
-    public final int minY;
-    
-    /**
-     * The maximum y-coordinate (exclusive).
-     */
-    public final int maxY;
-    
-    /**
-     * The minimum z-coordinate (inclusive).
-     */
-    public final int minZ;
-    
-    /**
-     * The maximum z-coordinate (exclusive).
-     */
-    public final int maxZ;
+    private Point3d max, min;
 
     /**
-     * Constructs a Cube with the specified minimum and maximum coordinates.
-     *
-     * @param minX the minimum x-coordinate (inclusive)
-     * @param maxX the maximum x-coordinate (exclusive)
-     * @param minY the minimum y-coordinate (inclusive)
-     * @param maxY the maximum y-coordinate (exclusive)
-     * @param minZ the minimum z-coordinate (inclusive)
-     * @param maxZ the maximum z-coordinate (exclusive)
+     * Constructs a cube.
+     * @param minX the x value for a corner.
+     * @param maxX the x value for the other corner.
+     * @param minY a y value for a corner.
+     * @param maxY the y value for the other corner.
+     * @param minZ a z value for a corner.
+     * @param maxZ The z value for the other corner.
      */
     public Cube(int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
-        this.minX = minX;
-        this.maxX = maxX;
-        this.minY = minY;
-        this.maxY = maxY;
-        this.minZ = minZ;
-        this.maxZ = maxZ;
+        min = new Point3d(minX, minY, minZ);
+        max = new Point3d(maxX, maxY, maxZ);
     }
 
     /**
@@ -82,7 +49,7 @@ public class Cube {
      * @return the width of the cube
      */
     public int width() {
-        return maxX - minX;
+        return max.x() - min.x();
     }
     
     /**
@@ -91,7 +58,7 @@ public class Cube {
      * @return the height of the cube
      */
     public int height() {
-        return maxY - minY;
+        return max.y() - min.y();
     }
     
     /**
@@ -100,7 +67,7 @@ public class Cube {
      * @return the depth of the cube
      */
     public int depth() {
-        return maxZ - minZ;
+        return max.z() - min.z();
     }
     
     /**
@@ -108,9 +75,9 @@ public class Cube {
      * <p>
      * A point (x, y, z) is considered inside the cube if:
      * <pre>
-     *   minX ≤ x < maxX,
-     *   minY ≤ y < maxY,
-     *   minZ ≤ z < maxZ.
+     *   min.getX() ≤ x < max.getX(),
+     *   min.getY() ≤ y < max.getY(),
+     *   min.getZ() ≤ z < max.getZ().
      * </pre>
      * </p>
      *
@@ -120,9 +87,9 @@ public class Cube {
      * @return {@code true} if the point is within the cube, {@code false} otherwise
      */
     public boolean contains(int x, int y, int z) {
-        return x >= minX && x < maxX &&
-               y >= minY && y < maxY &&
-               z >= minZ && z < maxZ;
+        return x >= min.x() && x < max.x() &&
+               y >= min.y() && y < max.y() &&
+               z >= min.z() && z < max.z();
     }
 
     /**
@@ -132,26 +99,74 @@ public class Cube {
      */
     @Override
     public String toString() {
-        return "Cube [min=(" + minX + ", " + minY + ", " + minZ + "), "
-                + "max=(" + maxX + ", " + maxY + ", " + maxZ + ")]";
+        return "Cube [min=(" + min.x() + ", " + min.y() + ", " + min.z() + "), "
+                + "max=(" + max.x() + ", " + max.y() + ", " + max.z() + ")]";
     }
     
     /**
-     * Creates a new cube that is a translation of this cube.
+     * Translates this cube.
      * @param xShift
      * @param yShift
-     * @param Shift
+     * @param zShift
      * @return 
      */
-    public Cube translate(int xShift, int yShift, int Shift){
-        return new Cube(minX + xShift, maxX + xShift, minY + yShift, maxY + yShift, minZ + Shift, maxZ + Shift);
+    public void translate(int xShift, int yShift, int zShift){
+        min.translate(xShift, yShift, zShift);
+        max.translate(xShift, yShift, zShift);
     }
     /**
      * Creates a new scew that is this cube scaled.
      * @param t The scalar.
      * @return  A new cube.
      */
-    public Cube scale(int t){
-        return new Cube(minX * t, maxX * t, minY * t, maxY * t, minZ * t, maxZ * t);
+    public void scale(int t){
+        min.scale(t);
+        max.scale(t);
     }
+    
+    
+    /**
+     * The distance between the min corner and the max corner squared.
+     * @return The distance between the min corner and the max corner squared.
+     */
+    public int distSquared(){
+        return min.distSquared(max);
+    }
+    
+    public void setMin(int x, int y, int z){
+        min.set(x, y, z);
+    }
+    
+    public void setMax(int x, int y, int z){
+        max.set(x, y, z);
+    }
+
+    public int getMaxX() {
+        return max.x();
+    }
+
+    public int getMaxY() {
+        return max.y();
+    }
+
+    public int getMaxZ() {
+        return max.z();
+    }
+
+    public int getMinX() {
+        return min.x();
+    }
+
+    public int getMinY() {
+        return min.y();
+    }
+
+    public int getMinZ() {
+        return min.z();
+    }
+
+    public Cube() {
+    }
+    
+    
 }

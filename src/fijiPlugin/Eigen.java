@@ -13,7 +13,7 @@ import jcuda.Pointer;
  *
  * @author E. Dov Neimand
  */
-public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spelling to eigen
+public class Eigen extends Dimensions implements AutoCloseable {
 
     private final float tolerance;
     private final int downsampleFactorXY;
@@ -45,7 +45,7 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
      * x and y dimensions.
      * @param tolerance
      */
-    public Eigan(Handle handle, Dimensions dim, int downSampleFactorXY, float tolerance) {
+    public Eigen(Handle handle, Dimensions dim, int downSampleFactorXY, float tolerance) {
         super(dim);
         this.downsampleFactorXY = downSampleFactorXY;
         this.tolerance = tolerance;
@@ -76,7 +76,7 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
      *
      * @return this
      */
-    public final Eigan setEigenVals() {
+    public final Eigen setEigenVals() {
 
         Kernel.run("eigenValsBatch", handle,
                 size(),
@@ -90,7 +90,6 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
                 P.to(values),
                 P.to(values.ld()),
                 P.to(values.entriesPerLine()),
-                P.to(tolerance),
                 P.to(downsampleFactorXY)
         );
 
@@ -104,7 +103,7 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
      * second, or 2 for the third.
      * @return this
      */
-    public final Eigan setEiganVectors(int vecsIndex) {
+    public final Eigen setEiganVectors(int vecsIndex) {
 
         Kernel.run("eigenVecBatch3x3", handle,
                 size(),
@@ -128,6 +127,35 @@ public class Eigan extends Dimensions implements AutoCloseable {//TODO fix spell
 
 //        System.out.println("fijiPlugin.Eigan.setEiganVectors() \n" + Arrays.toString(vectors));
         return this;
+    }
+
+    /**
+     * Sets the eigen values and the eigen vectors at the requested index.
+     *
+     * @param eigenInd If the index is 0, then the eigen vectors that corespond
+     * to the greatest eigenvalue, if the index is one, then the 2nd greatest.
+     */
+    public void set(int eigenInd) {
+        Kernel.run("eigenBatch", handle,
+                size(),
+                
+                mat[0][0]      , P.to(mat[0][0].ld()),
+                P.to(mat[0][1]), P.to(mat[0][1].ld()),
+                P.to(mat[0][2]), P.to(mat[0][2].ld()),
+                P.to(mat[1][1]), P.to(mat[1][1].ld()),
+                P.to(mat[1][2]), P.to(mat[1][2].ld()),
+                P.to(mat[2][2]), P.to(mat[2][2].ld()),
+                
+                P.to(mat[0][0].entriesPerLine()),
+                
+                P.to(values), P.to(values.ld()), P.to(values.entriesPerLine()),
+                
+                P.to(downsampleFactorXY), P.to(eigenInd),
+                
+                P.to(vectors), P.to(vectors.ld()), P.to(vectors.entriesPerLine()),
+                
+                P.to(tolerance)
+        );
     }
 
     /**

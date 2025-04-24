@@ -119,13 +119,13 @@ public class UserInput {
         }
 
         return new UserInput(
-                new NeighborhoodDim((int) xyR.val(), hasZ ? (int) zR.val() : 0, hasZ? (int) layerDist.val(): 1),
+                new NeighborhoodDim((int) xyR.val(), hasZ ? (int) zR.val() : 1, hasZ? (int) layerDist.val(): 1),
                 heatmap.is(),
                 vector.is(),
                 coherence.is(),
                 vector.is() ? (int) spacing.val() : 0,
                 vector.is() ? (int) mag.val() : 0,
-                10f,
+                1e-5f,
                 (int) inverseRes.val()
         );
     }
@@ -136,7 +136,7 @@ public class UserInput {
      * @return 
      */
     public static UserInput defaultVals(NeighborhoodDim nd){
-        return new UserInput(nd, true, false, true, 0, 0, 10f, 1);
+        return new UserInput(nd, true, false, true, 0, 0, 0, 1);
     }
     
     /**
@@ -155,5 +155,23 @@ public class UserInput {
      */
     public int downSample(int origSample){
         return (origSample/downSampleFactorXY)*downSampleFactorXY;
+    }
+    
+        /**
+     * Returns a string representation of the UserInput object.
+     * @return A string containing the values of the UserInput's fields.
+     */
+    @Override
+    public String toString() {
+        return "UserInput{" +
+                "neighborhoodSize=" + neighborhoodSize +
+                ", heatMap=" + heatMap +
+                ", vectorField=" + vectorField +
+                ", useCoherence=" + useCoherence +
+                ", vfSpacing=" + vfSpacing +
+                ", vfMag=" + vfMag +
+                ", tolerance=" + tolerance +
+                ", downSampleFactorXY=" + downSampleFactorXY +
+                '}';
     }
 }

@@ -36,7 +36,7 @@ public class FSingleton extends Singleton implements FArray{
      * @param handle
      * @return The element in this singleton.
      */
-    public float getVal(Handle handle){
+    public float getf(Handle handle){
         float[] cpuArray = new float[1];
         get(handle, Pointer.to(cpuArray));
         handle.synch();

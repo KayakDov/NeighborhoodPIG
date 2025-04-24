@@ -1,10 +1,6 @@
-/**
- * @file eigenVecBatchKernel.cu
- * @brief CUDA kernel for computing eigenvectors using row echelon form.
- */
+#include <cuda_runtime.h>
+#include <math.h>
 
-#include <cstdio>
-#include <cmath>
 
 /**
  * @class Get
@@ -62,19 +58,6 @@ public:
     
     
 };
-
-
-/**
- * @brief Utility function to swap two float values.
- * @param a Reference to the first float.
- * @param b Reference to the second float.
- */
-__device__ void swap(double& a, double& b) {
-    double temp = a;
-    a = b;
-    b = temp;
-}
-
 
 /**
  * @class MaxAbs
@@ -137,30 +120,91 @@ public:
 
 
 /**
- * @class Matrix
- * @brief Represents a matrix and provides utility functions for matrix operations. * 
+ * Swap function for double values.
+ *
+ * @param a First value.
+ * @param b Second value.
  */
-class Matrix {
+__device__ inline void swap(float& a, float& b) {
+    float temp = a;
+    a = b;
+    b = temp;
+}
+/**
+ * @brief Utility function to swap two float values.
+ * @param a Reference to the first float.
+ * @param b Reference to the second float.
+ */
+__device__ void swap(double& a, double& b) {
+    double temp = a;
+    a = b;
+    b = temp;
+}
+
+/**
+ * Represents a 3x3 symmetric matrix in column-major format.
+ */
+class Matrix3x3 {
 private:
     double mat[3][3];
-    const double tolerance;
-    
+    double tolerance;
 
 public:
     /**
-     * @brief Constructor for Matrix.
-     * @param xx, xy, xz, yy, yz, zz Matrix elements.
-     * @param eVal Eigenvalue for computation.
-     * @param tolerance Numerical tolerance for pivot detection.
+     * Constructs a Matrix3x3 object.
+     *
+     * @param xx Element at (0,0).
+     * @param xy Element at (0,1) and (1,0).
+     * @param xz Element at (0,2) and (2,0).
+     * @param yy Element at (1,1).
+     * @param yz Element at (1,2) and (2,1).
+     * @param zz Element at (2,2).
+     * @param tol the tolerance.
      */
-    __device__ Matrix(float xx, float xy, float xz, float yy, float yz, float zz, float eVal, float tolerance) 
-    :tolerance(tolerance) {
-        mat[0][0] = xx - eVal; mat[0][1] = xy; mat[0][2] = xz;
-        mat[1][0] = xy; mat[1][1] = yy - eVal; mat[1][2] = yz;
-        mat[2][0] = xz; mat[2][1] = yz; mat[2][2] = zz - eVal;
+    __device__ explicit Matrix3x3(const float xx, const float xy, const float xz, const float yy, const float yz, const float zz, double tol) : tolerance(tol) {
+        mat[0][0] = xx;
+        mat[0][1] = mat[1][0] = xy;
+        mat[0][2] = mat[2][0] = xz;
+        mat[1][1] = yy;
+        mat[1][2] = mat[2][1] = yz;
+        mat[2][2] = zz;
     }
 
 
+    /**
+     * Computes the trace of the matrix.
+     * @return The sum of the diagonal elements.
+     */
+    __device__ double trace() const {
+        return mat[0][0] + mat[1][1] + mat[2][2];
+    }
+
+    /**
+     * Computes the sum of 2x2 determinant minors of the matrix.
+     * @return The sum of determinant minors.
+     */
+    __device__ double diagMinorSum() const {
+        return mat[1][1]*mat[2][2] - mat[1][2]*mat[1][2] + mat[0][0]*mat[2][2] - mat[0][2]*mat[0][2] + mat[0][0]*mat[1][1] - mat[0][1]*mat[0][1];
+    }
+
+    /**
+     * Computes the determinant of the matrix.
+     * @return The determinant value.
+     */
+    __device__ double determinant() const {
+        return mat[0][0] * (mat[1][1] * mat[2][2] - mat[1][2] * mat[1][2]) -
+               mat[0][1] * (mat[0][1] * mat[2][2] - mat[1][2] * mat[0][2]) +
+               mat[0][2] * (mat[0][1] * mat[1][2] - mat[1][1] * mat[0][2]);
+    }
+    
+    /**
+     * Subtracts the val from each element on the diagnal of this matrix, changing this matrix.
+     * @param val The value to be subtracted from each element of this matrix.
+     */
+    __device__ void subtractFromDiag(double val){
+        mat[0][0] -= val; mat[1][1] -= val; mat[2][2] -= val;
+    }
+    
     /**
      * @brief Access an element in the matrix by row and column index.
      * @param row Row index.
@@ -203,7 +247,7 @@ public:
         
 	for (int i = row + 1; i < 3; i++) maxPivot.challenge(i, mat[i][col]);
 
-        if (maxPivot.getVal() <= tolerance*10) return false;
+        if (maxPivot.getVal() <= tolerance) return false;
 
         if (maxPivot.getArg() != row) swapRows(maxPivot.getArg(), row);
         
@@ -236,6 +280,68 @@ public:
                mat[0][0], mat[0][1], mat[0][2],
                mat[1][0], mat[1][1], mat[1][2],
                mat[2][0], mat[2][1], mat[2][2]);
+    }
+    
+};
+
+/**
+ * Sorts a DIM-element array in descending order.
+ * @param values Pointer to the array.
+ */
+__device__ static void sortDescending(double* values) {
+    if(values[0] < values[1]) swap(values[0], values[1]);
+    if(values[0] < values[2]) swap(values[0], values[2]);
+    if(values[1] < values[2]) swap(values[1], values[2]);
+}
+
+/**
+ * Represents an affine function y = ax + b.
+ */
+class Affine {
+private:
+    double a; /**< The slope of the line. */
+    double b; /**< The y-intercept of the line. */
+
+public:
+    /**
+     * Constructs an Affine function.
+     * @param a The slope.
+     * @param b The y-intercept.
+     */
+    __device__ Affine(double a, double b) : a(a), b(b) {}
+
+    /**
+     * Evaluates the function at a given x.
+     * @param x The input value.
+     * @return The corresponding y-value.
+     */
+    __device__ double operator()(double x) {
+        return a * x + b;
+    }
+
+    /**
+     * Maps multiple x-values to y-values.
+     * @param x1 First x-value.
+     * @param x2 Second and thid x-values.
+     * @param y Pointer to an array where results are stored.
+     */
+    __device__ void map(double x1, double x2And3, double* y) {
+        y[0] = (*this)(x1);
+        y[1] = y[2] = (*this)(x2And3);
+    }
+    
+    /**
+     * @return The slope of the function.
+     */
+    __device__ double getSlope(){
+        return a;
+    }
+    
+    /**
+     * Prints the function parameters.
+     */
+    __device__ void print(){
+        printf("a = %lf and b = %lf\n\n", a, b);
     }
 };
 
@@ -322,65 +428,98 @@ public:
 };
 
 /**
- * This method should be called on a fresh copy of the matrices for which the vectors are sought for each eigenvalue.  Each time with an incremented value of valIndex.
+ * Computes the real roots of a cubic equation.
  *
- * @brief CUDA kernel to compute eigenvectors in batch using row echelon form.
- * @param batchSize Number of matrices.
- * @param src Pointer to source matrices in column-major format.  These matrices will be changed.
- * @param ldsrc Leading dimension of the source matrices.
- * @param eVectors Pointer to the resulting eigenvectors.
- * @param width Number of columns in each matrix.
- * @param eValues Pointer to all the eValues, including those that will not be used.  Be sure to increment valIndex over multiple runs of this kernel so that they are all used.Be sure the first values is the desired eigen value of each set of 3.
- * @param workspacePivotFlags Pointer to workspace memory for pivot flags.
- * @param tolerance Tolerance for row echelon pivot detection.
- * @param ldEVec the leading dimension of the eigen vectors.
- * @param ldSrc the leading dimension of the sourver matrix.
- * @param vecIndex The index of the desired eigen value. 
+ * @param b Coefficient of x^2.
+ * @param c Coefficient of x.
+ * @param d Constant term.
+ * @param eigenInd The index of the eigenvalue to be returned from this method.  0 for the largest eigenValue and 2 for the smallest.
+ * @param val Output array to store roots.
+ * @reutrn The eigen value at the desired index.
  */
-extern "C" __global__ void eigenVecBatch3x3Kernel(
-     const int batchSize, 
-     const float* xx, const int ldxx, 
-     const float* xy, const int ldxy, 
-     const float* xz, const int ldxz,
-     const float* yy, const int ldyy,
-     const float* yz, const int ldyz,
-     const float* zz, const int ldzz, 
-     const int srcHeight, 
+__device__ double cubicRoot(const double b, const double c, const double d, float* val, int eigenInd){
+   
+   
+
+    double bSq = b*b;
+    double p = c/3 - bSq/9;
+    double q = b*bSq/13.5 - b*c/3 + d;
+
+    if (p >= -1e-9){
+        double d = -b / 3;
+        for(int i = 0; i < 3; i++) val[i] = d;
+        return d;
+    }
+    else{
+        double eigenValD[3];
+        
+        Affine line(2 * sqrt(-p), -b/3);
     
-     float* eVectors,
-     const int ldEVec,
-     const int heightEVec,
-         
-     const float* eValues,
-     const int ldEVal,
-     const int heightEVal,
-     
-     const int downSampleFactorXY,
-     int vecInd,
-     float tolerance
-) {    
+        double inACos = q/(line.getSlope() * p);        
+    
+        if(inACos > 1 - 1e-6) line.map(1, -0.5, eigenValD);
+        else if(inACos < -1 + 1e-6) line.map(-1, 0.5, eigenValD);
+        else for(int i = 0; i < 3; i++) eigenValD[i] = line(cos((acos(inACos) + i*M_PI*2)/3));
+        
+       sortDescending(eigenValD);
+       
+       for(int i = 0; i < 3; i++) val[i] = eigenValD[i];
+       
+       return eigenValD[eigenInd];
+   }
+   
+}
+
+
+/**
+ * CUDA Kernel to compute eigenvalues of a batch of 3x3 symmetric matrices.
+ *
+ * @param n Number of matrices fordownSampleFactorXY = 1, even if it's not.
+ * @param srcHeight Height of the input matrices.
+ * @param valDst Pointer to the output eigenvalues.
+ * @param ldEVal Leading dimension of output.
+ * @param 1 of every how many structure tensors should be evaluated in the x and y dimensions.
+ */
+extern "C" __global__ void eigenBatchKernel(
+    const int n, 
+    const float* xx, const int ldxx, 
+    const float* xy, const int ldxy, 
+    const float* xz, const int ldxz,
+    const float* yy, const int ldyy,
+    const float* yz, const int ldyz,
+    const float* zz, const int ldzz, 
+    const int srcHeight, 
+    
+    float* valDst, const int ldEVal, int heightValDst, 
+    
+    const int downSampleFactorXY, const int eigenInd,
+    
+    float* vecDst, const int ldEVec, const int heightEVec,
+    
+    float tolerance
+) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= batchSize/downSampleFactorXY/downSampleFactorXY) return;
     
-    Get getx3(3*idx, heightEVal, 1);
-         
-    float eVal = getx3.val(eValues, ldEVal);    
+    if (idx >= n/downSampleFactorXY/downSampleFactorXY) return;
     
-    Get get(idx, srcHeight, downSampleFactorXY);
-    Matrix mat(
-        get.val(xx, ldxx), 
-        get.val(xy, ldxy), 
-        get.val(xz, ldxz), 
-        get.val(yy, ldyy), 
-        get.val(yz, ldyz), 
-        get.val(zz, ldzz),
-        eVal,
+    Get src(idx, srcHeight, downSampleFactorXY);
+    
+    Matrix3x3 mat(
+    	src.val(xx, ldxx), src.val(xy, ldxy), src.val(xz, ldxz), 
+                           src.val(yy, ldyy), src.val(yz, ldyz), 
+    					      src.val(zz, ldzz),
         tolerance
     );
     
-    Vec vec(eVectors + getx3.ind(heightEVec, ldEVec));
-
-    switch(mat.rowEchelon()){        
+    Get getx3(3*idx, heightEVec, 1);
+    
+    double val = cubicRoot(-mat.trace(), mat.diagMinorSum(), -mat.determinant(), valDst + getx3.ind(ldEVal), eigenInd);
+    
+    mat.subtractFromDiag(val);    
+    
+    Vec vec(vecDst + getx3.ind(ldEVec));
+    
+    switch(mat.rowEchelon()){
     
 	case 1:
 	    if(fabs(mat(0, 0)) <= tolerance) vec.set(1, 0, 0);
@@ -394,15 +533,15 @@ extern "C" __global__ void eigenVecBatch3x3Kernel(
 	case 2:
 	    if(fabs(mat(0,0)) <= tolerance)
 	        if(fabs(mat(0, 1)) <= tolerance)
-	            if(vecInd % 2 == 0) vec.set(1, 0, 0);
+	            if(eigenInd % 2 == 0) vec.set(1, 0, 0);
 	            else vec.set(0, 1, 0);
-	        else if(vecInd % 2 == 0) vec.set(0, -mat(0, 2)/mat(0, 1), 1);
+	        else if(eigenInd % 2 == 0) vec.set(0, -mat(0, 2)/mat(0, 1), 1);
 	            else vec.set(1, 0, 0);
-	    else if(vecInd % 2 == 0) vec.set(-mat(0, 1)/mat(0, 0), 1, 0);
+	    else if(eigenInd % 2 == 0) vec.set(-mat(0, 1)/mat(0, 0), 1, 0);
 	    else vec.set(-mat(0, 2)/mat(0, 0), 0, 1);
 	    break;
 	case 3:
-	    switch(vecInd){
+	    switch(eigenInd){
 	        case 0: vec.set(1, 0, 0); break;
 	        case 1: vec.set(0, 1, 0); break;
 	        case 2: vec.set(0, 0, 1);
@@ -418,5 +557,5 @@ extern "C" __global__ void eigenVecBatch3x3Kernel(
 //    if(idx == 0) {mat.print(); vec.print();}
 
     vec.normalize();
-    
 }
+

@@ -7,6 +7,7 @@ import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
 import ij.plugin.PlugIn;
 import ij.process.ImageConverter;
+import main.Test;
 
 /**
  *
@@ -49,8 +50,7 @@ public class FijiPlugin implements PlugIn {
 
         imp.setOpenAsHyperStack(true);
 
-        if (!validImage(imp))
-            return;
+        if (!validImage(imp)) return;
 
         UserInput ui;
         try {
@@ -65,6 +65,8 @@ public class FijiPlugin implements PlugIn {
             return;
         }
 
+        System.out.println("fijiPlugin.FijiPlugin.run() Runnin NeighborhoodPIG with user values:\n" + ui.toString());
+        
         try (
                 Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, ui)) {
             
@@ -76,7 +78,7 @@ public class FijiPlugin implements PlugIn {
             }
 
             if (ui.vectorField)
-                np.getVectorImg(20, 8).show();
+                np.getVectorImg(20, 8, false).show();
 
             if (ui.useCoherence)
                 np.getAzimuthalAngles(false, true).printToFiji();
@@ -98,20 +100,26 @@ public class FijiPlugin implements PlugIn {
 //            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 
-        try (Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, UserInput.defaultVals(neighborhoodSize))) {
+        UserInput ui = UserInput.defaultVals(neighborhoodSize);
 
+        try (Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, ui)) {
+
+//            System.out.println("fijiPlugin.FijiPlugin.defaultRun()\nAll finite: " + Test.allFinite(np.stm.eigen.vectors, handle));
+            
             np.getAzimuthalAngles(true, true).printToFile("images/output/test3/Azimuthal");
 
             if (depth > 1)
                 np.getZenithAngles(true, true).printToFile("images/output/test3/Zenith");
 
-            np.getVectorImg(8, 6);
+//            np.getVectorImg(8, 6, false);
 
         }
         System.out.println("NeighborhoodPIG processing complete.");
 
         if (!Array.allocatedArrays.isEmpty())
             throw new RuntimeException("Neighborhood PIG has a GPU memory leak.");
+        
+        System.out.println("fijiPlugin.FijiPlugin.defaultRun() user input:\n" + ui);
 
     }
 

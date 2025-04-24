@@ -16,7 +16,8 @@ public class NeighborhoodDim {
      * @param xy The distance to the nearest side of the xy plane neighborhood
      * square.
      * @param z The distance to the nearest xy parallel cube surface.
-     * @param distBetweenAdjLayer The distance between adjacent layers as a multiple of the distance between xy pixels.
+     * @param distBetweenAdjLayer The distance between adjacent layers as a
+     * multiple of the distance between xy pixels.
      */
     public NeighborhoodDim(int xy, int z, float distBetweenAdjLayer) {
         this.xyR = xy;
@@ -26,9 +27,26 @@ public class NeighborhoodDim {
 
     /**
      * Checks if the values stored here are valid.
+     *
      * @return True if all values are positive.
      */
-    public boolean valid(){
+    public boolean valid() {
         return xyR >= 0 && zR >= 0 && layerRes >= 0;
+    }
+
+    /**
+     * Returns a string representation of the NeighborhoodDim object.
+     *
+     * @return A string containing the values of the NeighborhoodDim's fields.
+     */
+    @Override
+    public String toString() {
+        return "NeighborhoodDim{"
+                + "rX=" + xyR
+                + ", rY=" + xyR
+                + // Assuming rY is the same as rX for a square neighborhood
+                ", rZ=" + zR
+                + ", layerSpacing=" + layerRes
+                + '}';
     }
 }

@@ -6,14 +6,18 @@ import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
+import imageWork.VecManager;
+import java.util.Arrays;
+import java.util.stream.IntStream;
+import main.Test;
 
 /**
  *
  * @author E. Dov Neimand
  */
-public class StructureTensorMatrix implements AutoCloseable {
+public class StructureTensorMatrices implements AutoCloseable {
 
-    private final Eigan eigen;
+    public final Eigen eigen;
     private final FStrideArray3d azimuth, zenith, coherence;
     private final Handle handle;
 
@@ -26,43 +30,41 @@ public class StructureTensorMatrix implements AutoCloseable {
      * @param ui User selected specifications.
      *
      */
-    public StructureTensorMatrix(Handle handle, Gradient grad, UserInput ui) {
+    public StructureTensorMatrices(Handle handle, Gradient grad, UserInput ui) {
 
         this.handle = handle;
 
-        eigen = new Eigan(handle, grad, ui.downSampleFactorXY, ui.tolerance);
+        float bigTolerance = 255*255*ui.neighborhoodSize.xyR*ui.neighborhoodSize.xyR*ui.neighborhoodSize.zR*1e-7f;
+        
+        eigen = new Eigen(handle, grad, ui.downSampleFactorXY, bigTolerance);
 
         try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, ui.neighborhoodSize, grad.x[0])) {
             for (int i = 0; i < 3; i++)
                 for (int j = i; j < 3; j++)
                     nps.set(grad.x[i], grad.x[j], eigen.at(i, j));
         }
-
-        eigen.setEigenVals().setEiganVectors(grad.depth > 1 ? 2 : 1);
-
+       
+        eigen.set(Math.min(grad.depth, 2));
+                
         azimuth = new FStrideArray3d(grad.height / ui.downSampleFactorXY, grad.width / ui.downSampleFactorXY, grad.depth, grad.batchSize);
+        
         zenith = azimuth.copyDim();
         coherence = azimuth.copyDim();
+        
+        setVecs0ToPi();        
+                
+        setCoherence(bigTolerance);
 
-        setVecs0ToPi();
-        unitizeVecs();
-        setCoherence(ui.tolerance);
-
-        setOrientations(ui.tolerance);
-    }
-
-    /**
-     * Changes the eigenvectos to unit vectors. This helps with converting them
-     * to spherical coordinates.
-     */
-    private void unitizeVecs() {
-        for (int i = 0; i < 3; i++) {//TODO: Do I need to unetize all the eigen vectors, or just some of them?  Do I need to compute all the eigen vectors, or just some of them?
-            FStrideArray3d vecs = eigen.vectors;
-            Kernel.run("toUnitVec", handle, coherence.size(),
-                    vecs, P.to(vecs.entriesPerLine()), P.to(vecs.ld()),
-                    P.to(vecs), P.to(vecs.entriesPerLine()), P.to(vecs.ld())
-            );
-        }
+//        System.out.println("fijiPlugin.StructureTensorMatrices.<init>() vector att (800, 575) is " 
+//                + Arrays.toString(new VecManager(grad).setFrom(eigen.vectors, 0, handle).get(575, 800, 0)) + 
+//                " has index " + new VecManager(grad).setFrom(eigen.vectors, 0, handle).vecIndex(575, 800, 0)/3);
+//        
+        
+        setOrientations(1e-6f);
+        
+//        System.out.println("\nfijiPlugin.StructureTensorMatrices.<init>() azimuth angle is: " + azimuth.getAt(575, 800).getf(handle));
+        
+        
     }
 
     /**
@@ -99,7 +101,7 @@ public class StructureTensorMatrix implements AutoCloseable {
                 P.to(zenith),
                 P.to(zenith.entriesPerLine()),
                 P.to(zenith.ld()),
-                P.to(.01f)
+                P.to(0.01f)
         );
 
     }
@@ -169,7 +171,7 @@ public class StructureTensorMatrix implements AutoCloseable {
      *
      * @return The eigenvalues and vectors of the structure tensors.
      */
-    public Eigan getEigen() {
+    public Eigen getEigen() {
         return eigen;
     }
 

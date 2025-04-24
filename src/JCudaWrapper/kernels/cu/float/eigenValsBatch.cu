@@ -21,7 +21,7 @@ public:
 };
 
 /**
- * Swap function for float values.
+ * Swap function for double values.
  *
  * @param a First value.
  * @param b Second value.
@@ -37,7 +37,7 @@ __device__ inline void swap(float& a, float& b) {
  */
 class Matrix3x3 {
 private:
-    const float xx, xy, xz, yy, yz, zz;
+    const double xx, xy, xz, yy, yz, zz;
 
 public:
     /**
@@ -56,7 +56,7 @@ public:
      * Computes the trace of the matrix.
      * @return The sum of the diagonal elements.
      */
-    __device__ float trace() const {
+    __device__ double trace() const {
         return xx + yy + zz;
     }
 
@@ -64,7 +64,7 @@ public:
      * Computes the sum of 2x2 determinant minors of the matrix.
      * @return The sum of determinant minors.
      */
-    __device__ float diagMinorSum() const {
+    __device__ double diagMinorSum() const {
         return yy*zz - yz*yz + xx*zz - xz*xz + xx*yy - xy*xy;
     }
 
@@ -72,7 +72,7 @@ public:
      * Computes the determinant of the matrix.
      * @return The determinant value.
      */
-    __device__ float determinant() const {
+    __device__ double determinant() const {
         return xx * (yy * zz - yz * yz) -
                xy * (xy * zz - yz * xz) +
                xz * (xy * yz - yy * xz);
@@ -95,8 +95,8 @@ __device__ static void sortDescending(float* values) {
  */
 class Affine {
 private:
-    float a; /**< The slope of the line. */
-    float b; /**< The y-intercept of the line. */
+    double a; /**< The slope of the line. */
+    double b; /**< The y-intercept of the line. */
 
 public:
     /**
@@ -104,14 +104,14 @@ public:
      * @param a The slope.
      * @param b The y-intercept.
      */
-    __device__ Affine(float a, float b) : a(a), b(b) {}
+    __device__ Affine(double a, double b) : a(a), b(b) {}
 
     /**
      * Evaluates the function at a given x.
      * @param x The input value.
      * @return The corresponding y-value.
      */
-    __device__ float operator()(float x) {
+    __device__ double operator()(double x) {
         return a * x + b;
     }
 
@@ -122,7 +122,7 @@ public:
      * @param x3 Third x-value.
      * @param y Pointer to an array where results are stored.
      */
-    __device__ void map(float x1, float x2, float x3, float* y) {
+    __device__ void map(double x1, double x2, double x3, float* y) {
         y[0] = (*this)(x1);
         y[1] = (*this)(x2);
         y[2] = (*this)(x3);
@@ -131,7 +131,7 @@ public:
     /**
      * @return The slope of the function.
      */
-    __device__ float getSlope(){
+    __device__ double getSlope(){
         return a;
     }
     
@@ -149,25 +149,22 @@ public:
  * @param b Coefficient of x^2.
  * @param c Coefficient of x.
  * @param d Constant term.
- * @param tolerance Numerical tolerance for zero checking.
  * @param val Output array to store roots.
  */
-__device__ void cubicRoot(const float& b, const float& c, const float& d, const float tolerance, float* val){
-    float p = (3*c - b*b)/9;
-    float q = (2*b*b*b - 9*b*c + 27*d)/27;
+__device__ void cubicRoot(const double b, const double c, const double d, float* val){
+    double bSq = b*b;
+    double p = c/3 - bSq/9;
+    double q = b*bSq/13.5 - b*c/3 + d;
 
-    if (p > -tolerance) val[0] = val[1] = val[2] = -b / 3;
+    if (p >= -1e-9) val[0] = val[1] = val[2] = -b / 3;
     else{
         Affine line(2 * sqrt(-p), -b/3);
     
-        float inACos = q/(line.getSlope() * p);        
+        double inACos = q/(line.getSlope() * p);        
     
-        if(inACos > 1 - 1e-10) line.map(1, -0.5, -0.5, val);
-        else if(inACos < -1 + 1e-10) line.map(-1, 0.5, 0.5, val);
-        else {
-            float phi = acos(inACos);
-            for(int i = 0; i < 3; i++) val[i] = line(cos((phi + i*2*M_PI)/3));
-        }
+        if(inACos > 1 - 1e-6) line.map(1, -0.5, -0.5, val);
+        else if(inACos < -1 + 1e-6) line.map(-1, 0.5, 0.5, val);
+        else for(int i = 0; i < 3; i++) val[i] = line(cos((acos(inACos) + i*M_PI*2)/3));        
     }
 }
 
@@ -178,7 +175,6 @@ __device__ void cubicRoot(const float& b, const float& c, const float& d, const 
  * @param srcHeight Height of the input matrices.
  * @param dst Pointer to the output eigenvalues.
  * @param ldDst Leading dimension of output.
- * @param tolerance Numerical tolerance for root computation.
  * @param 1 of every how many structure tensors should be evaluated in the x and y dimensions.
  */
 extern "C" __global__ void eigenValsBatchKernel(
@@ -191,7 +187,6 @@ extern "C" __global__ void eigenValsBatchKernel(
     const float* zz, const int ldzz, 
     const int srcHeight, 
     float* dst, const int ldDst, int heightDst, 
-    const float tolerance,
     const int downSampleFactorXY
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -201,17 +196,14 @@ extern "C" __global__ void eigenValsBatchKernel(
     Val src(idx, srcHeight, downSampleFactorXY);
     
     Matrix3x3 matrix(
-    	src.get(xx, ldxx), 
-    	src.get(xy, ldxy), 
-    	src.get(xz, ldxz), 
-    	src.get(yy, ldyy), 
-    	src.get(yz, ldyz), 
-    	src.get(zz, ldzz)
+    	src.get(xx, ldxx), src.get(xy, ldxy), src.get(xz, ldxz), 
+                           src.get(yy, ldyy), src.get(yz, ldyz), 
+    					      src.get(zz, ldzz)
     );
     
     float* eigenvalues = dst + (3*idx/heightDst) * ldDst + (3 * idx) % heightDst;
     
-    cubicRoot(-matrix.trace(), matrix.diagMinorSum(), -matrix.determinant(), tolerance, eigenvalues);
+    cubicRoot(-matrix.trace(), matrix.diagMinorSum(), -matrix.determinant(), eigenvalues);
     
     sortDescending(eigenvalues);
 }

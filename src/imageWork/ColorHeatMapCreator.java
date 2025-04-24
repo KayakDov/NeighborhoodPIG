@@ -13,6 +13,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import javax.imageio.ImageIO;
+import main.Test;
 
 /**
  * A class for creating orientation heatmaps and saving them as images.
@@ -51,6 +52,8 @@ public class ColorHeatMapCreator extends HeatMapCreator {
                 ldCoherence = coherence.ld();
             }
 
+            System.out.println("imageWork.ColorHeatMapCreator.<init>() non finite count: " +Test.nonFiniteCount(orientation, handle));//TODO: delete me.
+            
             Kernel.run("colors", handle,
                     orientation.size(),
                     orientation,
@@ -63,11 +66,10 @@ public class ColorHeatMapCreator extends HeatMapCreator {
                     P.to(heightCoherence),
                     P.to(ldCoherence)
             );
-
-            orientation.setProduct(handle, 0.5f, orientation);
             this.cpuColors = gpuColors.get(handle);
             
         }
+        orientation.setProduct(handle, 0.5f, orientation);
 
     }
 

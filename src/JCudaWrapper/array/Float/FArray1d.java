@@ -200,7 +200,7 @@ public class FArray1d extends Array1d implements FArray {
     public float norm(Handle handle, int length, int inc) {
         FSingleton result = new FSingleton();
         norm(handle, length, inc, result);
-        return result.getVal(handle);
+        return result.getf(handle);
     }
 
     /**

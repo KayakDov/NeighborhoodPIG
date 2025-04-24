@@ -30,8 +30,7 @@ __device__ int ind(int idx, int ld, int height) {
  * @param ldZe         Leading dimension of the polar output array.
  * @param tolerance    Tolerance value for avoiding singularities.
  */
-extern "C" __global__
-void toSphericalKernel(
+extern "C" __global__ void toSphericalKernel(
     const int n, 
     const float* srcVecs, const int heightSrc, const int ldSrc,
     float* dstAzimuthal, const int azHeight, const int ldAz,
@@ -44,13 +43,15 @@ void toSphericalKernel(
 
     const float* vec = srcVecs + ind(3*idx, ldSrc, heightSrc);
 
+
+
     dstAzimuthal[ind(idx, ldAz, azHeight)] = (fabs(vec[0]) <= tolerance && fabs(vec[1]) <= tolerance) ? nan("") : atan2(vec[1], vec[0]);
 
-	int polarInd = ind(idx,ldZe, zeHeight);	
+    int polarInd = ind(idx,ldZe, zeHeight);	
 	
-	if(vec[2] > 1 - tolerance) dstZenith[polarInd] = 0;
-	else if(vec[2] < tolerance - 1) dstZenith[polarInd] = 3.14159265;
-	else if(fabs(vec[2]) + fabs(vec[1]) + fabs(vec[0]) < tolerance) dstZenith[polarInd] = nan("");
-	else dstZenith[polarInd] = acos(vec[2]);
+    if(vec[2] >= 1 - tolerance) dstZenith[polarInd] = 0;
+    else if(vec[2] <= tolerance - 1) dstZenith[polarInd] = 3.14159265;
+    else if(fabs(vec[2]) + fabs(vec[1]) + fabs(vec[0]) <= tolerance) dstZenith[polarInd] = nan("");
+    else dstZenith[polarInd] = acos(vec[2]);
 }
 

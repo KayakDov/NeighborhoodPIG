@@ -66,7 +66,7 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
 
                 for (int col = 0; col < width; col++) {
                     int colInd = layerInd + col * height;
-                    for (int row = 0; row < height; row++)
+                    for (int row = 0; row < height; row++)                        
                         fp.setf(col, row, pixelIntensity[colInd + row]);
                 }
                 stack.addSlice(

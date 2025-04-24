@@ -115,11 +115,11 @@ extern "C" __global__ void colorsKernel(
     
     float intensity = (ldSrcInt == -1) ? 1.0 : srcIntensities[ind(idx, ldSrcInt, heightSrcInt)];
     
-    Writer writer(colors + ind(idx, ldCol, heightCol), intensity);
-    
+    Writer writer(colors + ind(idx, ldCol, heightCol), intensity);    
     
     if(isnan(angle)) writer.setColor(0, 0, 0);
-	else if (-1e-5 <= angle && angle < CUDART_PI / 3) 
+    
+    else if (-1e-5 <= angle && angle < CUDART_PI / 3) 
         writer.setColor(255, up(0, angle), 0);
     
     else if (CUDART_PI / 3 <= angle && angle < 2 * CUDART_PI / 3) 
@@ -136,5 +136,8 @@ extern "C" __global__ void colorsKernel(
     
     else if (5 * CUDART_PI / 3 <= angle && angle <= 2 * CUDART_PI + 1e-5) 
         writer.setColor(255, 0, down(5, angle));
-    else writer.setColor(0, 0, 0);
+    
+    else {
+        writer.setColor(0, 0, 0);
+    }
 }
