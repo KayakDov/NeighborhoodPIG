@@ -3,6 +3,37 @@
 
 
 /**
+ * Uses Kahan's method for more accurate mulitplication.
+ */
+__device__ double prod(double a, double b){
+    double result = a*b;
+    return result - fma(a, b, -result);
+}
+
+/**
+ * Swap function for double values.
+ *
+ * @param a First value.
+ * @param b Second value.
+ */
+__device__ inline void swap(float& a, float& b) {
+    float temp = a;
+    a = b;
+    b = temp;
+}
+/**
+ * Swap function for double values.
+ *
+ * @param a First value.
+ * @param b Second value.
+ */
+__device__ inline void swap(double& a, double& b) {
+    double temp = a;
+    a = b;
+    b = temp;
+}
+
+/**
  * @class Get
  * @brief A helper class for accessing values in a column-major order matrix.
  */
@@ -80,7 +111,7 @@ public:
      * @param initVal The initial maximum absolute value.
      * @param initArg The initial argument corresponding to the maximum absolute value.
      */
-    __device__ MaxAbs(int initArg, double initVal) : arg(initArg), val(initVal) {}
+    __device__ MaxAbs(int initArg, double initVal) : arg(initArg), val(fabs(initVal)) {}
 
      /**
      * @brief Updates the tracked maximum absolute value if the new value is greater.
@@ -118,29 +149,6 @@ public:
     }
 };
 
-
-/**
- * Swap function for double values.
- *
- * @param a First value.
- * @param b Second value.
- */
-__device__ inline void swap(float& a, float& b) {
-    float temp = a;
-    a = b;
-    b = temp;
-}
-/**
- * @brief Utility function to swap two float values.
- * @param a Reference to the first float.
- * @param b Reference to the second float.
- */
-__device__ void swap(double& a, double& b) {
-    double temp = a;
-    a = b;
-    b = temp;
-}
-
 /**
  * Represents a 3x3 symmetric matrix in column-major format.
  */
@@ -148,7 +156,13 @@ class Matrix3x3 {
 private:
     double mat[3][3];
     double tolerance;
-
+    
+    /**
+     * A value that is less than tolerance will be returned as 0.  Otherwise as itself.
+     */
+    __device__ double zeroBar(double maybeNear0){
+        return fabs(maybeNear0) <= tolerance? 0: maybeNear0;
+    }
 public:
     /**
      * Constructs a Matrix3x3 object.
@@ -162,13 +176,14 @@ public:
      * @param tol the tolerance.
      */
     __device__ explicit Matrix3x3(const float xx, const float xy, const float xz, const float yy, const float yz, const float zz, double tol) : tolerance(tol) {
-        mat[0][0] = xx;
-        mat[0][1] = mat[1][0] = xy;
-        mat[0][2] = mat[2][0] = xz;
-        mat[1][1] = yy;
-        mat[1][2] = mat[2][1] = yz;
-        mat[2][2] = zz;
+        mat[0][0] = zeroBar(xx);
+        mat[0][1] = mat[1][0] = zeroBar(xy);
+        mat[0][2] = mat[2][0] = zeroBar(xz);
+        mat[1][1] = zeroBar(yy);
+        mat[1][2] = mat[2][1] = zeroBar(yz);
+        mat[2][2] = zeroBar(zz);
     }
+
 
 
     /**
@@ -220,18 +235,41 @@ public:
      * @param minuendInd Index of the row to be updated.
      * @param subtrahendInd Index of the row to subtract.
      * @param scale Scaling factor.
+     * @param The value at this column will be set to 0.  Perform subtraction to the right.
      */
-    __device__ void subtractRow(int minuendInd, int subtrahendInd, double scale) {
-        for (int i = 0; i < 3; i++) mat[minuendInd][i] -= scale * mat[subtrahendInd][i];        
+    __device__ void subtractRow(int minuendInd, int subtrahendInd, double scale, int startCol) {
+        mat[minuendInd][startCol] = 0;
+        for (int i = startCol + 1; i < 3; i++){
+            if(fabs(mat[minuendInd][i]) <= tolerance && fabs(mat[subtrahendInd][i]) <= tolerance) mat[minuendInd][i] = 0;
+            else if(fabs(mat[minuendInd][i]) <= tolerance) mat[minuendInd][i] = prod(scale, mat[subtrahendInd][i]);
+            else if(fabs(mat[subtrahendInd][i]) <= tolerance) mat[minuendInd][i] = -mat[minuendInd][i];
+            else 
+                mat[minuendInd][i] = fma(scale, mat[subtrahendInd][i], -mat[minuendInd][i]);
+        }
+        
     }
 
     /**
      * @brief Swaps two rows of the matrix.
      * @param i First row index.
      * @param j Second row index.
+     * @param startCol begin swaping with this column and proceed to the right.
      */
-    __device__ void swapRows(int i, int j) {
-        for(int k = 0; k < 3; k++) swap(mat[i][k], mat[j][k]);
+    __device__ void swapRows(int i, int j, int startCol) {
+        for(int k = startCol; k < 3; k++) swap(mat[i][k], mat[j][k]);
+    }
+    
+    /**
+     * Scales the row so that the element at the startCol is one and every element after is times one over that element.
+     * @param row the row to be scaled.
+     * @startCol the column index of the first non zero element of the row.
+     */
+    __device__ void scaleRow(int row, int startCol){
+	
+	double inv = 1/mat[row][startCol]; 
+    	mat[row][startCol] = 1;
+    	for(int i = startCol + 1; i < 3; i++) mat[row][i] *= inv;
+    	
     }
 
     
@@ -246,13 +284,16 @@ public:
         MaxAbs maxPivot(row, fabs(mat[row][col]));
         
 	for (int i = row + 1; i < 3; i++) maxPivot.challenge(i, mat[i][col]);
+	
 
         if (maxPivot.getVal() <= tolerance) return false;
 
-        if (maxPivot.getArg() != row) swapRows(maxPivot.getArg(), row);
+        if (maxPivot.getArg() != row) swapRows(maxPivot.getArg(), row, col);
         
-        for (int i = row + 1; i < 3; i++)
-	    subtractRow(i, row, mat[i][col]/mat[row][col]);
+        for (int i = row + 1; i < 3; i++){
+	    subtractRow(i, row, mat[i][col]/mat[row][col], col);
+	    scaleRow(row, col);
+	}
 
         return true;
     }
@@ -285,16 +326,6 @@ public:
 };
 
 /**
- * Sorts a DIM-element array in descending order.
- * @param values Pointer to the array.
- */
-__device__ static void sortDescending(double* values) {
-    if(values[0] < values[1]) swap(values[0], values[1]);
-    if(values[0] < values[2]) swap(values[0], values[2]);
-    if(values[1] < values[2]) swap(values[1], values[2]);
-}
-
-/**
  * Represents an affine function y = ax + b.
  */
 class Affine {
@@ -316,7 +347,7 @@ public:
      * @return The corresponding y-value.
      */
     __device__ double operator()(double x) {
-        return a * x + b;
+        return fma(a, x, b);
     }
 
     /**
@@ -427,48 +458,109 @@ public:
     
 };
 
-/**
- * Computes the real roots of a cubic equation.
- *
- * @param b Coefficient of x^2.
- * @param c Coefficient of x.
- * @param d Constant term.
- * @param eigenInd The index of the eigenvalue to be returned from this method.  0 for the largest eigenValue and 2 for the smallest.
- * @param val Output array to store roots.
- * @reutrn The eigen value at the desired index.
- */
-__device__ double cubicRoot(const double b, const double c, const double d, float* val, int eigenInd){
-   
-   
-
-    double bSq = b*b;
-    double p = c/3 - bSq/9;
-    double q = b*bSq/13.5 - b*c/3 + d;
-
-    if (p >= -1e-9){
-        double d = -b / 3;
-        for(int i = 0; i < 3; i++) val[i] = d;
-        return d;
+class EVal{
+private:
+    double data[3];
+    
+    /**
+     * Sorts an array in descending order.
+     */
+    __device__ void sortDescending() {
+        if(data[0] < data[1]) swap(data[0], data[1]);
+        if(data[0] < data[2]) swap(data[0], data[2]);
+        if(data[1] < data[2]) swap(data[1], data[2]);
     }
-    else{
-        double eigenValD[3];
-        
-        Affine line(2 * sqrt(-p), -b/3);
     
-        double inACos = q/(line.getSlope() * p);        
     
-        if(inACos > 1 - 1e-6) line.map(1, -0.5, eigenValD);
-        else if(inACos < -1 + 1e-6) line.map(-1, 0.5, eigenValD);
-        else for(int i = 0; i < 3; i++) eigenValD[i] = line(cos((acos(inACos) + i*M_PI*2)/3));
-        
-       sortDescending(eigenValD);
+    /**
+     * @brief Sets the components of the vector.
+     * @param x The x-component.
+     * @param y The y-component.
+     * @param z The z-component.
+     */
+    __device__ void set(double x, double y, double z){
+        data[0] = x; data[1] = y; data[2] = z;
+    }
+    
+    /**
+     * Writes these values to the desired location.
+     */
+    __device__ void writeTo(float* to){
+        to[0] = data[0]; to[1] = data[1]; to[2] = data[2];
+    }
+
+    /**
+     * Computes the real roots of a cubic equation.
+     *
+     * @param b Coefficient of x^2.
+     * @param c Coefficient of x.
+     * @param d Constant term.
+     * @param eigenInd The index of the eigenvalue to be returned from this method.  0 for the largest eigenValue and 2 for the smallest.
+     * @param val Output array to store roots.
+     * @return The eigen value at the desired index.
+     */
+    __device__ void cubicRoot(const double b, const double c, const double d){
+	
+	double inv3 = 1.0/3;
+	
+	double nBInv3 = -b*inv3;
+	
+	double p = fma(nBInv3, b, c) * inv3;
+	double q = fma(fma(b/13.5, b, -c*inv3), b, d);
+
+	if (p >= -1e-9) set(nBInv3, nBInv3, nBInv3);
+	
+	else{
+	    
+	    Affine line(2 * sqrt(-p), nBInv3);
+	
+	    double arg = q/prod(line.getSlope(), p);
+	
+	    if(arg > 1 - 1e-6) line.map(1, -0.5, data);
+	    else if(arg < -1 + 1e-6) line.map(-1, 0.5, data);
+	    else {
+
+	        double acosArg = acos(arg); 
+
+	        set(line(cos(acosArg * inv3)), 
+ 	            line(cos(fma(2, M_PI, acosArg) * inv3)), 
+	            line(cos(fma(4, M_PI, acosArg) * inv3))
+	    	);
+	    }
+	    		   
+	   if(blockIdx.x * blockDim.x + threadIdx.x == 575*1153 + 150){
+	       printf("eigenBatch Has eigenvalues (%lf, %lf, %lf)\n", data[0], data[1], data[2]);
+	   }		   
+	}
+    }
+public:
+
+    /**
+     * Finds the eigenvalues.
+     *@param mat The matrix for whom the eigenvalues are desired.
+     */
+    __device__ EVal(const Matrix3x3& mat, float* dst){
        
-       for(int i = 0; i < 3; i++) val[i] = eigenValD[i];
-       
-       return eigenValD[eigenInd];
-   }
-   
-}
+ 
+        cubicRoot(-mat.trace(), mat.diagMinorSum(), -mat.determinant());
+        sortDescending();
+        writeTo(dst);
+    }
+    
+    __device__ int multiplicity(int ind){
+        return (data[0] == data[ind]) + (data[1] == data[ind]) + (data[2] == data[ind]) - 1;
+    }
+    
+    
+    /**
+     * @brief Accesses a component of the vector using array-like indexing.
+     * @param i The index of the component (0 for x, 1 for y, 2 for z).
+     * @return A reference to the requested vector component.
+     */
+    __device__ double& operator[](int i) {
+        return data[i];
+    }
+};
 
 
 /**
@@ -482,12 +574,14 @@ __device__ double cubicRoot(const double b, const double c, const double d, floa
  */
 extern "C" __global__ void eigenBatchKernel(
     const int n, 
+    
     const float* xx, const int ldxx, 
     const float* xy, const int ldxy, 
     const float* xz, const int ldxz,
     const float* yy, const int ldyy,
     const float* yz, const int ldyz,
     const float* zz, const int ldzz, 
+    
     const int srcHeight, 
     
     float* valDst, const int ldEVal, int heightValDst, 
@@ -496,7 +590,7 @@ extern "C" __global__ void eigenBatchKernel(
     
     float* vecDst, const int ldEVec, const int heightEVec,
     
-    float tolerance
+    double tolerance
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
@@ -513,33 +607,49 @@ extern "C" __global__ void eigenBatchKernel(
     
     Get getx3(3*idx, heightEVec, 1);
     
-    double val = cubicRoot(-mat.trace(), mat.diagMinorSum(), -mat.determinant(), valDst + getx3.ind(ldEVal), eigenInd);
+    EVal eVals(mat, valDst + getx3.ind(ldEVal));
     
-    mat.subtractFromDiag(val);    
+    mat.subtractFromDiag(eVals[eigenInd]);
+    
+    if(idx == 575*srcHeight + 150) mat.print();
     
     Vec vec(vecDst + getx3.ind(ldEVec));
     
-    switch(mat.rowEchelon()){
+    int freeVariables = mat.rowEchelon();
+    
+    double smTol = 1e-8;
+    
+    switch(freeVariables){
     
 	case 1:
-	    if(fabs(mat(0, 0)) <= tolerance) vec.set(1, 0, 0);
-	    else if(fabs(mat(1, 1)) <= tolerance) vec.set(-mat(0,1)/mat(0,0), 1, 0);
+	    if(fabs(mat(0, 0)) <= smTol) vec.set(1, 0, 0);
+	    else if(fabs(mat(1, 1)) <= smTol) vec.set(-mat(0,1)/mat(0,0), 1, 0);
 	    else {
 	        vec[2] = 1; 
 	        vec[1] = -mat(1,2)/mat(1,1); 
 	        vec[0] = (-mat(0,2) - mat(0,1)*vec[1])/mat(0,0);
 	    }
 	    break;
+	    
 	case 2:
-	    if(fabs(mat(0,0)) <= tolerance)
-	        if(fabs(mat(0, 1)) <= tolerance)
+	    if(fabs(mat(0,0)) <= smTol)
+	        if(fabs(mat(0, 1)) <= smTol)
 	            if(eigenInd % 2 == 0) vec.set(1, 0, 0);
 	            else vec.set(0, 1, 0);
-	        else if(eigenInd % 2 == 0) vec.set(0, -mat(0, 2)/mat(0, 1), 1);
-	            else vec.set(1, 0, 0);
-	    else if(eigenInd % 2 == 0) vec.set(-mat(0, 1)/mat(0, 0), 1, 0);
-	    else vec.set(-mat(0, 2)/mat(0, 0), 0, 1);
+	        else if(eigenInd % 2 == 0) vec.set(1, 0, 0);
+	            else vec.set(0, -mat(0, 2)/mat(0, 1), 1);
+	    else {
+	    	switch(eigenInd){
+	    	    case 0:
+	    	        if(fabs(mat(0, 1)) >= smTol) vec.set(0, -mat(0, 2)/mat(0, 1), 1);
+	    	    	else vec.set(0, 1, 0);
+	    	    	break;
+	    	    case 1:  vec.set(-mat(0, 1)/mat(0, 0), 1, 0); break;	    	    
+                    case 2: vec.set(-mat(0, 2)/mat(0, 0), 0, 1); 
+	    	}
+	    }
 	    break;
+	    
 	case 3:
 	    switch(eigenInd){
 	        case 0: vec.set(1, 0, 0); break;
@@ -548,8 +658,8 @@ extern "C" __global__ void eigenBatchKernel(
 	    }	    
     }
     
-    if(idx == 1000*srcHeight + 580) {
-        printf("vec in eigenVecBatch3x3 with index %d -> (%d, %d) is : (%f. %f, %f)\nwith tolerance %f\n", idx, idx/srcHeight, idx%srcHeight, vec[0], vec[1], vec[2], tolerance);
+    if(idx == 575*srcHeight + 150) {
+        printf("vec in eigenVecBatch3x3 with index %d -> (%d, %d) is : (%f. %f, %f)\nwith tolerance %f\nAnd free variables %d\nAnd eigenInd = %d\n\n", idx, idx/srcHeight, idx%srcHeight, vec[0], vec[1], vec[2], tolerance, freeVariables, eigenInd);
         mat.print();    
     }
 
