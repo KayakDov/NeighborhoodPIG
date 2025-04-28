@@ -7,7 +7,7 @@ package MathSupport;
  */
 public class Point3d {
 
-    private int x, y, z;
+    private double x, y, z;
 
     /**
      * Constructs a new {@code Point3d} with the specified coordinates.
@@ -16,7 +16,7 @@ public class Point3d {
      * @param y The y-coordinate of the point.
      * @param z The z-coordinate of the point.
      */
-    public Point3d(int x, int y, int z) {
+    public Point3d(double x, double y, double z) {
         this.x = x;
         this.y = y;
         this.z = z;
@@ -47,24 +47,11 @@ public class Point3d {
      * @param z The new z-coordinate.
      * @return this
      */
-    public Point3d set(int x, int y, int z) {
+    public Point3d set(double x, double y, double z) {
         this.x = x;
         this.y = y;
         this.z = z;
         return this;
-    }
-
-    /**
-     * Sets the coordinates of this {@code Point3d}.
-     *
-     * @param x The new x-coordinate.
-     * @param y The new y-coordinate.
-     * @param z The new z-coordinate.
-     * @return this
-     */
-    public Point3d set(double x, double y, double z) {
-        if(!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)) throw new IllegalArgumentException("You have passed a value that is not finite.");
-        return set((int) Math.round(x), (int) Math.round(y), (int) Math.round(z));
     }
 
     /**
@@ -86,7 +73,7 @@ public class Point3d {
      * @param x The integer to be squared.
      * @return The square of the input integer (x*x).
      */
-    private int sq(int x) {
+    private double sq(double x) {
         return x * x;
     }
 
@@ -99,7 +86,7 @@ public class Point3d {
      * @param p The other {@code Point3d} to calculate the distance to.
      * @return The squared Euclidean distance between the two points.
      */
-    public int distSquared(Point3d p) {
+    public double distSquared(Point3d p) {
         return sq(p.x - x) + sq(p.y - y) + sq(p.z - z);
     }
 
@@ -108,8 +95,8 @@ public class Point3d {
      *
      * @return The x-coordinate.
      */
-    public int x() {
-        return x;
+    public int xI() {
+        return (int)Math.round(x);
     }
 
     /**
@@ -117,8 +104,8 @@ public class Point3d {
      *
      * @return The y-coordinate.
      */
-    public int y() {
-        return y;
+    public int yI() {
+        return (int)Math.round(y);
     }
 
     /**
@@ -126,24 +113,8 @@ public class Point3d {
      *
      * @return The z-coordinate.
      */
-    public int z() {
-        return z;
-    }
-
-    /**
-     * Translates this {@code Point3d} by the specified amounts in the x, y, and
-     * z directions.
-     *
-     * @param x The amount to translate in the x-direction.
-     * @param y The amount to translate in the y-direction.
-     * @param z The amount to translate in the z-direction.
-     * @return this
-     */
-    public Point3d translate(int x, int y, int z) {
-        this.x += x;
-        this.y += y;
-        this.z += z;
-        return this;
+    public int zI() {
+        return (int)Math.round(z);
     }
 
     /**
@@ -156,7 +127,10 @@ public class Point3d {
      * @return this
      */
     public Point3d translate(double x, double y, double z) {
-        return translate((int) Math.round(x), (int) Math.round(y), (int) Math.round(z));
+        this.x += x;
+        this.y += y;
+        this.z += z;
+        return this;
     }
 
     /**
@@ -258,4 +232,18 @@ public class Point3d {
     public double norm(){
         return Math.sqrt(normSq());
     }
+
+    public double getX() {
+        return x;
+    }
+
+    public double getY() {
+        return y;
+    }
+
+    public double getZ() {
+        return z;
+    }
+    
+    
 }

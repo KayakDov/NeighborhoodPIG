@@ -53,9 +53,9 @@ public class VectorImg extends Dimensions implements Consumer<Point3d> {
         super(dims);
 
         space = new Cube(
-                (width - 1) * spacing + vecMag + 1,
-                (height - 1) * spacing + vecMag + 1,
-                vecs.layersPerGrid() == 1 ? 1 : (depth - 1) * spacing + vecMag + 1
+                (width - 1) * spacing + vecMag + 2,
+                (height - 1) * spacing + vecMag + 2,
+                vecs.layersPerGrid() == 1 ? 1 : (depth - 1) * spacing + vecMag + 2
         );
 
         stack = new ImageStack(space.width(), space.height());
@@ -141,7 +141,7 @@ public class VectorImg extends Dimensions implements Consumer<Point3d> {
 
             if (!p.firstQuadrant())
                 throw new RuntimeException(p.toString());//TODO: delete me
-            fp[p.z()].setf(p.x(), p.y(), intensity);
+            fp[p.zI()].setf(p.xI(), p.yI(), intensity);
         }
     }
 
@@ -169,23 +169,13 @@ public class VectorImg extends Dimensions implements Consumer<Point3d> {
 
                 gridVecs.get(row, col, layer, vec1, r);
 
-//                if(vec1.norm() > r + 1) throw new RuntimeException("too long"); //todo: delete me
-                if (depth == 1)
-                    vec1.setZ(0);
+                if (depth == 1) vec1.setZ(0);
 
-                line.getA().set(col, row, layer).scale(spacing).translate(r, r, depth == 1 ? 0 : r);
+                line.getA().set(col, row, layer).scale(spacing).translate(r + 1, r + 1, depth == 1 ? 0 : r + 1);
                 line.getB().set(line.getA());
                 line.getA().translate(vec1);
                 line.getB().translate(vec1.scale(-1));
-
-//                if(line.length() > 2*r + 2) throw new RuntimeException("too long"); //todo: delete me
-//                try {
                 line.draw(drawer, vec1, vec2);
-//                } catch (ArrayIndexOutOfBoundsException aioobe) {
-//                    throw new ArrayIndexOutOfBoundsException("\n" +
-//                            aioobe.getMessage() + "\nline = " + line.toString() 
-//                                    + " has boundaries " + space + " r = " + r + " (row, col) = (" + row +", " + col + "), spacing = " + spacing + "\n" + toString());//TODO:delete this.
-//                }
 
             }
         }

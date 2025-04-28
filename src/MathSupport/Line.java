@@ -41,7 +41,7 @@ public class Line {
      * @param setMe
      */
     public void at(double t, Point3d setMe) {
-        setMe.set(a).scale(1 - t).translate(b.x() * t, b.y() * t, b.z() * t);
+        setMe.set(a).scale(1 - t).translate(b.getX() * t, b.getY() * t, b.getZ() * t);
     }
 
     /**
@@ -54,17 +54,16 @@ public class Line {
      * many times in a row.
      */
     public void draw(Consumer<Point3d> pen, Point3d cursor, Point3d delta) {
-        double dist = Math.sqrt(a.distSquared(b));
+        double dist = length();
 
-        if (!a.firstQuadrant())
-            throw new RuntimeException("a = " + a.toString());
-        if (!b.firstQuadrant())
-            throw new RuntimeException("b = " + b.toString());
-
+        
+        
         pen.accept(cursor.set(a));
 
         delta.set(b).translate(-1, a).scale(1 / dist);
 
+//        System.out.println("MathSupport.Line.draw() length = " + dist + " delta = " + delta);
+        
         for (int i = 0; i < dist; i++)
             pen.accept(cursor.translate(delta));
     }

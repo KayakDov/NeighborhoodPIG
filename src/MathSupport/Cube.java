@@ -49,7 +49,7 @@ public class Cube {
      * @return the width of the cube
      */
     public int width() {
-        return max.x() - min.x();
+        return max.xI()- min.xI();
     }
     
     /**
@@ -58,7 +58,7 @@ public class Cube {
      * @return the height of the cube
      */
     public int height() {
-        return max.y() - min.y();
+        return max.yI()- min.yI();
     }
     
     /**
@@ -67,7 +67,7 @@ public class Cube {
      * @return the depth of the cube
      */
     public int depth() {
-        return max.z() - min.z();
+        return max.zI()- min.zI();
     }
     
     /**
@@ -87,9 +87,9 @@ public class Cube {
      * @return {@code true} if the point is within the cube, {@code false} otherwise
      */
     public boolean contains(int x, int y, int z) {
-        return x >= min.x() && x < max.x() &&
-               y >= min.y() && y < max.y() &&
-               z >= min.z() && z < max.z();
+        return x >= min.xI()&& x < max.xI()&&
+               y >= min.yI()&& y < max.yI()&&
+               z >= min.zI()&& z < max.zI();
     }
 
     /**
@@ -99,8 +99,8 @@ public class Cube {
      */
     @Override
     public String toString() {
-        return "Cube [min=(" + min.x() + ", " + min.y() + ", " + min.z() + "), "
-                + "max=(" + max.x() + ", " + max.y() + ", " + max.z() + ")]";
+        return "Cube [min=(" + min.xI()+ ", " + min.yI()+ ", " + min.zI()+ "), "
+                + "max=(" + max.xI()+ ", " + max.yI()+ ", " + max.zI()+ ")]";
     }
     
     /**
@@ -129,7 +129,7 @@ public class Cube {
      * The distance between the min corner and the max corner squared.
      * @return The distance between the min corner and the max corner squared.
      */
-    public int distSquared(){
+    public double distSquared(){
         return min.distSquared(max);
     }
     
@@ -142,27 +142,27 @@ public class Cube {
     }
 
     public int getMaxX() {
-        return max.x();
+        return max.xI();
     }
 
     public int getMaxY() {
-        return max.y();
+        return max.yI();
     }
 
     public int getMaxZ() {
-        return max.z();
+        return max.zI();
     }
 
     public int getMinX() {
-        return min.x();
+        return min.xI();
     }
 
     public int getMinY() {
-        return min.y();
+        return min.yI();
     }
 
     public int getMinZ() {
-        return min.z();
+        return min.zI();
     }
 
     public Cube() {
