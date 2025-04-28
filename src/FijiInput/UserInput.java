@@ -125,7 +125,7 @@ public class UserInput {
                 coherence.is(),
                 vector.is() ? (int) spacing.val() : 0,
                 vector.is() ? (int) mag.val() : 0,
-                1e-5f,
+                1e-6f,
                 (int) inverseRes.val()
         );
     }

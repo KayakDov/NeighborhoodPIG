@@ -12,6 +12,7 @@ public class Line {
 
     /**
      * Creates the line.
+     *
      * @param a One end point.
      * @param b The other end point.
      */
@@ -49,21 +50,23 @@ public class Line {
      * @param pen A method that can draw a point.
      * @param cursor Pre allocated memory so this method can run faster if
      * called many times in a row.
-     * @param delta Pre allocated memory so this method can run faster if
-     * called many times in a row.
+     * @param delta Pre allocated memory so this method can run faster if called
+     * many times in a row.
      */
     public void draw(Consumer<Point3d> pen, Point3d cursor, Point3d delta) {
         double dist = Math.sqrt(a.distSquared(b));
-        
-        if(!a.firstQuadrant()) throw new RuntimeException("a = " + a.toString());
-        if(!b.firstQuadrant()) throw new RuntimeException("b = " + b.toString());
+
+        if (!a.firstQuadrant())
+            throw new RuntimeException("a = " + a.toString());
+        if (!b.firstQuadrant())
+            throw new RuntimeException("b = " + b.toString());
 
         pen.accept(cursor.set(a));
-        
-        delta.set(b).translate(-1, a).scale(1/dist);
-        
+
+        delta.set(b).translate(-1, a).scale(1 / dist);
+
         for (int i = 0; i < dist; i++)
-            pen.accept(cursor.translate(delta));        
+            pen.accept(cursor.translate(delta));
     }
 
     public Point3d getA() {
@@ -79,9 +82,16 @@ public class Line {
      */
     @Override
     public String toString() {
-        return a.toString() + " : " + b.toString();
+        return a.toString() + " : " + b.toString() + " with length " + length();
     }
-    
-    
+
+    /**
+     * The length of the line.
+     *
+     * @return The length of the line.
+     */
+    public double length() {
+        return a.difference(b).norm();
+    }
 
 }

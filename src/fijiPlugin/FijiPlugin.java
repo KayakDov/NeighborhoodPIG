@@ -106,12 +106,12 @@ public class FijiPlugin implements PlugIn {
 
 //            System.out.println("fijiPlugin.FijiPlugin.defaultRun()\nAll finite: " + Test.allFinite(np.stm.eigen.vectors, handle));
             
-            np.getAzimuthalAngles(true, true).printToFile("images/output/test3/Azimuthal");
+//            np.getAzimuthalAngles(true, true).printToFile("images/output/test3/Azimuthal");
+//
+//            if (depth > 1)
+//                np.getZenithAngles(true, true).printToFile("images/output/test3/Zenith");
 
-            if (depth > 1)
-                np.getZenithAngles(true, true).printToFile("images/output/test3/Zenith");
-
-//            np.getVectorImg(8, 6, false);
+            np.getVectorImg(8, 6, false);
 
         }
         System.out.println("NeighborhoodPIG processing complete.");

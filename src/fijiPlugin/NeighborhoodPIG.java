@@ -44,6 +44,8 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
     private NeighborhoodPIG(Handle handle, FStrideArray3d image, String[] sourceFileNames, UserInput ui) {
         super(handle, image);
 
+        
+        
         if (image.entriesPerLine() % ui.downSampleFactorXY != 0 || image.linesPerLayer() % ui.downSampleFactorXY != 0 )
             throw new RuntimeException("image height must be divisible by downFactor.  Try cropping it.");
 

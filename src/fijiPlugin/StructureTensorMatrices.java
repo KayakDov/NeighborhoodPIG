@@ -6,10 +6,6 @@ import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
-import imageWork.VecManager;
-import java.util.Arrays;
-import java.util.stream.IntStream;
-import main.Test;
 
 /**
  *
@@ -34,7 +30,7 @@ public class StructureTensorMatrices implements AutoCloseable {
 
         this.handle = handle;
 
-        float bigTolerance = 255*255*ui.neighborhoodSize.xyR*ui.neighborhoodSize.xyR*ui.neighborhoodSize.zR*1e-7f;
+        float bigTolerance = 255*255*ui.neighborhoodSize.xyR*ui.neighborhoodSize.xyR*ui.neighborhoodSize.zR*5e-7f;
         
         eigen = new Eigen(handle, grad, ui.downSampleFactorXY, bigTolerance);
 

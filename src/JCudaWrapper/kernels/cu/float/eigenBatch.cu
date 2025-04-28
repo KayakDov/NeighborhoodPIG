@@ -528,9 +528,9 @@ private:
 	    	);
 	    }
 	    		   
-	   if(blockIdx.x * blockDim.x + threadIdx.x == 575*1153 + 150){
-	       printf("eigenBatch Has eigenvalues (%lf, %lf, %lf)\n", data[0], data[1], data[2]);
-	   }		   
+//	   if(blockIdx.x * blockDim.x + threadIdx.x == 575*1153 + 150){
+//	       printf("eigenBatch Has eigenvalues (%lf, %lf, %lf)\n", data[0], data[1], data[2]);
+//	   }		   
 	}
     }
 public:
@@ -611,13 +611,13 @@ extern "C" __global__ void eigenBatchKernel(
     
     mat.subtractFromDiag(eVals[eigenInd]);
     
-    if(idx == 575*srcHeight + 150) mat.print();
+    //if(idx == 575*srcHeight + 150) mat.print();
     
     Vec vec(vecDst + getx3.ind(ldEVec));
     
     int freeVariables = mat.rowEchelon();
     
-    double smTol = 1e-8;
+    double smTol = 1e-6;
     
     switch(freeVariables){
     
@@ -636,8 +636,8 @@ extern "C" __global__ void eigenBatchKernel(
 	        if(fabs(mat(0, 1)) <= smTol)
 	            if(eigenInd % 2 == 0) vec.set(1, 0, 0);
 	            else vec.set(0, 1, 0);
-	        else if(eigenInd % 2 == 0) vec.set(1, 0, 0);
-	            else vec.set(0, -mat(0, 2)/mat(0, 1), 1);
+	        else if(eigenInd % 2 == 0) vec.set(0, -mat(0, 2)/mat(0, 1), 1);
+	            else vec.set(1, 0, 0);
 	    else {
 	    	switch(eigenInd){
 	    	    case 0:
@@ -658,10 +658,10 @@ extern "C" __global__ void eigenBatchKernel(
 	    }	    
     }
     
-    if(idx == 575*srcHeight + 150) {
-        printf("vec in eigenVecBatch3x3 with index %d -> (%d, %d) is : (%f. %f, %f)\nwith tolerance %f\nAnd free variables %d\nAnd eigenInd = %d\n\n", idx, idx/srcHeight, idx%srcHeight, vec[0], vec[1], vec[2], tolerance, freeVariables, eigenInd);
-        mat.print();    
-    }
+//    if(idx == 575*srcHeight + 150) {
+//        printf("vec in eigenVecBatch3x3 with index %d -> (%d, %d) is : (%f. %f, %f)\nwith tolerance %f\nAnd free variables %d\nAnd eigenInd = %d\n\n", idx, idx/srcHeight, idx%srcHeight, vec[0], vec[1], vec[2], tolerance, freeVariables, eigenInd);
+//        mat.print();    
+//    }
 
     
 //    if(idx == 0) {mat.print(); vec.print();}

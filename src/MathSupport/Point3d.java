@@ -63,6 +63,7 @@ public class Point3d {
      * @return this
      */
     public Point3d set(double x, double y, double z) {
+        if(!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)) throw new IllegalArgumentException("You have passed a value that is not finite.");
         return set((int) Math.round(x), (int) Math.round(y), (int) Math.round(z));
     }
 
@@ -228,5 +229,33 @@ public class Point3d {
      */
     public Point3d difference(Point3d other) {
         return new Point3d(other).scale(-1).sum(this);
+    }
+
+    public void setX(int x) {
+        this.x = x;
+    }
+
+    public void setY(int y) {
+        this.y = y;
+    }
+
+    public void setZ(int z) {
+        this.z = z;
+    }
+    
+    /**
+     * The norm squared.
+     * @return The norm squared.
+     */
+    public double normSq(){
+        return x*x + y*y + z*z;
+    }
+    
+    /**
+     * The norm.
+     * @return The norm.
+     */
+    public double norm(){
+        return Math.sqrt(normSq());
     }
 }

@@ -15,7 +15,7 @@ import jcuda.Pointer;
  */
 public class Eigen extends Dimensions implements AutoCloseable {
 
-    private final float tolerance;
+    private final double tolerance;
     private final int downsampleFactorXY;
 
     /**

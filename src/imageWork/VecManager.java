@@ -86,9 +86,9 @@ public class VecManager extends Dimensions{
      * @param col The column index.
      * @param layer The layer index.
      * @param p The point the values are to be assigned to.
-     * @param vec The array to store the retrieved vector.
+     * @param scale Multiply the vector before it is rounded to ints.
      */
-    public void get(int row, int col, int layer, Point3d p, double scale) {
+    public void get(int row, int col, int layer, Point3d p, double scale){
         int ind = vecIndex(row, col, layer);
         p.set(scale * vecs[ind], scale * vecs[ind + 1], scale * vecs[ind + 2]);
     }
