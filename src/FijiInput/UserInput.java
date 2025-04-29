@@ -91,18 +91,16 @@ public class UserInput {
         
         
         NumericField xyR = new NumericField("Neighborhood xy radius:", 30, gd);
-        
+        NumericField zR = null;
+        if (hasZ) zR = new NumericField("Neighborhood z radius:", 1, gd);
         BooleanField heatmap = new BooleanField("heatmap", true, gd);
         BooleanField vector = new BooleanField("vector field", false, gd);
         BooleanField coherence = new BooleanField("generate coherence", false, gd);
         NumericField inverseRes = new NumericField("Downsample Factor XY:", 1, gd);
 
         NumericField layerDist = null;
-        NumericField zR = null;
-        if (hasZ){
-            zR = new NumericField("Neighborhood z radius:", 1, gd);
-            layerDist = new NumericField("Distance between layers as a multiple of the distance between pixels:", 1, gd);
-        }
+        if(hasZ) layerDist = new NumericField("Distance between layers as a multiple of the distance between pixels:", 1, gd);
+        
         
         gd.showDialog();
 

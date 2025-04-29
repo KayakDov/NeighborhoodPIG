@@ -245,5 +245,7 @@ public class Point3d {
         return z;
     }
     
-    
+    public boolean isFinite(){
+        return Double.isFinite(x) && Double.isFinite(y) && Double.isFinite(z);
+    }
 }

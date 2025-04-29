@@ -6,7 +6,6 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.FloatProcessor;
 import ij.io.FileSaver;
-import ij.plugin.HyperStackConverter;
 import java.io.File;
 import java.util.stream.IntStream;
 
@@ -33,10 +32,18 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
      * @param stackName The name of the stack.
      * @param handle The handle for GPU resource management.
      * @param image The tensor data used to generate the grayscale image.
+     * @param coherence Values of this map are set to NaN when coherence is at
+     * or very near 0. Set to null to avoid doing this, if for example you want
+     * to map coherence.
+     * @param tolerance Defines what is close to 0.
      */
-    public GrayScaleHeatMapCreator(String[] sliceNames, String stackName, Handle handle, FStrideArray3d image) {
+    public GrayScaleHeatMapCreator(String[] sliceNames, String stackName, Handle handle, FStrideArray3d image, FStrideArray3d coherence, double tolerance) {
         super(sliceNames, stackName, handle, image);
         pixelIntensity = image.get(handle);
+        if (coherence != null) {
+            float[] coh = coherence.get(handle);
+            IntStream.range(0, coh.length).filter(i -> coh[i] <= tolerance).forEach(i -> pixelIntensity[i] = Float.NaN);
+        }
     }
 
     /**
@@ -44,7 +51,6 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
      */
     @Override
     public void printToFiji() {
-
         getIP().show();
     }
 
@@ -53,28 +59,29 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
      *
      * @return The image plus for this image.
      */
-    private ImagePlus getIP() {
+    private ImagePlus getIP() {//TODO: look into multi threading this.
         ImageStack stack = new ImageStack(width, height);
 
-        IntStream.range(0, batchSize).parallel().forEach(t -> {
+        for (int t = 0; t < batchSize; t++) {
             int frameInd = t * width * height * depth;
-            
-            IntStream.range(0, depth).parallel().forEach(z -> {
+
+            for (int z = 0; z < depth; z++) {
 
                 FloatProcessor fp = new FloatProcessor(width, height);
                 int layerInd = frameInd + z * width * height;
 
                 for (int col = 0; col < width; col++) {
                     int colInd = layerInd + col * height;
-                    for (int row = 0; row < height; row++)                        
+                    for (int row = 0; row < height; row++)
                         fp.setf(col, row, pixelIntensity[colInd + row]);
                 }
                 stack.addSlice(
                         sliceNames[z],
-                        fp
+                        fp//.convertToByte(true)
                 );
-            });
-        });
+
+            }
+        }
 
         return setToHyperStack(new ImagePlus(stackName, stack));
     }
@@ -90,9 +97,7 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
         ImagePlus image = getIP();
 
         File outputDir = new File(writeToFolder);
-        if (!outputDir.exists()) {
-            outputDir.mkdirs();
-        }
+        if (!outputDir.exists()) outputDir.mkdirs();
 
         String filePath = new File(outputDir, stackName + ".tif").getAbsolutePath();
         FileSaver saver = new FileSaver(image);

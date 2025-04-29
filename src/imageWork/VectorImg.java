@@ -107,8 +107,8 @@ public class VectorImg extends Dimensions implements Consumer<Point3d> {
             intensity.getGrid(t).get(handle, gridIntensity);
 
         IntStream str = IntStream.range(0, depth);
-        if (vecs.batchSize == 1)
-            str = str.parallel();
+        
+        if (vecs.batchSize == 1) str = str.parallel();
 
         str.forEach(this::computeLayer);
 
@@ -168,18 +168,22 @@ public class VectorImg extends Dimensions implements Consumer<Point3d> {
                     drawer.setIntensity(gridIntensity[colIndex + row]);
 
                 gridVecs.get(row, col, layer, vec1, r);
+                
+                if (vec1.isFinite() && vec1.normSq() > 1) {
+                    if (depth == 1) vec1.setZ(0);
 
-                if (depth == 1) vec1.setZ(0);
-
-                line.getA().set(col, row, layer).scale(spacing).translate(r + 1, r + 1, depth == 1 ? 0 : r + 1);
-                line.getB().set(line.getA());
-                line.getA().translate(vec1);
-                line.getB().translate(vec1.scale(-1));
-                line.draw(drawer, vec1, vec2);
-
+                    line.getA().set(col, row, layer).scale(spacing).translate(r + 1, r + 1, depth == 1 ? 0 : r + 1);
+                    line.getB().set(line.getA());
+                    line.getA().translate(vec1);
+                    line.getB().translate(vec1.scale(-1));
+                    
+                    //if(line.length() <= 2)System.out.println("imageWork.VectorImg.computeLayer() liune length = " + line.length() + " vec = " + vec1.toString());
+                    
+                    line.draw(drawer, vec1, vec2);
+                }
             }
-        }
 
+        }
     }
 
 }

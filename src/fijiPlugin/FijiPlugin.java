@@ -71,17 +71,17 @@ public class FijiPlugin implements PlugIn {
                 Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, ui)) {
             
             if (ui.heatMap) {
-                np.getAzimuthalAngles(false, false).printToFiji();
+                np.getAzimuthalAngles(false, false, 0.01).printToFiji();
 
                 if (imp.getNSlices() > 1)
-                    np.getZenithAngles(false, false).printToFiji();
+                    np.getZenithAngles(false, false, 0.01).printToFiji();
             }
 
             if (ui.vectorField)
                 np.getVectorImg(20, 8, false).show();
 
             if (ui.useCoherence)
-                np.getAzimuthalAngles(false, true).printToFiji();
+                np.getCoherence().printToFiji();
 
             ij.IJ.showMessage("NeighborhoodPIG processing complete.");
         }
@@ -94,10 +94,11 @@ public class FijiPlugin implements PlugIn {
      */
     public static void defaultRun() {
 
-        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
+        String imagePath = "images/input/cyl/"; int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
+//        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
 //        String imagePath = "images/input/5debugs/"; int depth = 9; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
-//            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
+//            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(30, 1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 
         UserInput ui = UserInput.defaultVals(neighborhoodSize);
@@ -106,10 +107,10 @@ public class FijiPlugin implements PlugIn {
 
 //            System.out.println("fijiPlugin.FijiPlugin.defaultRun()\nAll finite: " + Test.allFinite(np.stm.eigen.vectors, handle));
             
-//            np.getAzimuthalAngles(true, true).printToFile("images/output/test3/Azimuthal");
+            np.getAzimuthalAngles(true, true, .01).printToFile("images/output/test3/Azimuthal");
 //
-//            if (depth > 1)
-//                np.getZenithAngles(true, true).printToFile("images/output/test3/Zenith");
+            if (depth > 1)
+                np.getZenithAngles(true, true, .01).printToFile("images/output/test3/Zenith");
 
             np.getVectorImg(8, 6, false);
 

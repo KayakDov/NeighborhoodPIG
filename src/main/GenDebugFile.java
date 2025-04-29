@@ -30,6 +30,19 @@ public class GenDebugFile {
         return black;
     }
 
+    public static int[][][] cylinder(int depth, int height, int width, int r) {
+        int[][][] env = new int[depth][height][width];
+        int centX = width / 2, centY = height / 2;
+
+        for (int i = 0; i < height; i++)
+            for (int j = 0; j < width; j++)
+                for (int k = 0; k < depth; k++)
+                    if ((i - centY) * (i - centY) + (j - centX) * (j - centX) <= r * r)
+                        env[k][i][j] = 255;
+        return env;
+
+    }
+
     public static int[][] blackWithWhiteBorderX(int height, int width) {
 
         int[][] black = new int[height][width];
@@ -63,37 +76,33 @@ public class GenDebugFile {
     public static void main(String[] args) {
         // Define pixel values for each point in a grid
 
-        int depth = 1;
-        int[][] pixelValues = blackWithWhiteBorderY(19, 6, 2);
+        int depth = 20;
+        
+        int width = 50;
+        int height = 50;
 
-        int width = pixelValues[0].length;
-        int height = pixelValues.length;
+        int[][][] pixelValues = cylinder(depth, width, height, 15);
 
-        // Create an ImageProcessor for an 8-bit grayscale image
-        ImageProcessor processor = new ByteProcessor(width, height);
+        ByteProcessor[] processor = new ByteProcessor[depth];
+        ImagePlus[] image = new ImagePlus[depth];
 
-        // Set pixel values in the ImageProcessor
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int grayValue = pixelValues[y][x];
-                processor.putPixel(x, y, grayValue);
+        for (int z = 0; z < depth; z++) {
+            processor[z] = new ByteProcessor(width, height);
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                    processor[z].putPixel(x, y, pixelValues[z][x][y]);
+            
+
+            try {
+                String saveTo = "images/input/cyl/" + z + "cylinder.png";
+                
+                new FileSaver(new ImagePlus("img " + z, processor[z])).saveAsPng(saveTo);
+                System.out.println("Image saved as: " + saveTo + ": " + height + "x" + width);
+
+
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        }
-
-        // Create an ImagePlus object
-        ImagePlus image = new ImagePlus("Debug Image", processor);
-
-        // Save the image as a JPEG file
-        try {
-            String saveTo = "images/input/debug/" + depth + "debugWhite.png";
-
-            FileSaver saver = new FileSaver(image);
-            saver.saveAsPng(saveTo);
-            System.out.println("Image saved as: " + saveTo + ": " + height + "x" + width);
-
-//            printPixels(new File(saveTo));
-        } catch (Exception e) {
-            e.printStackTrace();
         }
 
     }

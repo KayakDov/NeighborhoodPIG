@@ -44,9 +44,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
     private NeighborhoodPIG(Handle handle, FStrideArray3d image, String[] sourceFileNames, UserInput ui) {
         super(handle, image);
 
-        
-        
-        if (image.entriesPerLine() % ui.downSampleFactorXY != 0 || image.linesPerLayer() % ui.downSampleFactorXY != 0 )
+        if (image.entriesPerLine() % ui.downSampleFactorXY != 0 || image.linesPerLayer() % ui.downSampleFactorXY != 0)
             throw new RuntimeException("image height must be divisible by downFactor.  Try cropping it.");
 
         this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
@@ -78,14 +76,15 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      *
      * @param color True for a color image, false for grayscale.
      * @param useCoherence True if pixel intensity should be tied to orientation
-     * confidence (coherence)
+     * confidence (coherence). This setting is ignored if color is set to false.
+     * @param tolerance When is a value considered 0.
      * @return A heat map of the orientation in the xy plane.
      */
-    public HeatMapCreator getAzimuthalAngles(boolean color, boolean useCoherence) {
+    public HeatMapCreator getAzimuthalAngles(boolean color, boolean useCoherence, double tolerance) {
 
         return color ? new ColorHeatMapCreator(handle,
-                concat(sourceFileNames, useCoherence? " Coherence":" Azimuth"),
-                useCoherence?"Coherence":"Azimuth Angle Heatmap",
+                concat(sourceFileNames, useCoherence ? " Coherence" : " Azimuth"),
+                useCoherence ? "Coherence" : "Azimuth Angle Heatmap",
                 stm.azimuthAngle(),
                 useCoherence ? stm.getCoherence() : null
         )
@@ -93,7 +92,9 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
                         concat(sourceFileNames, " Azimuth"),
                         "Azimuth Angle Heatmap",
                         handle,
-                        useCoherence ? stm.getCoherence() : stm.azimuthAngle()
+                        stm.azimuthAngle(),
+                        stm.getCoherence(),
+                        tolerance
                 );
     }
 
@@ -102,11 +103,10 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      *
      * @param color True for a color image, false for grayscale.
      * @param useCoherence True if pixel intensity should be tied to orientation
-     * confidence (coherence). If a grayscale image is requested, than set to
-     * true to get the coherence.
-     * @return A heat map of the orientation in the yz plane.
+     * confidence (coherence). This setting is ignored if color is set to false.
+     * @return A heat map of the zenith angles.
      */
-    public HeatMapCreator getZenithAngles(boolean color, boolean useCoherence) {
+    public HeatMapCreator getZenithAngles(boolean color, boolean useCoherence, double tolerance) {
         return color ? new ColorHeatMapCreator(
                 handle,
                 concat(sourceFileNames, " Zenith Angle"),
@@ -115,11 +115,28 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
                 useCoherence ? stm.getCoherence() : null
         )
                 : new GrayScaleHeatMapCreator(
-                        concat(sourceFileNames, useCoherence ? " Coherence" : " Zenith Angle"),
-                        useCoherence ? "Coherence" : "Zenith Angle Heatmap",
+                        concat(sourceFileNames, " Zenith Angle"),
+                        "Zenith Angle Heatmap",
                         handle,
-                        useCoherence ? stm.getCoherence() : stm.zenithAngle()
+                        stm.zenithAngle(),
+                        stm.getCoherence(),
+                        tolerance
                 );
+    }
+
+    /**
+     * The coherence heatmap.
+     * @return The coherence heatmap.
+     */
+    public HeatMapCreator getCoherence() {
+        return new GrayScaleHeatMapCreator(
+                concat(sourceFileNames, " coherence"),
+                "Coherence",
+                handle,
+                stm.getCoherence(),
+                null,
+                0
+        );
     }
 
     /**
@@ -127,16 +144,17 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      *
      * @param spacing The space between the vectors.
      * @param vecMag The magnitude of the vectors to be drawn.
-     * @param useCoherence True to use coherence, false to set all vector intensities to 1.
+     * @param useCoherence True to use coherence, false to set all vector
+     * intensities to 1.
      * @return An image of all the nematic vectors
      */
     public ImagePlus getVectorImg(int spacing, int vecMag, boolean useCoherence) {
 
         return new VectorImg(
-                new Dimensions(handle, stm.getCoherence()), 
-                vecMag, 
-                stm.getEigen().vectors, 
-                useCoherence ? stm.getCoherence(): null, 
+                new Dimensions(handle, stm.getCoherence()),
+                vecMag,
+                stm.getEigen().vectors,
+                useCoherence ? stm.getCoherence() : null,
                 spacing
         ).get();
     }
@@ -205,12 +223,11 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
 
             BufferedImage firstImage = ImageIO.read(imageFiles[0]);
 
-            int width = ui.downSample(firstImage.getWidth()), 
+            int width = ui.downSample(firstImage.getWidth()),
                     height = ui.downSample(firstImage.getHeight());
-            
-            
+
             try (FStrideArray3d gpuImage = processImages(handle, imageFiles, height, width, depth)) {
-                
+
                 return new NeighborhoodPIG(
                         handle,
                         gpuImage,
@@ -228,8 +245,8 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * A factory method for a neighborhood pig.
      *
      * @param handle
-     * @param folderPath All images in the folder should have the same height and
-     * width.
+     * @param folderPath All images in the folder should have the same height
+     * and width.
      * @param ui User set specifications.
      * @param depth
      * @return A neighborhoodPIG.
@@ -338,8 +355,8 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
             try {
 
                 BufferedImage bi = ImageIO.read(pics[i]);
-                if(width < bi.getWidth() || height < bi.getHeight()) bi = bi.getSubimage(0, 0, width, height);
-                
+                if (width < bi.getWidth() || height < bi.getHeight()) bi = bi.getSubimage(0, 0, width, height);
+
                 toColMjr(grayScale(bi).getData(), imgPixelsColMaj);
 
                 pixelsGPU.getGrid(i / depth).getLayer(i % depth).set(handle, imgPixelsColMaj);
