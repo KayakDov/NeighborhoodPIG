@@ -21,12 +21,7 @@ import java.util.stream.IntStream;
  *
  * @author E. Dov Neimand
  */
-public class VectorImg extends Dimensions implements Consumer<Point3d> {
-
-    @Override
-    public void accept(Point3d t) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
+public class VectorImg extends Dimensions {
 
     private final FloatProcessor[] fp;
     private final Cube space;
@@ -37,6 +32,8 @@ public class VectorImg extends Dimensions implements Consumer<Point3d> {
     private final FStrideArray3d vecs;
     private final ImageStack stack;
     private final FStrideArray3d intensity;
+    private final boolean useNon0Intensities;
+    private final float tolerance;
 
     /**
      * Constructs a new VectorImg with the specified parameters to generate an
@@ -48,8 +45,13 @@ public class VectorImg extends Dimensions implements Consumer<Point3d> {
      * @param intensity The {@link FStrideArray3d} containing intensity data.
      * Pass null to set all intensities to one.
      * @param spacing The spacing between pixels.
+     * @param useNon0Intensities Set to true to shade ever vector acroding to
+     * it's intensity. Set to false to show all vectors at white except those
+     * with below tolerance intensity.
+     * @param tolerance If useNon0Intensities is false then this determines the
+     * threshold for what is close to 0.
      */
-    public VectorImg(Dimensions dims, int vecMag, FStrideArray3d vecs, FStrideArray3d intensity, int spacing) {
+    public VectorImg(Dimensions dims, int vecMag, FStrideArray3d vecs, FStrideArray3d intensity, int spacing, boolean useNon0Intensities, float tolerance) {
         super(dims);
 
         space = new Cube(
@@ -70,6 +72,8 @@ public class VectorImg extends Dimensions implements Consumer<Point3d> {
         this.vecs = vecs;
         this.intensity = intensity;
         this.spacing = spacing;
+        this.useNon0Intensities = useNon0Intensities;
+        this.tolerance = tolerance;
 
     }
 
@@ -103,11 +107,10 @@ public class VectorImg extends Dimensions implements Consumer<Point3d> {
 
         gridVecs.setFrom(vecs, t, handle);
 
-        if (gridIntensity != null)
-            intensity.getGrid(t).get(handle, gridIntensity);
+        intensity.getGrid(t).get(handle, gridIntensity);
 
         IntStream str = IntStream.range(0, depth);
-        
+
         if (vecs.batchSize == 1) str = str.parallel();
 
         str.forEach(this::computeLayer);
@@ -164,26 +167,36 @@ public class VectorImg extends Dimensions implements Consumer<Point3d> {
 
             for (int row = 0; row < height; row++) {
 
-                if (intensity != null)
-                    drawer.setIntensity(gridIntensity[colIndex + row]);
+                float localIntensity = gridIntensity[colIndex + row];
 
-                gridVecs.get(row, col, layer, vec1, r);
-                
-                if (vec1.isFinite() && vec1.normSq() > 1) {
-                    if (depth == 1) vec1.setZ(0);
+                if (localIntensity > tolerance) {
+                    if (useNon0Intensities) drawer.setIntensity(localIntensity);
 
-                    line.getA().set(col, row, layer).scale(spacing).translate(r + 1, r + 1, depth == 1 ? 0 : r + 1);
-                    line.getB().set(line.getA());
-                    line.getA().translate(vec1);
-                    line.getB().translate(vec1.scale(-1));
-                    
-                    //if(line.length() <= 2)System.out.println("imageWork.VectorImg.computeLayer() liune length = " + line.length() + " vec = " + vec1.toString());
-                    
-                    line.draw(drawer, vec1, vec2);
+                    gridVecs.get(row, col, layer, vec1, r);
+
+                    if (vec1.isFinite() && vec1.normSq() > 1) {
+                        if (depth == 1) vec1.setZ(0);
+
+                        line.getA().set(col, row, layer).scale(spacing).translate(r + 1, r + 1, depth == 1 ? 0 : r + 1);
+                        line.getB().set(line.getA());
+                        line.getA().translate(vec1);
+                        line.getB().translate(vec1.scale(-1));
+
+                        //if(line.length() <= 2)System.out.println("imageWork.VectorImg.computeLayer() liune length = " + line.length() + " vec = " + vec1.toString());
+                        line.draw(drawer, vec1, vec2);
+                    }
                 }
             }
 
         }
+    }
+    
+    /**
+     * Saves the vectors as a bunch of images.
+     * @param parentFolder 
+     */
+    public void saveToFile(String parentFolder){
+        ImgPlsToFiles.saveSlices(get(), parentFolder);
     }
 
 }

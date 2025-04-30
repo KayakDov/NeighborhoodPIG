@@ -104,6 +104,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @param color True for a color image, false for grayscale.
      * @param useCoherence True if pixel intensity should be tied to orientation
      * confidence (coherence). This setting is ignored if color is set to false.
+     * @param tolerance
      * @return A heat map of the zenith angles.
      */
     public HeatMapCreator getZenithAngles(boolean color, boolean useCoherence, double tolerance) {
@@ -154,8 +155,8 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
                 new Dimensions(handle, stm.getCoherence()),
                 vecMag,
                 stm.getEigen().vectors,
-                useCoherence ? stm.getCoherence() : null,
-                spacing
+                stm.getCoherence(),
+                spacing, useCoherence, 0.01f
         ).get();
     }
 

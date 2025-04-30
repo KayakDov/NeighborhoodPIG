@@ -78,7 +78,7 @@ public class FijiPlugin implements PlugIn {
             }
 
             if (ui.vectorField)
-                np.getVectorImg(20, 8, false).show();
+                np.getVectorImg(ui.vfSpacing, ui.vfMag, false).show();
 
             if (ui.useCoherence)
                 np.getCoherence().printToFiji();
@@ -112,7 +112,7 @@ public class FijiPlugin implements PlugIn {
             if (depth > 1)
                 np.getZenithAngles(true, true, .01).printToFile("images/output/test3/Zenith");
 
-            np.getVectorImg(8, 6, false);
+//            np.getVectorImg(8, 6, false);
 
         }
         System.out.println("NeighborhoodPIG processing complete.");

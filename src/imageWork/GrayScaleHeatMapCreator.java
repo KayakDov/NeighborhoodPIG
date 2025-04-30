@@ -77,7 +77,7 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
                 }
                 stack.addSlice(
                         sliceNames[z],
-                        fp//.convertToByte(true)
+                        fp
                 );
 
             }
@@ -94,14 +94,7 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
     @Override
     public void printToFile(String writeToFolder) {
 
-        ImagePlus image = getIP();
-
-        File outputDir = new File(writeToFolder);
-        if (!outputDir.exists()) outputDir.mkdirs();
-
-        String filePath = new File(outputDir, stackName + ".tif").getAbsolutePath();
-        FileSaver saver = new FileSaver(image);
-        saver.saveAsTiff(filePath);
+        ImgPlsToFiles.saveSlices(getIP(), writeToFolder);
     }
 
 }

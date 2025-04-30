@@ -6,9 +6,8 @@
             <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/FijiPlugin.java</file>
             <file>file:/home/dov/projects/NieghborhoodPIG/src/imageWork/VectorImg.java</file>
             <file>file:/home/dov/projects/NieghborhoodPIG/src/MathSupport/Point3d.java</file>
-            <file>file:/home/dov/projects/NieghborhoodPIG/src/MathSupport/Line.java</file>
-            <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/StructureTensorMatrices.java</file>
-            <file>file:/home/dov/projects/NieghborhoodPIG/src/JCudaWrapper/array/Float/FLineArray.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/imageWork/ImgPlsToFiles.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/NeighborhoodPIG.java</file>
         </group>
     </open-files>
 </project-private>
