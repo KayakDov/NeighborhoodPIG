@@ -1,6 +1,8 @@
 package JCudaWrapper.array.Pointer;
 
 import JCudaWrapper.array.Array1d;
+import JCudaWrapper.array.Array2d;
+import JCudaWrapper.array.Array3d;
 import jcuda.Sizeof;
 
 /**
@@ -9,20 +11,16 @@ import jcuda.Sizeof;
  * @author dov
  */
 public abstract class PointerArray1d extends Array1d implements PointerArray {
-    
-    public final int subArraySize;
 
     /**
      * Constructs an empty array.
+     *
      * @param numElements The number of elements pointed to.
-     * @param subArraySize The number of elements in the sub arrays.
      */
-    public PointerArray1d(int numElements, int subArraySize) {
+    public PointerArray1d(int numElements) {
         super(numElements, Sizeof.POINTER);
-        this.subArraySize = subArraySize;
     }
-    
-    
+
     /**
      * Creates a sub array from the given array.
      *
@@ -31,12 +29,10 @@ public abstract class PointerArray1d extends Array1d implements PointerArray {
      * begins.
      * @param length The number of elements in this array.
      */
-    public PointerArray1d(PointerArray1d src, int start, int length){
-        super(src, start, length, src.ld());        
-        subArraySize = src.subArraySize;
+    public PointerArray1d(PointerArray1d src, int start, int length) {
+        super(src, start, length, src.ld());
     }
-    
-    
+
     /**
      * Creates a sub array from the given array.
      *
@@ -46,17 +42,8 @@ public abstract class PointerArray1d extends Array1d implements PointerArray {
      * @param length The number of elements in this array.
      * @param ld The increment.
      */
-    public PointerArray1d(PointerArray1d src, int start, int length, int ld){
-        super(src, start, length, src.ld()*ld);
-        subArraySize = src.subArraySize;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int subArraySize() {
-        return subArraySize;
+    public PointerArray1d(PointerArray1d src, int start, int length, int ld) {
+        super(src, start, length, src.ld() * ld);
     }
 
 }

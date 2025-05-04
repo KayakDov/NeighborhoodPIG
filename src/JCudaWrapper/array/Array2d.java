@@ -1,5 +1,6 @@
 package JCudaWrapper.array;
 
+import JCudaWrapper.array.Pointer.to2d.PSingletonTo2d;
 import jcuda.Pointer;
 import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaMemcpyKind;
@@ -32,10 +33,8 @@ public abstract class Array2d extends LineArray {
         opCheck(JCuda.cudaMallocPitch(pointer.ptr, pitchArray, entriesPerLine * bytesPerEntry, linesPerLayer()));
         Array.recordMemAloc(pointer.ptr);
         
-        
         pointer.pitch = pitchArray[0];
-        pointer.xsize = entriesPerLine*bytesPerEntry;
-        pointer.ysize = numLines;
+        
         
     }
 
@@ -61,6 +60,15 @@ public abstract class Array2d extends LineArray {
      */
     public Array2d(Array src, int entriesPerLine) {
         super(src, entriesPerLine);
+    }
+    
+    /**
+     * Creates a 2d array from a pointer to a 2d array.
+     * @param hand
+     * @param to2d The singleton with a pointer to the array.
+     */
+    public Array2d(Handle hand, PSingletonTo2d to2d){
+        super(hand, to2d);
     }
 
     /**

@@ -4,6 +4,7 @@ import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.LineArray;
 import JCudaWrapper.array.P;
+import JCudaWrapper.array.Pointer.to2d.PSingletonTo2d;
 import JCudaWrapper.array.Singleton;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Pointer;
@@ -50,6 +51,17 @@ public class DArray2d extends Array2d implements DLineArray {
     public DArray2d(DArray src, int entriesPerLine) {
         super(src, entriesPerLine);
     }
+
+    /**
+     * Creates a double 2d array from a singleton pointing to one.
+     * @param hand
+     * @param to2d The target of the singleton's pointer.
+     */
+    public DArray2d(Handle hand, PSingletonTo2d to2d) {
+        super(hand, to2d);
+    }
+    
+    
 
     /**
      * Creates this 2d array from a 1d array.
@@ -236,13 +248,6 @@ public class DArray2d extends Array2d implements DLineArray {
         return new DArray3d(this, entriesPerLine(), linesPerLayer);
     }
 
-    /**
-     * {@inheritDoc }
-     */
-    @Override
-    public Singleton get(int index) {
-        return new DSingleton(this, index);
-    }
 
     /**
      * {@inheritDoc}

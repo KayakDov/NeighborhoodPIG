@@ -1,5 +1,7 @@
 package JCudaWrapper.array;
 
+import JCudaWrapper.array.Pointer.to2d.PSingletonTo2d;
+import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.runtime.cudaPitchedPtr;
@@ -19,6 +21,8 @@ public abstract class LineArray implements Array {
     protected final cudaPitchedPtr pointer;
     public final int bytesPerEntry;
 
+    
+    
     /**
      * Constructs a LineArray with the specified memory layout. Be sure to
      * allocate the memory, as that is not done here.
@@ -33,6 +37,12 @@ public abstract class LineArray implements Array {
         pointer.xsize = entriesPerLine * bytesPerEntry;
         this.bytesPerEntry = bytesPerEntry;
         
+    }
+    
+    public LineArray(Handle hand, PSingletonTo2d pSing){
+        this(pSing.target.entriesPerLine, pSing.target.numLines, pSing.targetBytesPerEntry());
+        pointer.ptr = pSing.get(hand);
+        pointer.pitch = pSing.pitch.getVal(hand);
     }
 
     /**
@@ -109,12 +119,6 @@ public abstract class LineArray implements Array {
     public int entriesPerLine() {
         return (int) pointer.xsize / bytesPerEntry();
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    abstract public Singleton get(int index);
 
     /**
      * Retrieves an element at the specified section and entry index.

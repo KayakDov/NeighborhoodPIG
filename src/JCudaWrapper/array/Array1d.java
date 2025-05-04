@@ -1,5 +1,7 @@
 package JCudaWrapper.array;
 
+import JCudaWrapper.array.Pointer.to1d.PSingletonTo1d;
+import JCudaWrapper.array.Pointer.to1d.PointerTo1d;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Pointer;
 import jcuda.driver.CUdeviceptr;
@@ -34,6 +36,18 @@ public abstract class Array1d implements Array {
         opCheck(JCuda.cudaMalloc(pointer, size * bytesPerElement));
         this.size = size;
         Array.recordMemAloc(pointer);
+        ld = 1;
+    }
+    
+    /**
+     * Loads the array from memory.
+     * @param hand The context.
+     * @param pSingTo1d The memory to be in this array.
+     */
+    public Array1d(Handle hand, PSingletonTo1d pSingTo1d){
+        pointer = pSingTo1d.get(hand);
+        bytesPerEntry = pSingTo1d.targetBytesPerEntry();
+        size = pSingTo1d.targetSize();
         ld = 1;
     }
 

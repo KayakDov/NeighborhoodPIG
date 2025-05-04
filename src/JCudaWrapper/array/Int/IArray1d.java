@@ -4,6 +4,7 @@ import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Array1d;
 import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.Array3d;
+import JCudaWrapper.array.Double.DArray1d;
 import JCudaWrapper.array.Singleton;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;
@@ -26,23 +27,45 @@ public class IArray1d extends Array1d implements IArray {
     }
 
     /**
-     * {@inheritDoc}
+     * Constructs a 1d sub array of the proffered array.If the array copied from
+     * is not 1d, then depending on the length, this array may include pitch.
+     *
+     * @param src The array to be copied from.
+     * @param start The start index of the array.
+     * @param size The length of the array.
+     * @param ld The increment between elements.
      */
-    @Override
-    public Array copy(Handle handle) {
-        return new IArray1d(size()).set(handle, this);
+    public IArray1d(IArray src, int start, int size, int ld) {
+        super(src, start, size, ld);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public IArray1d set(Handle handle, int[] srcCPU) {
-        IArray.super.set(handle, srcCPU); 
+    public IArray1d set(Handle handle, Array from) {
+        super.set(handle, from);
         return this;
     }
     
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public IArray1d copy(Handle handle) {
+        return new IArray1d(size()).set(handle, this);
+    }
+
     
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public IArray1d set(Handle handle, int[] srcCPU) {
+        IArray.super.set(handle, srcCPU);
+        return this;
+    }
 
     /**
      * Guaranteed to throw an exception. TODO: implement this method.
@@ -89,17 +112,6 @@ public class IArray1d extends Array1d implements IArray {
     }
 
     /**
-     * Guaranteed to throw an exception. TODO: implement this method.
-     *
-     * @throws UnsupportedOperationException always
-     * @deprecated Unsupported operation.
-     */
-    @Override
-    public Singleton get(int index) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-    
-    /**
      * {@inheritDoc}
      */
     @Override
@@ -131,38 +143,4 @@ public class IArray1d extends Array1d implements IArray {
     public Array1d sub(int start, int length, int ld) {
         throw new UnsupportedOperationException("Not yet implemented.");
     }
-
-    /**
-     * Guaranteed to throw an exception. TODO: implement this method.
-     *
-     * @throws UnsupportedOperationException always
-     * @deprecated Unsupported operation.
-     */
-    @Override
-    public Array1d as1d() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    /**
-     * Guaranteed to throw an exception. TODO: implement this method.
-     *
-     * @throws UnsupportedOperationException always
-     * @deprecated Unsupported operation.
-     */
-    @Override
-    public Array2d as2d() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    /**
-     * Guaranteed to throw an exception. TODO: implement this method.
-     *
-     * @throws UnsupportedOperationException always
-     * @deprecated Unsupported operation.
-     */
-    @Override
-    public Array3d as3d(int linesPerLayer) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
 }

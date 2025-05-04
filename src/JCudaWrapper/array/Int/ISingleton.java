@@ -1,5 +1,15 @@
-package JCudaWrapper.array.Double;
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package JCudaWrapper.array.Int;
 
+import JCudaWrapper.array.Array;
+import JCudaWrapper.array.Array1d;
+import JCudaWrapper.array.Array2d;
+import JCudaWrapper.array.Array3d;
+import JCudaWrapper.array.Double.DArray;
+import JCudaWrapper.array.Double.DSingleton;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Singleton;
 import JCudaWrapper.resourceManagement.Handle;
@@ -7,34 +17,36 @@ import jcuda.Pointer;
 import jcuda.Sizeof;
 
 /**
- * Single element in the gpu.
- * @author E. Dov Neimand
+ *
+ * @author dov
  */
-public class DSingleton extends Singleton implements DArray{
+public class ISingleton extends Singleton implements IArray{
 
     /**
      * The first element in the proffered array is this singleton.
      * @param array An array from which the first element becomes this singleton.
      * @param index The index of the desired entry.
      */
-    public DSingleton(DArray array, int index) {
+    public ISingleton(IArray array, int index) {
         super(array, index);
     }
 
     /**
      * Creates an empty singleton. 
      */
-    public DSingleton() {
-        super(Sizeof.DOUBLE);
+    public ISingleton() {
+        super(Sizeof.INT);
     }
-            
+    
+    
+    
     /**
      * Gets the element in this singleton.
      * @param handle
      * @return The element in this singleton.
      */
-    public double getVal(Handle handle){
-        double[] cpuArray = new double[1];
+    public int getVal(Handle handle){
+        int[] cpuArray = new int[1];
         get(handle, Pointer.to(cpuArray));
         handle.synch();
         return cpuArray[0];
@@ -46,42 +58,26 @@ public class DSingleton extends Singleton implements DArray{
      * @param d The new value in this singleton.
      * @return this.
      */
-    public DSingleton set(Handle handle, double d){
+    public ISingleton set(Handle handle, int d){
         set(handle, P.to(d));
         return this;
     }
-
+    
+    
     /**
      * {@inheritDoc}
      */
     @Override
-    public DSingleton set(Handle handle, DArray from) {
-        super.set(handle, from);
-        return this;
+    public ISingleton get(int i){
+        return (ISingleton) super.get(i);
     }
     
     /**
      * {@inheritDoc}
      */
     @Override
-    public DSingleton copy(Handle handle) {
-        return new DSingleton().set(handle, this);
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public DSingleton get(int i){
-        return (DSingleton) super.get(i);
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public double[] get(Handle handle) {
-        double[] cpuArray = new double[1];
+    public int[] get(Handle handle) {
+        int[] cpuArray = new int[1];
         get(handle, Pointer.to(cpuArray));
         return cpuArray;
     }
@@ -90,8 +86,16 @@ public class DSingleton extends Singleton implements DArray{
      * {@inheritDoc}
      */
     @Override
-    public DSingleton setProduct(Handle handle, double scalar, DArray src) {
-        as1d().setProduct(handle, scalar, src);
+    public ISingleton copy(Handle handle) {
+        return new ISingleton().set(handle, this);
+    }
+    
+    
+    /**
+     * {@inheritDoc}
+     */
+    public ISingleton set(Handle handle, IArray from) {
+        super.set(handle, from);
         return this;
     }
     

@@ -1,9 +1,8 @@
 package JCudaWrapper.array.Int;
 
 import JCudaWrapper.array.Array;
-import JCudaWrapper.array.Array1d;
 import JCudaWrapper.array.Array2d;
-import JCudaWrapper.array.Array3d;
+import JCudaWrapper.array.LineArray;
 import JCudaWrapper.array.Singleton;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Sizeof;
@@ -23,15 +22,42 @@ public class IArray2d extends Array2d implements IArray{
         super(entriesPerLine, numLines, Sizeof.INT);
     }
 
+    
     /**
-     * Guaranteed to throw an exception. TODO: implement this method.
+     * This array is creates as a sub array of the proffered array.
      *
-     * @throws UnsupportedOperationException always
-     * @deprecated Unsupported operation.
+     * @param src The super array.
+     * @param startLine The line in src that this array starts.
+     * @param numLines The number of lines in this array.
+     * @param startEntry The start index on each included line.
+     * @param entriesPerLine The number of entries on each included line.
      */
-    @Override
-    public Singleton get(int index) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    public IArray2d(LineArray src, int startEntry, int entriesPerLine, int startLine, int numLines) {
+        super(src, startEntry, entriesPerLine, startLine, numLines);
+    }
+
+    /**
+     * Constructs this 2d array from a1d array. Note, the data is not copied,
+     * and changes to one array will effect the other.
+     *
+     * @param src The 1d array.
+     * @param entriesPerLine The number of entries per line.
+     */
+    public IArray2d(Array src, int entriesPerLine) {
+        super(src, entriesPerLine);
+    }
+
+    /**
+     * Constructs this 2d array from a1d array. Note, the data is not copied,
+     * and changes to one array will effect the other.
+     *
+     * @param src The 1d array.
+     * @param entriesPerLine The number of entries per line.
+     * @param ld The number of entries that could be put on a line if the entire
+     * pitch were used.
+     */
+    public IArray2d(Array src, int entriesPerLine, int ld) {
+        super(src, entriesPerLine, ld);
     }
 
     /**
@@ -45,37 +71,5 @@ public class IArray2d extends Array2d implements IArray{
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
-    /**
-     * Guaranteed to throw an exception. TODO: implement this method.
-     *
-     * @throws UnsupportedOperationException always
-     * @deprecated Unsupported operation.
-     */
-    @Override
-    public Array1d as1d() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    /**
-     * Guaranteed to throw an exception. TODO: implement this method.
-     *
-     * @throws UnsupportedOperationException always
-     * @deprecated Unsupported operation.
-     */
-    @Override
-    public Array2d as2d() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    /**
-     * Guaranteed to throw an exception. TODO: implement this method.
-     *
-     * @throws UnsupportedOperationException always
-     * @deprecated Unsupported operation.
-     */
-    @Override
-    public Array3d as3d(int linesPerLayer) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
     
 }

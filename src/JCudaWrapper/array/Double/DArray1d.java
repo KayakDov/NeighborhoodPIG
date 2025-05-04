@@ -4,7 +4,6 @@ import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Array1d;
 import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.P;
-import JCudaWrapper.array.Singleton;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;
 import jcuda.Pointer;
@@ -69,14 +68,6 @@ public class DArray1d extends Array1d implements DArray {
      */
     public DArray1d(DArray src, int start, int size) {
         super(src, start, size, 1);
-    }
-
-    /**
-     * {@inheritDoc }
-     */
-    @Override
-    public Singleton get(int index) {
-        return new DSingleton(this, index);
     }
 
     /**

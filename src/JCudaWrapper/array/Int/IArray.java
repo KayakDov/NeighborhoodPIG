@@ -1,6 +1,9 @@
 package JCudaWrapper.array.Int;
 
 import JCudaWrapper.array.Array;
+import JCudaWrapper.array.Double.DArray1d;
+import JCudaWrapper.array.Double.DArray2d;
+import JCudaWrapper.array.Double.DArray3d;
 import java.util.Arrays;
 import jcuda.Pointer;
 import JCudaWrapper.resourceManagement.Handle;
@@ -55,5 +58,38 @@ public interface IArray extends Array {
     @Override
     public default int bytesPerEntry() {
         return Sizeof.INT;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public default IArray1d as1d() {
+        return new IArray1d(this, 0, size(), 1);
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public default IArray2d as2d() {
+        return new IArray2d(this, entriesPerLine());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public default IArray3d as3d(int linesPerLayer) {
+        return new IArray3d(this, entriesPerLine(), linesPerLayer);
+    }
+
+    /**
+     * Gets the singleton at the desired index.
+     * @param index The index of the desired singleton.
+     * @return The singleton at the desired index.
+     */
+    public default ISingleton get(int index){
+         return new ISingleton(this, index);
     }
 }

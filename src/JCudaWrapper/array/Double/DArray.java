@@ -1,6 +1,7 @@
 package JCudaWrapper.array.Double;
 
 import JCudaWrapper.array.Array;
+import JCudaWrapper.array.Int.ISingleton;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
@@ -171,5 +172,16 @@ public interface DArray extends Array {
      *
      */
     public DArray setProduct(Handle handle, double scalar, DArray src);
+    
+    
+    /**
+     * Gets the singleton at the desired index.
+     * @param index The index of the desired singleton.
+     * @return The singleton at the desired index.
+     */
+    @Override
+    public default DSingleton get(int index){
+         return new DSingleton(this, index);
+    }
 
 }

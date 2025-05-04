@@ -1,32 +1,31 @@
-package JCudaWrapper.array.Pointer;
+package JCudaWrapper.array.Pointer.to1d;
 
 import JCudaWrapper.array.Array;
-import JCudaWrapper.array.Array1d;
 import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.Pointer.PSingleton;
-import JCudaWrapper.array.Pointer.PointerArray1d;
+import JCudaWrapper.array.Pointer.to1d.PSingletonTo1d;
 import JCudaWrapper.resourceManagement.Handle;
+import jcuda.Sizeof;
 
 /**
  *
  * @author dov
  */
-public class DPointerSingleton extends PSingleton implements DPointerArray{
+public class PSingletonToD1d extends PSingletonTo1d implements PointerToD1d{
 
     /**
      * The first element of the array.
      * @param src The array the singleton is a sub array of.
      * @param index THe index of the desired element.
      */
-    public DPointerSingleton(PointerArray1d src, int index) {
+    public PSingletonToD1d(PointerToD1d src, int index) {
         super(src, index);
     }
 
     /**
      * An empty singleton.
      */
-    public DPointerSingleton(){
+    public PSingletonToD1d(){
         super();
     }
 
@@ -34,7 +33,7 @@ public class DPointerSingleton extends PSingleton implements DPointerArray{
      * {@inheritDoc }
      */
     @Override
-    public DPointerSingleton set(Handle handle, Array from) {
+    public PSingletonToD1d set(Handle handle, Array from) {
         super.set(handle, from); 
         return this;
     }    
@@ -43,19 +42,16 @@ public class DPointerSingleton extends PSingleton implements DPointerArray{
      * {@inheritDoc }
      */
     @Override
-    public DPointerSingleton copy(Handle handle) {
-        return new DPointerSingleton().set(handle, this);
+    public PSingletonToD1d copy(Handle handle) {
+        return new PSingletonToD1d().set(handle, this);
     }
 
     /**
-     * Guaranteed to throw an exception.  TODO: implement this method.
-     *
-     * @throws UnsupportedOperationException always
-     * @deprecated Unsupported operation.
+     * {@inheritDoc }
      */
     @Override
-    public Array1d as1d() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    public PSingletonToD1d as1d() {
+        return this;
     }
 
     /**
@@ -78,6 +74,22 @@ public class DPointerSingleton extends PSingleton implements DPointerArray{
     @Override
     public Array3d as3d(int linesPerLayer) {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public int targetSize() {
+        return super.targetSize();
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public int targetBytesPerEntry() {
+        return Sizeof.DOUBLE;
     }
     
 }

@@ -12,8 +12,12 @@ import jcuda.driver.CUdeviceptr;
  * @author dov
  */
 public interface PointerArray extends Array {
-
-    public int subArraySize();
+    
+    /**
+     * Information about the arrays pointed to.
+     * @return Information about the arrays pointed to.
+     */
+    public int targetBytesPerEntry();
     
     /**
      * Sets an index of this array.
