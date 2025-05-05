@@ -1,12 +1,10 @@
 package JCudaWrapper.array.Pointer.to2d;
 
-import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.Int.IArray;
 import JCudaWrapper.array.Int.ISingleton;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.PSingleton;
-import JCudaWrapper.array.Singleton;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Pointer;
 
@@ -27,7 +25,7 @@ public abstract class PSingletonTo2d extends PSingleton implements PointerTo2d {
      */
     public PSingletonTo2d(PointerTo2d from, int index) {
         super(from, index);
-        pitch = from.targetPitches().get(from.memIndex(index));
+        pitch = from.targetPitches().get(index);
         target =  from.target();
     }    
 

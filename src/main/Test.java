@@ -27,10 +27,12 @@ public class Test {
 
             a0.set(hand, 1, 2, 3, 4);
             a1.set(hand, 4, 3, 2, 1);
-            a2.set(hand, 9, 9, 3, 3);
-            a3.set(hand, 7, 8, 7, 8);
+            a2.set(hand, 9, 12, 3, -1);
+            a3.set(hand, 7, 8, 70, 80);
             
             p.set(hand, a0, a1, a2, a3);
+            
+            p.get(2).set(hand, a0);
             
             System.out.println(p.get(2).getVal(hand).toString());
 
