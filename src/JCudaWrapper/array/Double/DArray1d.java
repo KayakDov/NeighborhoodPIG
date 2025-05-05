@@ -4,6 +4,8 @@ import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Array1d;
 import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.P;
+import JCudaWrapper.array.Pointer.PSingleton;
+import JCudaWrapper.array.Pointer.to1d.PSingletonToD1d;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;
 import jcuda.Pointer;
@@ -26,6 +28,14 @@ public class DArray1d extends Array1d implements DArray {
      */
     public DArray1d(int size) {
         super(size, Sizeof.DOUBLE);
+    }
+    
+    /**
+     * Constructs a 1d array from a pointer to a 1d array.    
+     * @param sing The singleton containing the pointer.
+     */
+    public DArray1d(Pointer sing, int size){
+        super(sing, size, Sizeof.DOUBLE);
     }
 
     /**

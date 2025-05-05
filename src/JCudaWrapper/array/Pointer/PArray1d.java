@@ -10,14 +10,14 @@ import jcuda.Sizeof;
  *
  * @author dov
  */
-public abstract class PointerArray1d extends Array1d implements PointerArray {
+public abstract class PArray1d extends Array1d implements PArray {
 
     /**
      * Constructs an empty array.
      *
      * @param numElements The number of elements pointed to.
      */
-    public PointerArray1d(int numElements) {
+    public PArray1d(int numElements) {
         super(numElements, Sizeof.POINTER);
     }
 
@@ -29,7 +29,7 @@ public abstract class PointerArray1d extends Array1d implements PointerArray {
      * begins.
      * @param length The number of elements in this array.
      */
-    public PointerArray1d(PointerArray1d src, int start, int length) {
+    public PArray1d(PArray1d src, int start, int length) {
         super(src, start, length, src.ld());
     }
 
@@ -42,7 +42,7 @@ public abstract class PointerArray1d extends Array1d implements PointerArray {
      * @param length The number of elements in this array.
      * @param ld The increment.
      */
-    public PointerArray1d(PointerArray1d src, int start, int length, int ld) {
+    public PArray1d(PArray1d src, int start, int length, int ld) {
         super(src, start, length, src.ld() * ld);
     }
 

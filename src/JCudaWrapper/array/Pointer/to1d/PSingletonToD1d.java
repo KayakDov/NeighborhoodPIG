@@ -1,31 +1,35 @@
 package JCudaWrapper.array.Pointer.to1d;
 
 import JCudaWrapper.array.Array;
+import JCudaWrapper.array.Array1d;
 import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.Array3d;
+import JCudaWrapper.array.Double.DArray1d;
 import JCudaWrapper.array.Pointer.to1d.PSingletonTo1d;
 import JCudaWrapper.resourceManagement.Handle;
+import jcuda.Pointer;
 import jcuda.Sizeof;
 
 /**
  *
  * @author dov
  */
-public class PSingletonToD1d extends PSingletonTo1d implements PointerToD1d{
+public class PSingletonToD1d extends PSingletonTo1d implements PointToD1d {
 
     /**
      * The first element of the array.
+     *
      * @param src The array the singleton is a sub array of.
      * @param index THe index of the desired element.
      */
-    public PSingletonToD1d(PointerToD1d src, int index) {
+    public PSingletonToD1d(PointToD1d src, int index) {
         super(src, index);
     }
 
     /**
      * An empty singleton.
      */
-    public PSingletonToD1d(){
+    public PSingletonToD1d() {
         super();
     }
 
@@ -34,10 +38,10 @@ public class PSingletonToD1d extends PSingletonTo1d implements PointerToD1d{
      */
     @Override
     public PSingletonToD1d set(Handle handle, Array from) {
-        super.set(handle, from); 
+        super.set(handle, from);
         return this;
-    }    
-    
+    }
+
     /**
      * {@inheritDoc }
      */
@@ -55,7 +59,7 @@ public class PSingletonToD1d extends PSingletonTo1d implements PointerToD1d{
     }
 
     /**
-     * Guaranteed to throw an exception.  TODO: implement this method.
+     * Guaranteed to throw an exception. TODO: implement this method.
      *
      * @throws UnsupportedOperationException always
      * @deprecated Unsupported operation.
@@ -66,7 +70,7 @@ public class PSingletonToD1d extends PSingletonTo1d implements PointerToD1d{
     }
 
     /**
-     * Guaranteed to throw an exception.  TODO: implement this method.
+     * Guaranteed to throw an exception. TODO: implement this method.
      *
      * @throws UnsupportedOperationException always
      * @deprecated Unsupported operation.
@@ -91,5 +95,25 @@ public class PSingletonToD1d extends PSingletonTo1d implements PointerToD1d{
     public int targetBytesPerEntry() {
         return Sizeof.DOUBLE;
     }
-    
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public DArray1d[] get(Handle hand) {
+
+        return new DArray1d[]{getVal(hand)};
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public DArray1d getVal(Handle handle) {
+        Pointer arrayAddress = new Pointer();
+        Pointer toHostArray = Pointer.to(arrayAddress);
+        get(handle, toHostArray);
+        return new DArray1d(arrayAddress, targetSize());
+    }
+
 }

@@ -1,13 +1,13 @@
 package JCudaWrapper.array;
 
 import JCudaWrapper.array.Pointer.to1d.PSingletonTo1d;
-import JCudaWrapper.array.Pointer.to1d.PointerTo1d;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Pointer;
 import jcuda.driver.CUdeviceptr;
 import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaMemcpyKind;
 import jcuda.runtime.cudaPitchedPtr;
+import JCudaWrapper.array.Pointer.to1d.PointTo1d;
 
 /**
  * A one-dimensional array stored in GPU memory. This class provides methods for
@@ -41,13 +41,15 @@ public abstract class Array1d implements Array {
     
     /**
      * Loads the array from memory.
-     * @param hand The context.
-     * @param pSingTo1d The memory to be in this array.
+     
+     * @param pointer The memory to be in this array.
+     * @param size The size (number of entries) of the array
+     * @param bytesPerEntry The number of bytes for each entry.
      */
-    public Array1d(Handle hand, PSingletonTo1d pSingTo1d){
-        pointer = pSingTo1d.get(hand);
-        bytesPerEntry = pSingTo1d.targetBytesPerEntry();
-        size = pSingTo1d.targetSize();
+    protected Array1d(Pointer pointer, int size, int bytesPerEntry){
+        this.pointer = pointer;
+        this.bytesPerEntry = bytesPerEntry;
+        this.size = size;
         ld = 1;
     }
 
@@ -66,7 +68,7 @@ public abstract class Array1d implements Array {
         bytesPerEntry = src.bytesPerEntry();
         pointer = src.pointer().withByteOffset(start * bytesPerEntry);
         this.size = size;
-        this.ld = src.ld() * ld;
+        this.ld = size == 1? 1 : src.ld() * ld;
     }
 
     /**

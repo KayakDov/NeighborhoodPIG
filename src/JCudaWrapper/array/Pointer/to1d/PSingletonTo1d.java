@@ -1,11 +1,12 @@
 package JCudaWrapper.array.Pointer.to1d;
 
+import JCudaWrapper.array.Array1d;
 import JCudaWrapper.array.Pointer.PSingleton;
-import JCudaWrapper.array.Pointer.to1d.PointerTo1d;
 import JCudaWrapper.array.Singleton;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Pointer;
 import jcuda.Sizeof;
+import JCudaWrapper.array.Pointer.to1d.PointTo1d;
 
 /**
  * A singleton to a pointer.
@@ -21,7 +22,7 @@ public abstract class PSingletonTo1d extends PSingleton {
      * @param from This singleton will point to the indexed element of this array.
      * @param index T
      */
-    public PSingletonTo1d(PointerTo1d from, int index) {
+    public PSingletonTo1d(PointTo1d from, int index) {
         super(from, index);
         targetSize = from.targetSize();
     }    
@@ -49,11 +50,8 @@ public abstract class PSingletonTo1d extends PSingleton {
      * @param handle
      * @return 
      */
-    public Pointer get(Handle handle){
-        Pointer[] arrayOfPointer = new Pointer[1];
-        get(handle, Pointer.to(arrayOfPointer));
-        return arrayOfPointer[0];
-    }
+    @Override
+    public abstract Array1d getVal(Handle handle);
 
     /**
      * The size of the sub array pointed to.

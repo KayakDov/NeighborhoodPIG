@@ -1,6 +1,7 @@
 package JCudaWrapper.array.Pointer;
 
 import JCudaWrapper.array.Array;
+import JCudaWrapper.array.Double.DArray1d;
 import JCudaWrapper.array.Singleton;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;
@@ -11,14 +12,14 @@ import jcuda.Sizeof;
  *
  * @author E. Dov Neimand
  */
-public abstract class PSingleton extends Singleton implements PointerArray {
+public abstract class PSingleton extends Singleton implements PArray {
 
     /**
      *
      * @param from The array this singleton is taken from.
      * @param index The index in the array this singleton is located at.
      */
-    public PSingleton(PointerArray from, int index) {
+    public PSingleton(PArray from, int index) {
         super(from, index);
     }
 
@@ -48,13 +49,7 @@ public abstract class PSingleton extends Singleton implements PointerArray {
      * @param handle
      * @return The element in this singleton.
      */
-    public Pointer get(Handle handle){
-            Pointer pointer = new Pointer();
-            Pointer hostPointerToPointer = Pointer.to(pointer);
-            get(handle, hostPointerToPointer);
-            return pointer;
-    }    
-    
+    public abstract Array getVal(Handle handle);
     
     /**
      * Sets this array to have the pointers proffered.

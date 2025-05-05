@@ -4,29 +4,32 @@ import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Array1d;
 import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.Array3d;
+import JCudaWrapper.array.Double.DArray1d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
-import JCudaWrapper.array.Pointer.PointerArray1d;
+import JCudaWrapper.array.Pointer.PArray1d;
 import JCudaWrapper.array.Singleton;
 import JCudaWrapper.array.StrideArray;
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.Arrays;
+import jcuda.Pointer;
 import jcuda.Sizeof;
 
 /**
  *
  * @author E.Dov Neimand
  */
-public class PointerArray1dToD1d extends PointerArray1d implements PointerToD1d{
+public class PArray1dToD1d extends PArray1d implements PointToD1d{
         
-    private final int pointedToSize;
+    private final int targetSize;
     /**
      * Constructs an array of double pointers.
-     * @param pointedToSize The length of the arrays pointed to.
+     * @param targetSize The length of the arrays pointed to.
      * @param size The number of pointers in this array.
      */
-    public PointerArray1dToD1d(int pointedToSize, int size) {
+    public PArray1dToD1d(int targetSize, int size) {
         super(size);
-        this.pointedToSize = pointedToSize;
+        this.targetSize = targetSize;
     }
 
     /**
@@ -37,7 +40,7 @@ public class PointerArray1dToD1d extends PointerArray1d implements PointerToD1d{
      * @param handle The context
      * @param dsa The array to be pointed to.
      */
-    public <DStrideArray extends StrideArray, DArray> PointerArray1dToD1d(Handle handle, DStrideArray dsa){
+    public <DStrideArray extends StrideArray, DArray> PArray1dToD1d(Handle handle, DStrideArray dsa){
         this(dsa.subArraySize(), dsa.batchSize());
         Kernel.run(
                 "genPtrs", handle, 
@@ -57,9 +60,9 @@ public class PointerArray1dToD1d extends PointerArray1d implements PointerToD1d{
      * begins.
      * @param length The number of elements in this array.
      */
-    public PointerArray1dToD1d(PointerArray1dToD1d src, int start, int length){
+    public PArray1dToD1d(PArray1dToD1d src, int start, int length){
         super(src, start, length);
-        pointedToSize = src.pointedToSize;
+        targetSize = src.targetSize;
     }
     
     /**
@@ -70,9 +73,9 @@ public class PointerArray1dToD1d extends PointerArray1d implements PointerToD1d{
      * begins.
      * @param length The number of elements in this array.
      */
-    public PointerArray1dToD1d(PointerArray1dToD1d src, int start, int length, int ld){
+    public PArray1dToD1d(PArray1dToD1d src, int start, int length, int ld){
         super(src, start, length, ld);
-        pointedToSize = src.pointedToSize;
+        targetSize = src.targetSize;
     }
 
     /**
@@ -87,7 +90,7 @@ public class PointerArray1dToD1d extends PointerArray1d implements PointerToD1d{
      * {@inheritDoc}
      */
     @Override
-    public PointerArray1dToD1d set(Handle handle, Array from) {
+    public PArray1dToD1d set(Handle handle, Array from) {
         super.set(handle, from); 
         return this;
     }
@@ -96,8 +99,8 @@ public class PointerArray1dToD1d extends PointerArray1d implements PointerToD1d{
      * {@inheritDoc}
      */
     @Override
-    public PointerArray1dToD1d copy(Handle handle) {
-        return new PointerArray1dToD1d(pointedToSize, size())
+    public PArray1dToD1d copy(Handle handle) {
+        return new PArray1dToD1d(targetSize, size())
                 .set(handle, this);
         
     }
@@ -107,12 +110,12 @@ public class PointerArray1dToD1d extends PointerArray1d implements PointerToD1d{
      */
     @Override
     public Array1d sub(int start, int size) {
-        return new PointerArray1dToD1d(this, start, size);
+        return new PArray1dToD1d(this, start, size);
     }
 
     @Override
     public Array1d sub(int start, int size, int ld) {
-        return new PointerArray1dToD1d(this, start, size, ld);
+        return new PArray1dToD1d(this, start, size, ld);
     }
 
     /**
@@ -151,8 +154,8 @@ public class PointerArray1dToD1d extends PointerArray1d implements PointerToD1d{
      * {@inheritDoc }
      */
     @Override
-    public PointerArray1dToD1d as1d() {
-        return new PointerArray1dToD1d(this, 0, size());
+    public PArray1dToD1d as1d() {
+        return new PArray1dToD1d(this, 0, size());
     }
 
     /**
@@ -184,6 +187,25 @@ public class PointerArray1dToD1d extends PointerArray1d implements PointerToD1d{
      */
     @Override
     public int targetSize() {
-        return pointedToSize;
+        return targetSize;
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public DArray1d[] get(Handle hand) {
+            
+        Pointer[] cpuArray = new Pointer[size()];
+
+        if (!hasPadding()) get(hand, Pointer.to(cpuArray));
+        
+        else try (PArray1dToD1d temp = new PArray1dToD1d(targetSize(), size())) {
+            get(hand, temp);
+            temp.get(hand, Pointer.to(cpuArray));
+        }
+
+        return Arrays.stream(cpuArray).map(pointer -> new DArray1d(pointer, targetSize)).toArray(DArray1d[]::new);
+
     }
 }

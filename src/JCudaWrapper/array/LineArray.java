@@ -39,10 +39,18 @@ public abstract class LineArray implements Array {
         
     }
     
-    public LineArray(Handle hand, PSingletonTo2d pSing){
-        this(pSing.target.entriesPerLine, pSing.target.numLines, pSing.targetBytesPerEntry());
-        pointer.ptr = pSing.get(hand);
-        pointer.pitch = pSing.pitch.getVal(hand);
+    /**
+     * For restructuring an array from a pointer.
+     * @param p The address of the array.
+     * @param entriesPerLine The number of entries on each line of the array.
+     * @param numLines The number of lines in the array.
+     * @param bytesPerEntry The number of bytes for each entry in the array.
+     * @param pitch The pitch of the array.
+     */
+    LineArray(Pointer p, int entriesPerLine, int numLines, int bytesPerEntry, int pitch){
+        this(entriesPerLine, numLines, bytesPerEntry);
+        pointer.ptr = p;
+        pointer.pitch = pitch;
     }
 
     /**

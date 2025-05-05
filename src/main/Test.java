@@ -4,8 +4,9 @@ import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Double.DArray2d;
 import JCudaWrapper.array.Float.FArray;
 import JCudaWrapper.array.Float.FArray2d;
-import JCudaWrapper.array.Pointer.to2d.PointerArray2dToD2d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.Arrays;
 
 /**
  * Debugging tests constructed here.
@@ -22,7 +23,7 @@ public class Test {
                 DArray2d a1 = new DArray2d(2, 2); 
                 DArray2d a2 = new DArray2d(2, 2);
                 DArray2d a3 = new DArray2d(2, 2);
-                PointerArray2dToD2d p = new PointerArray2dToD2d(2, 2, 2, 2);
+                PArray2dToD2d p = new PArray2dToD2d(2, 2, 2, 2);
                 ) {
 
             a0.set(hand, 1, 2, 3, 4);
@@ -32,9 +33,8 @@ public class Test {
             
             p.set(hand, a0, a1, a2, a3);
             
-            p.get(2).set(hand, a0);
-            
-            System.out.println(p.get(2).getVal(hand).toString());
+
+            System.out.println(Arrays.toString(p.get(hand)));
 
         }
 

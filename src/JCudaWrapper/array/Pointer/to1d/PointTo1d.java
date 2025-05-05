@@ -1,12 +1,12 @@
 package JCudaWrapper.array.Pointer.to1d;
 
-import JCudaWrapper.array.Pointer.PointerArray;
+import JCudaWrapper.array.Pointer.PArray;
 
 /**
  *
  * @author E. DOv Neimand
  */
-public interface PointerTo1d extends PointerArray{
+public interface PointTo1d extends PArray{
     
     /**
      * The length of the array pointed to.

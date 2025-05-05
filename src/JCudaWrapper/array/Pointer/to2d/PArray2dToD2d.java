@@ -2,20 +2,25 @@ package JCudaWrapper.array.Pointer.to2d;
 
 import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Array2d;
-import JCudaWrapper.array.Pointer.to1d.PointerArray1dToD1d;
+import JCudaWrapper.array.Pointer.to1d.PArray1dToD1d;
 import JCudaWrapper.array.Array3d;
+import JCudaWrapper.array.Double.DArray1d;
+import JCudaWrapper.array.Double.DArray2d;
 import JCudaWrapper.array.Int.IArray;
 import JCudaWrapper.array.Int.IArray2d;
-import JCudaWrapper.array.Pointer.PointerArray2d;
+import JCudaWrapper.array.Pointer.PArray2d;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;
+import java.util.stream.IntStream;
+import jcuda.Pointer;
 import jcuda.Sizeof;
+import sun.jvm.hotspot.utilities.IntArray;
 
 /**
  *
  * @author E. Dov Neimand
  */
-public class PointerArray2dToD2d extends PointerArray2d implements PointToD2d {
+public class PArray2dToD2d extends PArray2d implements PointToD2d {
 
     private final TargetDim2d targetDim;
     private final IArray2d targetPitch;
@@ -30,7 +35,7 @@ public class PointerArray2dToD2d extends PointerArray2d implements PointToD2d {
      * @param pointedToNumLines The number of lines in the arrays that are
      * pointed to.
      */
-    public PointerArray2dToD2d(int entriesPerLine, int numLines, int pointedToEntPerLine, int pointedToNumLines) {
+    public PArray2dToD2d(int entriesPerLine, int numLines, int pointedToEntPerLine, int pointedToNumLines) {
         super(entriesPerLine, numLines);
         targetDim = new TargetDim2d(pointedToEntPerLine, pointedToNumLines);
         targetPitch = new IArray2d(entriesPerLine, numLines);
@@ -53,7 +58,7 @@ public class PointerArray2dToD2d extends PointerArray2d implements PointToD2d {
      * of which will be stored in this gpu array.
      * @return this.
      */
-    public PointerArray2dToD2d set(Handle handle, Array2d... srcCPUArrayOfArrays) {
+    public PArray2dToD2d set(Handle handle, Array2d... srcCPUArrayOfArrays) {
         super.set(handle, srcCPUArrayOfArrays);
 
         targetPitch.set(
@@ -69,7 +74,7 @@ public class PointerArray2dToD2d extends PointerArray2d implements PointToD2d {
      * @deprecated
      */
     @Override
-    public PointerArray2dToD2d copy(Handle handle) {
+    public PArray2dToD2d copy(Handle handle) {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
@@ -77,7 +82,7 @@ public class PointerArray2dToD2d extends PointerArray2d implements PointToD2d {
      * @deprecated
      */
     @Override
-    public PointerArray1dToD1d as1d() {
+    public PArray1dToD1d as1d() {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
@@ -85,7 +90,7 @@ public class PointerArray2dToD2d extends PointerArray2d implements PointToD2d {
      * @deprecated
      */
     @Override
-    public PointerArray2dToD2d as2d() {
+    public PArray2dToD2d as2d() {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
@@ -120,8 +125,31 @@ public class PointerArray2dToD2d extends PointerArray2d implements PointToD2d {
      * {@inheritDoc }
      */
     @Override
-    public TargetDim2d target() {
+    public TargetDim2d targetDim() {
         return targetDim;
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public DArray2d[] get(Handle hand) {
+        Pointer[] cpuArray = new Pointer[size()];
+        Arrays.setAll(cpuArray, i -> new Pointer());
+        
+        Pointer hostToArray = Pointer.to(cpuArray);
+        get(hand, hostToArray);
+
+        int[] pitches = targetPitch.get(hand);
+
+        return IntStream.range(0, size()).mapToObj(i
+                -> new DArray2d(
+                        cpuArray[i],
+                        targetDim.entriesPerLine,
+                        targetDim.numLines,
+                        pitches[i]
+                )
+        ).toArray(DArray2d[]::new);
     }
 
 }

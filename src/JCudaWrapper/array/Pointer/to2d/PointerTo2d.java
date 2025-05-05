@@ -2,13 +2,13 @@ package JCudaWrapper.array.Pointer.to2d;
 
 import JCudaWrapper.array.Int.IArray;
 import JCudaWrapper.array.Int.IArray2d;
-import JCudaWrapper.array.Pointer.PointerArray;
+import JCudaWrapper.array.Pointer.PArray;
 
 /**
  *
  * @author E. Dov Neimand
  */
-public interface PointerTo2d extends PointerArray{
+public interface PointerTo2d extends PArray{
  
     /**
      * An array that contains the pitch value of each pointed to array.
@@ -20,7 +20,7 @@ public interface PointerTo2d extends PointerArray{
      * The number of entries per line in the arrays pointed to.
      * @return The number of entries per line in the arrays pointed to.
      */
-    public TargetDim2d target();
+    public TargetDim2d targetDim();
     
 
     /**

@@ -11,7 +11,7 @@ import jcuda.driver.CUdeviceptr;
  *
  * @author dov
  */
-public interface PointerArray extends Array {
+public interface PArray extends Array {
     
     /**
      * Information about the arrays pointed to.
@@ -57,11 +57,18 @@ public interface PointerArray extends Array {
      * at the argument's index.
      * @return This.
      */
-    public default PointerArray set(Handle handle, Array source, IntUnaryOperator generator) {
+    public default PArray set(Handle handle, Array source, IntUnaryOperator generator) {
         CUdeviceptr[] pointers = new CUdeviceptr[size()];
         Arrays.setAll(pointers, i -> source.pointer(generator.applyAsInt(i)));
         set(handle, Pointer.to(pointers));
         return this;
-    }    
+    }
+    
+    /**
+     * Gets the arrays pointed to by these arrays.
+     * @param hand The context.
+     * @return Gets the arrays pointed to by these arrays.
+     */
+    public Array[] get(Handle hand);
 
 }
