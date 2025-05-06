@@ -11,6 +11,7 @@ import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.jcublas.JCublas2;
 import jcuda.runtime.JCuda;
+import jcuda.runtime.cudaMemcpyKind;
 
 /**
  *
@@ -290,5 +291,4 @@ public class DArray2d extends Array2d implements DLineArray {
         return this;
     }
 
-    
 }
