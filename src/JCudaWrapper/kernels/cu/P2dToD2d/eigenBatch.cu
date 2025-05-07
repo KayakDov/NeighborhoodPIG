@@ -53,11 +53,23 @@ public:
      * @param src Array of pointers, where each pointer points to the beginning of a 2D slice.
      * @param ld Array of leading dimensions for each 2D slice (corresponding to the pointers in src).
      * @param ldld Leading dimension of the ld array (stride between leading dimensions in memory).
-     * @param ldLayers Leading dimension of the src array (stride between pointers to different slices in memory).
+     * @param ldPtr Leading dimension of the src array (stride between pointers to different slices in memory).
      * @return The value at the computed index within the specified slice.
      */
-    __device__ double val(const double** src, const int* ld, const int ldld, const int ldLayers) const{
-        return src[layerInd(ldLayers)][ind(ld, ldld)];
+    __device__ double operator()(const double** src, const int* ld, const int ldld, const int ldPtr) {
+        return src[layerInd(ldPtr)][ind(ld, ldld)];
+    }
+    
+    /**
+     * @brief Retrieves a value from the source data array based on the calculated multi-dimensional index.
+     * @param src Array of pointers, where each pointer points to the beginning of a 2D slice.
+     * @param ld Array of leading dimensions for each 2D slice (corresponding to the pointers in src).
+     * @param ldld Leading dimension of the ld array (stride between leading dimensions in memory).
+     * @param ldPtr Leading dimension of the src array (stride between pointers to different slices in memory).
+     * @return The value at the computed index within the specified slice.
+     */
+    __device__ double set(double** src, const int* ld, const int ldld, const int ldPtr, double val) {
+        return src[layerInd(ldPtr)][ind(ld, ldld)] = val;
     }
 
     /**
@@ -72,11 +84,11 @@ public:
 
     /**
      * @brief Computes the index into the array of pointers (`src`) to access the correct 2D slice.
-     * @param ldLayers Leading dimension of the array of pointers.
+     * @param ldPtr Leading dimension of the array of pointers.
      * @return The index of the pointer to the current 2D slice.
      */
-    __device__ int layerInd(const int ldLayers) const{
-        return frame * ldLayers + layer;
+    __device__ int layerInd(const int ldPtr) const{
+        return frame * ldPtr + layer;
     }
 };
 
@@ -433,7 +445,8 @@ public:
     }
 
     /**
-     * @brief Normalizes the vector in-place, setting its length to 1.
+     * @brief Normalizes the vector in-place, setting its length to 1.  
+     * Also, if the y value is less than 0, the vector is mulitplied by -1;
      * If the vector's length is zero, it remains unchanged.
      */
     __device__ void normalize() {
@@ -443,8 +456,12 @@ public:
             data[0] *= invLen;
             data[1] *= invLen;
             data[2] *= invLen;
+            if(data[1] < 0 || (data[1] == 0 && data[0] < 0)) 
+                for(int i = 0; i < 3; i++) data[i] *= -1;
         }
+
     }
+    
     
 };
 
@@ -560,59 +577,61 @@ public:
  * @param xx Array of pointers to the xx components of each height x width slice (row is depth and col is frame.).
  * @param ldxx Array of leading dimensions for the xx components of each slice (size: depth * batchSize).
  * @param ldldxx Leading dimension of the ldxx array (stride between leading dimensions in memory).
- * @param ldLayersxx Leading dimension of the xx pointer array (stride between pointers in memory).
+ * @param ldPtrxx Leading dimension of the xx pointer array (stride between pointers in memory).
  * @param xy Array of pointers to the xy components of each height x width slice (organized by depth then batch).
  * @param ldxy Array of leading dimensions for the xy components of each slice (size: depth * batchSize).
  * @param ldldxy Leading dimension of the ldxy array.
- * @param ldLayersxy Leading dimension of the xy pointer array.
+ * @param ldPtrxy Leading dimension of the xy pointer array.
  * @param xz Array of pointers to the xz components of each height x width slice (organized by depth then batch).
  * @param ldxz Array of leading dimensions for the xz components of each slice (size: depth * batchSize).
  * @param ldldxz Leading dimension of the ldxz array.
- * @param ldLayersxz Leading dimension of the xz pointer array.
+ * @param ldPtrxz Leading dimension of the xz pointer array.
  * @param yy Array of pointers to the yy components of each height x width slice (organized by depth then batch).
  * @param ldyy Array of leading dimensions for the yy components of each slice (size: depth * batchSize).
  * @param ldldyy Leading dimension of the ldyy array.
- * @param ldLayersyy Leading dimension of the yy pointer array.
+ * @param ldPtryy Leading dimension of the yy pointer array.
  * @param yz Array of pointers to the yz components of each height x width slice (organized by depth then batch).
  * @param ldyz Array of leading dimensions for the yz components of each slice (size: depth * batchSize).
  * @param ldldyz Leading dimension of the ldyz array.
- * @param ldLayersyz Leading dimension of the yz pointer array.
+ * @param ldPtryz Leading dimension of the yz pointer array.
  * @param zz Array of pointers to the zz components of each height x width slice (organized by depth then batch).
  * @param ldzz Array of leading dimensions for the zz components of each slice (size: depth * batchSize).
  * @param ldldzz Leading dimension of the ldzz array.
- * @param ldLayerszz Leading dimension of the zz pointer array.
+ * @param ldPtrzz Leading dimension of the zz pointer array.
  * @param height Height of each input slice.
  * @param width Width of each input slice.
  * @param depth Number of slices along the depth dimension.
  * @param valDst Array of pointers to the output eigenvalues (size: (n / downSampleFactorXY / downSampleFactorXY) * 3).
  * @param ldEVal Leading dimension for accessing eigenvalues in valDst (stride between sets of 3 eigenvalues).
  * @param ldldEVal Leading dimension of the ldEVal array.
- * @param ldLayersEVal Leading dimension of the valDst pointer array.
+ * @param ldPtrEVal Leading dimension of the valDst pointer array.
  * @param downSampleFactorXY Evaluate 1 of every how many structure tensors in x and y dimensions.
  * @param eigenInd Which eigenvalue to focus on for eigenvector calculation (0, 1, or 2).
  * @param vecDst Array of pointers to the output eigenvectors (size: (n / downSampleFactorXY / downSampleFactorXY) * 3).
  * @param ldEVec Leading dimension for accessing eigenvectors in vecDst (stride between sets of 3 eigenvectors).
  * @param ldldEVec Leading dimension of the ldEVec array.
- * @param ldLayersEVec Leading dimension of the vecDst pointer array.
+ * @param ldPtrEVec Leading dimension of the vecDst pointer array.
  * @param tolerance Tolerance for floating-point comparisons.
  */
 extern "C" __global__ void eigenBatchKernel(
     const int n, 
     
-    const double** xx, const int* ldxx, const int ldldxx, const int ldLayersxx, 
-    const double** xy, const int* ldxy, const int ldldxy, const int ldLayersxy,
-    const double** xz, const int* ldxz, const int ldldxz, const int ldLayersxz,
-    const double** yy, const int* ldyy, const int ldldyy, const int ldLayersyy,
-    const double** yz, const int* ldyz, const int ldldyz, const int ldLayersyz,
-    const double** zz, const int* ldzz, const int ldldzz, const int ldLayerszz,
+    const double** xx, const int* ldxx, const int ldldxx, const int ldPtrxx, 
+    const double** xy, const int* ldxy, const int ldldxy, const int ldPtrxy,
+    const double** xz, const int* ldxz, const int ldldxz, const int ldPtrxz,
+    const double** yy, const int* ldyy, const int ldldyy, const int ldPtryy,
+    const double** yz, const int* ldyz, const int ldldyz, const int ldPtryz,
+    const double** zz, const int* ldzz, const int ldldzz, const int ldPtrzz,
     
     const int height, const int width, const int depth,
     
-    double** valDst, const int* ldEVal, const int ldldEVal, const int ldLayersEVal,
+    double** valDst, const int* ldEVal, const int ldldEVal, const int ldPtrEVal,
     
     const int downSampleFactorXY, const int eigenInd,
     
-    double** vecDst, const int* ldEVec, const int ldldEVec, const int ldLayersEVec,
+    double** vecDst, const int* ldEVec, const int ldldEVec, const int ldPtrEVec,
+    
+    double** coherence, const int* ldCoh, const int ldldCoh, const int ldPtr,
     
     const double tolerance
 ) {
@@ -623,21 +642,24 @@ extern "C" __global__ void eigenBatchKernel(
     Get src(idx, height, width, depth, downSampleFactorXY);
     
     Matrix3x3 mat(
-    	src.val(xx, ldxx, ldldxx, ldLayersxx), src.val(xy, ldxy, ldldxy, ldLayersxy), src.val(xz, ldxz, ldldxz, ldLayersxz), 
-                                               src.val(yy, ldyy, ldldyy, ldLayersyy), src.val(yz, ldyz, ldldyz, ldLayersyz), 
-    					                                              src.val(zz, ldzz, ldldzz, ldLayerszz),
+    	src(xx, ldxx, ldldxx, ldPtrxx), src(xy, ldxy, ldldxy, ldPtrxy), src(xz, ldxz, ldldxz, ldPtrxz), 
+                                        src(yy, ldyy, ldldyy, ldPtryy), src(yz, ldyz, ldldyz, ldPtryz), 
+    					                                src(zz, ldzz, ldldzz, ldPtrzz),
         tolerance
     );
     
     Get getx3(3*idx, height * 3, width, depth, 1);
      
-    EVal eVals(mat, valDst[getx3.layerInd(ldLayersEVal)] + getx3.ind(ldEVal, ldldEVal));
-    
+    EVal eVals(mat, valDst[getx3.layerInd(ldPtrEVal)] + getx3.ind(ldEVal, ldldEVal));
+
+    if (eVals[0] <=  tolerance) src.set(coherence, ldCoh, ldldCoh, ldPtr, 0);
+    else src.set(coherence, ldCoh, ldldCoh, ldPtr, (eVals[0] - eVals[1]) / (eVals[0] + eVals[1] + eVals[2]));
+
     mat.subtractFromDiag(eVals[eigenInd]);
     
     //if(idx == 575*height + 150) mat.print();
     
-    Vec vec(vecDst[getx3.layerInd(ldLayersEVec)] + getx3.ind(ldEVec, ldldEVec));
+    Vec vec(vecDst[getx3.layerInd(ldPtrEVec)] + getx3.ind(ldEVec, ldldEVec));
     
     int freeVariables = mat.rowEchelon();
     
@@ -691,5 +713,7 @@ extern "C" __global__ void eigenBatchKernel(
 //    if(idx == 0) {mat.print(); vec.print();}
 
     vec.normalize();
+    
+    
 }
 
