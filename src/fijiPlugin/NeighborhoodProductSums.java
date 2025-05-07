@@ -157,7 +157,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
                     P.to(nRad),
                     P.to(dirOrd),
                     P.to(!dst.is1D())
-            );
+            );            
         }
 
     }

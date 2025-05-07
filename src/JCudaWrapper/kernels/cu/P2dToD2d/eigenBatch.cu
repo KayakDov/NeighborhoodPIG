@@ -1,6 +1,6 @@
 #include <cuda_runtime.h>
 #include <math.h>
-
+//TODO: precompute layer and tensor sizes.
 
 /**
  * Uses Kahan's method for more accurate mulitplication.

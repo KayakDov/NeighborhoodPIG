@@ -128,6 +128,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
 
     /**
      * The coherence heatmap.
+     *
      * @return The coherence heatmap.
      */
     public HeatMapCreator getCoherence() {
@@ -194,8 +195,6 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      */
     public static NeighborhoodPIG get(Handle handle, ImagePlus imp, UserInput ui) {
 
-//        if (imp.hasImageStack() && imp.getNSlices() == 1 && imp.getNFrames() > 1)
-//            HyperStackConverter.toHyperStack(imp, 1, 1, imp.getNSlices());
         try (FStrideArray3d gpuImmage = ProcessImage.processImages(handle, imp, ui)) {
 
             return new NeighborhoodPIG(
@@ -256,6 +255,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
     public static NeighborhoodPIG getWithIJ(Handle handle, String folderPath, int depth, UserInput ui) {
 
         ImagePlus ip = ProcessImage.imagePlus(folderPath, depth);
+        
         try (FStrideArray3d gpuImage = ProcessImage.processImages(handle, ip, ui)) {
 
             return new NeighborhoodPIG(
@@ -267,7 +267,5 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
         }
 
     }
-
-
 
 }
