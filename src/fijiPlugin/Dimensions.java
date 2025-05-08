@@ -140,8 +140,8 @@ public class Dimensions{
      * An empty array with these dimensions.
      * @return An empty array with these dimensions.
      */
-    public FStrideArray3d empty(){
-        return new FStrideArray3d(height, width, depth, batchSize);
+    public PArray2dToD2d empty(){
+        return new PArray2dToD2d(depth, batchSize, height, width);
     }
     
 

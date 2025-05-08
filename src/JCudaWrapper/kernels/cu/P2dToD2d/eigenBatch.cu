@@ -386,12 +386,13 @@ public:
 class Vec {
 private:
     double* data;
+    double tolerance;
 public:
     /**
      * @brief Constructs a Vec object.
      * @param data Pointer to the double array (size 3) representing the vector.
      */
-    __device__ Vec(double* data):data(data){}
+    __device__ Vec(double* data, double tolerance):data(data), tolerance(tolerance){}
 
     /**
      * @brief Sets the components of the vector.
@@ -463,6 +464,23 @@ public:
     }
     
     
+    /**
+     * The azimuthal angle of this vector.
+     */
+    __device__ double azimuth(){
+        return (fabs(data[0]) <= tolerance && fabs(data[1]) <= tolerance) ? nan("") : atan2(data[1], data[0]);
+
+    }
+    
+    /**
+     * The zenith angle of this vector.
+     */
+    __device__ double zenith(){
+        if(data[2] >= 1 - tolerance) return 0;
+        else if(data[2] <= tolerance - 1) return M_PI;
+        else if(fabs(data[2]) + fabs(data[1]) + fabs(data[0]) <= tolerance) return nan("");
+        else return acos(data[2]);
+    }
 };
 
 class EVal{
@@ -566,7 +584,7 @@ public:
      */
     __device__ double& operator[](int i) {
         return data[i];
-    }
+    }    
 };
 
 
@@ -612,6 +630,8 @@ public:
  * @param ldldEVec Leading dimension of the ldEVec array.
  * @param ldPtrEVec Leading dimension of the vecDst pointer array.
  * @param tolerance Tolerance for floating-point comparisons.
+ * @param zenith where the zenith angles, between 0 and pi, will be stored.
+ * @param azimuthal where the Azimuthal angles, between 0 and pi, will be stored.
  */
 extern "C" __global__ void eigenBatchKernel(
     const int n, 
@@ -622,17 +642,17 @@ extern "C" __global__ void eigenBatchKernel(
     const double** yy, const int* ldyy, const int ldldyy, const int ldPtryy,
     const double** yz, const int* ldyz, const int ldldyz, const int ldPtryz,
     const double** zz, const int* ldzz, const int ldldzz, const int ldPtrzz,
-    
-    const int height, const int width, const int depth,
-    
+
     double** valDst, const int* ldEVal, const int ldldEVal, const int ldPtrEVal,
-    
-    const int downSampleFactorXY, const int eigenInd,
-    
     double** vecDst, const int* ldEVec, const int ldldEVec, const int ldPtrEVec,
-    
+
     double** coherence, const int* ldCoh, const int ldldCoh, const int ldPtr,
     
+    double** azimuthal, const int* ldAzi, const int ldldAzi, const int ldPtrAzi,
+    double** zenith, const int* ldZen, const int ldldZen, const int ldPtrZen,
+        
+    const int height, const int width, const int depth,
+    const int downSampleFactorXY, const int eigenInd,
     const double tolerance
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -659,7 +679,7 @@ extern "C" __global__ void eigenBatchKernel(
     
     //if(idx == 575*height + 150) mat.print();
     
-    Vec vec(vecDst[getx3.layerInd(ldPtrEVec)] + getx3.ind(ldEVec, ldldEVec));
+    Vec vec(vecDst[getx3.layerInd(ldPtrEVec)] + getx3.ind(ldEVec, ldldEVec), tolerance);
     
     int freeVariables = mat.rowEchelon();
     
@@ -714,6 +734,7 @@ extern "C" __global__ void eigenBatchKernel(
 
     vec.normalize();
     
-    
+    src.set(azimuthal, ldAzi, ldldAzi, ldPtrAzi, vec.azimuth());
+    src.set(zenith, ldZen, ldldZen, ldPtrZen, vec.zenith());    
 }
 

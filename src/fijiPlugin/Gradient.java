@@ -47,7 +47,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
         )) {
 
             Kernel.run("batchGradients", handle,
-                    pic.size() * 3,
+                    pic.deepSize() * 3,
                     pic,P.to(pic.targetLD()), P.to(pic.targetLD().ld()), P.to(pic.ld()),
                     P.to(dim),
                     P.to(x[0]), P.to(x[0].targetLD()), P.to(x[0].targetLD().ld()), P.to(x[0].ld()),

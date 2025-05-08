@@ -12,13 +12,14 @@ import jcuda.driver.CUdeviceptr;
  * @author dov
  */
 public interface PArray extends Array {
-    
+
     /**
      * Information about the arrays pointed to.
+     *
      * @return Information about the arrays pointed to.
      */
     public int targetBytesPerEntry();
-    
+
     /**
      * Sets an index of this array.
      *
@@ -30,8 +31,7 @@ public interface PArray extends Array {
 
         get(index).set(handle, array.pointer());
     }
-    
-    
+
     /**
      * Creates a host array of pointer objects that have not had memory
      * allocated. These objects are ready to have actual memory addressess
@@ -45,8 +45,7 @@ public interface PArray extends Array {
         Arrays.setAll(array, i -> new CUdeviceptr());
         return array;
     }
-    
-    
+
     /**
      * Sets the elements of this array to be pointers to sub sections of the
      * proffered array.
@@ -63,12 +62,30 @@ public interface PArray extends Array {
         set(handle, Pointer.to(pointers));
         return this;
     }
-    
+
     /**
      * Gets the arrays pointed to by these arrays.
+     *
      * @param hand The context.
      * @return Gets the arrays pointed to by these arrays.
      */
     public Array[] get(Handle hand);
+
+    /**
+     * The size of the arrays being pointed to.
+     * @return The size of the arrays being pointed to.
+     */
+    public int targetSize();
+    
+    /**
+     * The summation of the sizes of all the elements pointed to, assuming none
+     * of the pointers are null.
+     *
+     * @return The summation of the sizes of all the elements pointed to, assuming none
+     * of the pointers are null.
+     */
+    public default int deepSize() {
+        return deepSize()*targetSize();
+    }
 
 }

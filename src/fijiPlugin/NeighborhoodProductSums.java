@@ -21,7 +21,7 @@ import JCudaWrapper.resourceManagement.Handle;
 public class NeighborhoodProductSums extends Dimensions implements AutoCloseable {
 
 //    private final Vector halfNOnes;
-    private final FStrideArray3d workSpace1, workSpace2;
+    private final PArray2dToD2d workSpace1, workSpace2;
     private final Kernel nSum;
     private final Mapper X, Y, Z;
 
@@ -38,50 +38,16 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
     public NeighborhoodProductSums(Handle handle, NeighborhoodDim nRad, PArray2dToD2d dim) {
         super(handle, dim);
 
-        Z = new Mapper(height * width * batchSize, depth, 2, nRad.zR) {
+        Z = new Mapper(height * width * batchSize, depth, 2, nRad.zR);
 
-            @Override
-            protected int srcStride(FStrideArray3d src) {
-                return matZStride(src);
-            }
+        Y = new Mapper(depth * width * batchSize, height, 1, nRad.xyR);
 
-            @Override
-            protected int dstStride(FStrideArray3d src, FArray dst) {
-                return dst.is1D()
-                        ? src.entriesPerLine() * src.linesPerLayer() * dst.ld()
-                        : matZStride(src);
-            }
-        };
-
-        Y = new Mapper(depth * width * batchSize, height, 1, nRad.xyR) {
-            @Override
-            protected int srcStride(FStrideArray3d src) {
-                return 1;
-
-            }
-
-            @Override
-            protected int dstStride(FStrideArray3d src, FArray dst) {
-                return dst.is1D() ? dst.ld() : 1;
-            }
-        };
-
-        X = new Mapper(depth * height * batchSize, width, 0, nRad.xyR) {
-            @Override
-            protected int srcStride(FStrideArray3d src) {
-                return src.ld();
-            }
-
-            @Override
-            protected int dstStride(FStrideArray3d src, FArray dst) {
-                return (dst.is1D() ? src.entriesPerLine() : 1) * dst.ld();
-            }
-        };
+        X = new Mapper(depth * height * batchSize, width, 0, nRad.xyR);
 
         workSpace2 = dim.copyDim();
         workSpace1 = dim.copyDim();
 
-        nSum = new Kernel("neighborhoodSum3d", false);
+        nSum = new Kernel("neighborhoodSum3d", Kernel.Type.PTR_TO_DOUBLE_2D);
     }
 
     /**
@@ -95,7 +61,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
      * A class to manage data for computing neighborhood sums in a specific
      * dimension.
      */
-    private abstract class Mapper {
+    private class Mapper {
 
         public final int numSteps, numThreads, dirOrd, nRad;
 
@@ -116,23 +82,6 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
         }
 
         /**
-         * The stride size for the source.
-         *
-         * @param src The data being strode through.
-         * @return The stride size.
-         */
-        protected abstract int srcStride(FStrideArray3d src);
-
-        /**
-         * The stride size for the source.
-         *
-         * dst src The data being strode through.
-         *
-         * @return The stride size.
-         */
-        protected abstract int dstStride(FStrideArray3d src, FArray dst);
-
-        /**
          * Maps the neighborhood sums in the given dimension.
          *
          * @param n The number of threads.
@@ -141,23 +90,19 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
          * @param dir The dimension, 0 for X, 1 for Y, and 2 for Z.
          * @param ldTo The increment of the the destination matrices.
          */
-        public void neighborhoodSum(FStrideArray3d src, FArray dst) {
+        public void neighborhoodSum(PArray2dToD2d src, PArray2dToD2d dst) {
 
             nSum.run(handle, //TODO: make sure nSum takes in ld.
                     numThreads,
-                    src,
-                    P.to(dst),
-                    P.to(height),
-                    P.to(width),
-                    P.to(depth),
-                    P.to(src.ld()),
-                    P.to(dst.ld()),
-                    P.to(srcStride(src)),
-                    P.to(dstStride(src, dst)),
+                    
+                    src, P.to(src.targetLD()), P.to(src.targetLD().ld()), P.to(src.ld()),
+                    P.to(dst), P.to(dst.targetLD()), P.to(dst.targetLD().ld()), P.to(dst.ld()),
+                    
+                    P.to(height), P.to(width), P.to(depth),
+                    
                     P.to(numSteps),
                     P.to(nRad),
-                    P.to(dirOrd),
-                    P.to(!dst.is1D())
+                    P.to(dirOrd)                    
             );            
         }
 
@@ -174,20 +119,16 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
      * @param dst Store the result here in column major order. Note that the
      * increment of this vector is probably not one.
      */
-    public void set(FStrideArray3d a, FStrideArray3d b, FArray dst) {
+    public void set(PArray2dToD2d a, PArray2dToD2d b, PArray2dToD2d dst) {
         
         Kernel.run("addEBEProduct", handle, 
                 a.size(), 
-                workSpace1,
-                P.to(workSpace1.ld()),
-                P.to(workSpace1.entriesPerLine()),
-                P.to(a.entriesPerLine()),
-                P.to(1.0f),
-                P.to(a),
-                P.to(a.ld()),
-                P.to(b),
-                P.to(b.ld()),
-                P.to(0.0f)
+                workSpace1,P.to(workSpace1.targetLD()), P.to(workSpace1.targetLD()),P.to(workSpace1.targetLD().ld()), P.to(workSpace1.ld()),
+                P.to(a.targetDim().entriesPerLine), P.to(a.targetDim().numLines), P.to(a.entriesPerLine()), P.to(a.linesPerLayer()),                
+                P.to(1.0),
+                P.to(a), P.to(a.targetLD()), P.to(a.targetLD()),P.to(a.targetLD().ld()), P.to(a.ld()),
+                P.to(b), P.to(b.targetLD()), P.to(b.targetLD()),P.to(b.targetLD().ld()), P.to(b.ld()),
+                P.to(0.0)
         );
            
         X.neighborhoodSum(workSpace1, workSpace2);

@@ -108,4 +108,12 @@ public class PSingletonToD2d extends PSingletonTo2d implements PointToD2d{
     public DArray2d[] get(Handle hand) {
         return new DArray2d[]{getVal(hand)};
     }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public int targetSize() {
+        return targetDim.size();
+    }
 }

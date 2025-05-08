@@ -27,14 +27,14 @@ public class PArray2dToD2d extends PArray2d implements PointToD2d {
      *
      * @param entriesPerLine The number of pointers per line of pointers.
      * @param numLines The number of lines of pointers.
-     * @param pointedToEntPerLine The number of entries per line in the arrays
+     * @param targetEntPerLine The number of entries per line in the arrays
      * that are pointed to..
-     * @param pointedToNumLines The number of lines in the arrays that are
+     * @param targetNumLines The number of lines in the arrays that are
      * pointed to.
      */
-    public PArray2dToD2d(int entriesPerLine, int numLines, int pointedToEntPerLine, int pointedToNumLines) {
+    public PArray2dToD2d(int entriesPerLine, int numLines, int targetEntPerLine, int targetNumLines) {
         super(entriesPerLine, numLines);
-        targetDim = new TargetDim2d(pointedToEntPerLine, pointedToNumLines);
+        targetDim = new TargetDim2d(targetEntPerLine, targetNumLines);
         targetLD = new IArray2d(entriesPerLine, numLines);
     }
 
@@ -155,6 +155,14 @@ public class PArray2dToD2d extends PArray2d implements PointToD2d {
                         ld[i]
                 )
         ).toArray(DArray2d[]::new);
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public int targetSize() {
+        return targetDim.size();
     }
 
 }
