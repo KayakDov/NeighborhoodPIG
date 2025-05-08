@@ -47,6 +47,20 @@ public class Kernel implements AutoCloseable {
 
     private CUmodule module;//TODO: set this up so that multiple kernels can use the same module.
 
+    public enum Type{
+        
+        DOUBLE("double"), FLOAT("float"), PTR_TO_DOUBLE_2D("P2dToD2d"); 
+    
+        public final String folder;
+
+        /**
+         * Constructs the DataType
+         * @param parentFileName The name of the parent file that has the classes dealing with this datatype. 
+         */
+        private Type(String parentFileName) {
+            this.folder = parentFileName;
+        }
+    }
     /**
      * Constructs a {@code Kernel} object that loads a CUDA module from a given
      * file and retrieves a function handle for the specified kernel function.
@@ -54,14 +68,14 @@ public class Kernel implements AutoCloseable {
      * @param name The name of the file without the .cu or .ptx at the end of
      * it. This should also be the name of the main function in the kernel with
      * the work "Kernel" appended.
-     * @param isDouble True if double values are to be used, false otherwise.
+     * @param dataType The type of data the file operates on.
      */
-    public Kernel(String name, boolean isDouble) {
+    public Kernel(String name, Type dataType) {
         String fileName = name + ".ptx", functionName = name + "Kernel";
         this.module = new CUmodule();
 
         try (InputStream resourceStream = getClass().getClassLoader()
-                .getResourceAsStream("JCudaWrapper/kernels/ptx/" + (isDouble?"double/":"float/") + fileName)) {
+                .getResourceAsStream("JCudaWrapper/kernels/ptx/" + dataType.folder + "/" + fileName)) {
 
             if (resourceStream == null)
                 throw new RuntimeException("Kernel file not found in JAR: " + fileName);
@@ -99,8 +113,8 @@ public class Kernel implements AutoCloseable {
      */
     public static void run(String name, Handle handle, int numThreads, Array source, Pointer... additionalArguments) {//TODO: organize this so vectors are always followed by their ld and height.
 
-        System.out.println("JCudaWrapper.array.Kernel.run() " + name);
-        try (Kernel km = new Kernel(name, false)) {
+        
+        try (Kernel km = new Kernel(name, Type.PTR_TO_DOUBLE_2D)) {
             km.run(handle, numThreads, source, additionalArguments);
         }
     }

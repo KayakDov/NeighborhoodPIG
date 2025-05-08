@@ -3,6 +3,7 @@ package fijiPlugin;
 import FijiInput.UserInput;
 import imageWork.ColorHeatMapCreator;
 import JCudaWrapper.array.Float.FStrideArray3d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.IJ;
 import ij.ImagePlus;
@@ -42,17 +43,27 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * square.
      * @param tolerance How close must a number be to 0 to be considered 0.
      */
-    private NeighborhoodPIG(Handle handle, FStrideArray3d image, String[] sourceFileNames, UserInput ui) {
+    private NeighborhoodPIG(Handle handle, PArray2dToD2d image, String[] sourceFileNames, UserInput ui) {
         super(handle, image);
 
-        if (image.entriesPerLine() % ui.downSampleFactorXY != 0 || image.linesPerLayer() % ui.downSampleFactorXY != 0)
-            throw new RuntimeException("image height must be divisible by downFactor.  Try cropping it.");
+        checkInput(ui);
 
         this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
 
         try (Gradient grad = new Gradient(handle, image, ui.neighborhoodSize)) {
             stm = new StructureTensorMatrices(handle, grad, ui);
         }
+    }
+
+    /**
+     * Checks some of the parameters for this function and throws an
+     * IllegalArgumentException if there's a problem.
+     *
+     * @param ui The user input.
+     */
+    private void checkInput(UserInput ui) {
+        if (height % ui.downSampleFactorXY != 0 || width % ui.downSampleFactorXY != 0)
+            throw new IllegalArgumentException("image height must be divisible by downFactor.  Try cropping it.");
     }
 
     /**
@@ -195,7 +206,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      */
     public static NeighborhoodPIG get(Handle handle, ImagePlus imp, UserInput ui) {
 
-        try (FStrideArray3d gpuImmage = ProcessImage.processImages(handle, imp, ui)) {
+        try (PArray2dToD2d gpuImmage = ProcessImage.processManyImages(handle, imp, ui)) {
 
             return new NeighborhoodPIG(
                     handle,
@@ -255,7 +266,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
     public static NeighborhoodPIG getWithIJ(Handle handle, String folderPath, int depth, UserInput ui) {
 
         ImagePlus ip = ProcessImage.imagePlus(folderPath, depth);
-        
+
         try (FStrideArray3d gpuImage = ProcessImage.processImages(handle, ip, ui)) {
 
             return new NeighborhoodPIG(

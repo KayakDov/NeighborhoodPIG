@@ -45,12 +45,12 @@ public abstract class LineArray implements Array {
      * @param entriesPerLine The number of entries on each line of the array.
      * @param numLines The number of lines in the array.
      * @param bytesPerEntry The number of bytes for each entry in the array.
-     * @param pitch The pitch of the array.
+     * @param ld The pitch of the array.
      */
-    LineArray(Pointer p, int entriesPerLine, int numLines, int bytesPerEntry, int pitch){
+    LineArray(Pointer p, int entriesPerLine, int numLines, int bytesPerEntry, int ld){
         this(entriesPerLine, numLines, bytesPerEntry);
         pointer.ptr = p;
-        pointer.pitch = pitch;
+        pointer.pitch = ld*bytesPerEntry;
     }
 
     /**

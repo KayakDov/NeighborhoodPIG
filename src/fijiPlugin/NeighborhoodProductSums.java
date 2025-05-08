@@ -4,6 +4,7 @@ import JCudaWrapper.array.Float.FArray;
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
 
 /**
@@ -34,7 +35,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
      * @param dim Dimensions from this will be copied.
      *
      */
-    public NeighborhoodProductSums(Handle handle, NeighborhoodDim nRad, FStrideArray3d dim) {
+    public NeighborhoodProductSums(Handle handle, NeighborhoodDim nRad, PArray2dToD2d dim) {
         super(handle, dim);
 
         Z = new Mapper(height * width * batchSize, depth, 2, nRad.zR) {

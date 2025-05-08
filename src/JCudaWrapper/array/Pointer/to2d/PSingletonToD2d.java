@@ -60,7 +60,7 @@ public class PSingletonToD2d extends PSingletonTo2d implements PointToD2d{
         Pointer arrayAdress = new Pointer();
         Pointer hostToArrayAdress = Pointer.to(arrayAdress);
         get(hand, hostToArrayAdress);
-        return new DArray2d(arrayAdress, targetDim.entriesPerLine, targetDim.numLines, targetPitch.getVal(hand));
+        return new DArray2d(arrayAdress, targetDim.entriesPerLine, targetDim.numLines, targetLD.getVal(hand));
     }
 
     

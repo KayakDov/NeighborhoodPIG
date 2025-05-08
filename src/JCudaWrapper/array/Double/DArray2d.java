@@ -57,8 +57,8 @@ public class DArray2d extends Array2d implements DLineArray {
      * Takes a preallocated pointer and gives it an array structure.
      * @param to2d The target of the singleton's pointer.
      */
-    public DArray2d(Pointer to2d, int entriesPerLine, int numLines, int pitch) {
-        super(to2d, entriesPerLine, numLines, pitch, Sizeof.DOUBLE);
+    public DArray2d(Pointer to2d, int entriesPerLine, int numLines, int ld) {
+        super(to2d, entriesPerLine, numLines, ld, Sizeof.DOUBLE);
     }
     
     

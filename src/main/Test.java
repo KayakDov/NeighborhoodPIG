@@ -31,10 +31,13 @@ public class Test {
             a2.set(hand, 9, 12, 3, -1);
             a3.set(hand, 7, 8, 70, 80);
             
-            p.set(hand, a0, a1, a2, a3);
+            p.get(1).set(hand, a3);
             
 
-            System.out.println(Arrays.toString(p.get(hand)));
+            System.out.println(
+                            p.get(1).getVal(hand)
+                    
+            );
 
         }
 

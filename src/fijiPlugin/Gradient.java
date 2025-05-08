@@ -1,10 +1,12 @@
 package fijiPlugin;
 
+import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Int.IArray1d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import java.util.Arrays;
 
 /**
@@ -17,7 +19,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
     /**
      * 0 is the x dimension, 1 is the y dimension, and 2 is the z dimension.
      */
-    public final FStrideArray3d[] x;
+    public final PArray2dToD2d[] x;
 
     /**
      * Compute gradients of an image in both the x and y directions.Gradients
@@ -31,32 +33,26 @@ public class Gradient extends Dimensions implements AutoCloseable {
      *
      *
      */
-    public Gradient(Handle handle, FStrideArray3d pic, NeighborhoodDim layerDist) {
+    public Gradient(Handle handle, PArray2dToD2d pic, NeighborhoodDim layerDist) {
         super(handle, pic);
-        x = new FStrideArray3d[3];
-        Arrays.setAll(x, i -> pic.copyDim());
+        x = new PArray2dToD2d[]{pic.copyDim(), pic.copyDim(), pic.copyDim()};
 
-//TODO: check gradient method!
-        int[] dimensions = new int[]{
-            height, //0 -> height
+        try (IArray1d dim = new IArray1d(handle, height, //0 -> height
             width, //1 -> width
             depth, //2 -> depth
             batchSize,//3 -> numTensorts
             height * width,//4 -> layerSize
             tensorSize(),//5  -> tensorSize 
-            tensorSize() * batchSize,//6 -> batchSize (number of elements, not tensors, in the batch)
-            pic.ld() //7 ld
-        };
-
-        try (IArray1d dim = new IArray1d(8).set(handle, dimensions)) {
+            tensorSize() * batchSize //6 -> batchSize (number of elements, not tensors, in the batch)
+        )) {
 
             Kernel.run("batchGradients", handle,
                     pic.size() * 3,
-                    pic,
+                    pic,P.to(pic.targetLD()), P.to(pic.targetLD().ld()), P.to(pic.ld()),
                     P.to(dim),
-                    P.to(x[0]), P.to(x[0].ld()),
-                    P.to(x[1]), P.to(x[1].ld()),
-                    P.to(x[2]), P.to(x[2].ld()),
+                    P.to(x[0]), P.to(x[0].targetLD()), P.to(x[0].targetLD().ld()), P.to(x[0].ld()),
+                    P.to(x[1]), P.to(x[1].targetLD()), P.to(x[1].targetLD().ld()), P.to(x[1].ld()),
+                    P.to(x[2]), P.to(x[2].targetLD()), P.to(x[2].targetLD().ld()), P.to(x[2].ld()),
                     P.to(layerDist.layerRes)
             );
         }
@@ -67,9 +63,7 @@ public class Gradient extends Dimensions implements AutoCloseable {
      */
     @Override
     public void close() {
-        for (FStrideArray3d grad : x) {
-            grad.close();
-        }
+        for (Array grad : x) grad.close();
     }
 
     /**
@@ -78,15 +72,6 @@ public class Gradient extends Dimensions implements AutoCloseable {
     @Override
     public String toString() {
         return super.toString() + "\nd\\grad =\n" + Arrays.toString(x);
-    }
-
-    /**
-     * An empty array with the same dimensions as one of the gradients.
-     *
-     * @return An empty array with the same dimensions as one of the gradients.
-     */
-    public FStrideArray3d copyDim() {
-        return x[0].copyDim();
     }
 
 }

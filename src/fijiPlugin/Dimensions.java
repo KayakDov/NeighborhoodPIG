@@ -1,6 +1,7 @@
 package fijiPlugin;
 
 import JCudaWrapper.array.Float.FStrideArray3d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
 
 /**
@@ -72,6 +73,16 @@ public class Dimensions{
      */
     public Dimensions(Handle handle, FStrideArray3d copyFrom) {
         this(handle, copyFrom.entriesPerLine(), copyFrom.linesPerLayer(), copyFrom.layersPerGrid(), copyFrom.batchSize);
+    }
+    
+    /**
+     * Copy constructor.
+     *
+     * @param handle The context.
+     * @param copyFrom The item being copied.
+     */
+    public Dimensions(Handle handle, PArray2dToD2d copyFrom) {
+        this(handle, copyFrom.targetDim().entriesPerLine, copyFrom.targetDim().numLines, copyFrom.entriesPerLine(), copyFrom.linesPerLayer());
     }
         
     /**

@@ -25,6 +25,16 @@ public class IArray1d extends Array1d implements IArray {
     public IArray1d(int numElements) {
         super(numElements, Sizeof.INT);
     }
+    
+    /**
+     * Sets the gpu array from a cpu array.
+     * @param handle The context.
+     * @param elements The elements to be copied to the gpu.
+     */
+    public IArray1d(Handle handle, int... elements) {
+        this(elements.length);
+        set(handle, elements);
+    }
 
     /**
      * Constructs a 1d sub array of the proffered array.If the array copied from

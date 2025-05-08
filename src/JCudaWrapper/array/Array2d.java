@@ -67,8 +67,8 @@ public abstract class Array2d extends LineArray {
      * @param hand
      * @param to2d The singleton with a pointer to the array.
      */
-    public Array2d(Pointer to2d, int entriesPerLine, int numLines, int pitch, int bytesPerEntry){
-        super(to2d, entriesPerLine, numLines, bytesPerEntry, pitch);
+    public Array2d(Pointer to2d, int entriesPerLine, int numLines, int ld, int bytesPerEntry){
+        super(to2d, entriesPerLine, numLines, bytesPerEntry, ld);
     }
 
     /**

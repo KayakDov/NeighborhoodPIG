@@ -14,7 +14,7 @@ public interface PointerTo2d extends PArray{
      * An array that contains the pitch value of each pointed to array.
      * @return An array that contains the pitch value of each pointed to array.
      */
-    public IArray targetPitches();
+    public IArray targetLD();
     
     /**
      * The number of entries per line in the arrays pointed to.

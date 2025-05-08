@@ -140,9 +140,9 @@ public class ProcessImage {
                     imp.setPosition(channel, slice, frame);
                     ImageProcessor ip = imp.getProcessor();
                     float[][] pixels = ip.getFloatArray();
-                    for (int col = 0; col < width; col++) 
+                    for (int col = 0; col < width; col++)
                         System.arraycopy(pixels[col], 0, columnMajorSlice, col * height, height);
-                    
+
                     processedImage.getGrid(frame - 1).getLayer(slice - 1).set(handle, columnMajorSlice);
                 }
             }
@@ -151,8 +151,10 @@ public class ProcessImage {
     }
 
     /**
-     * Processes a hyperstack and returns a FArray containing the processed
-     * image data.
+     * Processes a hyperstack and returns a PArray2dToD2d containing the
+     * processed image data. The 2d array of pointers points to the layers of
+     * the frames, where each column is a frame and each row is a layer of that
+     * frame.
      *
      * @param handle The handle used for FArray operations.
      * @param imp The ImagePlus object representing the hyperstack.
@@ -182,11 +184,11 @@ public class ProcessImage {
             for (int slice = 1; slice <= depth; slice++) {
                 for (int channel = 1; channel <= channels; channel++) {
                     imp.setPosition(channel, slice, frame);
-                    
+
                     float[][] pixels = imp.getProcessor().getFloatArray();
-                    
+
                     IntStream.range(0, width).parallel().forEach(col -> System.arraycopy(pixels[col], 0, columnMajorSlice, col * height, height));
-                    
+
                     DArray2d gpuSlice = new DArray2d(height, width).set(handle, columnMajorSlice);
 
                     processedImage.get(slice, frame).set(handle, gpuSlice);

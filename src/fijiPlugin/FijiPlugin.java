@@ -65,8 +65,6 @@ public class FijiPlugin implements PlugIn {
             return;
         }
 
-        System.out.println("fijiPlugin.FijiPlugin.run() Runnin NeighborhoodPIG with user values:\n" + ui.toString());
-        
         try (
                 Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, ui)) {
             
@@ -83,7 +81,7 @@ public class FijiPlugin implements PlugIn {
             if (ui.useCoherence)
                 np.getCoherence().printToFiji();
 
-            ij.IJ.showMessage("NeighborhoodPIG processing complete.");
+            //ij.IJ.showMessage("NeighborhoodPIG processing complete.");
         }
         if (!Array.allocatedArrays.isEmpty())
             throw new RuntimeException("Neighborhood PIG has a GPU memory leak.");
@@ -107,10 +105,10 @@ public class FijiPlugin implements PlugIn {
 
 //            System.out.println("fijiPlugin.FijiPlugin.defaultRun()\nAll finite: " + Test.allFinite(np.stm.eigen.vectors, handle));
             
-            np.getAzimuthalAngles(true, true, .01).printToFile("images/output/test3/Azimuthal");
+            np.getAzimuthalAngles(false, false, .01).printToFile("images/output/test3/Azimuthal");
 //
             if (depth > 1)
-                np.getZenithAngles(true, true, .01).printToFile("images/output/test3/Zenith");
+                np.getZenithAngles(false, false, .01).printToFile("images/output/test3/Zenith");
 
 //            np.getVectorImg(8, 6, false);
 

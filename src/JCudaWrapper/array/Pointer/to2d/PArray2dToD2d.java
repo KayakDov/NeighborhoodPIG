@@ -1,10 +1,8 @@
 package JCudaWrapper.array.Pointer.to2d;
 
-import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.Pointer.to1d.PArray1dToD1d;
 import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.Double.DArray1d;
 import JCudaWrapper.array.Double.DArray2d;
 import JCudaWrapper.array.Int.IArray;
 import JCudaWrapper.array.Int.IArray2d;
@@ -14,7 +12,6 @@ import java.util.Arrays;
 import java.util.stream.IntStream;
 import jcuda.Pointer;
 import jcuda.Sizeof;
-import sun.jvm.hotspot.utilities.IntArray;
 
 /**
  *
@@ -23,7 +20,7 @@ import sun.jvm.hotspot.utilities.IntArray;
 public class PArray2dToD2d extends PArray2d implements PointToD2d {
 
     private final TargetDim2d targetDim;
-    private final IArray2d targetPitch;
+    private final IArray2d targetLD;
 
     /**
      * Constructs the empty array.
@@ -38,9 +35,17 @@ public class PArray2dToD2d extends PArray2d implements PointToD2d {
     public PArray2dToD2d(int entriesPerLine, int numLines, int pointedToEntPerLine, int pointedToNumLines) {
         super(entriesPerLine, numLines);
         targetDim = new TargetDim2d(pointedToEntPerLine, pointedToNumLines);
-        targetPitch = new IArray2d(entriesPerLine, numLines);
+        targetLD = new IArray2d(entriesPerLine, numLines);
     }
 
+    /**
+     * Creates an empty array with the same dimensions as this array.
+     * @return An empty array with the same dimensions as this array.
+     */
+    public PArray2dToD2d copyDim(){
+        return new PArray2dToD2d(entriesPerLine(), linesPerLayer(), targetDim.entriesPerLine, targetDim.numLines);
+    }
+    
     /**
      * {@inheritDoc }
      */
@@ -61,10 +66,10 @@ public class PArray2dToD2d extends PArray2d implements PointToD2d {
     public PArray2dToD2d set(Handle handle, Array2d... srcCPUArrayOfArrays) {
         super.set(handle, srcCPUArrayOfArrays);
 
-        targetPitch.set(
+        targetLD.set(
                 handle,
                 Arrays.stream(srcCPUArrayOfArrays)
-                        .mapToInt(array -> array.pitch())
+                        .mapToInt(array -> array.ld())
                         .toArray()
         );
         return this;
@@ -117,8 +122,8 @@ public class PArray2dToD2d extends PArray2d implements PointToD2d {
      * {@inheritDoc }
      */
     @Override
-    public IArray targetPitches() {
-        return targetPitch;
+    public IArray targetLD() {
+        return targetLD;
     }
 
     /**
@@ -140,14 +145,14 @@ public class PArray2dToD2d extends PArray2d implements PointToD2d {
         Pointer hostToArray = Pointer.to(cpuArray);
         get(hand, hostToArray);
 
-        int[] pitches = targetPitch.get(hand);
+        int[] ld = targetLD.get(hand);
 
         return IntStream.range(0, size()).mapToObj(i
                 -> new DArray2d(
                         cpuArray[i],
                         targetDim.entriesPerLine,
                         targetDim.numLines,
-                        pitches[i]
+                        ld[i]
                 )
         ).toArray(DArray2d[]::new);
     }

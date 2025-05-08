@@ -15,7 +15,7 @@ import jcuda.Pointer;
 public abstract class PSingletonTo2d extends PSingleton implements PointerTo2d {
 
     public final TargetDim2d targetDim;
-    public final ISingleton targetPitch;
+    public final ISingleton targetLD;
 
     /**
      * Constructs the singleton pointer to a 2d array.
@@ -25,19 +25,19 @@ public abstract class PSingletonTo2d extends PSingleton implements PointerTo2d {
      */
     public PSingletonTo2d(PointerTo2d from, int index) {
         super(from, index);
-        targetPitch = from.targetPitches().get(index);
+        targetLD = from.targetLD().get(index);
         targetDim =  from.targetDim();
     }    
 
     /**
      * Constructs an empty instance.
      * @param targetMetaData The meta data for the array that this will point to.
-     * @param pitch The pitch for the array that this will point to.
+     * @param ld The ld for the array that this will point to.
      */
-    public PSingletonTo2d(TargetDim2d targetMetaData, ISingleton pitch) {
+    public PSingletonTo2d(TargetDim2d targetMetaData, ISingleton ld) {
         super();
         this.targetDim = targetMetaData;
-        this.targetPitch = pitch;
+        this.targetLD = ld;
     }
 
     /**
@@ -49,7 +49,7 @@ public abstract class PSingletonTo2d extends PSingleton implements PointerTo2d {
     public PSingletonTo2d set(Handle handle, Array2d val) {
         Pointer cpuPointer = P.to(val);
         super.set(handle, cpuPointer);
-        targetPitch.set(handle, val.pitch());
+        targetLD.set(handle, val.ld());
         return this;
     }       
     
@@ -57,8 +57,8 @@ public abstract class PSingletonTo2d extends PSingleton implements PointerTo2d {
      * {@inheritDoc }
      */
     @Override
-    public IArray targetPitches() {
-        return targetPitch;
+    public IArray targetLD() {
+        return targetLD;
     }
 
     /**
