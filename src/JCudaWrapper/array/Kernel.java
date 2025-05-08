@@ -99,6 +99,7 @@ public class Kernel implements AutoCloseable {
      */
     public static void run(String name, Handle handle, int numThreads, Array source, Pointer... additionalArguments) {//TODO: organize this so vectors are always followed by their ld and height.
 
+        System.out.println("JCudaWrapper.array.Kernel.run() " + name);
         try (Kernel km = new Kernel(name, false)) {
             km.run(handle, numThreads, source, additionalArguments);
         }

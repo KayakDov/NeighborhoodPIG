@@ -5,8 +5,6 @@ import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.FloatProcessor;
-import ij.io.FileSaver;
-import java.io.File;
 import java.util.stream.IntStream;
 
 /**

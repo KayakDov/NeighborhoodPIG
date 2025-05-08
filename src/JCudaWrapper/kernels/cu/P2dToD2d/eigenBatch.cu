@@ -68,8 +68,8 @@ public:
      * @param ldPtr Leading dimension of the src array (stride between pointers to different slices in memory).
      * @return The value at the computed index within the specified slice.
      */
-    __device__ double set(double** src, const int* ld, const int ldld, const int ldPtr, double val) {
-        return src[layerInd(ldPtr)][ind(ld, ldld)] = val;
+    __device__ void set(double** src, const int* ld, const int ldld, const int ldPtr, double val) {
+        src[layerInd(ldPtr)][ind(ld, ldld)] = val;
     }
 
     /**
