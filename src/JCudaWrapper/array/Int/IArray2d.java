@@ -5,6 +5,7 @@ import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.LineArray;
 import JCudaWrapper.array.Singleton;
 import JCudaWrapper.resourceManagement.Handle;
+import jcuda.Pointer;
 import jcuda.Sizeof;
 
 /**
@@ -71,5 +72,16 @@ public class IArray2d extends Array2d implements IArray{
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
+    
+    /**
+     * Takes a preallocated pointer and gives it an array structure.
+     * @param to2d The target of the singleton's pointer.
+     * @param entriesPerLine The number of entries on each line.
+     * @param numLines The number of lines.
+     * @param ld The leading dimension of each entry.
+     */
+    public IArray2d(Pointer to2d, int entriesPerLine, int numLines, int ld) {
+        super(to2d, entriesPerLine, numLines, ld, Sizeof.INT);
+    }
     
 }

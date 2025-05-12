@@ -1,6 +1,8 @@
 package imageWork;
 
 import JCudaWrapper.array.Float.FStrideArray3d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import MathSupport.Cube;
 import MathSupport.Line;
 import MathSupport.Point3d;
@@ -26,14 +28,12 @@ public class VectorImg extends Dimensions {
     private final FloatProcessor[] fp;
     private final Cube space;
     private final VecManager gridVecs;
-    private final int spacing;
-    private final float[] gridIntensity;
-    private final int r;
-    private final FStrideArray3d vecs;
-    private final ImageStack stack;
-    private final FStrideArray3d intensity;
+    private final int spacing, r;
+    private final double[] gridIntensity;
+    private final PArray2dToD2d vecs, intensity;
+    private final ImageStack stack;    
     private final boolean useNon0Intensities;
-    private final float tolerance;
+    private final double tolerance;
 
     /**
      * Constructs a new VectorImg with the specified parameters to generate an
@@ -51,7 +51,7 @@ public class VectorImg extends Dimensions {
      * @param tolerance If useNon0Intensities is false then this determines the
      * threshold for what is close to 0.
      */
-    public VectorImg(Dimensions dims, int vecMag, FStrideArray3d vecs, FStrideArray3d intensity, int spacing, boolean useNon0Intensities, float tolerance) {
+    public VectorImg(Dimensions dims, int vecMag, PArray2dToD2d vecs, PArray2dToD2d intensity, int spacing, boolean useNon0Intensities, double tolerance) {
         super(dims);
 
         space = new Cube(
@@ -64,7 +64,7 @@ public class VectorImg extends Dimensions {
 
         fp = new FloatProcessor[space.depth() + (vecs.layersPerGrid() == 1 ? 0 : 1)];
 
-        gridIntensity = intensity == null ? null : new float[tensorSize()];
+        gridIntensity = intensity == null ? null : new double[tensorSize()];
 
         gridVecs = new VecManager(this);
 
@@ -86,9 +86,8 @@ public class VectorImg extends Dimensions {
     public ImagePlus get() {
 
         IntStream str = IntStream.range(0, batchSize);
-        if (vecs.batchSize > 1) {
-            str = str.parallel();
-        }
+        if (batchSize > 1) str = str.parallel();
+        
         str.forEach(this::computeGrid);
 
         ImagePlus image = new ImagePlus("Nematics", stack);
@@ -105,15 +104,11 @@ public class VectorImg extends Dimensions {
 
         Arrays.setAll(fp, i -> new FloatProcessor(space.width(), space.height()));
 
-        gridVecs.setFrom(vecs, t, handle);
-
-        intensity.getGrid(t).get(handle, gridIntensity);
-
         IntStream str = IntStream.range(0, depth);
 
-        if (vecs.batchSize == 1) str = str.parallel();
+        if (batchSize == 1) str = str.parallel();
 
-        str.forEach(this::computeLayer);
+        str.forEach(z -> computeLayer(t, z));
 
         Arrays.stream(fp).forEach(stack::addSlice);
     }
@@ -123,7 +118,7 @@ public class VectorImg extends Dimensions {
      */
     public class Pencil implements Consumer<Point3d> {
 
-        private float intensity = 1;
+        private double intensity = 1;
 
         /**
          * Sets the intensity to be applied by this pencil.
@@ -131,7 +126,7 @@ public class VectorImg extends Dimensions {
          * @param intensity The shade to be drawn.
          * @return this.
          */
-        public Pencil setIntensity(float intensity) {
+        public Pencil setIntensity(double intensity) {
             this.intensity = intensity;
             return this;
         }
@@ -144,7 +139,7 @@ public class VectorImg extends Dimensions {
 
             if (!p.firstQuadrant())
                 throw new RuntimeException(p.toString());//TODO: delete me
-            fp[p.zI()].setf(p.xI(), p.yI(), intensity);
+            fp[p.zI()].setf(p.xI(), p.yI(), (float)intensity);
         }
     }
 
@@ -152,32 +147,34 @@ public class VectorImg extends Dimensions {
      * Computes a layer of the image stack for a given layer index, processing
      * the vector and intensity data to set pixel values.
      *
-     * @param layer The layer index.
+     * @param z The layer index.
      */
-    private void computeLayer(int layer) {
+    private void computeLayer(int t, int z) {
 
+        gridVecs.setFrom(vecs, t, z, handle);
+        intensity.get(z, t).getVal(handle).get(handle, gridIntensity);
+        
         Line line = new Line();
         Point3d vec1 = new Point3d(), vec2 = new Point3d();
         Pencil drawer = new Pencil();
-
-        int layerInd = layer * layerSize();
+        
         for (int col = 0; col < width; col++) {
 
-            int colIndex = col * height + layerInd;
+            int colIndex = col * height;
 
             for (int row = 0; row < height; row++) {
 
-                float localIntensity = gridIntensity[colIndex + row];
+                double localIntensity = gridIntensity[colIndex + row];
 
                 if (localIntensity > tolerance) {
                     if (useNon0Intensities) drawer.setIntensity(localIntensity);
 
-                    gridVecs.get(row, col, layer, vec1, r);
+                    gridVecs.get(row, col, vec1, r);
 
                     if (vec1.isFinite() && vec1.normSq() > 1) {
                         if (depth == 1) vec1.setZ(0);
 
-                        line.getA().set(col, row, layer).scale(spacing).translate(r + 1, r + 1, depth == 1 ? 0 : r + 1);
+                        line.getA().set(col, row, z).scale(spacing).translate(r + 1, r + 1, depth == 1 ? 0 : r + 1);
                         line.getB().set(line.getA());
                         line.getA().translate(vec1);
                         line.getB().translate(vec1.scale(-1));

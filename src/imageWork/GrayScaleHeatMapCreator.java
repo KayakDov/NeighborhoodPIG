@@ -1,6 +1,10 @@
 package imageWork;
 
 import JCudaWrapper.array.Float.FStrideArray3d;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -18,10 +22,9 @@ import java.util.stream.IntStream;
  */
 public class GrayScaleHeatMapCreator extends HeatMapCreator {
 
-    /**
-     * Array storing pixel intensity values.
-     */
-    private final float[] pixelIntensity;
+    private final PArray2dToF2d image;
+    private final PArray2dToD2d coherence;
+    private final double tolerance;
 
     /**
      * Constructs a GrayScaleImageCreator instance.
@@ -35,13 +38,18 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
      * to map coherence.
      * @param tolerance Defines what is close to 0.
      */
-    public GrayScaleHeatMapCreator(String[] sliceNames, String stackName, Handle handle, FStrideArray3d image, FStrideArray3d coherence, double tolerance) {
+    public GrayScaleHeatMapCreator(String[] sliceNames, String stackName, Handle handle, PArray2dToD2d image, PArray2dToD2d coherence, double tolerance) {
         super(sliceNames, stackName, handle, image);
-        pixelIntensity = image.get(handle);
-        if (coherence != null) {
-            float[] coh = coherence.get(handle);
-            IntStream.range(0, coh.length).filter(i -> coh[i] <= tolerance).forEach(i -> pixelIntensity[i] = Float.NaN);
-        }
+        this.image = new PArray2dToF2d(image.entriesPerLine(), image.linesPerLayer(), image.targetDim().entriesPerLine, image.targetDim().numLines);
+
+        Kernel.run("mapToFLoat", handle, image.deepSize(),
+                image, P.to(image.targetLD()), P.to(image.targetLD().ld()), P.to(image.ld()),
+                P.to(this.image), P.to(this.image.targetLD()), P.to(this.image.targetLD().ld()), P.to(this.image.ld()),
+                P.to(height), P.to(width), P.to(depth)
+        );
+
+        this.coherence = coherence;
+        this.tolerance = tolerance;
     }
 
     /**
@@ -60,18 +68,24 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
     private ImagePlus getIP() {//TODO: look into multi threading this.
         ImageStack stack = new ImageStack(width, height);
 
+        float[] colImage = new float[height];
+        double[] colCoherence = new double[height];
+
         for (int t = 0; t < batchSize; t++) {
             int frameInd = t * width * height * depth;
 
             for (int z = 0; z < depth; z++) {
 
                 FloatProcessor fp = new FloatProcessor(width, height);
-                int layerInd = frameInd + z * width * height;
 
                 for (int col = 0; col < width; col++) {
-                    int colInd = layerInd + col * height;
-                    for (int row = 0; row < height; row++)
-                        fp.setf(col, row, pixelIntensity[colInd + row]);
+                    image.get(z, t).getVal(handle).getLine(col).get(handle, colImage);
+                    if (coherence != null) 
+                        coherence.get(z, t).getVal(handle).getLine(col).get(handle, colCoherence);
+
+                    for (int i = 0; i < height; i++) if (colCoherence[i] <= tolerance) colImage[i] = 0;
+
+                    fp.putColumn(col, 0, colImage, height);
                 }
                 stack.addSlice(
                         sliceNames[z],

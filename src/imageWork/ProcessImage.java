@@ -64,12 +64,10 @@ public class ProcessImage {
      * @param raster The raster being written from.
      * @param writeTo The array being written to.
      */
-    private static void toColMjr(Raster raster, float[] writeTo) {
-        for (int col = 0; col < raster.getWidth(); col++) {
-            for (int row = 0; row < raster.getHeight(); row++) {
+    private static void toColMjr(Raster raster, double[] writeTo) {
+        for (int col = 0; col < raster.getWidth(); col++) 
+            for (int row = 0; row < raster.getHeight(); row++) 
                 writeTo[col * raster.getHeight() + row] = raster.getSample(col, row, 0);
-            }
-        }
     }
 
     /**
@@ -119,7 +117,7 @@ public class ProcessImage {
      * @return A FArray containing the image data in column-major order for all
      * frames, slices, and channels.
      */
-    public static final FStrideArray3d processImages(Handle handle, ImagePlus imp, UserInput ui) {
+    public static final PArray2dToD2d processImages(Handle handle, ImagePlus imp, UserInput ui) {
         // Convert the image to grayscale if necessary
         if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32) {
             System.out.println("fijiPlugin.NeighborhoodPIG.processImages(): Converting image to grayscale.");
@@ -131,8 +129,10 @@ public class ProcessImage {
         int depth = imp.getNSlices();
         int frames = imp.getNFrames();
         int imgSize = width * height;
-        FStrideArray3d processedImage = new FStrideArray3d(height, width, depth, frames);
-        float[] columnMajorSlice = new float[imgSize];
+        
+        PArray2dToD2d processedImage = new PArray2dToD2d(depth, frames, height, width);
+        
+        double[] columnMajorSlice = new double[imgSize];
         // Iterate over frames, slices, and channels
         for (int frame = 1; frame <= frames; frame++) {
             for (int slice = 1; slice <= depth; slice++) {
@@ -143,7 +143,7 @@ public class ProcessImage {
                     for (int col = 0; col < width; col++)
                         System.arraycopy(pixels[col], 0, columnMajorSlice, col * height, height);
 
-                    processedImage.getGrid(frame - 1).getLayer(slice - 1).set(handle, columnMajorSlice);
+                    processedImage.get(slice - 1, frame - 1).set(handle, new DArray2d(height, width).set(handle, columnMajorSlice));
                 }
             }
         }
@@ -214,16 +214,20 @@ public class ProcessImage {
      * @throws IllegalArgumentException If no valid images are found in the
      * folder.
      */
-    public static final FStrideArray3d processImages(Handle handle, File[] pics, int height, int width, int depth) {
-        FStrideArray3d pixelsGPU = new FStrideArray3d(height, width, depth, pics.length / depth);
-        int imgSize = width * height;
-        float[] imgPixelsColMaj = new float[imgSize];
+    public static final PArray2dToD2d processImages(Handle handle, File[] pics, int height, int width, int depth) {
+        PArray2dToD2d pixelsGPU = new PArray2dToD2d(depth, pics.length / depth, height, width);
+        
+        double[] imgPixelsColMaj = new double[width * height];
+        
         for (int i = 0; i < pics.length; i++) {
             try {
                 BufferedImage bi = ImageIO.read(pics[i]);
                 if (width < bi.getWidth() || height < bi.getHeight()) bi = bi.getSubimage(0, 0, width, height);
+                
                 toColMjr(grayScale(bi).getData(), imgPixelsColMaj);
-                pixelsGPU.getGrid(i / depth).getLayer(i % depth).set(handle, imgPixelsColMaj);
+                
+                pixelsGPU.get(i % depth, i / depth).set(handle, new DArray2d(height, width).set(handle, imgPixelsColMaj));
+            
             } catch (IOException e) {
                 throw new IllegalArgumentException("Error reading image file: " + pics[i].getName(), e);
             }

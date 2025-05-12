@@ -1,10 +1,8 @@
 package fijiPlugin;
 
 import FijiInput.UserInput;
-import JCudaWrapper.array.Float.FArray3d;
 import JCudaWrapper.array.Float.FStrideArray3d;
-import JCudaWrapper.array.Kernel;
-import JCudaWrapper.array.P;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
 
 /**
@@ -14,7 +12,7 @@ import JCudaWrapper.resourceManagement.Handle;
 public class StructureTensorMatrices implements AutoCloseable {
 
     public final Eigen eigen;
-    private final FStrideArray3d azimuth, zenith, coherence;
+    private final PArray2dToD2d azimuth, zenith, coherence;
     private final Handle handle;
 
     /**
@@ -40,95 +38,22 @@ public class StructureTensorMatrices implements AutoCloseable {
                     nps.set(grad.x[i], grad.x[j], eigen.at(i, j));
         }
        
-        eigen.set(Math.min(grad.depth, 2));
-                
-        azimuth = new FStrideArray3d(grad.height / ui.downSampleFactorXY, grad.width / ui.downSampleFactorXY, grad.depth, grad.batchSize);
-        
+        azimuth = new PArray2dToD2d(grad.height / ui.downSampleFactorXY, grad.width / ui.downSampleFactorXY, grad.depth, grad.batchSize);        
         zenith = azimuth.copyDim();
-        coherence = azimuth.copyDim();
+        coherence = azimuth.copyDim();        
         
-        setVecs0ToPi();        
-                
-        setCoherence(bigTolerance);
-
-//        System.out.println("fijiPlugin.StructureTensorMatrices.<init>() vector att (800, 575) is " 
-//                + Arrays.toString(new VecManager(grad).setFrom(eigen.vectors, 0, handle).get(575, 800, 0)) + 
-//                " has index " + new VecManager(grad).setFrom(eigen.vectors, 0, handle).vecIndex(575, 800, 0)/3);
-//        
-        
-        setOrientations(1e-6f);
-        
-//        System.out.println("\nfijiPlugin.StructureTensorMatrices.<init>() azimuth angle is: " + azimuth.getAt(575, 800).getf(handle));
+        eigen.set(Math.min(grad.depth, 2), coherence, zenith, coherence);
         
         
     }
 
-    /**
-     * All the eigen vectors with y less than 0 are mulitplied by -1.
-     *
-     */
-    public final void setVecs0ToPi() {
-        FArray3d eVecs = eigen.vectors;
-        Kernel.run("vecToNematic", handle,
-                coherence.size(),
-                eVecs,
-                P.to(eVecs.ld()),
-                P.to(eVecs.entriesPerLine()),
-                P.to(eVecs),
-                P.to(eVecs.ld()),
-                P.to(eVecs.entriesPerLine())
-        );
-    }
-
-    /**
-     * Sets the orientations from the eigenvectors.
-     *
-     * @param tolerance What is considered 0.
-     */
-    public final void setOrientations(float tolerance) {
-
-        Kernel.run("toSpherical", handle, azimuth.size(),
-                eigen.vectors,
-                P.to(eigen.vectors.entriesPerLine()),
-                P.to(eigen.vectors.ld()),
-                P.to(azimuth),
-                P.to(azimuth.entriesPerLine()),
-                P.to(azimuth.ld()),
-                P.to(zenith),
-                P.to(zenith.entriesPerLine()),
-                P.to(zenith.ld()),
-                P.to(0.01f)
-        );
-
-    }
-
-    /**
-     * Sets and returns the coherence matrix.
-     *
-     * @param tolerance Numbers closer to 0 than may be considered 0.
-     * @return The coherence matrix.
-     */
-    public final FStrideArray3d setCoherence(float tolerance) {
-        Kernel.run("coherence", handle,
-                coherence.size(),
-                eigen.values,
-                P.to(eigen.values.ld()),
-                P.to(eigen.values.entriesPerLine()),
-                P.to(coherence),
-                P.to(coherence.ld()),
-                P.to(coherence.entriesPerLine()),
-                P.to(tolerance)
-        );
-
-        return coherence;
-    }
 
     /**
      * The coherence matrix.
      *
      * @return The coherence matrix.
      */
-    public FStrideArray3d getCoherence() {
+    public PArray2dToD2d getCoherence() {
         return coherence;
     }
 
@@ -137,7 +62,7 @@ public class StructureTensorMatrices implements AutoCloseable {
      *
      * @return Thew matrix of orientations.
      */
-    public FStrideArray3d azimuthAngle() {
+    public PArray2dToD2d azimuthAngle() {
         return azimuth;
     }
 
@@ -146,7 +71,7 @@ public class StructureTensorMatrices implements AutoCloseable {
      *
      * @return Thew matrix of orientations.
      */
-    public FStrideArray3d zenithAngle() {
+    public PArray2dToD2d zenithAngle() {
         return zenith;
     }
 
@@ -182,3 +107,45 @@ public class StructureTensorMatrices implements AutoCloseable {
     }
 
 }
+
+
+//
+//    /**
+//     * All the eigen vectors with y less than 0 are mulitplied by -1.
+//     *
+//     */
+//    public final void setVecs0ToPi() {
+//        FArray3d eVecs = eigen.vectors;
+//        Kernel.run("vecToNematic", handle,
+//                coherence.size(),
+//                eVecs,
+//                P.to(eVecs.ld()),
+//                P.to(eVecs.entriesPerLine()),
+//                P.to(eVecs),
+//                P.to(eVecs.ld()),
+//                P.to(eVecs.entriesPerLine())
+//        );
+//    }
+//
+//    /**
+//     * Sets the orientations from the eigenvectors.
+//     *
+//     * @param tolerance What is considered 0.
+//     */
+//    public final void setOrientations(float tolerance) {
+//
+//        Kernel.run("toSpherical", handle, azimuth.size(),
+//                eigen.vectors,
+//                P.to(eigen.vectors.entriesPerLine()),
+//                P.to(eigen.vectors.ld()),
+//                P.to(azimuth),
+//                P.to(azimuth.entriesPerLine()),
+//                P.to(azimuth.ld()),
+//                P.to(zenith),
+//                P.to(zenith.entriesPerLine()),
+//                P.to(zenith.ld()),
+//                P.to(0.01f)
+//        );
+
+
+

@@ -72,20 +72,37 @@ public interface PArray extends Array {
     public Array[] get(Handle hand);
 
     /**
+     * Copies the gpu array of pointers to a cpu array of pointers.
+     *
+     * @param hand The context.
+     * @return A cpu array of pointers that is a copy of this gpu array of
+     * pointers.
+     */
+    default Pointer[] getPointers(Handle hand) {
+        Pointer[] cpuPointerArray = new Pointer[size()];
+        Arrays.setAll(cpuPointerArray, i -> new Pointer());
+
+        Pointer hostToArray = Pointer.to(cpuPointerArray);
+        get(hand, hostToArray);
+        return cpuPointerArray;
+    }
+
+    /**
      * The size of the arrays being pointed to.
+     *
      * @return The size of the arrays being pointed to.
      */
     public int targetSize();
-    
+
     /**
      * The summation of the sizes of all the elements pointed to, assuming none
      * of the pointers are null.
      *
-     * @return The summation of the sizes of all the elements pointed to, assuming none
-     * of the pointers are null.
+     * @return The summation of the sizes of all the elements pointed to,
+     * assuming none of the pointers are null.
      */
     public default int deepSize() {
-        return deepSize()*targetSize();
+        return deepSize() * targetSize();
     }
 
 }

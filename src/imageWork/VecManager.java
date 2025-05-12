@@ -1,6 +1,7 @@
 package imageWork;
 
 import JCudaWrapper.array.Float.FStrideArray3d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
 import MathSupport.Point3d;
 import fijiPlugin.Dimensions;
@@ -10,7 +11,7 @@ import fijiPlugin.Dimensions;
  */
 public class VecManager extends Dimensions{
 
-    private final float[] vecs;
+    private final double[] vecs;
 
     /**
      * Constructs a new VecManager with the specified size.
@@ -19,21 +20,22 @@ public class VecManager extends Dimensions{
      */
     public VecManager(Dimensions d) {
         super(d);
-        this.vecs = new float[d.tensorSize()*3];
+        this.vecs = new double[d.tensorSize()*3];
     }
 
     /**
      * Sets the vector data from the given {@link FStrideArray3d} at the
      * specified grid index.
      *
-     * @param gpuStrideArray The {@link FStrideArray3d} containing the
+     * @param gpuVecs The {@link FStrideArray3d} containing the
      * vector data.
      * @param gridIndex The index of the grid to retrieve data from.
+     * @param layerIndex The index of the layer.
      * @param handle
      * @return this.
      */
-    public VecManager setFrom(FStrideArray3d gpuStrideArray, int gridIndex, Handle handle) {
-        gpuStrideArray.getGrid(gridIndex).get(handle, vecs);
+    public VecManager setFrom(PArray2dToD2d gpuVecs, int gridIndex, int layerIndex, Handle handle) {
+        gpuVecs.get(layerIndex, gridIndex).getVal(handle).get(handle, vecs);
         return this;
     }
 
@@ -42,11 +44,10 @@ public class VecManager extends Dimensions{
      *
      * @param row The row index.
      * @param col The column index.
-     * @param layer The layer index.
      * @return The index of the vector.
      */
-    public int vecIndex(int row, int col, int layer) {
-        return (layer * layerSize() + col * height + row) * 3;
+    public int vecIndex(int row, int col) {
+        return (col * height + row) * 3;
     }
 
     /**
@@ -55,11 +56,10 @@ public class VecManager extends Dimensions{
      *
      * @param row The row index.
      * @param col The column index.
-     * @param layer The layer index.
      * @param vec The array to store the retrieved vector.
      */
-    public void get(int row, int col, int layer, float[] vec) {
-        System.arraycopy(vecs, vecIndex(row, col, layer), vec, 0, 3);
+    public void get(int row, int col, double[] vec) {
+        System.arraycopy(vecs, vecIndex(row, col), vec, 0, 3);
     }
     
     
@@ -72,9 +72,9 @@ public class VecManager extends Dimensions{
      * @param layer The layer index.
      * @return the vector.
      */
-    public float[] get(int row, int col, int layer) {
-        float[] vec = new float[3];
-        get(row, col, layer, vec);
+    public double[] get(int row, int col, int layer) {
+        double[] vec = new double[3];
+        get(row, col, vec);
         return vec;
     }
 
@@ -84,12 +84,11 @@ public class VecManager extends Dimensions{
      *
      * @param row The row index.
      * @param col The column index.
-     * @param layer The layer index.
      * @param p The point the values are to be assigned to.
      * @param scale Multiply the vector before it is rounded to ints.
      */
-    public void get(int row, int col, int layer, Point3d p, double scale){
-        int ind = vecIndex(row, col, layer);
+    public void get(int row, int col,  Point3d p, double scale){
+        int ind = vecIndex(row, col);
         p.set(scale * vecs[ind], scale * vecs[ind + 1], scale * vecs[ind + 2]);
     }
 
@@ -103,7 +102,7 @@ public class VecManager extends Dimensions{
         for (int row = 0; row < height; row++)
             for (int col = 0; col < height; col++)
                 for (int layer = 0; layer < depth; layer++) {
-                    get(row, col, layer, p, 100);
+                    get(row, col,p, 100);
                     sb.append("\n").append(p);
                 }
         return sb.toString();

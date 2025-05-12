@@ -17,6 +17,17 @@ public class Test {
 
     public static void main(String[] args) {
 
+        float[] af = new float[3];
+        double[] ad = new double[]{1,2,3};
+        
+        System.arraycopy(ad, 0, af, 0, 3);
+        
+        System.out.println(Arrays.toString(af));
+
+    }
+    
+    public static void testPArray2dToD2d(){
+        
         try (
                 Handle hand = new Handle(); 
                 DArray2d a0 = new DArray2d(2, 2); 
@@ -40,7 +51,6 @@ public class Test {
             );
 
         }
-
     }
 
     /**

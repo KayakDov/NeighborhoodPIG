@@ -69,10 +69,10 @@ public class FijiPlugin implements PlugIn {
                 Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, ui)) {
             
             if (ui.heatMap) {
-                np.getAzimuthalAngles(false, false, 0.01).printToFiji();
+                np.getAzimuthalAngles(false, 0.01).printToFiji();
 
                 if (imp.getNSlices() > 1)
-                    np.getZenithAngles(false, false, 0.01).printToFiji();
+                    np.getZenithAngles(false, 0.01).printToFiji();
             }
 
             if (ui.vectorField)
@@ -105,10 +105,10 @@ public class FijiPlugin implements PlugIn {
 
 //            System.out.println("fijiPlugin.FijiPlugin.defaultRun()\nAll finite: " + Test.allFinite(np.stm.eigen.vectors, handle));
             
-            np.getAzimuthalAngles(false, false, .01).printToFile("images/output/test3/Azimuthal");
+            np.getAzimuthalAngles(false, .01).printToFile("images/output/test3/Azimuthal");
 //
             if (depth > 1)
-                np.getZenithAngles(false, false, .01).printToFile("images/output/test3/Zenith");
+                np.getZenithAngles(false, .01).printToFile("images/output/test3/Zenith");
 
 //            np.getVectorImg(8, 6, false);
 

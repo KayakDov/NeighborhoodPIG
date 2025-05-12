@@ -1,24 +1,15 @@
 package JCudaWrapper.array.Pointer.to2d;
 
-import JCudaWrapper.array.Array2d;
-import JCudaWrapper.array.Pointer.to1d.PArray1dToD1d;
 import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.Double.DArray2d;
-import JCudaWrapper.array.Int.IArray;
-import JCudaWrapper.array.Int.IArray2d;
-import JCudaWrapper.array.Pointer.PArray2d;
-import JCudaWrapper.array.Singleton;
+import JCudaWrapper.array.Pointer.to1d.PArray1dToD1d;
 import JCudaWrapper.resourceManagement.Handle;
-import java.util.Arrays;
-import java.util.stream.IntStream;
-import jcuda.Pointer;
 import jcuda.Sizeof;
 
 /**
  *
  * @author E. Dov Neimand
  */
-public class PArray2dToD2d extends PArray2dTo2d implements PointToD2d {
+public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d{
 
     /**
      * Constructs the empty array.
@@ -30,7 +21,7 @@ public class PArray2dToD2d extends PArray2dTo2d implements PointToD2d {
      * @param targetNumLines The number of lines in the arrays that are
      * pointed to.
      */
-    public PArray2dToD2d(int entriesPerLine, int numLines, int targetEntPerLine, int targetNumLines) {
+    public PArray2dToF2d(int entriesPerLine, int numLines, int targetEntPerLine, int targetNumLines) {
         super(entriesPerLine, numLines, targetEntPerLine, targetNumLines);
     }
 
@@ -38,23 +29,23 @@ public class PArray2dToD2d extends PArray2dTo2d implements PointToD2d {
      * Creates an empty array with the same dimensions as this array.
      * @return An empty array with the same dimensions as this array.
      */
-    public PArray2dToD2d copyDim(){
-        return new PArray2dToD2d(entriesPerLine(), linesPerLayer(), targetDim().entriesPerLine, targetDim().numLines);
+    public PArray2dToF2d copyDim(){
+        return new PArray2dToF2d(entriesPerLine(), linesPerLayer(), targetDim().entriesPerLine, targetDim().numLines);
     }
     
     /**
      * {@inheritDoc }
      */
     @Override
-    public PSingletonToD2d get(int index) {
-        return new PSingletonToD2d(this, index);
+    public PSingletonToF2d get(int index) {
+        return new PSingletonToF2d(this, index);
     }
     
     /**
      * {@inheritDoc }
      */
     @Override
-    public PSingletonToD2d get(int indexInLine, int lineNumber) {
+    public PSingletonToF2d get(int indexInLine, int lineNumber) {
         return get(lineNumber * entriesPerLine() + indexInLine); 
     }
     
@@ -98,6 +89,7 @@ public class PArray2dToD2d extends PArray2dTo2d implements PointToD2d {
      */
     @Override
     public int targetBytesPerEntry() {
-        return Sizeof.DOUBLE;
+        return Sizeof.FLOAT;
     }
+    
 }

@@ -3,6 +3,7 @@ package imageWork;
 
 import JCudaWrapper.array.Float.FArray3d;
 import JCudaWrapper.array.Float.FStrideArray3d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;
 import ij.ImagePlus;
@@ -28,7 +29,7 @@ public abstract class HeatMapCreator extends Dimensions{
      * @param handle
      * @param image 
      */
-    protected HeatMapCreator(String[] sliceNames, String stackName, Handle handle, FStrideArray3d image) {
+    protected HeatMapCreator(String[] sliceNames, String stackName, Handle handle, PArray2dToD2d image) {
         super(handle, image);
        
         this.sliceNames = sliceNames;

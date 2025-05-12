@@ -14,7 +14,7 @@ public abstract class Singleton extends Array1d {
      */
     public Singleton(Array from, int index) {
         super(from, from.memIndex(index), 1, 1);
-    }
+    }    
 
     /**
      * An empty singleton.

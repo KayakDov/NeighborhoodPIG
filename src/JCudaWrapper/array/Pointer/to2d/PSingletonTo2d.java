@@ -12,7 +12,7 @@ import jcuda.Pointer;
  *
  * @author E. Dov Neimand
  */
-public abstract class PSingletonTo2d extends PSingleton implements PointerTo2d {
+public abstract class PSingletonTo2d extends PSingleton implements PointTo2d {
 
     public final TargetDim2d targetDim;
     public final ISingleton targetLD;
@@ -23,7 +23,7 @@ public abstract class PSingletonTo2d extends PSingleton implements PointerTo2d {
      * @param from The array the singleton is taken from.
      * @param index The index of the desired entry.
      */
-    public PSingletonTo2d(PointerTo2d from, int index) {
+    public PSingletonTo2d(PointTo2d from, int index) {
         super(from, index);
         targetLD = from.targetLD().get(index);
         targetDim =  from.targetDim();

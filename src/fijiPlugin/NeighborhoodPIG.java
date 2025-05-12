@@ -1,21 +1,16 @@
 package fijiPlugin;
 
 import FijiInput.UserInput;
-import imageWork.ColorHeatMapCreator;
+
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
-import ij.IJ;
 import ij.ImagePlus;
-import ij.ImageStack;
-import ij.io.Opener;
-import ij.process.ImageProcessor;
 import imageWork.GrayScaleHeatMapCreator;
 import imageWork.HeatMapCreator;
 import imageWork.ProcessImage;
 import imageWork.VectorImg;
 import java.awt.image.BufferedImage;
-import java.awt.image.Raster;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -87,20 +82,18 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * A heat map of the orientation in the xy plane.
      *
      * @param color True for a color image, false for grayscale.
-     * @param useCoherence True if pixel intensity should be tied to orientation
-     * confidence (coherence). This setting is ignored if color is set to false.
      * @param tolerance When is a value considered 0.
      * @return A heat map of the orientation in the xy plane.
      */
-    public HeatMapCreator getAzimuthalAngles(boolean color, boolean useCoherence, double tolerance) {
+    public HeatMapCreator getAzimuthalAngles(boolean color,double tolerance) {
 
-        return color ? new ColorHeatMapCreator(handle,
+        return /*color ? new ColorHeatMapCreator(handle,
                 concat(sourceFileNames, useCoherence ? " Coherence" : " Azimuth"),
                 useCoherence ? "Coherence" : "Azimuth Angle Heatmap",
                 stm.azimuthAngle(),
                 useCoherence ? stm.getCoherence() : null
         )
-                : new GrayScaleHeatMapCreator(
+                :*/ new GrayScaleHeatMapCreator(
                         concat(sourceFileNames, " Azimuth"),
                         "Azimuth Angle Heatmap",
                         handle,
@@ -114,20 +107,18 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * A heat map of the orientation in the yz plane.
      *
      * @param color True for a color image, false for grayscale.
-     * @param useCoherence True if pixel intensity should be tied to orientation
-     * confidence (coherence). This setting is ignored if color is set to false.
      * @param tolerance
      * @return A heat map of the zenith angles.
      */
-    public HeatMapCreator getZenithAngles(boolean color, boolean useCoherence, double tolerance) {
-        return color ? new ColorHeatMapCreator(
+    public HeatMapCreator getZenithAngles(boolean color, double tolerance) {
+        return /*color ? new ColorHeatMapCreator(
                 handle,
                 concat(sourceFileNames, " Zenith Angle"),
                 "Zenith Angle Heatmap",
                 stm.zenithAngle(),
                 useCoherence ? stm.getCoherence() : null
         )
-                : new GrayScaleHeatMapCreator(
+                :*/ new GrayScaleHeatMapCreator(
                         concat(sourceFileNames, " Zenith Angle"),
                         "Zenith Angle Heatmap",
                         handle,
@@ -169,7 +160,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
                 vecMag,
                 stm.getEigen().vectors,
                 stm.getCoherence(),
-                spacing, useCoherence, 0.01f
+                spacing, useCoherence, 0.01
         ).get();
     }
 
@@ -238,7 +229,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
             int width = ui.downSample(firstImage.getWidth()),
                     height = ui.downSample(firstImage.getHeight());
 
-            try (FStrideArray3d gpuImage = ProcessImage.processImages(handle, imageFiles, height, width, depth)) {
+            try (PArray2dToD2d gpuImage = ProcessImage.processImages(handle, imageFiles, height, width, depth)) {
 
                 return new NeighborhoodPIG(
                         handle,
@@ -267,7 +258,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
 
         ImagePlus ip = ProcessImage.imagePlus(folderPath, depth);
 
-        try (FStrideArray3d gpuImage = ProcessImage.processImages(handle, ip, ui)) {
+        try (PArray2dToD2d gpuImage = ProcessImage.processImages(handle, ip, ui)) {
 
             return new NeighborhoodPIG(
                     handle,
