@@ -13,7 +13,7 @@ import ij.plugin.HyperStackConverter;
  *
  * @author E. Dov Neimand
  */
-public abstract class HeatMapCreator extends Dimensions{
+public abstract class HeatMapCreator extends Dimensions implements AutoCloseable{
 
     /**
      * Array storing color data for each tensor element.
@@ -60,5 +60,9 @@ public abstract class HeatMapCreator extends Dimensions{
         }
         return imp;
     }
-        
+
+    @Override
+    public abstract void close();
+
+    
 }

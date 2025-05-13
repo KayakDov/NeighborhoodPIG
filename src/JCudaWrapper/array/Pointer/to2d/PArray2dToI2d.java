@@ -3,14 +3,12 @@ package JCudaWrapper.array.Pointer.to2d;
 import JCudaWrapper.array.Array3d;
 import JCudaWrapper.array.Pointer.to1d.PArray1dToD1d;
 import JCudaWrapper.resourceManagement.Handle;
-import jcuda.Sizeof;
 
 /**
  *
- * @author E. Dov Neimand
+ * @author dov
  */
-public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d{
-
+public class PArray2dToI2d extends PArray2dTo2d implements PointToI2d {
     /**
      * Constructs the empty array.
      *
@@ -21,7 +19,7 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d{
      * @param targetNumLines The number of lines in the arrays that are
      * pointed to.
      */
-    public PArray2dToF2d(int entriesPerLine, int numLines, int targetEntPerLine, int targetNumLines) {
+    public PArray2dToI2d(int entriesPerLine, int numLines, int targetEntPerLine, int targetNumLines) {
         super(entriesPerLine, numLines, targetEntPerLine, targetNumLines);
     }
 
@@ -29,15 +27,15 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d{
      * Creates an empty array with the same dimensions as this array.
      * @return An empty array with the same dimensions as this array.
      */
-    public PArray2dToF2d copyDim(){
-        return new PArray2dToF2d(entriesPerLine(), linesPerLayer(), targetDim().entriesPerLine, targetDim().numLines);
+    public PArray2dToI2d copyDim(){
+        return new PArray2dToI2d(entriesPerLine(), linesPerLayer(), targetDim().entriesPerLine, targetDim().numLines);
     }    
     
     /**
      * {@inheritDoc }
      */
     @Override
-    public PSingletonToF2d get(int indexInLine, int lineNumber) {
+    public PSingletonToI2d get(int indexInLine, int lineNumber) {
         return get(lineNumber * entriesPerLine() + indexInLine); 
     }
     
@@ -45,7 +43,7 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d{
      * @deprecated
      */
     @Override
-    public PArray2dToD2d copy(Handle handle) {
+    public PArray2dToI2d copy(Handle handle) {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
@@ -61,7 +59,7 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d{
      * @deprecated
      */
     @Override
-    public PArray2dToD2d as2d() {
+    public PArray2dToI2d as2d() {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
@@ -75,5 +73,5 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d{
     public Array3d as3d(int linesPerLayer) {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
-    
+
 }

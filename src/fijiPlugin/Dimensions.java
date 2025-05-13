@@ -1,6 +1,8 @@
 package fijiPlugin;
 
 import JCudaWrapper.array.Float.FStrideArray3d;
+import JCudaWrapper.array.Int.IArray;
+import JCudaWrapper.array.Int.IArray1d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
 
@@ -144,5 +146,20 @@ public class Dimensions{
         return new PArray2dToD2d(depth, batchSize, height, width);
     }
     
-
+    /**
+     * An IArray containing the dimensions.
+     * @return an IArray containing the dimensions.
+     */
+    public IArray gpuDim(){
+        IArray1d dim = new IArray1d(handle, 
+            height, //0 -> height
+            width, //1 -> width
+            depth, //2 -> depth
+            batchSize,//3 -> numTensorts
+            height * width,//4 -> layerSize
+            tensorSize(),//5  -> tensorSize 
+            tensorSize() * batchSize //6 -> batchSize (number of elements, not tensors, in the batch)
+        );
+        return dim;
+    }
 }

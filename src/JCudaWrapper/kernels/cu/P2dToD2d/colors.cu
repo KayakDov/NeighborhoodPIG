@@ -9,9 +9,8 @@
  */
 class Get{
 private:
-    const int height;          ///< Height of each 2D slice.
+    const int height;
     const int idx;             ///< Linear index of the element being processed by the current thread.  
-    const int layerSize;       ///< Size of a single 2D slice (height * width).
     const int layer;           ///< Index of the current slice along the depth dimension (0 to depth - 1).
     const int frame;           ///< Index of the current frame.
 public:
@@ -22,8 +21,8 @@ public:
      * @param width The width of each 2D slice.
      * @param depth The number of slices along the depth dimension (per frame).
      */
-    __device__ Get(const int inputIdx, const int height, const int width, const int depth)
-    : idx(inputIdx), height(height), layerSize(height * width), layer((idx / layerSize) % depth), frame(idx / (layerSize * depth)) {}
+    __device__ Get(const int inputIdx, const int* dim)
+    : idx(inputIdx), height(dim[0]), layer((idx / dim[4]) % dim[2]), frame(idx / dim[5]) {}
 
     /**
      * @brief Retrieves a value from the source data array based on the calculated multi-dimensional index.
@@ -192,8 +191,7 @@ extern "C" __global__ void colorsKernel(
     const double** srcAngles, 
     const int* ldSrcAng, 
     const int ldldSrc,
-    const int ldPtrSrc,
-    const int heightSrcAng,
+    const int ldPtrSrc,  
     
     int** colors,
     const int* ldCol,
@@ -205,12 +203,12 @@ extern "C" __global__ void colorsKernel(
     const int ldldSrcInt,
     const int ldPtrSrcInt,
     
-    const int height, const int width, const int depth
+    const int* dim //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
  
-    Get at(idx, height, width, depth); 
+    Get at(idx, dim); 
     
     double angle = at(srcAngles, ldSrcAng, ldldSrc, ldPtrSrc);
     

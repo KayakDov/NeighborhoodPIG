@@ -137,10 +137,10 @@ public:
 extern "C" __global__ void batchGradientsKernel(
     const int n, 
     const double** mat, const int* ldMat, const int ldldMat, const int ldPtrMat,
-    const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
     double** dX, const int* ldx, const int ldldX, const int ldPtrX,
     double** dY, const int* ldy, const int ldldY, const int ldPtrY,
     double** dZ, const int* ldz, const int ldldZ, const int ldPtrZ,
+    const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
     const double zLayerMult
 ) {    
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -151,9 +151,12 @@ extern "C" __global__ void batchGradientsKernel(
     const Grad grad(mat, inds, dim, ldMat, ldldMat, ldPtrMat);
 
     switch(idx / dim[6]){ 
-    	case 0: dX[inds.page(ldPtrX)][inds.word(ldx, ldldX)] = grad.at((idx % dim[4]) / dim[0], dim[1],  1,          0, ldMat[inds.page(ldPtrMat)]); break;
-	case 1: dY[inds.page(ldPtrY)][inds.word(ldy, ldldY)] = grad.at(idx % dim[0],            dim[0],  1,          0, 1                      ); break;
-	case 2: dZ[inds.page(ldPtrZ)][inds.word(ldz, ldldZ)] = grad.at((idx % dim[5]) / dim[4], dim[2],  zLayerMult, 1, 0                      );
+    	case 0: dX[inds.page(ldPtrX)][inds.word(ldx, ldldX)] 
+    		= grad.at((idx % dim[4]) / dim[0], dim[1],  1,          0, ldMat[inds.page(ldPtrMat)]); break;
+	case 1: dY[inds.page(ldPtrY)][inds.word(ldy, ldldY)] 
+		= grad.at(idx % dim[0],            dim[0],  1,          0, 1                      ); break;
+	case 2: dZ[inds.page(ldPtrZ)][inds.word(ldz, ldldZ)] 
+		= grad.at((idx % dim[5]) / dim[4], dim[2],  zLayerMult, 1, 0                      );
     }
 }
 

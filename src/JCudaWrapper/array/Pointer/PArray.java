@@ -1,11 +1,14 @@
 package JCudaWrapper.array.Pointer;
 
 import JCudaWrapper.array.Array;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;
 import java.util.function.IntUnaryOperator;
 import jcuda.Pointer;
 import jcuda.driver.CUdeviceptr;
+import jcuda.runtime.JCuda;
 
 /**
  *
@@ -102,7 +105,21 @@ public interface PArray extends Array {
      * assuming none of the pointers are null.
      */
     public default int deepSize() {
-        return deepSize() * targetSize();
+        return size() * targetSize();
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public default void close() {
+        
+        JCuda.cudaDeviceSynchronize();//TODO:This is a bit lazy.  Better to get a desired handle into here.
+
+        try (Handle hand = new Handle()) {
+            Kernel.run("deepFree", hand, ld() * size() / entriesPerLine(), this);//note, calling this method will give a false indication of memory leaks, since pointers allocated here and not being removed from the list of alocated memory.
+        }
+        Array.super.close();
     }
 
 }

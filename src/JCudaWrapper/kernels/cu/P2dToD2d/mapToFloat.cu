@@ -25,9 +25,9 @@ public:
      * @param width    The width (number of columns) of each 2D slice.
      * @param depth    The number of slices along the depth (z) dimension per frame.
      */
-    __device__ Get(const int inputIdx, const int height, const int width, const int depth)
-    : idx(inputIdx), height(height), layerSize(height * width),
-      layer((idx / layerSize) % depth), frame(idx / (layerSize * depth)) {}
+    __device__ Get(const int inputIdx, const int* dim)
+    : idx(inputIdx), height(dim[0]), layerSize(dim[4]),
+      layer((idx / layerSize) % dim[2]), frame(idx / dim[5]) {}
 
     /**
      * @brief Retrieves a value from the source 4D dataset using the calculated indices.
@@ -111,12 +111,12 @@ extern "C" __global__ void mapToFloatKernel(
     const int n,
     float** dst, const int* xyLdDst, const int ldldDst, const int ztLdDst,
     const double** src, const int* xyLdSrc, const int ldldSrc, const int ztLdSrc,
-    const int height, const int width, const int depth
+    const int* dim
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
 
-    Get ind(idx, height, width, depth);
+    Get ind(idx, dim);
 
     ind.set(
         dst,

@@ -6,6 +6,7 @@ import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
+import imageWork.ColorHeatMapCreator;
 import imageWork.GrayScaleHeatMapCreator;
 import imageWork.HeatMapCreator;
 import imageWork.ProcessImage;
@@ -85,22 +86,21 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @param tolerance When is a value considered 0.
      * @return A heat map of the orientation in the xy plane.
      */
-    public HeatMapCreator getAzimuthalAngles(boolean color,double tolerance) {
+    public HeatMapCreator getAzimuthalAngles(boolean color, double tolerance) {
 
-        return /*color ? new ColorHeatMapCreator(handle,
-                concat(sourceFileNames, useCoherence ? " Coherence" : " Azimuth"),
-                useCoherence ? "Coherence" : "Azimuth Angle Heatmap",
+        return color ? new ColorHeatMapCreator(handle,
+                concat(sourceFileNames, " Azimuth"),
+                "Azimuth Angle Heatmap",
                 stm.azimuthAngle(),
-                useCoherence ? stm.getCoherence() : null
-        )
-                :*/ new GrayScaleHeatMapCreator(
-                        concat(sourceFileNames, " Azimuth"),
-                        "Azimuth Angle Heatmap",
-                        handle,
-                        stm.azimuthAngle(),
-                        stm.getCoherence(),
-                        tolerance
-                );
+                stm.getCoherence()
+        ) : new GrayScaleHeatMapCreator(
+                concat(sourceFileNames, " Azimuth"),
+                "Azimuth Angle Heatmap",
+                handle,
+                stm.azimuthAngle(),
+                stm.getCoherence(),
+                tolerance
+        );
     }
 
     /**
@@ -111,14 +111,14 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @return A heat map of the zenith angles.
      */
     public HeatMapCreator getZenithAngles(boolean color, double tolerance) {
-        return /*color ? new ColorHeatMapCreator(
+        return color ? new ColorHeatMapCreator(
                 handle,
                 concat(sourceFileNames, " Zenith Angle"),
                 "Zenith Angle Heatmap",
                 stm.zenithAngle(),
-                useCoherence ? stm.getCoherence() : null
+                stm.getCoherence()
         )
-                :*/ new GrayScaleHeatMapCreator(
+                : new GrayScaleHeatMapCreator(
                         concat(sourceFileNames, " Zenith Angle"),
                         "Zenith Angle Heatmap",
                         handle,

@@ -4,6 +4,7 @@ import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Double.DArray2d;
 import JCudaWrapper.array.Float.FArray;
 import JCudaWrapper.array.Float.FArray2d;
+import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;
@@ -17,45 +18,33 @@ public class Test {
 
     public static void main(String[] args) {
 
-        float[] af = new float[3];
-        double[] ad = new double[]{1,2,3};
-        
-        System.arraycopy(ad, 0, af, 0, 3);
-        
-        System.out.println(Arrays.toString(af));
-
-    }
-    
-    public static void testPArray2dToD2d(){
-        
         try (
-                Handle hand = new Handle(); 
-                DArray2d a0 = new DArray2d(2, 2); 
-                DArray2d a1 = new DArray2d(2, 2); 
-                DArray2d a2 = new DArray2d(2, 2);
-                DArray2d a3 = new DArray2d(2, 2);
-                PArray2dToD2d p = new PArray2dToD2d(2, 2, 2, 2);
-                ) {
+                Handle hand = new Handle(); PArray2dToD2d p = new PArray2dToD2d(2, 2, 2, 2);) {
 
-            a0.set(hand, 1, 2, 3, 4);
-            a1.set(hand, 4, 3, 2, 1);
-            a2.set(hand, 9, 12, 3, -1);
-            a3.set(hand, 7, 8, 70, 80);
-            
-            p.get(1).set(hand, a3);
-            
+            DArray2d[] a = new DArray2d[]{
+                new DArray2d(2, 2),
+                new DArray2d(2, 2),
+                new DArray2d(2, 2),
+                new DArray2d(2, 2)
+            };
 
-            System.out.println(
-                            p.get(1).getVal(hand)
-                    
-            );
+            a[0].set(hand, 1, 2, 3, 4);
+            a[1].set(hand, 4, 3, 2, 1);
+            a[2].set(hand, 9, 12, 3, -1);
+            a[3].set(hand, 7, 8, 70, 80);
+
+            p.set(hand, a);
+
+            System.out.println(p.toString());
+            
+            Kernel.run("deepFree", hand, p.ld() * p.size() / p.entriesPerLine(), p);
 
         }
     }
 
     /**
      * Checks if all the elements of the array are finite. The check is
-     * performed on the cpu.  It is for testing purposes only.
+     * performed on the cpu. It is for testing purposes only.
      *
      * @param array The array to be checked.
      * @param handle

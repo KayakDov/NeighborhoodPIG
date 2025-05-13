@@ -40,4 +40,12 @@ public interface PointToD2d extends PointTo2d{
         ).toArray(DArray2d[]::new);
     }
     
+    
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public default PSingletonToD2d get(int index) {
+        return new PSingletonToD2d(this, index);
+    }
 }

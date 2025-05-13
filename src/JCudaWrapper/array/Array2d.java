@@ -29,13 +29,12 @@ public abstract class Array2d extends LineArray {
         super(entriesPerLine, numLines, bytesPerEntry);
 
         long[] pitchArray = new long[1];
-
-        opCheck(JCuda.cudaMallocPitch(pointer.ptr, pitchArray, entriesPerLine * bytesPerEntry, linesPerLayer()));
+        
+        opCheck(JCuda.cudaMallocPitch(pointer.ptr, pitchArray, pointer.xsize, pointer.ysize));
+        
         Array.recordMemAloc(pointer.ptr);
-        
+
         pointer.pitch = pitchArray[0];
-        
-        
     }
 
     /**
@@ -61,13 +60,14 @@ public abstract class Array2d extends LineArray {
     public Array2d(Array src, int entriesPerLine) {
         super(src, entriesPerLine);
     }
-    
+
     /**
      * Creates a 2d array from a pointer to a 2d array.
+     *
      * @param hand
      * @param to2d The singleton with a pointer to the array.
      */
-    public Array2d(Pointer to2d, int entriesPerLine, int numLines, int ld, int bytesPerEntry){
+    public Array2d(Pointer to2d, int entriesPerLine, int numLines, int ld, int bytesPerEntry) {
         super(to2d, entriesPerLine, numLines, bytesPerEntry, ld);
     }
 
@@ -107,9 +107,9 @@ public abstract class Array2d extends LineArray {
      */
     @Override
     public Array2d set(Handle handle, Pointer srcCPUArray) {
-        
+
         int width = entriesPerLine() * bytesPerEntry();
-                
+
         opCheck(JCuda.cudaMemcpy2DAsync(
                 pointer(),
                 pitch(),
@@ -120,7 +120,7 @@ public abstract class Array2d extends LineArray {
                 cudaMemcpyKind.cudaMemcpyHostToDevice,
                 handle.getStream()
         ));
-        
+
         return this;
     }
 
@@ -131,7 +131,7 @@ public abstract class Array2d extends LineArray {
     public void get(Handle handle, Array dst) {
         opCheck(JCuda.cudaMemcpy2DAsync(
                 dst.pointer(),
-                (dst instanceof LineArray? ((LineArray)dst).pitch() : entriesPerLine()*bytesPerEntry),
+                (dst instanceof LineArray ? ((LineArray) dst).pitch() : entriesPerLine() * bytesPerEntry),
                 pointer(),
                 pitch(),
                 entriesPerLine() * bytesPerEntry(),
@@ -151,20 +151,22 @@ public abstract class Array2d extends LineArray {
 
     /**
      * The line with the requested index.
+     *
      * @param index The index of the desired line.
      * @return The line with the requested index.
      */
-    public Array1d line(int index){
-        return as1d().sub(index*ld(), entriesPerLine());
+    public Array1d line(int index) {
+        return as1d().sub(index * ld(), entriesPerLine());
     }
-    
+
     /**
      * All the entries at the requested index in their lines.
+     *
      * @param index The index of the desired entries.
      * @return All the entries at the requested index in their lines.
      */
-    public Array1d entriesAt(int index){
-        
-        return as1d().sub(index, ld()*(linesPerLayer() - 1) + 1, ld());
+    public Array1d entriesAt(int index) {
+
+        return as1d().sub(index, ld() * (linesPerLayer() - 1) + 1, ld());
     }
 }

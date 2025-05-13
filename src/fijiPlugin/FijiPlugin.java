@@ -7,6 +7,7 @@ import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
 import ij.plugin.PlugIn;
 import ij.process.ImageConverter;
+import imageWork.HeatMapCreator;
 import main.Test;
 
 /**
@@ -65,21 +66,23 @@ public class FijiPlugin implements PlugIn {
             return;
         }
 
+        
+        
         try (
                 Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, ui)) {
             
             if (ui.heatMap) {
-                np.getAzimuthalAngles(false, 0.01).printToFiji();
+                try(HeatMapCreator hmc = np.getAzimuthalAngles(false, 0.01)){hmc.printToFiji();};
 
                 if (imp.getNSlices() > 1)
-                    np.getZenithAngles(false, 0.01).printToFiji();
+                    try(HeatMapCreator hmc = np.getZenithAngles(false, 0.01)){hmc.printToFiji();}
             }
 
             if (ui.vectorField)
                 np.getVectorImg(ui.vfSpacing, ui.vfMag, false).show();
 
             if (ui.useCoherence)
-                np.getCoherence().printToFiji();
+                try(HeatMapCreator hmc = np.getCoherence()){hmc.printToFiji();}
 
             //ij.IJ.showMessage("NeighborhoodPIG processing complete.");
         }
@@ -92,9 +95,9 @@ public class FijiPlugin implements PlugIn {
      */
     public static void defaultRun() {
 
-        String imagePath = "images/input/cyl/"; int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
+//        String imagePath = "images/input/cyl/"; int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
 //        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
-//        String imagePath = "images/input/5debugs/"; int depth = 9; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
+        String imagePath = "images/input/5debugs/"; int depth = 9; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(30, 1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
@@ -103,12 +106,10 @@ public class FijiPlugin implements PlugIn {
 
         try (Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, ui)) {
 
-//            System.out.println("fijiPlugin.FijiPlugin.defaultRun()\nAll finite: " + Test.allFinite(np.stm.eigen.vectors, handle));
-            
-            np.getAzimuthalAngles(false, .01).printToFile("images/output/test3/Azimuthal");
-//
+            try(HeatMapCreator hmc = np.getAzimuthalAngles(true, .01)){hmc.printToFile("images/output/test3/Azimuthal");}
+
             if (depth > 1)
-                np.getZenithAngles(false, .01).printToFile("images/output/test3/Zenith");
+                try(HeatMapCreator hmc = np.getZenithAngles(true, .01)){hmc.printToFile("images/output/test3/Zenith");}
 
 //            np.getVectorImg(8, 6, false);
 

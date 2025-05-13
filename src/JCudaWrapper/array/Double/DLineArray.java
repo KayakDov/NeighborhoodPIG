@@ -19,24 +19,25 @@ public interface DLineArray extends DArray {
     public default DArray1d getLine(int lineIndex) {
         return new DArray1d(this, ld() * lineIndex, entriesPerLine());
     }
-    
+
     /**
      * {@inheritDoc}
      */
     public default DSingleton getAt(int indexInLine, int lineNumber) {
-        return new DSingleton(this, indexInLine + lineNumber*entriesPerLine());
+        return new DSingleton(this, indexInLine + lineNumber * entriesPerLine());
     }
 
     /**
-     * {@inheritDoc }
+     * This method is depreciated since Kernel.run currently calls the kernel
+     * for PArray2dToD2d
+     *
+     * @deprecated
      */
     @Override
-    public default DArray setProduct(Handle handle, double scalar, DArray src){
-        Kernel.run("multiplyScalar", handle, size(), this, P.to(ld()), P.to(entriesPerLine()), 
+    public default DArray setProduct(Handle handle, double scalar, DArray src) {
+        Kernel.run("multiplyScalar", handle, size(), this, P.to(ld()), P.to(entriesPerLine()),
                 P.to(src), P.to(src.ld()), P.to(src.entriesPerLine()), P.to(scalar));
         return this;
     }
-    
-    
-    
+
 }

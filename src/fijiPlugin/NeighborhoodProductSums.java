@@ -4,6 +4,7 @@ import JCudaWrapper.array.Float.FArray;
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
+import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
 
@@ -91,15 +92,11 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
          * @param ldTo The increment of the the destination matrices.
          */
         public void neighborhoodSum(PArray2dToD2d src, PArray2dToD2d dst) {
-
-            nSum.run(handle, //TODO: make sure nSum takes in ld.
+            
+            nSum.run(handle,
                     numThreads,
-                    
-                    src, P.to(src.targetLD()), P.to(src.targetLD().ld()), P.to(src.ld()),
-                    P.to(dst), P.to(dst.targetLD()), P.to(dst.targetLD().ld()), P.to(dst.ld()),
-                    
-                    P.to(height), P.to(width), P.to(depth),
-                    
+                    new PArray2dTo2d[]{src, dst},
+                    NeighborhoodProductSums.this,
                     P.to(numSteps),
                     P.to(nRad),
                     P.to(dirOrd)                    
@@ -123,11 +120,9 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
         
         Kernel.run("addEBEProduct", handle, 
                 a.size(), 
-                workSpace1,P.to(workSpace1.targetLD()), P.to(workSpace1.targetLD()),P.to(workSpace1.targetLD().ld()), P.to(workSpace1.ld()),
-                P.to(a.targetDim().entriesPerLine), P.to(a.targetDim().numLines), P.to(a.entriesPerLine()), P.to(a.linesPerLayer()),                
-                P.to(1.0),
-                P.to(a), P.to(a.targetLD()), P.to(a.targetLD()),P.to(a.targetLD().ld()), P.to(a.ld()),
-                P.to(b), P.to(b.targetLD()), P.to(b.targetLD()),P.to(b.targetLD().ld()), P.to(b.ld()),
+                new PArray2dTo2d[]{workSpace1,a, b},
+                this,
+                P.to(1.0),                
                 P.to(0.0)
         );
            

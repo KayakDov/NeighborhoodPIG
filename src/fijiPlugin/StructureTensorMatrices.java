@@ -13,7 +13,6 @@ public class StructureTensorMatrices implements AutoCloseable {
 
     public final Eigen eigen;
     private final PArray2dToD2d azimuth, zenith, coherence;
-    private final Handle handle;
 
     /**
      * Finds the structure tensor for every pixel in the image and stores them
@@ -25,8 +24,6 @@ public class StructureTensorMatrices implements AutoCloseable {
      *
      */
     public StructureTensorMatrices(Handle handle, Gradient grad, UserInput ui) {
-
-        this.handle = handle;
 
         float bigTolerance = 255*255*ui.neighborhoodSize.xyR*ui.neighborhoodSize.xyR*ui.neighborhoodSize.zR*5e-7f;
         

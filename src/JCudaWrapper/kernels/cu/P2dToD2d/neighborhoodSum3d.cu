@@ -115,7 +115,7 @@ extern "C" __global__ void neighborhoodSum3dKernel(
     double** srcData, const int* xyLdSrc, const int ldldSrc, const int ztLdSrc,
     double** dstData, const int* xyLdDst, const int ldldDst, const int ztLdDst,
 
-    const int height, const int width, const int depth, 
+    const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6 
 
     const int numSteps,
 
@@ -132,21 +132,21 @@ extern "C" __global__ void neighborhoodSum3dKernel(
 
     switch (direction) {
         case X: {
-            int row = idx % height, absLayer = idx / height, layer = absLayer % depth, tensor = absLayer/depth;
+            int row = idx % dim[0], absLayer = idx / dim[0], layer = absLayer % dim[2], tensor = absLayer/dim[2];
             
             src.setAll(srcData, row, tensor * ztLdSrc + layer, xySrcLd(layer, tensor), 0);
             dst.setAll(dstData, row, tensor * ztLdDst + layer, xyDstLd(layer, tensor), 0);
             
         break;}  // Row-wise
         case Y: {
-            int col = idx % width, absLayer = idx/width, layer = absLayer % depth, tensor = absLayer / depth;
+            int col = idx % dim[1], absLayer = idx/dim[1], layer = absLayer % dim[2], tensor = absLayer / dim[2];
 
             src.setAll(srcData, col * xySrcLd(layer, tensor), tensor * ztLdSrc + layer, 1, 0);
             dst.setAll(dstData, col * xyDstLd(layer, tensor), tensor * ztLdDst + layer, 1, 0);
 	    
         break; }// Column-wise
         case Z: {
-            int row = idx % height, col = (idx/height) % width, tensor = (idx / (row * col)) / depth;
+            int row = idx % dim[0], col = (idx/dim[0]) % dim[1], tensor = (idx / dim[5]) / dim[2];
             
             src.setAll(srcData, col * xySrcLd(0, tensor) + row, tensor * ztLdSrc, 0, 1);
             dst.setAll(dstData, col * xyDstLd(0, tensor) + row, tensor * ztLdDst, 0, 1);            

@@ -3,7 +3,10 @@ package JCudaWrapper.array.Pointer;
 import JCudaWrapper.array.Array1d;
 import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.Array3d;
+import JCudaWrapper.resourceManagement.Handle;
+import java.util.Arrays;
 import jcuda.Sizeof;
+import jcuda.runtime.JCuda;
 
 /**
  * A 1d array of pointers.
@@ -46,4 +49,15 @@ public abstract class PArray1d extends Array1d implements PArray {
         super(src, start, length, src.ld() * ld);
     }
 
+    
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public String toString() {
+        JCuda.cudaDeviceSynchronize();
+        try (Handle hand = new Handle()) {
+            return Arrays.toString(get(hand));
+        }
+    }
 }

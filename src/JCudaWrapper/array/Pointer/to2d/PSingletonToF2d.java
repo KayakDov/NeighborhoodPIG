@@ -100,4 +100,13 @@ public class PSingletonToF2d extends PSingletonTo2d implements PointToF2d{
     public Array3d as3d(int linesPerLayer) {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
+    
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public PSingletonToF2d get(int index) {
+        confirm(index == 0);
+        return this;
+    }
 }

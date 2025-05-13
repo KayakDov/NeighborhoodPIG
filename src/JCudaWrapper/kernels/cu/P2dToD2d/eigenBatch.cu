@@ -45,8 +45,8 @@ public:
      * @param depth The number of slices along the depth dimension (per frame).
      * @param downSampleFactorXY The downsampling factor applied in the x and y dimensions.
      */
-    __device__ Get(const int inputIdx, const int height, const int width, const int depth, const int downSampleFactorXY)
-    : idx(inputIdx * downSampleFactorXY), height(height), downSampleFactorXY(downSampleFactorXY), layerSize(height * width), layer((idx / layerSize) % depth), frame(idx / (layerSize * depth)) {}
+    __device__ Get(const int inputIdx, const int height, const int* dim, const int downSampleFactorXY)
+    : idx(inputIdx * downSampleFactorXY), height(height), downSampleFactorXY(downSampleFactorXY), layerSize(dim[4]), layer((idx / layerSize) % dim[2]), frame(idx / dim[5]) {}
 
     /**
      * @brief Retrieves a value from the source data array based on the calculated multi-dimensional index.
@@ -616,9 +616,7 @@ public:
  * @param ldzz Array of leading dimensions for the zz components of each slice (size: depth * batchSize).
  * @param ldldzz Leading dimension of the ldzz array.
  * @param ldPtrzz Leading dimension of the zz pointer array.
- * @param height Height of each input slice.
- * @param width Width of each input slice.
- * @param depth Number of slices along the depth dimension.
+ * @param dim  height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
  * @param valDst Array of pointers to the output eigenvalues (size: (n / downSampleFactorXY / downSampleFactorXY) * 3).
  * @param ldEVal Leading dimension for accessing eigenvalues in valDst (stride between sets of 3 eigenvalues).
  * @param ldldEVal Leading dimension of the ldEVal array.
@@ -651,7 +649,8 @@ extern "C" __global__ void eigenBatchKernel(
     double** azimuthal, const int* ldAzi, const int ldldAzi, const int ldPtrAzi,
     double** zenith, const int* ldZen, const int ldldZen, const int ldPtrZen,
         
-    const int height, const int width, const int depth,
+    const int* dim,
+    
     const int downSampleFactorXY, const int eigenInd,
     const double tolerance
 ) {
@@ -659,7 +658,7 @@ extern "C" __global__ void eigenBatchKernel(
     
     if (idx >= n/downSampleFactorXY/downSampleFactorXY) return;
     
-    Get src(idx, height, width, depth, downSampleFactorXY);
+    Get src(idx, dim[0], dim, downSampleFactorXY);
     
     Matrix3x3 mat(
     	src(xx, ldxx, ldldxx, ldPtrxx), src(xy, ldxy, ldldxy, ldPtrxy), src(xz, ldxz, ldldxz, ldPtrxz), 
@@ -668,7 +667,7 @@ extern "C" __global__ void eigenBatchKernel(
         tolerance
     );
     
-    Get getx3(3*idx, height * 3, width, depth, 1);
+    Get getx3(3*idx, dim[0] * 3, dim, 1);
      
     EVal eVals(mat, valDst[getx3.layerInd(ldPtrEVal)] + getx3.ind(ldEVal, ldldEVal));
 

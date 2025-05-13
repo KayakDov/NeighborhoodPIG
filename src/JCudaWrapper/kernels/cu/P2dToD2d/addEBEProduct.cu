@@ -12,7 +12,6 @@ class Get {
 private:
     const int height;     ///< Height of each 2D slice.
     const int idx;        ///< Linear index of the element processed by the thread.
-    const int layerSize;  ///< Size of a single 3D volume (height × width).
     const int layer;      ///< Index along the depth dimension (z-axis) within a frame.
     const int frame;      ///< Index of the frame in the 4D dataset (time dimension).
     
@@ -25,9 +24,11 @@ public:
      * @param width    The width (number of columns) of each 2D slice.
      * @param depth    The number of slices along the depth (z) dimension per frame.
      */
-    __device__ Get(const int inputIdx, const int height, const int width, const int depth)
-    : idx(inputIdx), height(height), layerSize(height * width),
-      layer((idx / layerSize) % depth), frame(idx / (layerSize * depth)) {}
+    __device__ Get(const int inputIdx, const int* dim)
+    : idx(inputIdx), 
+      height(dim[0]),
+      layer((idx / dim[4]) % dim[2]), 
+      frame(idx / dim[5]) {}
 
     /**
      * @brief Retrieves a value from the source 4D dataset using the calculated indices.
@@ -104,13 +105,7 @@ public:
  * @param xyLdDst   Leading dimension array for `dst` (per slice).
  * @param ldldDst   Stride across `xyLdDst` for indexing slices.
  * @param ztLdDst   Stride across `dst` for frame × depth indexing.
- * 
- * @param height    Height of each 2D slice.
- * @param width     Width of each 2D slice.
- * @param depth     Number of slices (depth) per frame.
- * 
- * @param timesProduct Scalar multiplier for the product of `a` and `b`.
- * 
+ *
  * @param a         Pointer array to 2D slices of input A.
  * @param xyLdA     Leading dimension array for input A slices.
  * @param ldldA     Stride across `xyLdA` for indexing.
@@ -121,26 +116,29 @@ public:
  * @param ldldB     Stride across `xyLdB` for indexing.
  * @param ztLdB     Stride across `b` for frame × depth indexing.
  * 
+ * @param dim       height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+ * 
+ * @param timesProduct Scalar multiplier for the product of `a` and `b`.
+ * 
+ * 
  * @param timesDst  Scalar multiplier applied to the existing value in `dst`.
  */
 extern "C" __global__ void addEBEProductKernel(
     const int n,
     double** dst, const int* xyLdDst, const int ldldDst, const int ztLdDst,
-    
-    const int height, const int width, const int depth,
-    
-    const double timesProduct,
-    
     const double** a, const int* xyLdA, const int ldldA, const int ztLdA,
-    
     const double** b, const int* xyLdB, const int ldldB, const int ztLdB,
+    
+    const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+    
+    const double timesProduct,    
     
     const double timesDst
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;
 
-    Get ind(idx, height, width, depth);
+    Get ind(idx, dim);
 
     ind.set(
         dst,

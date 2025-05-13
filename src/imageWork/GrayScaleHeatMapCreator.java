@@ -109,4 +109,9 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
         ImgPlsToFiles.saveSlices(getIP(), writeToFolder);
     }
 
+    @Override
+    public void close(){
+        image.close();
+    }
+    
 }

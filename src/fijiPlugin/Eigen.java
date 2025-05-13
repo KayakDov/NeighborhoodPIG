@@ -1,13 +1,10 @@
 package fijiPlugin;
 
-import JCudaWrapper.array.Float.FStrideArray3d;
-import JCudaWrapper.array.Int.IStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
+import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
-import java.util.Arrays;
-import jcuda.Pointer;
 
 /**
  * A set of 3x3 matrices, their eigenvectors and values.
@@ -84,22 +81,8 @@ public class Eigen extends Dimensions implements AutoCloseable {//TODO: maybe in
     public void set(int eigenInd, PArray2dToD2d coherence, PArray2dToD2d azimuth, PArray2dToD2d zenith) {
         Kernel.run("eigenBatch", handle,
                 size(),
-                
-                mat[0][0]      , P.to(mat[0][0].targetLD()), P.to(mat[0][0].targetLD().ld()), P.to(mat[0][0].ld()),
-                P.to(mat[0][1]), P.to(mat[0][1].targetLD()), P.to(mat[0][1].targetLD().ld()), P.to(mat[0][1].ld()),
-                P.to(mat[0][2]), P.to(mat[0][2].targetLD()), P.to(mat[0][2].targetLD().ld()), P.to(mat[0][2].ld()),
-                P.to(mat[1][1]), P.to(mat[1][1].targetLD()), P.to(mat[1][1].targetLD().ld()), P.to(mat[1][1].ld()),
-                P.to(mat[1][2]), P.to(mat[1][2].targetLD()), P.to(mat[1][2].targetLD().ld()), P.to(mat[1][2].ld()),
-                P.to(mat[2][2]), P.to(mat[2][2].targetLD()), P.to(mat[2][2].targetLD().ld()), P.to(mat[2][2].ld()),
-
-                P.to(values),    P.to(values.targetLD()),    P.to(values.targetLD().ld()),    P.to(values.ld()),
-                P.to(vectors),   P.to(vectors.targetLD()),   P.to(vectors.targetLD().ld()),   P.to(vectors.ld()),
-
-                P.to(coherence), P.to(coherence.targetLD()), P.to(coherence.targetLD().ld()), P.to(coherence.ld()),
-                P.to(azimuth),   P.to(azimuth.targetLD()),   P.to(azimuth.targetLD().ld()),   P.to(azimuth.ld()),
-                P.to(zenith),    P.to(zenith.targetLD()),    P.to(zenith.targetLD().ld()),    P.to(zenith.ld()),
-                
-                P.to(height), P.to(width), P.to(depth),                
+                new PArray2dTo2d[]{mat[0][0], mat[0][1], mat[0][2], mat[1][1], mat[1][2], mat[2][2], values, vectors, coherence, azimuth, zenith},
+                this,
                 P.to(downsampleFactorXY), P.to(eigenInd),
                 P.to(tolerance)
         );

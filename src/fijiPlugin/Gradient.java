@@ -1,12 +1,17 @@
 package fijiPlugin;
 
 import JCudaWrapper.array.Array;
+import JCudaWrapper.array.Array1d;
+import JCudaWrapper.array.Array2d;
+import JCudaWrapper.array.Array3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Int.IArray1d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
+import JCudaWrapper.array.Singleton;
 import java.util.Arrays;
 
 /**
@@ -37,25 +42,16 @@ public class Gradient extends Dimensions implements AutoCloseable {
         super(handle, pic);
         x = new PArray2dToD2d[]{pic.copyDim(), pic.copyDim(), pic.copyDim()};
 
-        try (IArray1d dim = new IArray1d(handle, height, //0 -> height
-            width, //1 -> width
-            depth, //2 -> depth
-            batchSize,//3 -> numTensorts
-            height * width,//4 -> layerSize
-            tensorSize(),//5  -> tensorSize 
-            tensorSize() * batchSize //6 -> batchSize (number of elements, not tensors, in the batch)
-        )) {
+        Kernel.run("batchGradients", handle,
+                pic.deepSize() * 3,
+                new PArray2dTo2d[]{pic, x[0], x[1], x[2]},
+                this,
+                P.to(layerDist.layerRes)
+        );
 
-            Kernel.run("batchGradients", handle,
-                    pic.deepSize() * 3,
-                    pic,P.to(pic.targetLD()), P.to(pic.targetLD().ld()), P.to(pic.ld()),
-                    P.to(dim),
-                    P.to(x[0]), P.to(x[0].targetLD()), P.to(x[0].targetLD().ld()), P.to(x[0].ld()),
-                    P.to(x[1]), P.to(x[1].targetLD()), P.to(x[1].targetLD().ld()), P.to(x[1].ld()),
-                    P.to(x[2]), P.to(x[2].targetLD()), P.to(x[2].targetLD().ld()), P.to(x[2].ld()),
-                    P.to(layerDist.layerRes)
-            );
-        }
+        System.out.println("fijiPlugin.Gradient.<init>() 1" + x[0].toString());
+        System.out.println("fijiPlugin.Gradient.<init>() 2");
+
     }
 
     /**

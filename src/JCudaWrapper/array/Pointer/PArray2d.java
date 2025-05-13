@@ -10,6 +10,7 @@ import java.util.Arrays;
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.driver.CUdeviceptr;
+import jcuda.runtime.JCuda;
 
 /**
  *
@@ -38,6 +39,16 @@ public abstract class PArray2d extends Array2d implements PArray{
         return this;
     }
 
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public String toString() {
+        JCuda.cudaDeviceSynchronize();
+        try (Handle hand = new Handle()) {
+            return Arrays.toString(get(hand));
+        }
+    }
     
     
 }

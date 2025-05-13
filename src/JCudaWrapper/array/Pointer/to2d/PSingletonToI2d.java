@@ -1,18 +1,16 @@
 package JCudaWrapper.array.Pointer.to2d;
 
-import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.Double.DArray2d;
+import JCudaWrapper.array.Int.IArray2d;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Pointer;
-import jcuda.Sizeof;
 
 /**
  *
- * @author E. Dov Neimand
+ * @author dov
  */
-public class PSingletonToD2d extends PSingletonTo2d implements PointToD2d{
+public class PSingletonToI2d extends PSingletonTo2d implements PointToI2d{
 
     /**
      * Constructs a singleton from an array and a desired index within that
@@ -21,7 +19,7 @@ public class PSingletonToD2d extends PSingletonTo2d implements PointToD2d{
      * @param from The array the singleton is a subset of.
      * @param index The index of the desired singleton.
      */
-    public PSingletonToD2d(PointToD2d from, int index) {
+    public PSingletonToI2d(PointToI2d from, int index) {
         super(from, index);
     }
 
@@ -29,9 +27,9 @@ public class PSingletonToD2d extends PSingletonTo2d implements PointToD2d{
      * {@inheritDoc }
      */
     @Override
-    public PSingletonToD2d copy(Handle handle) {
-        PSingletonToD2d copy = new PSingletonToD2d(
-                new PArray2dToD2d(1, 1, targetDim.entriesPerLine, targetDim.numLines), 
+    public PSingletonToI2d copy(Handle handle) {
+        PSingletonToI2d copy = new PSingletonToI2d(
+                new PArray2dToI2d(1, 1, targetDim.entriesPerLine, targetDim.numLines), 
                 0
         );
         copy.set(handle, this);
@@ -44,7 +42,7 @@ public class PSingletonToD2d extends PSingletonTo2d implements PointToD2d{
      * @param val The target of the pointer in this singleton.
      * @return this.
      */
-    public PSingletonToD2d set(Handle handle, DArray2d val) {
+    public PSingletonToI2d set(Handle handle, IArray2d val) {
         super.set(handle, val);
         
         return this;
@@ -56,11 +54,11 @@ public class PSingletonToD2d extends PSingletonTo2d implements PointToD2d{
      * @return The array pointed to by the pointer held in this pointer.
      */
     @Override
-    public DArray2d getVal(Handle hand){
+    public IArray2d getVal(Handle hand){
         Pointer arrayAdress = new Pointer();
         Pointer hostToArrayAdress = Pointer.to(arrayAdress);
         get(hand, hostToArrayAdress);
-        return new DArray2d(arrayAdress, targetDim.entriesPerLine, targetDim.numLines, targetLD.getVal(hand));
+        return new IArray2d(arrayAdress, targetDim.entriesPerLine, targetDim.numLines, targetLD.getVal(hand));
     }
 
     
@@ -69,7 +67,7 @@ public class PSingletonToD2d extends PSingletonTo2d implements PointToD2d{
      * {@inheritDoc }
      */
     @Override
-    public PSingletonToD2d as1d() {
+    public PSingletonToI2d as1d() {
         return this;
     }
 
@@ -77,8 +75,8 @@ public class PSingletonToD2d extends PSingletonTo2d implements PointToD2d{
      * {@inheritDoc }
      */
     @Override
-    public DArray2d[] get(Handle hand) {
-        return new DArray2d[]{getVal(hand)};
+    public IArray2d[] get(Handle hand) {
+        return new IArray2d[]{getVal(hand)};
     }
     
     
@@ -102,14 +100,13 @@ public class PSingletonToD2d extends PSingletonTo2d implements PointToD2d{
     public Array3d as3d(int linesPerLayer) {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
-
+    
     /**
      * {@inheritDoc }
      */
     @Override
-    public PSingletonToD2d get(int index) {
+    public PSingletonToI2d get(int index) {
         confirm(index == 0);
         return this;
-    }
-
+    }    
 }
