@@ -5,8 +5,12 @@ import JCudaWrapper.array.Double.DArray2d;
 import JCudaWrapper.array.Float.FArray;
 import JCudaWrapper.array.Float.FArray2d;
 import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
+import JCudaWrapper.array.Pointer.PArray;
+import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
+import fijiPlugin.Dimensions;
 import java.util.Arrays;
 
 /**
@@ -18,8 +22,8 @@ public class Test {
 
     public static void main(String[] args) {
 
-        try (
-                Handle hand = new Handle(); PArray2dToD2d p = new PArray2dToD2d(2, 2, 2, 2);) {
+        try (Handle hand = new Handle(); PArray2dToD2d p = new PArray2dToD2d(2, 2, 2, 2);) {
+            
 
             DArray2d[] a = new DArray2d[]{
                 new DArray2d(2, 2),
@@ -36,10 +40,9 @@ public class Test {
             p.set(hand, a);
 
             System.out.println(p.toString());
-            
-            Kernel.run("deepFree", hand, p.ld() * p.size() / p.entriesPerLine(), p);
 
         }
+
     }
 
     /**
@@ -58,3 +61,4 @@ public class Test {
         return count;
     }
 }
+//verena

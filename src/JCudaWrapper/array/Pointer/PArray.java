@@ -109,15 +109,24 @@ public interface PArray extends Array {
     }
 
     /**
+     * Frees all the pointers stored in this array, but does not free this array.
+     * @param hand The context.
+     */
+    public default void clearPointers(Handle hand){
+        Pointer[] ptrs = getPointers(hand);
+        for(Pointer ptr: ptrs) JCuda.cudaFree(ptr);
+    }
+    
+    /**
      * {@inheritDoc }
      */
     @Override
     public default void close() {
-        
+
         JCuda.cudaDeviceSynchronize();//TODO:This is a bit lazy.  Better to get a desired handle into here.
 
         try (Handle hand = new Handle()) {
-            Kernel.run("deepFree", hand, ld() * size() / entriesPerLine(), this);//note, calling this method will give a false indication of memory leaks, since pointers allocated here and not being removed from the list of alocated memory.
+            clearPointers(hand);
         }
         Array.super.close();
     }

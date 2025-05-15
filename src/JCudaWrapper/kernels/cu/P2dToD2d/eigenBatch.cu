@@ -79,7 +79,7 @@ public:
      * @return The column-major index within the current 2D slice.
      */
     __device__ int ind(const int* ld, const int ldld) const{
-        return downSampleFactorXY * (idx / height) * ld[frame * ldld + layer] + idx % height;
+        return downSampleFactorXY * ((idx % (layerSize/downSampleFactorXY/downSampleFactorXY)) / height) * ld[frame * ldld + layer] + idx % height;
     }
 
     /**

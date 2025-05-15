@@ -5,6 +5,11 @@
         <group>
             <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/FijiPlugin.java</file>
             <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/NeighborhoodPIG.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/Gradient.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/main/Test.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/JCudaWrapper/array/Pointer/PArray.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/StructureTensorMatrices.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/JCudaWrapper/array/Kernel.java</file>
         </group>
     </open-files>
 </project-private>

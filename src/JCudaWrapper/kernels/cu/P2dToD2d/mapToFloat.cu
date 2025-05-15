@@ -76,7 +76,7 @@ public:
      * @return     The resolved column-major index for the current linear thread index.
      */
     __device__ int ind(const int* ld, const int ldld) const {
-        return (idx / height) * ld[frame * ldld + layer] + idx % height;
+        return ((idx % layerSize) / height) * ld[frame * ldld + layer] + idx % height;
     }
 
     /**

@@ -13,6 +13,7 @@ private:
     const int idx;             ///< Linear index of the element being processed by the current thread.  
     const int layer;           ///< Index of the current slice along the depth dimension (0 to depth - 1).
     const int frame;           ///< Index of the current frame.
+    const int layerSize;
 public:
     /**
      * @brief Constructs a Get object to calculate indices for accessing elements in a 3D data batch.
@@ -22,7 +23,7 @@ public:
      * @param depth The number of slices along the depth dimension (per frame).
      */
     __device__ Get(const int inputIdx, const int* dim)
-    : idx(inputIdx), height(dim[0]), layer((idx / dim[4]) % dim[2]), frame(idx / dim[5]) {}
+    : idx(inputIdx), height(dim[0]), layerSize(dim[4]), layer((idx / layerSize) % dim[2]), frame(idx / dim[5]) {}
 
     /**
      * @brief Retrieves a value from the source data array based on the calculated multi-dimensional index.
@@ -77,7 +78,7 @@ public:
      * @return The column-major index within the current 2D slice.
      */
     __device__ int ind(const int* ld, const int ldld) const{
-        return (idx / height) * ld[frame * ldld + layer] + idx % height;
+        return ((idx % layerSize) / height) * ld[frame * ldld + layer] + idx % height;
     }
 
     /**

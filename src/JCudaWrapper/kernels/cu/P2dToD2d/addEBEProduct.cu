@@ -14,6 +14,7 @@ private:
     const int idx;        ///< Linear index of the element processed by the thread.
     const int layer;      ///< Index along the depth dimension (z-axis) within a frame.
     const int frame;      ///< Index of the frame in the 4D dataset (time dimension).
+    const int layerSize;
     
 public:
     /**
@@ -27,7 +28,8 @@ public:
     __device__ Get(const int inputIdx, const int* dim)
     : idx(inputIdx), 
       height(dim[0]),
-      layer((idx / dim[4]) % dim[2]), 
+      layerSize(dim[4]),
+      layer((idx / layerSize) % dim[2]), 
       frame(idx / dim[5]) {}
 
     /**
@@ -77,7 +79,7 @@ public:
      * @return     The resolved column-major index for the current linear thread index.
      */
     __device__ int ind(const int* ld, const int ldld) const {
-        return (idx / height) * ld[frame * ldld + layer] + idx % height;
+        return ((idx % layerSize) / height) * ld[frame * ldld + layer] + idx % height;
     }
 
     /**

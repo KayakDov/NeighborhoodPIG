@@ -7,25 +7,23 @@ class IndexMapper {
 private:
     const int height;   ///< Height (rows) of each 2D layer.
     const int idx;     ///< Flattened thread/global index.
-    const int sliceArea;     ///< Number of elements in a single 2D layer (height × width).
-    const int depth;    ///< Index along the depth (z-axis) within a frame.
-    const int frame;    ///< Index along the time (frame) axis.
+    const int layerArea;     ///< Number of elements in a single 2D layer (height × width).
+    const int layerInd;    ///< Index along the depth (z-axis) within a frame.
+    const int frameInd;    ///< Index along the time (frame) axis.
 
 public:
     /**
      * @brief Constructor that maps a flat index to 4D coordinates.
      *
      * @param globalIndex Global linear index across all 4D elements.
-     * @param height      Height (rows) of each 2D layer.
-     * @param width       Width (columns) of each 2D layer.
-     * @param depth       Number of layers (z) per frame.
+     * @param dim  The dimensions.
      */
     __device__ IndexMapper(const int globalIndex, const int* dim)
         : idx(globalIndex),
           height(dim[0]),
-          sliceArea(dim[4]),
-          depth((globalIndex / sliceArea) % dim[2]),
-          frame(globalIndex / dim[5]) {}
+          layerArea(dim[4]),
+          layerInd((globalIndex / layerArea) % dim[2]),
+          frameInd(globalIndex / dim[5]) {}
 
     /**
      * @brief Multiplies the destination value by a scalar in-place.
@@ -37,7 +35,7 @@ public:
      * @param scalar           Scalar multiplier.
      */
     __device__ void multiply(double** pointersToLayers, const int* ldLayers, const int ldld, const int ldPtrs, double scalar) {
-        pointersToLayers[layerPtrIndex(ldPtrs)][elementIndex(ldLayers, ldld)] *= scalar;
+        pointersToLayers[ptrIndex(ldPtrs)][elementIndex(ldLayers, ldld)] *= scalar;
     }
 
     /**
@@ -48,7 +46,7 @@ public:
      * @return         Offset into the 2D layer data.
      */
     __device__ int elementIndex(const int* ldLayers, const int ldld) const {
-        return (idx / height) * ldLayers[frame * ldld + depth] + (idx % height);
+        return ((idx%layerArea) / height) * ldLayers[frameInd * ldld + layerInd] + (idx % height);
     }
 
     /**
@@ -57,8 +55,16 @@ public:
      * @param ldPtrs Leading dimension (stride) across frames in pointersToLayers.
      * @return       Index pointing to the correct 2D layer pointer.
      */
-    __device__ int layerPtrIndex(const int ldPtrs) const {
-        return frame * ldPtrs + depth;
+    __device__ int ptrIndex(const int ldPtrs) const {
+        return frameInd * ldPtrs + layerInd;
+    }
+    
+    /**
+     * @brief Prints the current index mapping for debugging.
+     */
+    __device__ void print() const {
+        printf("Global Index: %d, Frame: %d, Layer: %d, Row: %d, Col: %d, Slice Area: %d\n",
+               idx, frameInd, layerInd, idx % height, idx / height, layerArea);
     }
 };
 
@@ -74,9 +80,7 @@ public:
  * @param ldLayers        2D array of column strides per layer.
  * @param ldld            Leading dimension of ldLayers (stride across depth).
  * @param ldPtrs          Leading dimension of pointersToLayers (stride across frames).
- * @param height          Height (rows) of each 2D layer.
- * @param width           Width (columns) of each 2D layer.
- * @param depth           Depth (layers) per frame.
+ * @param dim The dimensions
  * @param scalar          Scalar to multiply each element by.
  */
 extern "C" __global__ void multiplyScalarKernel(
@@ -85,10 +89,11 @@ extern "C" __global__ void multiplyScalarKernel(
     const int* dim,
     const double scalar
 ) {
-    int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
-    if (threadIndex >= totalElements) return;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= totalElements) return;
 
-    IndexMapper mapper(threadIndex, dim);
+    IndexMapper mapper(idx, dim);
+        
     mapper.multiply(pointersToLayers, ldLayers, ldld, ldPtrs, scalar);
 }
 
