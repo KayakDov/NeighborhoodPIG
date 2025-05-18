@@ -136,17 +136,17 @@ public interface FArray extends Array {
         return new FArray3d(this, entriesPerLine(), linesPerLayer);
     }
 
-    /**
-     * Scales this vector by the scalar multiplier:
-     *
-     * <pre>
-     * this = mult * this
-     * </pre>
-     *
-     * @param handle handle to the cuBLAS library context.
-     * @param scalar Scalar multiplier applied to vector X.
-     * @param src Where the array is copied from. The result is placed here.
-     * @return this;
-     */
-    public FArray setProduct(Handle handle, float scalar, FArray src);
+//    /**
+//     * Scales this vector by the scalar multiplier:
+//     *
+//     * <pre>
+//     * this = mult * this
+//     * </pre>
+//     *
+//     * @param handle handle to the cuBLAS library context.
+//     * @param scalar Scalar multiplier applied to vector X.
+//     * @param src Where the array is copied from. The result is placed here.
+//     * @return this;
+//     */
+//    public FArray setProduct(Handle handle, float scalar, FArray src);
 }

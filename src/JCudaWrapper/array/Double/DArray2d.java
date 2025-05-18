@@ -256,7 +256,7 @@ public class DArray2d extends Array2d implements DLineArray {
     public String toString() {
         JCuda.cudaDeviceSynchronize();
 
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder().append("\n");
         
         for (int i = 0; i < entriesPerLine(); i++)
             sb.append(entriesAt(i).toString()).append("\n");

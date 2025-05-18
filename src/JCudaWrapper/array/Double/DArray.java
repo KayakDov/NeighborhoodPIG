@@ -52,24 +52,24 @@ public interface DArray extends Array {
         return this;
     }
 
-    /**
-     * Fills a matrix with a scalar value directly on the GPU using a CUDA
-     * kernel.
-     *
-     * This function sets all elements of the matrix A to the given scalar
-     * value. The matrix A is stored in column-major order, and the leading
-     * dimension of A is specified by lda.
-     *
-     * In contrast to the method that doesn't use a handle, this one
-     *
-     * @param handle A handle.
-     * @param fill the scalar value to set all elements of A
-     * @return this;
-     */
-    public default DArray fill(Handle handle, double fill) {
-        Kernel.run("fill", handle, size(), this, P.to(ld()), P.to(entriesPerLine()), P.to(ld()), P.to(fill));
-        return this;
-    }
+//    /**
+//     * Fills a matrix with a scalar value directly on the GPU using a CUDA
+//     * kernel.
+//     *
+//     * This function sets all elements of the matrix A to the given scalar
+//     * value. The matrix A is stored in column-major order, and the leading
+//     * dimension of A is specified by lda.
+//     *
+//     * In contrast to the method that doesn't use a handle, this one
+//     *
+//     * @param handle A handle.
+//     * @param fill the scalar value to set all elements of A
+//     * @return this;
+//     */
+//    public default DArray fill(Handle handle, double fill) {
+//        Kernel.run("fill", handle, size(), this, P.to(ld()), P.to(entriesPerLine()), P.to(ld()), P.to(fill));
+//        return this;
+//    }
 
     /**
      * Breaks this array into a a set of sub arrays, one after the other.
@@ -158,20 +158,20 @@ public interface DArray extends Array {
     }
     
     
-    /**
-     * Scales this vector by the scalar mult:
-     *
-     * <pre>
-     * this = mult * this
-     * </pre>
-     *
-     * @param handle handle to the cuBLAS library context.
-     * @param scalar Scalar multiplier applied to vector X.
-     * @param src Where the array is copied from.  The result is placed here.
-     * @return this;
-     *
-     */
-    public DArray setProduct(Handle handle, double scalar, DArray src);
+//    /**
+//     * Scales this vector by the scalar mult:
+//     *
+//     * <pre>
+//     * this = mult * this
+//     * </pre>
+//     *
+//     * @param handle handle to the cuBLAS library context.
+//     * @param scalar Scalar multiplier applied to vector X.
+//     * @param src Where the array is copied from.  The result is placed here.
+//     * @return this;
+//     *
+//     */
+//    public DArray setProduct(Handle handle, double scalar, DArray src);
     
     
     /**

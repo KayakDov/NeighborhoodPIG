@@ -147,6 +147,8 @@ extern "C" __global__ void batchGradientsKernel(
         
     if (idx >= n) return;
 
+    printf("Ahoy from batchGradients!");
+
     const Indices inds(idx, dim);
     const Grad grad(mat, inds, dim, ldMat, ldldMat, ldPtrMat);
 

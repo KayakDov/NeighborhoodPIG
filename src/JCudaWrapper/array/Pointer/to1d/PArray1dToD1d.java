@@ -32,24 +32,24 @@ public class PArray1dToD1d extends PArray1d implements PointToD1d{
         this.targetSize = targetSize;
     }
 
-    /**
-     * Constructs this array from a stride array.A pointer in this array will point
- to the beginning of each sub array of the stride array.
-     * @param <DStrideArray>
-     * @param <DArray>
-     * @param handle The context
-     * @param dsa The array to be pointed to.
-     */
-    public <DStrideArray extends StrideArray, DArray> PArray1dToD1d(Handle handle, DStrideArray dsa){
-        this(dsa.subArraySize(), dsa.batchSize());
-        Kernel.run(
-                "genPtrs", handle, 
-                dsa.batchSize(), dsa, 
-                P.to(dsa.strideLines()), 
-                P.to(this), 
-                P.to(1)
-        );
-    }
+//    /**
+//     * Constructs this array from a stride array.A pointer in this array will point
+// to the beginning of each sub array of the stride array.
+//     * @param <DStrideArray>
+//     * @param <DArray>
+//     * @param handle The context
+//     * @param dsa The array to be pointed to.
+//     */
+//    public <DStrideArray extends StrideArray, DArray> PArray1dToD1d(Handle handle, DStrideArray dsa){
+//        this(dsa.subArraySize(), dsa.batchSize());
+//        Kernel.run(
+//                "genPtrs", handle, 
+//                dsa.batchSize(), dsa, 
+//                P.to(dsa.strideLines()), 
+//                P.to(this), 
+//                P.to(1)
+//        );
+//    }
     
     
     /**

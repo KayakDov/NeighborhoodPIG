@@ -28,15 +28,15 @@ public interface FLineArray extends FArray {
         return new FSingleton(this, indexInLine + lineNumber*entriesPerLine());
     }
 
-    /**
-     * {@inheritDoc }
-     */
-    @Override
-    public default FArray setProduct(Handle handle, float scalar, FArray src){
-        Kernel.run("multiplyScalar", handle, size(), this, P.to(ld()), P.to(entriesPerLine()), 
-                P.to(src), P.to(src.ld()), P.to(src.entriesPerLine()), P.to(scalar));
-        return this;
-    }
+//    /**
+//     * {@inheritDoc }
+//     */
+//    @Override
+//    public default FArray setProduct(Handle handle, float scalar, FArray src){
+//        Kernel.run("multiplyScalar", handle, size(), this, P.to(ld()), P.to(entriesPerLine()), 
+//                P.to(src), P.to(src.ld()), P.to(src.entriesPerLine()), P.to(scalar));
+//        return this;
+//    }
     
     
     

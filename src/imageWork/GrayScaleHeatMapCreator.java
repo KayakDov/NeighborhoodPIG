@@ -3,6 +3,7 @@ package imageWork;
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
+import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
@@ -42,14 +43,14 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
         super(sliceNames, stackName, handle, image);
         this.image = new PArray2dToF2d(image.entriesPerLine(), image.linesPerLayer(), image.targetDim().entriesPerLine, image.targetDim().numLines);
 
-        Kernel.run("mapToFLoat", handle, image.deepSize(),
-                image, P.to(image.targetLD()), P.to(image.targetLD().ld()), P.to(image.ld()),
-                P.to(this.image), P.to(this.image.targetLD()), P.to(this.image.targetLD().ld()), P.to(this.image.ld()),
-                P.to(height), P.to(width), P.to(depth)
-        );
-
         this.coherence = coherence;
         this.tolerance = tolerance;
+        
+        Kernel.run("mapToFLoat", handle, 
+                image.deepSize(),
+                new PArray2dTo2d[]{image, this.image},
+                this
+        );        
     }
 
     /**

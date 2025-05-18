@@ -2,6 +2,7 @@ package JCudaWrapper.array.Double;
 
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
+import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Sizeof;
 
@@ -27,17 +28,17 @@ public interface DLineArray extends DArray {
         return new DSingleton(this, indexInLine + lineNumber * entriesPerLine());
     }
 
-    /**
-     * This method is depreciated since Kernel.run currently calls the kernel
-     * for PArray2dToD2d
-     *
-     * @deprecated
-     */
-    @Override
-    public default DArray setProduct(Handle handle, double scalar, DArray src) {
-        Kernel.run("multiplyScalar", handle, size(), this, P.to(ld()), P.to(entriesPerLine()),
-                P.to(src), P.to(src.ld()), P.to(src.entriesPerLine()), P.to(scalar));
-        return this;
-    }
+//    /**
+//     * This method is depreciated since Kernel.run currently calls the kernel
+//     * for PArray2dToD2d
+//     *
+//     */
+//    @Override
+//    public default DArray setProduct(Handle handle, double scalar, DArray src) {
+//        Kernel.run("multiplyScalar", handle, size(), 
+//                new PArray2dTo2d[]{this},
+//                P.to(src), P.to(src.ld()), P.to(src.entriesPerLine()), P.to(scalar));
+//        return this;
+//    }
 
 }

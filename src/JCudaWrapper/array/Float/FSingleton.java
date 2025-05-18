@@ -88,13 +88,13 @@ public class FSingleton extends Singleton implements FArray{
         get(handle, Pointer.to(cpuArray));
         return cpuArray;
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public FSingleton setProduct(Handle handle, float scalar, FArray src) {
-        as1d().setProduct(handle, scalar, src);
-        return this;
-    }    
+//
+//    /**
+//     * {@inheritDoc}
+//     */
+//    @Override
+//    public FSingleton setProduct(Handle handle, float scalar, FArray src) {
+//        as1d().setProduct(handle, scalar, src);
+//        return this;
+//    }    
 }

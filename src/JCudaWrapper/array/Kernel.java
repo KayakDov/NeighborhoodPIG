@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaError;
 
@@ -114,39 +115,37 @@ public class Kernel implements AutoCloseable {
      * @param additionalArguments An array of pointers to all additional
      * arguments.
      */
-    public static void run(String name, Handle handle, int numThreads, Array source, Pointer... additionalArguments) {//TODO: organize this so vectors are always followed by their ld and height.
+    public static void run(String name, Handle handle, int numThreads, Pointer... additionalArguments) {//TODO: organize this so vectors are always followed by their ld and height.
 
         try (Kernel km = new Kernel(name, Type.PTR_TO_DOUBLE_2D)) {
-            km.run(handle, numThreads, source, additionalArguments);
+            km.run(handle, numThreads, additionalArguments);
         }
     }
 
     /**
      * Runs the loaded CUDA kernel with the specified input and output arrays on
-     * a specified stream. Note, a stream is generated for this method, so be
-     * sure that the data is synchronized before and after.
+     * a specified stream.Note, a stream is generated for this method, so be
+ sure that the data is synchronized before and after.
      *
      * @param <T> The type of array.
      * @param handle
      * @param numThreads The number of threads to be used in the kernel.
-     * @param input The {@code DArray} representing the input data to be
-     * processed by the kernel.
      * @param additionalParmaters These should all be pointers to cpu arrays or
      * pointers to device pointers.
      */
-    public <T extends Array> void run(Handle handle, int numThreads, T input, Pointer... additionalParmaters) {
+    public <T extends Array> void run(Handle handle, int numThreads, Pointer... additionalParmaters) {
 
-        NativePointerObject[] pointers = new NativePointerObject[additionalParmaters.length + 2];
+        NativePointerObject[] pointers = new NativePointerObject[additionalParmaters.length + 1];
         pointers[0] = P.to(numThreads);
-        pointers[1] = P.to(input);
 
-        if (additionalParmaters.length > 0)
-            System.arraycopy(additionalParmaters, 0, pointers, 2, additionalParmaters.length);
+        System.arraycopy(additionalParmaters, 0, pointers, 1, additionalParmaters.length);
 
         Pointer kernelParameters = Pointer.to(pointers);
 
         int gridSize = (int) Math.ceil((double) numThreads / BLOCK_SIZE);
 
+        
+        
         checkResult(JCudaDriver.cuLaunchKernel(
                 function,
                 gridSize, 1, 1, // Grid size (number of blocks)
@@ -193,14 +192,11 @@ public class Kernel implements AutoCloseable {
 
         try (IArray dimArray = dim.gpuDim()) {
 
-            Pointer[] pointers = new Pointer[additionalParmaters.length + 4 * arrays.length];
+            Pointer[] pointers = new Pointer[additionalParmaters.length + 4 * arrays.length + 1];
 
             int pointInd = 0;
-            pointers[pointInd++] = P.to(arrays[0].targetLD());
-            pointers[pointInd++] = P.to(arrays[0].targetLD().ld());
-            pointers[pointInd++] = P.to(arrays[0].ld());
 
-            for (int i = 1; i < arrays.length; i++) {
+            for (int i = 0; i < arrays.length; i++) {
                 pointers[pointInd++] = P.to(arrays[i]);
                 pointers[pointInd++] = P.to(arrays[i].targetLD());
                 pointers[pointInd++] = P.to(arrays[i].targetLD().ld());
@@ -210,7 +206,7 @@ public class Kernel implements AutoCloseable {
 
             System.arraycopy(additionalParmaters, 0, pointers, pointInd, additionalParmaters.length);
 
-            run(handle, numThreads, arrays[0], pointers);
+            run(handle, numThreads, pointers);
         }
     }
 

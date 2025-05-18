@@ -150,7 +150,7 @@ public class Dimensions{
      * An IArray containing the dimensions.
      * @return an IArray containing the dimensions.
      */
-    public IArray gpuDim(){
+    public IArray gpuDim(){//TODO: this is created and destroyed multiple times, do that only once.
         IArray1d dim = new IArray1d(handle, 
             height, //0 -> height
             width, //1 -> width

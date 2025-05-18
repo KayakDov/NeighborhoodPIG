@@ -175,14 +175,14 @@ public class FArray1d extends Array1d implements FArray {
         return this;
     }
 
-    /**
-     * {@inheritDoc }
-     */
-    @Override
-    public FArray1d setProduct(Handle handle, float scalar, FArray src) {
-        if (src != this) set(handle, this);
-        return multiply(handle, scalar);
-    }
+//    /**
+//     * {@inheritDoc }
+//     */
+//    @Override
+//    public FArray1d setProduct(Handle handle, float scalar, FArray src) {
+//        if (src != this) set(handle, this);
+//        return multiply(handle, scalar);
+//    }
 
     /**
      * Computes the Euclidean norm of the vector X (2-norm): This method

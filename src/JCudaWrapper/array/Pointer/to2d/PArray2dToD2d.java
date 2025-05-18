@@ -6,6 +6,7 @@ import JCudaWrapper.array.Double.DArray;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
+import fijiPlugin.Dimensions;
 import jcuda.Sizeof;
 
 /**
@@ -86,9 +87,9 @@ public class PArray2dToD2d extends PArray2dTo2d implements PointToD2d {
      * @param scalar
      */
     public void setProduct(Handle handle, double scalar) {
-        Kernel.run("multiplyScalar", handle, targetSize(), 
-                this, P.to(targetLD()), P.to(targetLD().ld()), P.to(ld()), 
-                P.to(entriesPerLine()),P.to(linesPerLayer()), P.to(layersPerGrid()),
+        Kernel.run("multiplyScalar", handle, targetSize(),
+                new PArray2dTo2d[]{this},
+                new Dimensions(handle, targetDim().entriesPerLine, targetDim().numLines, entriesPerLine(), linesPerLayer()),
                 P.to(scalar)
         );
         

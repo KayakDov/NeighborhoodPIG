@@ -10,7 +10,7 @@ package fijiPlugin;
 public class NeighborhoodDim {
 
     public final int xyR, zR;
-    public final float layerRes;
+    public final double layerRes;
 
     /**
      * @param xy The distance to the nearest side of the xy plane neighborhood
@@ -19,7 +19,7 @@ public class NeighborhoodDim {
      * @param distBetweenAdjLayer The distance between adjacent layers as a
      * multiple of the distance between xy pixels.
      */
-    public NeighborhoodDim(int xy, int z, float distBetweenAdjLayer) {
+    public NeighborhoodDim(int xy, int z, double distBetweenAdjLayer) {
         this.xyR = xy;
         this.zR = z;
         this.layerRes = distBetweenAdjLayer;

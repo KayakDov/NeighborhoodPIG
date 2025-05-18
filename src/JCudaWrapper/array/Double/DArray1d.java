@@ -173,14 +173,14 @@ public class DArray1d extends Array1d implements DArray {
         return this;
     }
 
-    /**
-     * {@inheritDoc }
-     */
-    @Override
-    public DArray1d setProduct(Handle handle, double scalar, DArray src) {
-        if (src != this) set(handle, this);
-        return multiply(handle, scalar);
-    }
+//    /**
+//     * {@inheritDoc }
+//     */
+//    @Override
+//    public DArray1d setProduct(Handle handle, double scalar, DArray src) {
+//        if (src != this) set(handle, this);
+//        return multiply(handle, scalar);
+//    }
 
     /**
      * Computes the Euclidean norm of the vector X (2-norm): This method

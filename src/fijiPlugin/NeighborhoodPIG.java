@@ -41,12 +41,12 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      */
     private NeighborhoodPIG(Handle handle, PArray2dToD2d image, String[] sourceFileNames, UserInput ui) {
         super(handle, image);
-
+        
         checkInput(ui);
 
         this.sourceFileNames = sourceFileNames == null ? defaultNames() : sourceFileNames;
 
-        try (Gradient grad = new Gradient(handle, image, ui.neighborhoodSize)) {
+        try (Gradient grad = new Gradient(handle, image, ui.neighborhoodSize)) {            
             stm = new StructureTensorMatrices(handle, grad, ui);
         }
     }
