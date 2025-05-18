@@ -2,6 +2,7 @@ package fijiPlugin;
 
 import JCudaWrapper.array.Float.FArray;
 import JCudaWrapper.array.Float.FStrideArray3d;
+import JCudaWrapper.array.Int.IArray1d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
@@ -56,7 +57,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
      */
     private static int matZStride(FArray mat) {
         return mat.ld() * mat.linesPerLayer();
-    }    
+    }
 
     /**
      * A class to manage data for computing neighborhood sums in a specific
@@ -92,15 +93,15 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
          * @param ldTo The increment of the the destination matrices.
          */
         public void neighborhoodSum(PArray2dToD2d src, PArray2dToD2d dst) {
-            
+
             nSum.run(handle,
                     numThreads,
                     new PArray2dTo2d[]{src, dst},
                     NeighborhoodProductSums.this,
                     P.to(numSteps),
                     P.to(nRad),
-                    P.to(dirOrd)                    
-            );            
+                    P.to(dirOrd)
+            );
         }
 
     }
@@ -117,15 +118,21 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
      * increment of this vector is probably not one.
      */
     public void set(PArray2dToD2d a, PArray2dToD2d b, PArray2dToD2d dst) {
+
+//        System.out.println("fijiPlugin.NeighborhoodProductSums.set() a = " + a.toString());
+//        System.out.println("fijiPlugin.NeighborhoodProductSums.set() b = " + b.toString());
         
-        Kernel.run("addEBEProduct", handle, 
-                a.size(), 
-                new PArray2dTo2d[]{workSpace1,a, b},
+        Kernel.run("addEBEProduct", handle,
+                size(),
+                new PArray2dTo2d[]{workSpace1, a, b},
                 this,
-                P.to(1.0),                
+                P.to(1.0),
                 P.to(0.0)
         );
-           
+        System.exit(0);
+
+//        System.out.println("fijiPlugin.NeighborhoodProductSums.set() c = " + workSpace1
+//                .toString());
         X.neighborhoodSum(workSpace1, workSpace2);
 
         if (depth > 1) {

@@ -11,10 +11,14 @@
 class Get {
 private:
     const int height;     ///< Height of each 2D slice.
+    const int layerSize;
     const int idx;        ///< Linear index of the element processed by the thread.
+    
     const int layer;      ///< Index along the depth dimension (z-axis) within a frame.
     const int frame;      ///< Index of the frame in the 4D dataset (time dimension).
-    const int layerSize;
+    
+    const int col;
+    const int row;
     
 public:
     /**
@@ -25,12 +29,20 @@ public:
      * @param width    The width (number of columns) of each 2D slice.
      * @param depth    The number of slices along the depth (z) dimension per frame.
      */
-    __device__ Get(const int inputIdx, const int* dim)
-    : idx(inputIdx), 
+    __device__ Get(const int idx, const int* dim)
+    : idx(idx), 
       height(dim[0]),
       layerSize(dim[4]),
-      layer((idx / layerSize) % dim[2]), 
-      frame(idx / dim[5]) {}
+      
+      layer((idx % dim[5]) / dim[4]), 
+      frame(idx / dim[5]),
+      
+      col((idx % dim[4]) / dim[0]),
+      row(idx % dim[0]) {
+      
+      printf("idx = %d, layer = %d, (idx %% dim[5]) = %d, (idx %% dim[5]) / layerSize = %d\n", idx, layer, (idx % dim[5]), (idx % dim[5]) / layerSize);
+      
+      }
 
     /**
      * @brief Retrieves a value from the source 4D dataset using the calculated indices.
@@ -42,7 +54,7 @@ public:
      * @return      The double value at the resolved position in the 4D dataset.
      */
     __device__ double operator()(const double** src, const int* ld, const int ldld, const int ldPtr) {
-        return src[layerInd(ldPtr)][ind(ld, ldld)];
+        return src[page(ldPtr)][word(ld, ldld)];
     }
     
     /**
@@ -55,7 +67,7 @@ public:
      * @return      The double value at the resolved position in the 4D dataset.
      */
     __device__ double operator()(double** src, const int* ld, const int ldld, const int ldPtr) {
-	return src[layerInd(ldPtr)][ind(ld, ldld)];
+	return src[page(ldPtr)][word(ld, ldld)];
     }
 
     /**
@@ -68,7 +80,7 @@ public:
      * @param val   The double value to store in the specified location.
      */
     __device__ void set(double** src, const int* ld, const int ldld, const int ldPtr, double val) {
-        src[layerInd(ldPtr)][ind(ld, ldld)] = val;
+        src[page(ldPtr)][word(ld, ldld)] = val;
     }
 
     /**
@@ -78,8 +90,8 @@ public:
      * @param ldld Leading dimension (stride) of the ld array across frames.
      * @return     The resolved column-major index for the current linear thread index.
      */
-    __device__ int ind(const int* ld, const int ldld) const {
-        return ((idx % layerSize) / height) * ld[frame * ldld + layer] + idx % height;
+    __device__ int word(const int* ld, const int ldld) const {
+        return col * ld[page(ldld)] + row;
     }
 
     /**
@@ -88,8 +100,19 @@ public:
      * @param ldPtr The leading dimension of the pointer array (`src`), i.e., the number of slices per frame.
      * @return      The index in `src` pointing to the appropriate 2D slice.
      */
-    __device__ int layerInd(const int ldPtr) const {
+    __device__ int page(const int ldPtr) const {
         return frame * ldPtr + layer;
+    }
+    
+    /**
+     * @brief Prints the internal state of the Get object and the dim array (for debugging on the host).
+     *
+     * @param dim The array containing the dimensions of the 4D data.
+     */
+    __host__ __device__ void print(const int* dim) const {
+        printf("Get(idx: %d, frame: %d, layer: %d, height: %d, layerSize: %d, col: %d, row: %d), dim: [%d, %d, %d, %d, %d, %d, %d]\n",
+               idx, frame, layer, height, layerSize, col, row,
+               dim[0], dim[1], dim[2], dim[3], dim[4], dim[5], (dim + 6)[0]); // Added dim print
     }
 };
 
@@ -142,11 +165,10 @@ extern "C" __global__ void addEBEProductKernel(
 
     Get ind(idx, dim);
 
+//    ind.print(dim);
+
     ind.set(
-        dst,
-        xyLdDst,
-        ldldDst,
-        ztLdDst,
+        dst, xyLdDst, ldldDst, ztLdDst,
         timesDst * ind(dst, xyLdDst, ldldDst, ztLdDst) + timesProduct * ind(a, xyLdA, ldldA, ztLdA) * ind(b, xyLdB, ldldB, ztLdB)
     );
 }

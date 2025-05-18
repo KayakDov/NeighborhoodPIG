@@ -49,18 +49,6 @@ public class Gradient extends Dimensions implements AutoCloseable {
                 P.to(layerDist.layerRes)
         );
 
-//        Kernel.run("batchGradients", handle, size()*3,
-//                P.to(pic), P.to(pic.targetLD()), P.to(pic.targetLD().ld()), P.to(pic.ld()),
-//                P.to(x[0]), P.to(x[0].targetLD()), P.to(x[0].targetLD().ld()), P.to(x[0].ld()),
-//                P.to(x[1]), P.to(x[1].targetLD()), P.to(x[1].targetLD().ld()), P.to(x[1].ld()),
-//                P.to(x[2]), P.to(x[2].targetLD()), P.to(x[2].targetLD().ld()), P.to(x[2].ld()),
-//                P.to(gpuDim()),
-//                P.to(layerDist.layerRes)
-//        );
-
-        System.out.println("fijiPlugin.Gradient.<init>() 0");
-        System.out.println("fijiPlugin.Gradient.<init>() 1" + x[0].toString());
-        System.out.println("fijiPlugin.Gradient.<init>() 2");
 
     }
 
