@@ -131,4 +131,10 @@ public interface PArray extends Array {
         Array.super.close();
     }
 
+    /**
+     * Allocated empty arrays to all the null pointers.
+     * @return this.
+     */
+    public PArray initTargets(Handle hand);
+    
 }

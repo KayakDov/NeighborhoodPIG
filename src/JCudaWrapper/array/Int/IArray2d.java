@@ -1,21 +1,25 @@
 package JCudaWrapper.array.Int;
 
 import JCudaWrapper.array.Array;
+import JCudaWrapper.array.Array1d;
 import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.LineArray;
 import JCudaWrapper.array.Singleton;
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.Arrays;
 import jcuda.Pointer;
 import jcuda.Sizeof;
+import jcuda.runtime.JCuda;
 
 /**
  *
  * @author dov
  */
-public class IArray2d extends Array2d implements IArray{
+public class IArray2d extends Array2d implements IArray {
 
     /**
      * Constructs a 2 dimensional Iarray.
+     *
      * @param entriesPerLine THe number of entries in each line.
      * @param numLines The number of lines in the array.
      */
@@ -23,7 +27,6 @@ public class IArray2d extends Array2d implements IArray{
         super(entriesPerLine, numLines, Sizeof.INT);
     }
 
-    
     /**
      * This array is creates as a sub array of the proffered array.
      *
@@ -72,9 +75,9 @@ public class IArray2d extends Array2d implements IArray{
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
-    
     /**
      * Takes a preallocated pointer and gives it an array structure.
+     *
      * @param to2d The target of the singleton's pointer.
      * @param entriesPerLine The number of entries on each line.
      * @param numLines The number of lines.
@@ -83,5 +86,28 @@ public class IArray2d extends Array2d implements IArray{
     public IArray2d(Pointer to2d, int entriesPerLine, int numLines, int ld) {
         super(to2d, entriesPerLine, numLines, ld, Sizeof.INT);
     }
-    
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public IArray1d entriesAt(int index) {
+        return new IArray1d(this, index, linesPerLayer(), entriesPerLine());
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public String toString() {
+        JCuda.cudaDeviceSynchronize();
+
+        try (Handle hand = new Handle()) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < entriesPerLine(); i++)
+                sb.append(Arrays.toString(entriesAt(i).get(hand)));
+            return sb.toString();
+        }
+        
+    }
 }

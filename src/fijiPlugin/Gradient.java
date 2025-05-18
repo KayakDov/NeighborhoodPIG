@@ -40,8 +40,8 @@ public class Gradient extends Dimensions implements AutoCloseable {
      */
     public Gradient(Handle handle, PArray2dToD2d pic, NeighborhoodDim layerDist) {
         super(handle, pic);
-        x = new PArray2dToD2d[]{pic.copyDim(), pic.copyDim(), pic.copyDim()};
-
+        x = new PArray2dToD2d[]{pic.copyDim(handle), pic.copyDim(handle), pic.copyDim(handle)};
+        
         Kernel.run("batchGradients", handle,
                 size() * 3,
                 new PArray2dTo2d[]{pic, x[0], x[1], x[2]},

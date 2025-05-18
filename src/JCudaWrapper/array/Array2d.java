@@ -5,6 +5,7 @@ import jcuda.Pointer;
 import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaMemcpyKind;
 import JCudaWrapper.resourceManagement.Handle;
+import java.util.Arrays;
 import java.util.HashSet;
 import jcuda.driver.JCudaDriver;
 
@@ -169,4 +170,7 @@ public abstract class Array2d extends LineArray {
 
         return as1d().sub(index, ld() * (linesPerLayer() - 1) + 1, ld());
     }
+
+    
+    
 }

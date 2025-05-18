@@ -7,6 +7,7 @@ import JCudaWrapper.array.Array3d;
 import JCudaWrapper.array.Double.DArray1d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
+import JCudaWrapper.array.Pointer.PArray;
 import JCudaWrapper.array.Pointer.PArray1d;
 import JCudaWrapper.array.Singleton;
 import JCudaWrapper.array.StrideArray;
@@ -208,4 +209,5 @@ public class PArray1dToD1d extends PArray1d implements PointToD1d{
         return Arrays.stream(cpuArray).map(pointer -> new DArray1d(pointer, targetSize)).toArray(DArray1d[]::new);
 
     }
+
 }

@@ -36,8 +36,8 @@ public class StructureTensorMatrices implements AutoCloseable {
         }
        
         azimuth = new PArray2dToD2d(grad.height / ui.downSampleFactorXY, grad.width / ui.downSampleFactorXY, grad.depth, grad.batchSize);        
-        zenith = azimuth.copyDim();
-        coherence = azimuth.copyDim();        
+        zenith = azimuth.copyDim(handle);
+        coherence = azimuth.copyDim(handle);        
         
         eigen.set(Math.min(grad.depth, 2), coherence, zenith, coherence);
         

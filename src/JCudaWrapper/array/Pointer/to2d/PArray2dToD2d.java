@@ -34,9 +34,20 @@ public class PArray2dToD2d extends PArray2dTo2d implements PointToD2d {
      *
      * @return An empty array with the same dimensions as this array.
      */
-    public PArray2dToD2d copyDim() {
-        return new PArray2dToD2d(entriesPerLine(), linesPerLayer(), targetDim().entriesPerLine, targetDim().numLines);
+    public PArray2dToD2d copyDim(Handle hand) {
+        return new PArray2dToD2d(entriesPerLine(), linesPerLayer(), targetDim().entriesPerLine, targetDim().numLines).initTargets(hand);
     }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public PArray2dToD2d initTargets(Handle hand) {
+        PointToD2d.super.initTargets(hand); 
+        return this;
+    }
+    
+    
 
     /**
      * {@inheritDoc }

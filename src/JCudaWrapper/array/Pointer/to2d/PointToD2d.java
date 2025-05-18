@@ -1,6 +1,7 @@
 package JCudaWrapper.array.Pointer.to2d;
 
 import JCudaWrapper.array.Double.DArray2d;
+import JCudaWrapper.array.Pointer.PArray;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;
 import java.util.stream.IntStream;
@@ -47,5 +48,16 @@ public interface PointToD2d extends PointTo2d{
     @Override
     public default PSingletonToD2d get(int index) {
         return new PSingletonToD2d(this, index);
+    }
+    
+    /**
+     * {@inheritDoc }
+     * TODO: can this be done on the gpu?  IMplement in To2d instead of ToD2d?
+     */
+    @Override
+    public default PointTo2d initTargets(Handle hand){
+        for(int i = 0; i < size(); i++)
+            get(i).set(hand, new DArray2d(targetDim().entriesPerLine, targetDim().numLines));
+        return this;
     }
 }

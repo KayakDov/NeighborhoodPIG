@@ -13,4 +13,5 @@ public interface PointTo1d extends PArray{
      * @return The length of the array pointed to.
      */
     public int targetSize();
+    
 }

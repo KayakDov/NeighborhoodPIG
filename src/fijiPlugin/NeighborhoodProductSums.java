@@ -45,8 +45,8 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
 
         X = new Mapper(depth * height * batchSize, width, 0, nRad.xyR);
 
-        workSpace2 = dim.copyDim();
-        workSpace1 = dim.copyDim();
+        workSpace2 = dim.copyDim(handle);
+        workSpace1 = dim.copyDim(handle);
 
         nSum = new Kernel("neighborhoodSum3d", Kernel.Type.PTR_TO_DOUBLE_2D);
     }

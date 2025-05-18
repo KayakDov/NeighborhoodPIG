@@ -28,21 +28,35 @@ public:
      * @return Offset into the memory location for the element.
      */
     __device__ int word(const int* ld, const int ldld) const {
-	return ((idx % dim[4]) / dim[0]) * ld[tensorInd * ldld + layerInd] + idx % dim[0];
+
+        int col =(idx % dim[4]) / dim[0];
+        int ldHere = ld[page(ldld)]; 
+        int row = idx % dim[0];
+        
+        //printf("idx = %d, col =  %d, ldHere = %d, row = %d\n", idx, col, ldHere, row);
+
+	return col * ldHere + row;
     }
 
     /**
      * Constructs Indices from a flat thread index.
-     * @param threadID Global thread index.
+     * @param idx Global thread index.
      * @param dim Array describing tensor shape:
      *        height → 0, width → 1, depth → 2, numTensors → 3,
      *        layerSize → 4, tensorSize → 5, batchSize → 6.
      */
     __device__ Indices(int threadID, const int* dim): 
-	idx(threadID%dim[6]),
-    	tensorInd(idx/dim[5]),
-    	layerInd((idx/dim[4])%dim[2]),
+	idx(threadID % dim[6]),
+    	tensorInd(idx / dim[5]),
+    	layerInd((idx % dim[5]) / dim[4]),
     	dim(dim){}
+
+    __host__ __device__ void print() const {
+        printf("Thread [%d]: Indices - idx: %d, tensorInd: %d, layerInd: %d\n",
+            threadIdx.x + blockIdx.x * blockDim.x, // optional CUDA thread ID
+            idx, tensorInd, layerInd);
+    }
+
 
 
 };
@@ -86,16 +100,22 @@ public:
 
 	double val;
 
-        if (end == 1) val = 0.0; // Single element case.
-        else if (loc == 0) val = data[page + dPage][word + dWord] - data[page][word]; // Forward difference at start.
-        else if (loc == end - 1) val = data[page][word] - data[page - dPage][word - dWord]; // Backward difference at end.
+        if (end == 1)                        val = 0.0; // Single element case.
+        else if (loc == 0)                   val = data[page + dPage][word + dWord] - data[page][word]; // Forward difference at start.
+        else if (loc == end - 1)             val = data[page][word] - data[page - dPage][word - dWord]; // Backward difference at end.
         else if (loc == 1 || loc == end - 2) val = (data[page + dPage][word + dWord] - data[page - dPage][word - dWord]) / 2.0; // Central difference.
-        else val = (data[page - 2*dPage][word - 2*dWord] - 8.0*data[page - dPage][word - dWord] + 8.0*data[page + dPage][word + dWord] - data[page + 2*dPage][word + 2*dWord])/12.0; // Higher-order stencil.
-        
+        else                                 val = (data[page - 2*dPage][word - 2*dWord] - 8.0*data[page - dPage][word - dWord] + 8.0*data[page + dPage][word + dWord] - data[page + 2*dPage][word + 2*dWord])/12.0; // Higher-order stencil.
+   
         return layerScale == 1? val : val/layerScale;
     }    
 
-    
+    __host__ __device__ void print() const {
+        printf("Thread [%d]: Grad - page: %d, word: %d\n",
+            threadIdx.x + blockIdx.x * blockDim.x,
+            page, word);
+    }
+
+
 
 };
 /**
@@ -147,18 +167,23 @@ extern "C" __global__ void batchGradientsKernel(
         
     if (idx >= n) return;
 
-    printf("Ahoy from batchGradients!");
-
     const Indices inds(idx, dim);
+
     const Grad grad(mat, inds, dim, ldMat, ldldMat, ldPtrMat);
+    
+    double gradient;
+    int dst = idx / dim[6];
+
+
 
     switch(idx / dim[6]){ 
-    	case 0: dX[inds.page(ldPtrX)][inds.word(ldx, ldldX)] 
-    		= grad.at((idx % dim[4]) / dim[0], dim[1],  1,          0, ldMat[inds.page(ldPtrMat)]); break;
-	case 1: dY[inds.page(ldPtrY)][inds.word(ldy, ldldY)] 
-		= grad.at(idx % dim[0],            dim[0],  1,          0, 1                      ); break;
-	case 2: dZ[inds.page(ldPtrZ)][inds.word(ldz, ldldZ)] 
-		= grad.at((idx % dim[5]) / dim[4], dim[2],  zLayerMult, 1, 0                      );
+    	case 0:  
+    	    gradient = grad.at((idx % dim[4]) / dim[0], dim[1],  1,          0, ldMat[inds.page(ldPtrMat)]);
+    	    dX[inds.page(ldPtrX)][inds.word(ldx, ldldX)] = gradient;
+    	    break;
+	case 1: dY[inds.page(ldPtrY)][inds.word(ldy, ldldY)] = gradient = grad.at(idx % dim[0],            dim[0],  1,          0, 1                         ); break;
+	case 2: dZ[inds.page(ldPtrZ)][inds.word(ldz, ldldZ)] = gradient = grad.at((idx % dim[5]) / dim[4], dim[2],  zLayerMult, 1, 0                         );
     }
+
 }
 

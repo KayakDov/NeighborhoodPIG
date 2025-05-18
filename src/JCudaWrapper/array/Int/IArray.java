@@ -1,10 +1,6 @@
 package JCudaWrapper.array.Int;
 
 import JCudaWrapper.array.Array;
-import JCudaWrapper.array.Double.DArray1d;
-import JCudaWrapper.array.Double.DArray2d;
-import JCudaWrapper.array.Double.DArray3d;
-import java.util.Arrays;
 import jcuda.Pointer;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Sizeof;

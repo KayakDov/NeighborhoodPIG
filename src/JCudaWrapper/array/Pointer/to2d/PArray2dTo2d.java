@@ -61,7 +61,7 @@ public abstract class PArray2dTo2d extends PArray2d implements PointTo2d {
      * {@inheritDoc }
      */
     @Override
-    public IArray targetLD() {
+    public IArray2d targetLD() {
         return targetLD;
     }
 

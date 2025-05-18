@@ -53,7 +53,7 @@ public class Eigen extends Dimensions implements AutoCloseable {//TODO: maybe in
                 mat[j][i] = mat[i][j] = dim.empty();
 
         values = new PArray2dToD2d(dim.depth, dim.batchSize, (dim.height / downSampleFactorXY) * 3, dim.width / downSampleFactorXY);
-        vectors = values.copyDim();
+        vectors = values.copyDim(handle);
 
     }
 
