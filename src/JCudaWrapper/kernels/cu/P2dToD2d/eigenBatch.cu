@@ -69,17 +69,6 @@ public:
         return src[layerInd(ldPtr)][ind(ld, ldld)];
     }
     
-    /**
-     * @brief Retrieves a value from the source data array based on the calculated multi-dimensional index.
-     * @param src Array of pointers, where each pointer points to the beginning of a 2D slice.
-     * @param ld Array of leading dimensions for each 2D slice (corresponding to the pointers in src).
-     * @param ldld Leading dimension of the ld array (stride between leading dimensions in memory).
-     * @param ldPtr Leading dimension of the src array (stride between pointers to different slices in memory).
-     * @return The value at the computed index within the specified slice.
-     */
-    __device__ void set(double** src, const int* ld, const int ldld, const int ldPtr, double val) {
-        src[layerInd(ldPtr)][ind(ld, ldld)] = val;
-    }
 
     /**
      * @brief Computes the column-major index within a single 2D slice (height x width).
@@ -98,6 +87,27 @@ public:
      */
     __device__ int layerInd(const int ldPtr) const{
         return frame * ldPtr + layer;
+    }
+    
+    
+    /**
+     * Points to the desired location.
+     */
+    __device__ double* ptr(double** src, const int* ld, const int ldld, const int ldPtr){
+        return src[layerInd(ldPtr)] + ind(ld, ldld);
+    }
+    
+    
+    /**
+     * @brief Retrieves a value from the source data array based on the calculated multi-dimensional index.
+     * @param src Array of pointers, where each pointer points to the beginning of a 2D slice.
+     * @param ld Array of leading dimensions for each 2D slice (corresponding to the pointers in src).
+     * @param ldld Leading dimension of the ld array (stride between leading dimensions in memory).
+     * @param ldPtr Leading dimension of the src array (stride between pointers to different slices in memory).
+     * @return The value at the computed index within the specified slice.
+     */
+    __device__ void set(double** src, const int* ld, const int ldld, const int ldPtr, double val) {
+        *ptr(src, ld, ldld, ldPtr) = val;
     }
     
     /**
@@ -492,6 +502,15 @@ public:
     }
     
     /**
+     * gets the element at the ith index.
+     * @param i The index of the component (0 for x, 1 for y, 2 for z).
+     * @return The element at the ith index.
+     */
+    __device__ double operator()(int i) const{
+        return data[i];
+    }
+    
+    /**
      * @brief Prints the components of the vector to the standard output.
      * The output format is "(x, y, z)".
      */
@@ -696,7 +715,7 @@ extern "C" __global__ void eigenBatchKernel(
     double** valDst, const int* ldEVal, const int ldldEVal, const int ldPtrEVal,
     double** vecDst, const int* ldEVec, const int ldldEVec, const int ldPtrEVec,
 
-    double** coherence, const int* ldCoh, const int ldldCoh, const int ldPtr,
+    double** coherence, const int* ldCoh, const int ldldCoh, const int ldPtrCoh,
     
     double** azimuthal, const int* ldAzi, const int ldldAzi, const int ldPtrAzi,
     double** zenith, const int* ldZen, const int ldldZen, const int ldPtrZen,
@@ -721,21 +740,25 @@ extern "C" __global__ void eigenBatchKernel(
         
     Get getx3(3*idx, dim[0] * 3, dim, 1);
     
-    Vec eVals(valDst[getx3.layerInd(ldPtrEVal)] + getx3.ind(ldEVal, ldldEVal), tolerance);
+    Vec eVals(getx3.ptr(valDst, ldEVal, ldldEVal, ldPtrEVal), tolerance);
     eVals.setEVal(mat);
-    
-    if (eVals[0] <=  tolerance) src.set(coherence, ldCoh, ldldCoh, ldPtr, 0);
-    else src.set(coherence, ldCoh, ldldCoh, ldPtr, (eVals[0] - eVals[1]) / (eVals[0] + eVals[1] + eVals[2]));
+        
+    if (eVals(0) <=  tolerance) src.set(coherence, ldCoh, ldldCoh, ldPtrCoh, 0);
+    else {
+        double coherenceVal = (eVals(0) - eVals(1)) / (eVals(0) + eVals(1) + eVals(2));        
+        src.set(coherence, ldCoh, ldldCoh, ldPtrCoh, coherenceVal);
+    }
 
     mat.subtractFromDiag(eVals[eigenInd]);
    
     int freeVariables = mat.rowEchelon();
         
-    Vec vec(vecDst[getx3.layerInd(ldPtrEVec)] + getx3.ind(ldEVec, ldldEVec), tolerance);
+    Vec vec(getx3.ptr(vecDst, ldEVec, ldldEVec, ldPtrEVec), tolerance);
     
     vec.setEigenVec(mat, freeVariables, eigenInd);
         
     src.set(azimuthal, ldAzi, ldldAzi, ldPtrAzi, vec.azimuth());
     src.set(zenith, ldZen, ldldZen, ldPtrZen, vec.zenith());
+    
 }
 

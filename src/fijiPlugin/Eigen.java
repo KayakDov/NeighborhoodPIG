@@ -79,7 +79,7 @@ public class Eigen extends Dimensions implements AutoCloseable {//TODO: maybe in
      * @param zenith Location to load the zenith angles.
      */
     public void set(int eigenInd, PArray2dToD2d coherence, PArray2dToD2d azimuth, PArray2dToD2d zenith) {
-        
+            
         Kernel.run("eigenBatch", handle,
                 size(),
                 new PArray2dTo2d[]{
@@ -100,7 +100,7 @@ public class Eigen extends Dimensions implements AutoCloseable {//TODO: maybe in
                 P.to(eigenInd),
                 P.to(tolerance)
         );
-
+        
     }
 
     /**

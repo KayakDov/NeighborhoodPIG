@@ -36,13 +36,11 @@ public class StructureTensorMatrices extends Dimensions implements AutoCloseable
                     nps.set(grad.x[i], grad.x[j], eigen.at(i, j));
         }
        
-        azimuth = new PArray2dToD2d(depth, batchSize, height / ui.downSampleFactorXY, width / ui.downSampleFactorXY);        
+        azimuth = new PArray2dToD2d(depth, batchSize, height / ui.downSampleFactorXY, width / ui.downSampleFactorXY).initTargets(handle);
         zenith = azimuth.copyDim(handle);
         coherence = azimuth.copyDim(handle);        
         
-        eigen.set(Math.min(grad.depth, 2), coherence, zenith, coherence);
-        
-        System.out.println("fijiPlugin.StructureTensorMatrices.<init>() \n" + eigen.vectors.toString());
+        eigen.set(Math.min(grad.depth, 2), coherence, azimuth, zenith);
         
     }
 
