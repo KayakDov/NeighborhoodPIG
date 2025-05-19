@@ -4,11 +4,14 @@ import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Array1d;
 import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.Array3d;
+import JCudaWrapper.array.Double.DArray;
 import JCudaWrapper.array.Double.DArray1d;
 import JCudaWrapper.array.Singleton;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;
+import jcuda.Pointer;
 import jcuda.Sizeof;
+import jcuda.jcublas.JCublas2;
 import jcuda.runtime.JCuda;
 
 /**
@@ -24,6 +27,19 @@ public class IArray1d extends Array1d implements IArray {
      */
     public IArray1d(int numElements) {
         super(numElements, Sizeof.INT);
+    }
+    
+    /**
+     * Constructs a 1d sub array of the proffered array. If the array copied
+     * from is not 1d, then depending on the length, this array may include
+     * pitch.
+     *
+     * @param src The array to be copied from.
+     * @param start The start index of the array.
+     * @param size The length of the array.
+     */
+    public IArray1d(IArray src, int start, int size) {
+        super(src, start, size, 1);
     }
     
     /**
@@ -66,13 +82,46 @@ public class IArray1d extends Array1d implements IArray {
         return new IArray1d(size()).set(handle, this);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int[] get(Handle handle) {
+
+        int[] cpuArray = new int[size()];
+
+        if (!hasPadding()) get(handle, Pointer.to(cpuArray));
+        else try (IArray1d temp = new IArray1d(size())) {
+            get(handle, temp);
+            temp.get(handle, Pointer.to(cpuArray));
+        }
+
+        return cpuArray;
+
+    }
     
+    /**
+     * Copies from here to there with increments.
+     *
+     * @param handle The context.
+     * @param dst Copy to here.
+     */
+    public void get(Handle handle, IArray1d dst) {
+        opCheck(JCublas2.cublasScopy(
+                handle.get(),
+                Math.min(size(), dst.size()),
+                pointer(),
+                ld(),
+                dst.pointer(),
+                dst.ld()
+        ));
+    }
     
     /**
      * {@inheritDoc}
      */
     @Override
-    public IArray1d set(Handle handle, int[] srcCPU) {
+    public IArray1d set(Handle handle, int... srcCPU) {
         IArray.super.set(handle, srcCPU);
         return this;
     }

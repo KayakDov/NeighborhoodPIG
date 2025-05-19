@@ -4,6 +4,8 @@ import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Double.DArray2d;
 import JCudaWrapper.array.Float.FArray;
 import JCudaWrapper.array.Float.FArray2d;
+import JCudaWrapper.array.Int.IArray1d;
+import JCudaWrapper.array.Int.IArray2d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.PArray;
@@ -22,7 +24,40 @@ public class Test {
 
     public static void main(String[] args) {
 
-        try (Handle hand = new Handle(); PArray2dToD2d p = new PArray2dToD2d(2, 2, 2, 2);) {
+        try(Handle hand = new Handle(); DArray2d da = new DArray2d(2, 2)){
+            da.set(hand, 1,2,3,4);
+            System.out.println(da.entriesAt(1));
+        }
+        
+        try(Handle hand = new Handle(); IArray1d ia = new IArray1d(2)){
+            ia.set(hand, 1,2);
+            System.out.println(ia.toString());
+        }
+        
+        try(Handle hand = new Handle(); IArray2d ia = new IArray2d(2, 2)){
+            ia.set(hand, 1,2,3,4);
+            System.out.println(ia.entriesAt(1).toString());
+        }
+    }
+
+    /**
+     * Checks if all the elements of the array are finite. The check is
+     * performed on the cpu. It is for testing purposes only.
+     *
+     * @param array The array to be checked.
+     * @param handle
+     * @return true if all the elements are finite. False otherwise.
+     */
+    public static int nonFiniteCount(FArray array, Handle handle) {
+        int count = 0;
+        float[] cpuArray = array.get(handle);
+        for (int i = 0; i < cpuArray.length; i++)
+            if (!Float.isFinite(cpuArray[i])) count++;
+        return count;
+    }
+    
+    public static void test2dto2d(){
+                try (Handle hand = new Handle(); PArray2dToD2d p = new PArray2dToD2d(2, 2, 2, 2);) {
             
 
             DArray2d[] a = new DArray2d[]{
@@ -43,22 +78,6 @@ public class Test {
 
         }
 
-    }
-
-    /**
-     * Checks if all the elements of the array are finite. The check is
-     * performed on the cpu. It is for testing purposes only.
-     *
-     * @param array The array to be checked.
-     * @param handle
-     * @return true if all the elements are finite. False otherwise.
-     */
-    public static int nonFiniteCount(FArray array, Handle handle) {
-        int count = 0;
-        float[] cpuArray = array.get(handle);
-        for (int i = 0; i < cpuArray.length; i++)
-            if (!Float.isFinite(cpuArray[i])) count++;
-        return count;
     }
 }
 //verena

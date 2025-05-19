@@ -43,7 +43,7 @@ public interface IArray extends Array {
      * @param srcCPU The cpu array whos contents will be copied to here.
      * @return this
      */
-    public default IArray set(Handle handle, int[] srcCPU) {
+    public default IArray set(Handle handle, int... srcCPU) {
         set(handle, Pointer.to(srcCPU));
         return this;
     }

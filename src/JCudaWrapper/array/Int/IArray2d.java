@@ -92,7 +92,7 @@ public class IArray2d extends Array2d implements IArray {
      */
     @Override
     public IArray1d entriesAt(int index) {
-        return new IArray1d(this, index, linesPerLayer(), entriesPerLine());
+        return new IArray1d(this, index, linesPerLayer());
     }
 
     /**
@@ -105,7 +105,7 @@ public class IArray2d extends Array2d implements IArray {
         try (Handle hand = new Handle()) {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < entriesPerLine(); i++)
-                sb.append(Arrays.toString(entriesAt(i).get(hand)));
+                sb.append(entriesAt(i).toString()).append("\n");;
             return sb.toString();
         }
         

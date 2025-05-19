@@ -9,11 +9,14 @@
  */
 class Get{
 private:
+    const int layerSize;
     const int height;
     const int idx;             ///< Linear index of the element being processed by the current thread.  
     const int layer;           ///< Index of the current slice along the depth dimension (0 to depth - 1).
     const int frame;           ///< Index of the current frame.
-    const int layerSize;
+    const int row;
+    const int col;
+
 public:
     /**
      * @brief Constructs a Get object to calculate indices for accessing elements in a 3D data batch.
@@ -23,7 +26,14 @@ public:
      * @param depth The number of slices along the depth dimension (per frame).
      */
     __device__ Get(const int inputIdx, const int* dim)
-    : idx(inputIdx), height(dim[0]), layerSize(dim[4]), layer((idx / layerSize) % dim[2]), frame(idx / dim[5]) {}
+    : idx(inputIdx), 
+      height(dim[0]), 
+      layerSize(dim[4]), 
+      layer((idx / dim[4]) % dim[2]),
+      frame(idx / dim[5]),
+      row(idx % dim[0]),
+      col((idx % dim[4]) / dim[0]) 
+      {}
 
     /**
      * @brief Retrieves a value from the source data array based on the calculated multi-dimensional index.
@@ -72,22 +82,22 @@ public:
     }
 
     /**
-     * @brief Computes the column-major index within a single 2D slice (height x width).
-     * @param ld Array of leading dimensions for each 2D slice.
-     * @param ldld Leading dimension of the ld array.
-     * @return The column-major index within the current 2D slice.
-     */
-    __device__ int ind(const int* ld, const int ldld) const{
-        return ((idx % layerSize) / height) * ld[frame * ldld + layer] + idx % height;
-    }
-
-    /**
      * @brief Computes the index into the array of pointers (`src`) to access the correct 2D slice.
      * @param ldPtr Leading dimension of the array of pointers.
      * @return The index of the pointer to the current 2D slice.
      */
     __device__ int layerInd(const int ldPtr) const{
         return frame * ldPtr + layer;
+    }
+    
+        /**
+     * @brief Computes the column-major index within a single 2D slice (height x width).
+     * @param ld Array of leading dimensions for each 2D slice.
+     * @param ldld Leading dimension of the ld array.
+     * @return The column-major index within the current 2D slice.
+     */
+    __device__ int ind(const int* ld, const int ldld) const{
+        return col * ld[layerInd(ldld)] + row;
     }
 };
 /**
