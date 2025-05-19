@@ -187,7 +187,9 @@ public class ProcessImage {
 
                     float[][] pixels = imp.getProcessor().getFloatArray();
 
-                    IntStream.range(0, width).parallel().forEach(col -> System.arraycopy(pixels[col], 0, columnMajorSlice, col * height, height));
+                    for(int col = 0; col < width; col++)
+                        for(int row = 0; row < height; row++)
+                            columnMajorSlice[col*height + row] = pixels[col][row];
 
                     DArray2d gpuSlice = new DArray2d(height, width).set(handle, columnMajorSlice);
 
