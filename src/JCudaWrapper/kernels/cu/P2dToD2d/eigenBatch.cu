@@ -36,6 +36,8 @@ private:
     const int layerSize;       ///< Size of a single 2D slice (height * width).
     const int layer;           ///< Index of the current slice along the depth dimension (0 to depth - 1).
     const int frame;           ///< Index of the current frame.
+    const int row;
+    const int col;
 public:
     /**
      * @brief Constructs a Get object to calculate indices for accessing elements in a 3D data batch.
@@ -46,7 +48,14 @@ public:
      * @param downSampleFactorXY The downsampling factor applied in the x and y dimensions.
      */
     __device__ Get(const int inputIdx, const int height, const int* dim, const int downSampleFactorXY)
-    : idx(inputIdx * downSampleFactorXY), height(height), downSampleFactorXY(downSampleFactorXY), layerSize(dim[4]), layer((idx / layerSize) % dim[2]), frame(idx / dim[5]) {}
+    : idx(inputIdx * downSampleFactorXY), 
+      height(height), 
+      downSampleFactorXY(downSampleFactorXY), 
+      layerSize(dim[1]*height), 
+      layer((idx / layerSize) % dim[2]), 
+      frame(idx / (layerSize * dim[2])),
+      row(idx % height),
+      col(downSampleFactorXY * ((idx % (layerSize/downSampleFactorXY/downSampleFactorXY)) / height)) {}
 
     /**
      * @brief Retrieves a value from the source data array based on the calculated multi-dimensional index.
@@ -79,7 +88,7 @@ public:
      * @return The column-major index within the current 2D slice.
      */
     __device__ int ind(const int* ld, const int ldld) const{
-        return downSampleFactorXY * ((idx % (layerSize/downSampleFactorXY/downSampleFactorXY)) / height) * ld[frame * ldld + layer] + idx % height;
+        return col * ld[layerInd(ldld)] + row;
     }
 
     /**
@@ -89,6 +98,14 @@ public:
      */
     __device__ int layerInd(const int ldPtr) const{
         return frame * ldPtr + layer;
+    }
+    
+    /**
+     * @brief Prints the internal state of the Get object.
+     */
+    __device__ void print() const {
+        printf("Get(idx: %d, frame: %d, layer: %d, height: %d, layerSize: %d, downSampleFactorXY: %d, col: %d, row: %d)\n",
+               idx, frame, layer, height, layerSize, downSampleFactorXY, col, row);
     }
 };
 
@@ -229,6 +246,16 @@ public:
      * @return Reference to the element at the specified row and column.
      */
     __device__ double& operator()(int row, int col) {
+        return mat[row][col];
+    }
+    
+    /**
+     * @brief Access a const element in the matrix by row and column index.
+     * @param row Row index.
+     * @param col Column index.
+     * @return Const reference to the element at the specified row and column.
+     */
+    __device__ double operator()(int row, int col) const {
         return mat[row][col];
     }
     
@@ -463,7 +490,67 @@ public:
 
     }
     
-    
+    /**
+     * @brief Computes an eigenvector based on the number of free variables after row reduction
+     * of a matrix (A - lambda * I), where lambda is an eigenvalue.
+     *
+     * This method sets the components of this Vec object to represent the eigenvector.
+     * The eigenvector is determined based on the number of free variables found during
+     * the row echelon form reduction of the matrix and the index of the eigenvalue being considered.
+     *
+     * @param mat The 3x3 matrix (A - lambda * I) in row-major format after row reduction.
+     * @param freeVariables The number of free variables resulting from the row reduction.
+     * @param eigenInd The index of the eigenvalue (0, 1, or 2) for which the eigenvector is being computed.
+     */
+    __device__ void set(const Matrix3x3& mat, int freeVariables, int eigenInd) {
+        double smTol = 1e-6;
+
+        switch (freeVariables) {
+            case 1:
+                if (fabs(mat(0, 0)) <= smTol) set(1, 0, 0);
+                else if (fabs(mat(1, 1)) <= smTol) set(-mat(0, 1) / mat(0, 0), 1, 0);
+                else {
+                    data[2] = 1;
+                    data[1] = -mat(1, 2) / mat(1, 1);
+                    data[0] = (-mat(0, 2) - mat(0, 1) * data[1]) / mat(0, 0);
+                }
+                break;
+
+            case 2:
+                if (fabs(mat(0, 0)) <= smTol) {
+                    if (fabs(mat(0, 1)) <= smTol) {
+                        if (eigenInd % 2 == 0) set(1, 0, 0);
+                        else set(0, 1, 0);
+                    } else if (eigenInd % 2 == 0) set(0, -mat(0, 2) / mat(0, 1), 1);
+                    else set(1, 0, 0);
+                } else {
+                    switch (eigenInd) {
+                        case 0:
+                            if (fabs(mat(0, 1)) >= smTol) set(0, -mat(0, 2) / mat(0, 1), 1);
+                            else set(0, 1, 0);
+                            break;
+                        case 1:
+                            set(-mat(0, 1) / mat(0, 0), 1, 0);
+                            break;
+                        case 2:
+                            set(-mat(0, 2) / mat(0, 0), 0, 1);
+                            break;
+                    }
+                }
+                break;
+
+            case 3:
+                switch (eigenInd) {
+                    case 0: set(1, 0, 0); break;
+                    case 1: set(0, 1, 0); break;
+                    case 2: set(0, 0, 1); break;
+                }
+                break;
+        }
+
+        normalize();
+    }
+        
     /**
      * The azimuthal angle of this vector.
      */
@@ -584,7 +671,14 @@ public:
      */
     __device__ double& operator[](int i) {
         return data[i];
-    }    
+    }
+    
+    /**
+     * @brief Prints the eigenvalues.
+     */
+    __device__ void print() const {
+        printf("EVal(eigenvalue1: %f, eigenvalue2: %f, eigenvalue3: %f)\n", data[0], data[1], data[2]);
+    }
 };
 
 
@@ -616,7 +710,9 @@ public:
  * @param ldzz Array of leading dimensions for the zz components of each slice (size: depth * batchSize).
  * @param ldldzz Leading dimension of the ldzz array.
  * @param ldPtrzz Leading dimension of the zz pointer array.
+ 
  * @param dim  height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+ 
  * @param valDst Array of pointers to the output eigenvalues (size: (n / downSampleFactorXY / downSampleFactorXY) * 3).
  * @param ldEVal Leading dimension for accessing eigenvalues in valDst (stride between sets of 3 eigenvalues).
  * @param ldldEVal Leading dimension of the ldEVal array.
@@ -655,7 +751,7 @@ extern "C" __global__ void eigenBatchKernel(
     const double tolerance
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    
+
     if (idx >= n/downSampleFactorXY/downSampleFactorXY) return;
     
     Get src(idx, dim[0], dim, downSampleFactorXY);
@@ -666,8 +762,10 @@ extern "C" __global__ void eigenBatchKernel(
     					                                src(zz, ldzz, ldldzz, ldPtrzz),
         tolerance
     );
-    
+        
     Get getx3(3*idx, dim[0] * 3, dim, 1);
+    
+    getx3.print();
      
     EVal eVals(mat, valDst[getx3.layerInd(ldPtrEVal)] + getx3.ind(ldEVal, ldldEVal));
 
@@ -676,62 +774,11 @@ extern "C" __global__ void eigenBatchKernel(
 
     mat.subtractFromDiag(eVals[eigenInd]);
     
-    //if(idx == 575*height + 150) mat.print();
-    
+    int freeVariables = mat.rowEchelon();
+        
     Vec vec(vecDst[getx3.layerInd(ldPtrEVec)] + getx3.ind(ldEVec, ldldEVec), tolerance);
     
-    int freeVariables = mat.rowEchelon();
-    
-    double smTol = 1e-6;
-    
-    switch(freeVariables){
-    
-	case 1:
-	    if(fabs(mat(0, 0)) <= smTol) vec.set(1, 0, 0);
-	    else if(fabs(mat(1, 1)) <= smTol) vec.set(-mat(0,1)/mat(0,0), 1, 0);
-	    else {
-	        vec[2] = 1; 
-	        vec[1] = -mat(1,2)/mat(1,1); 
-	        vec[0] = (-mat(0,2) - mat(0,1)*vec[1])/mat(0,0);
-	    }
-	    break;
-	    
-	case 2:
-	    if(fabs(mat(0,0)) <= smTol)
-	        if(fabs(mat(0, 1)) <= smTol)
-	            if(eigenInd % 2 == 0) vec.set(1, 0, 0);
-	            else vec.set(0, 1, 0);
-	        else if(eigenInd % 2 == 0) vec.set(0, -mat(0, 2)/mat(0, 1), 1);
-	            else vec.set(1, 0, 0);
-	    else {
-	    	switch(eigenInd){
-	    	    case 0:
-	    	        if(fabs(mat(0, 1)) >= smTol) vec.set(0, -mat(0, 2)/mat(0, 1), 1);
-	    	    	else vec.set(0, 1, 0);
-	    	    	break;
-	    	    case 1:  vec.set(-mat(0, 1)/mat(0, 0), 1, 0); break;	    	    
-                    case 2: vec.set(-mat(0, 2)/mat(0, 0), 0, 1); 
-	    	}
-	    }
-	    break;
-	    
-	case 3:
-	    switch(eigenInd){
-	        case 0: vec.set(1, 0, 0); break;
-	        case 1: vec.set(0, 1, 0); break;
-	        case 2: vec.set(0, 0, 1);
-	    }	    
-    }
-    
-//    if(idx == 575*height + 150) {
-//        printf("vec in eigenVecBatch3x3 with index %d -> (%d, %d) is : (%f. %f, %f)\nwith tolerance %f\nAnd free variables %d\nAnd eigenInd = %d\n\n", idx, idx/height, idx%height, vec[0], vec[1], vec[2], tolerance, freeVariables, eigenInd);
-//        mat.print();    
-//    }
-
-    
-//    if(idx == 0) {mat.print(); vec.print();}
-
-    vec.normalize();
+    vec.set(mat, freeVariables, eigenInd);
     
     src.set(azimuthal, ldAzi, ldldAzi, ldPtrAzi, vec.azimuth());
     src.set(zenith, ldZen, ldldZen, ldPtrZen, vec.zenith());    

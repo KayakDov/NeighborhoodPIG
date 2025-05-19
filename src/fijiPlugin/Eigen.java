@@ -81,11 +81,25 @@ public class Eigen extends Dimensions implements AutoCloseable {//TODO: maybe in
     public void set(int eigenInd, PArray2dToD2d coherence, PArray2dToD2d azimuth, PArray2dToD2d zenith) {
         Kernel.run("eigenBatch", handle,
                 size(),
-                new PArray2dTo2d[]{mat[0][0], mat[0][1], mat[0][2], mat[1][1], mat[1][2], mat[2][2], values, vectors, coherence, azimuth, zenith},
+                new PArray2dTo2d[]{
+                    mat[0][0], 
+                    mat[0][1], 
+                    mat[0][2], 
+                    mat[1][1], 
+                    mat[1][2], 
+                    mat[2][2], 
+                    values, 
+                    vectors, 
+                    coherence, 
+                    azimuth, 
+                    zenith
+                },
                 this,
-                P.to(downsampleFactorXY), P.to(eigenInd),
+                P.to(downsampleFactorXY), 
+                P.to(eigenInd),
                 P.to(tolerance)
         );
+        
     }
 
     /**

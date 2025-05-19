@@ -40,7 +40,7 @@ public:
       col((idx % dim[4]) / dim[0]),
       row(idx % dim[0]) {
       
-      printf("idx = %d, layer = %d, (idx %% dim[5]) = %d, (idx %% dim[5]) / layerSize = %d\n", idx, layer, (idx % dim[5]), (idx % dim[5]) / layerSize);
+//      printf("idx = %d, layer = %d, (idx %% dim[5]) = %d, (idx %% dim[5]) / layerSize = %d\n", idx, layer, (idx % dim[5]), (idx % dim[5]) / layerSize);
       
       }
 

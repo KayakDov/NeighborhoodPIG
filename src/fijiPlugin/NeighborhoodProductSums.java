@@ -129,7 +129,6 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
                 P.to(1.0),
                 P.to(0.0)
         );
-        System.exit(0);
 
 //        System.out.println("fijiPlugin.NeighborhoodProductSums.set() c = " + workSpace1
 //                .toString());
