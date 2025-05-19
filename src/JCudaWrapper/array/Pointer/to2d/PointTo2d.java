@@ -63,5 +63,15 @@ public interface PointTo2d extends PArray{
     public default int targetSize() {
         return targetDim().size();
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public default void close(){
+        targetLD().close();
+        PArray.super.close();
+    }
+    
     
 }

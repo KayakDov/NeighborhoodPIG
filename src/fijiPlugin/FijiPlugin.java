@@ -117,7 +117,7 @@ public class FijiPlugin implements PlugIn {
         System.out.println("NeighborhoodPIG processing complete.");
 
         if (!Array.allocatedArrays.isEmpty())
-            throw new RuntimeException("Neighborhood PIG has a GPU memory leak.");
+            throw new RuntimeException("Neighborhood PIG has a GPU memory leak. " + Array.allocatedArrays.size() + " arrays remain allocated.  They are " + Array.allocatedArrays.toString());
         
         System.out.println("fijiPlugin.FijiPlugin.defaultRun() user input:\n" + ui);
 

@@ -215,6 +215,7 @@ public class ProcessImage {
      * folder.
      */
     public static final PArray2dToD2d processImages(Handle handle, File[] pics, int height, int width, int depth) {
+
         PArray2dToD2d pixelsGPU = new PArray2dToD2d(depth, pics.length / depth, height, width);
         
         double[] imgPixelsColMaj = new double[width * height];

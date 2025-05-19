@@ -114,7 +114,11 @@ public interface PArray extends Array {
      */
     public default void clearPointers(Handle hand){
         Pointer[] ptrs = getPointers(hand);
-        for(Pointer ptr: ptrs) JCuda.cudaFree(ptr);
+        for(Pointer ptr: ptrs){
+            if (!allocatedArrays.remove(ptr))
+                System.err.println("Trying to remove a pointer that does not exist or has already been removed.");
+            JCuda.cudaFree(ptr);
+        }
     }
     
     /**

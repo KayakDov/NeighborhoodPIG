@@ -46,17 +46,11 @@ public class ColorHeatMapCreator extends HeatMapCreator implements AutoCloseable
         colors = new PArray2dToI2d(depth, batchSize, height, width);
         colors.initTargets(handle);
 
-        System.out.println("imageWork.ColorHeatMapCreator.<init>() ld\n" + colors.targetLD());
-        System.out.println("imageWork.ColorHeatMapCreator.<init>() height = " + colors.targetDim().entriesPerLine);
-        System.out.println("imageWork.ColorHeatMapCreator.<init>() colors.toString()\n "+ colors.toString());
-        
         Kernel.run("colors", handle,
                 size(),
                 new PArray2dTo2d[]{orientation, colors, coherence},
                 this
         );
-
-        System.out.println("imageWork.ColorHeatMapCreator.<init>() 2 \n" + colors.toString());
         
         orientation.setProduct(handle, 0.5);
 
