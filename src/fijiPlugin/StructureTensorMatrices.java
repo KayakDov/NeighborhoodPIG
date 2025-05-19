@@ -9,7 +9,7 @@ import JCudaWrapper.resourceManagement.Handle;
  *
  * @author E. Dov Neimand
  */
-public class StructureTensorMatrices implements AutoCloseable {
+public class StructureTensorMatrices extends Dimensions implements AutoCloseable {
 
     public final Eigen eigen;
     private final PArray2dToD2d azimuth, zenith, coherence;
@@ -24,6 +24,7 @@ public class StructureTensorMatrices implements AutoCloseable {
      *
      */
     public StructureTensorMatrices(Handle handle, Gradient grad, UserInput ui) {
+        super(handle, grad.x[0]);
 
         float bigTolerance = 255*255*ui.neighborhoodSize.xyR*ui.neighborhoodSize.xyR*ui.neighborhoodSize.zR*5e-7f;
         
@@ -35,12 +36,13 @@ public class StructureTensorMatrices implements AutoCloseable {
                     nps.set(grad.x[i], grad.x[j], eigen.at(i, j));
         }
        
-        azimuth = new PArray2dToD2d(grad.height / ui.downSampleFactorXY, grad.width / ui.downSampleFactorXY, grad.depth, grad.batchSize);        
+        azimuth = new PArray2dToD2d(depth, batchSize, height / ui.downSampleFactorXY, width / ui.downSampleFactorXY);        
         zenith = azimuth.copyDim(handle);
         coherence = azimuth.copyDim(handle);        
         
         eigen.set(Math.min(grad.depth, 2), coherence, zenith, coherence);
         
+        System.out.println("fijiPlugin.StructureTensorMatrices.<init>() \n" + eigen.vectors.toString());
         
     }
 

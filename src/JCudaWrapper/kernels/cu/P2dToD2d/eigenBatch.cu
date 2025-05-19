@@ -414,6 +414,57 @@ class Vec {
 private:
     double* data;
     double tolerance;
+    
+    /**
+     * Sorts an array in descending order.
+     */
+    __device__ void sortDescending() {
+        if(data[0] < data[1]) swap(data[0], data[1]);
+        if(data[0] < data[2]) swap(data[0], data[2]);
+        if(data[1] < data[2]) swap(data[1], data[2]);
+    }
+    
+    /**
+     * Computes the real roots of a cubic equation and stores them in this vector.
+     *
+     * @param b Coefficient of x^2.
+     * @param c Coefficient of x.
+     * @param d Constant term.
+     * @param eigenInd The index of the eigenvalue to be returned from this method.  0 for the largest eigenValue and 2 for the smallest.
+     * @param val Output array to store roots.
+     * @return The eigen value at the desired index.
+     */
+    __device__ void cubicRoot(const double b, const double c, const double d){
+	
+	double inv3 = 1.0/3;
+	
+	double nBInv3 = -b*inv3;
+	
+	double p = fma(nBInv3, b, c) * inv3;
+	double q = fma(fma(b/13.5, b, -c*inv3), b, d);
+
+	if (p >= -1e-9) set(nBInv3, nBInv3, nBInv3);
+	
+	else{
+	    
+	    Affine line(2 * sqrt(-p), nBInv3);
+	
+	    double arg = q/prod(line.getSlope(), p);
+	
+	    if(arg > 1 - 1e-6) line.map(1, -0.5, data);
+	    else if(arg < -1 + 1e-6) line.map(-1, 0.5, data);
+	    else {
+
+	        double acosArg = acos(arg); 
+
+	        set(line(cos(acosArg * inv3)), 
+ 	            line(cos(fma(2, M_PI, acosArg) * inv3)), 
+	            line(cos(fma(4, M_PI, acosArg) * inv3))
+	    	);
+	    }	   
+	}
+    }
+    
 public:
     /**
      * @brief Constructs a Vec object.
@@ -502,7 +553,7 @@ public:
      * @param freeVariables The number of free variables resulting from the row reduction.
      * @param eigenInd The index of the eigenvalue (0, 1, or 2) for which the eigenvector is being computed.
      */
-    __device__ void set(const Matrix3x3& mat, int freeVariables, int eigenInd) {
+    __device__ void setEigenVec(const Matrix3x3& mat, int freeVariables, int eigenInd) {
         double smTol = 1e-6;
 
         switch (freeVariables) {
@@ -568,118 +619,23 @@ public:
         else if(fabs(data[2]) + fabs(data[1]) + fabs(data[0]) <= tolerance) return nan("");
         else return acos(data[2]);
     }
-};
-
-class EVal{
-private:
-    double data[3];
-    
-    /**
-     * Sorts an array in descending order.
-     */
-    __device__ void sortDescending() {
-        if(data[0] < data[1]) swap(data[0], data[1]);
-        if(data[0] < data[2]) swap(data[0], data[2]);
-        if(data[1] < data[2]) swap(data[1], data[2]);
-    }
-    
-    
-    /**
-     * @brief Sets the components of the vector.
-     * @param x The x-component.
-     * @param y The y-component.
-     * @param z The z-component.
-     */
-    __device__ void set(double x, double y, double z){
-        data[0] = x; data[1] = y; data[2] = z;
-    }
-    
-    /**
-     * Writes these values to the desired location.
-     */
-    __device__ void writeTo(double* to){
-        to[0] = data[0]; to[1] = data[1]; to[2] = data[2];
-    }
-
-    /**
-     * Computes the real roots of a cubic equation.
-     *
-     * @param b Coefficient of x^2.
-     * @param c Coefficient of x.
-     * @param d Constant term.
-     * @param eigenInd The index of the eigenvalue to be returned from this method.  0 for the largest eigenValue and 2 for the smallest.
-     * @param val Output array to store roots.
-     * @return The eigen value at the desired index.
-     */
-    __device__ void cubicRoot(const double b, const double c, const double d){
-	
-	double inv3 = 1.0/3;
-	
-	double nBInv3 = -b*inv3;
-	
-	double p = fma(nBInv3, b, c) * inv3;
-	double q = fma(fma(b/13.5, b, -c*inv3), b, d);
-
-	if (p >= -1e-9) set(nBInv3, nBInv3, nBInv3);
-	
-	else{
-	    
-	    Affine line(2 * sqrt(-p), nBInv3);
-	
-	    double arg = q/prod(line.getSlope(), p);
-	
-	    if(arg > 1 - 1e-6) line.map(1, -0.5, data);
-	    else if(arg < -1 + 1e-6) line.map(-1, 0.5, data);
-	    else {
-
-	        double acosArg = acos(arg); 
-
-	        set(line(cos(acosArg * inv3)), 
- 	            line(cos(fma(2, M_PI, acosArg) * inv3)), 
-	            line(cos(fma(4, M_PI, acosArg) * inv3))
-	    	);
-	    }
-	    		   
-//	   if(blockIdx.x * blockDim.x + threadIdx.x == 575*1153 + 150){
-//	       printf("eigenBatch Has eigenvalues (%lf, %lf, %lf)\n", data[0], data[1], data[2]);
-//	   }		   
-	}
-    }
-public:
 
     /**
      * Finds the eigenvalues.
      *@param mat The matrix for whom the eigenvalues are desired.
      */
-    __device__ EVal(const Matrix3x3& mat, double* dst){
-       
- 
+    __device__ void setEVal(const Matrix3x3& mat){
+    
         cubicRoot(-mat.trace(), mat.diagMinorSum(), -mat.determinant());
         sortDescending();
-        writeTo(dst);
     }
     
     __device__ int multiplicity(int ind){
         return (data[0] == data[ind]) + (data[1] == data[ind]) + (data[2] == data[ind]) - 1;
     }
     
-    
-    /**
-     * @brief Accesses a component of the vector using array-like indexing.
-     * @param i The index of the component (0 for x, 1 for y, 2 for z).
-     * @return A reference to the requested vector component.
-     */
-    __device__ double& operator[](int i) {
-        return data[i];
-    }
-    
-    /**
-     * @brief Prints the eigenvalues.
-     */
-    __device__ void print() const {
-        printf("EVal(eigenvalue1: %f, eigenvalue2: %f, eigenvalue3: %f)\n", data[0], data[1], data[2]);
-    }
 };
+
 
 
 /**
@@ -765,22 +721,21 @@ extern "C" __global__ void eigenBatchKernel(
         
     Get getx3(3*idx, dim[0] * 3, dim, 1);
     
-    getx3.print();
-     
-    EVal eVals(mat, valDst[getx3.layerInd(ldPtrEVal)] + getx3.ind(ldEVal, ldldEVal));
-
+    Vec eVals(valDst[getx3.layerInd(ldPtrEVal)] + getx3.ind(ldEVal, ldldEVal), tolerance);
+    eVals.setEVal(mat);
+    
     if (eVals[0] <=  tolerance) src.set(coherence, ldCoh, ldldCoh, ldPtr, 0);
     else src.set(coherence, ldCoh, ldldCoh, ldPtr, (eVals[0] - eVals[1]) / (eVals[0] + eVals[1] + eVals[2]));
 
     mat.subtractFromDiag(eVals[eigenInd]);
-    
+   
     int freeVariables = mat.rowEchelon();
         
     Vec vec(vecDst[getx3.layerInd(ldPtrEVec)] + getx3.ind(ldEVec, ldldEVec), tolerance);
     
-    vec.set(mat, freeVariables, eigenInd);
-    
+    vec.setEigenVec(mat, freeVariables, eigenInd);
+        
     src.set(azimuthal, ldAzi, ldldAzi, ldPtrAzi, vec.azimuth());
-    src.set(zenith, ldZen, ldldZen, ldPtrZen, vec.zenith());    
+    src.set(zenith, ldZen, ldldZen, ldPtrZen, vec.zenith());
 }
 
