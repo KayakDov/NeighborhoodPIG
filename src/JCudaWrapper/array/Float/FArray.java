@@ -24,7 +24,7 @@ public interface FArray extends Array {
     public default void get(Handle handle, float[] dst) {
         if (ld() > 1) {
             try (FArray1d gpuArray = new FArray1d(dst.length)) {
-                get(handle, gpuArray);
+                get(handle, (FArray1d)gpuArray);
                 handle.synch();
                 gpuArray.get(handle, Pointer.to(dst));
             }

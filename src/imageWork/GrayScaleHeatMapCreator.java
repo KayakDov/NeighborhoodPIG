@@ -41,6 +41,7 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
      */
     public GrayScaleHeatMapCreator(String[] sliceNames, String stackName, Handle handle, PArray2dToD2d image, PArray2dToD2d coherence, double tolerance) {
         super(sliceNames, stackName, handle, image);
+        
         this.image = new PArray2dToF2d(image.entriesPerLine(), image.linesPerLayer(), image.targetDim().entriesPerLine, image.targetDim().numLines);
         this.image.initTargets(handle);
 
@@ -69,6 +70,7 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
      * @return The image plus for this image.
      */
     private ImagePlus getIP() {//TODO: look into multi threading this.
+        
         ImageStack stack = new ImageStack(width, height);
 
         float[] colImage = new float[height];

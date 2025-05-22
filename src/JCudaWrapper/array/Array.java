@@ -57,7 +57,7 @@ public interface Array extends AutoCloseable {
      * Returns a pointer to the element at the specified index in this array.
      *
      * @param offset The index of the element.
-     * @return A CUdeviceptr pointing to the specified index.
+     * @return A Pointer pointing to the specified index.
      *
      * @throws ArrayIndexOutOfBoundsException if the index is out of bounds.
      */

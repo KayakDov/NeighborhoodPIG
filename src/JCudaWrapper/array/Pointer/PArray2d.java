@@ -1,15 +1,11 @@
 package JCudaWrapper.array.Pointer;
 
 import JCudaWrapper.array.Array;
-import JCudaWrapper.array.Array1d;
 import JCudaWrapper.array.Array2d;
-import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.Singleton;
 import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;
 import jcuda.Pointer;
 import jcuda.Sizeof;
-import jcuda.driver.CUdeviceptr;
 import jcuda.runtime.JCuda;
 
 /**

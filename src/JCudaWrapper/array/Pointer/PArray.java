@@ -46,6 +46,7 @@ public interface PArray extends Array {
     static CUdeviceptr[] emptyHostArray(int length) {
         CUdeviceptr[] array = new CUdeviceptr[length];
         Arrays.setAll(array, i -> new CUdeviceptr());
+
         return array;
     }
 

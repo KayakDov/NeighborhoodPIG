@@ -106,9 +106,9 @@ public class FijiPlugin implements PlugIn {
         try (Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, ui)) {
 
             try(HeatMapCreator hmc = np.getAzimuthalAngles(false, .01)){hmc.printToFile("images/output/test3/Azimuthal");}
-
-            if (depth > 1)
-                try(HeatMapCreator hmc = np.getZenithAngles(true, .01)){hmc.printToFile("images/output/test3/Zenith");}
+//
+//            if (depth > 1)
+//                try(HeatMapCreator hmc = np.getZenithAngles(true, .01)){hmc.printToFile("images/output/test3/Zenith");}
 
 //            np.getVectorImg(8, 6, false);
 

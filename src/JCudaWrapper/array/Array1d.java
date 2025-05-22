@@ -8,6 +8,7 @@ import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaMemcpyKind;
 import jcuda.runtime.cudaPitchedPtr;
 import JCudaWrapper.array.Pointer.to1d.PointTo1d;
+import java.util.Arrays;
 
 /**
  * A one-dimensional array stored in GPU memory. This class provides methods for

@@ -29,12 +29,13 @@ public class DArray1d extends Array1d implements DArray {
     public DArray1d(int size) {
         super(size, Sizeof.DOUBLE);
     }
-    
+
     /**
-     * Constructs a 1d array from a pointer to a 1d array.    
+     * Constructs a 1d array from a pointer to a 1d array.
+     *
      * @param sing The singleton containing the pointer.
      */
-    public DArray1d(Pointer sing, int size){
+    public DArray1d(Pointer sing, int size) {
         super(sing, size, Sizeof.DOUBLE);
     }
 
@@ -181,7 +182,6 @@ public class DArray1d extends Array1d implements DArray {
 //        if (src != this) set(handle, this);
 //        return multiply(handle, scalar);
 //    }
-
     /**
      * Computes the Euclidean norm of the vector X (2-norm): This method
      * synchronizes the handle.
@@ -491,18 +491,19 @@ public class DArray1d extends Array1d implements DArray {
 
         return this;
     }
+
     /**
-     * Performs matrix-vector multiplication with a symmetric banded matrix and 
+     * Performs matrix-vector multiplication with a symmetric banded matrix and
      * updates this vector as:
      *
      * <pre>
      * this = timesA * A * x + timesThis * this
      * </pre>
      *
-     * The symmetric banded matrix A, stored compactly in {@code Ma}, retains 
-     * only its upper (or lower) part, reducing memory usage. The first row of 
-     * {@code Ma} contains the main diagonal, with subsequent rows storing 
-     * superdiagonals (if {@code upper} is true) or subdiagonals otherwise. 
+     * The symmetric banded matrix A, stored compactly in {@code Ma}, retains
+     * only its upper (or lower) part, reducing memory usage. The first row of
+     * {@code Ma} contains the main diagonal, with subsequent rows storing
+     * superdiagonals (if {@code upper} is true) or subdiagonals otherwise.
      * {@code ldm} defines the leading dimension (row count) in this storage.
      *
      * This method uses JCublas `cublasDsbmv` for efficient GPU computation.
@@ -700,6 +701,21 @@ public class DArray1d extends Array1d implements DArray {
         }
 
         return cpuArray;
+
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    public void get(Handle handle, double[] dst) {
+
+        if (ld() > 1) {
+            try (DArray1d gpuArray = new DArray1d(dst.length)) {
+                get(handle, gpuArray);
+                handle.synch();
+                gpuArray.get(handle, Pointer.to(dst));
+            }
+        } else get(handle, Pointer.to(dst));
 
     }
 }

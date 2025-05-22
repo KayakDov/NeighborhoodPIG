@@ -686,6 +686,22 @@ public class FArray1d extends Array1d implements FArray {
             return Arrays.toString(get(handle));
         }
     }
+    
+    
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public void get(Handle handle, float[] dst) {
+        if (ld() > 1) {
+            try (FArray1d gpuArray = new FArray1d(dst.length)) {
+                get(handle, (FArray1d)gpuArray);
+                handle.synch();
+                gpuArray.get(handle, Pointer.to(dst));
+            }
+        } else
+            get(handle, Pointer.to(dst));
+    }
 
     /**
      * {@inheritDoc}
