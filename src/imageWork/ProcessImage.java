@@ -193,7 +193,11 @@ public class ProcessImage {
 
                     DArray2d gpuSlice = new DArray2d(height, width).set(handle, columnMajorSlice);
 
-                    processedImage.get(slice, frame).set(handle, gpuSlice);
+                    System.out.println("imageWork.ProcessImage.processManyImages()");
+                    
+                    processedImage.get(slice - 1, frame - 1).setVal(handle, gpuSlice);
+                    
+                    
                 }
             }
         }

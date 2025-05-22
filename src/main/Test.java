@@ -24,20 +24,7 @@ public class Test {
 
     public static void main(String[] args) {
 
-        try(Handle hand = new Handle(); DArray2d da = new DArray2d(2, 2)){
-            da.set(hand, 1,2,3,4);
-            System.out.println(da.entriesAt(1));
-        }
-        
-        try(Handle hand = new Handle(); IArray1d ia = new IArray1d(2)){
-            ia.set(hand, 1,2);
-            System.out.println(ia.toString());
-        }
-        
-        try(Handle hand = new Handle(); IArray2d ia = new IArray2d(2, 2)){
-            ia.set(hand, 1,2,3,4);
-            System.out.println(ia.entriesAt(1).toString());
-        }
+        test2dto2d();
     }
 
     /**
@@ -73,6 +60,7 @@ public class Test {
             a[3].set(hand, 7, 8, 70, 80);
 
             p.set(hand, a);
+            p.get(1, 0).set(hand, a[3]);
 
             System.out.println(p.toString());
 

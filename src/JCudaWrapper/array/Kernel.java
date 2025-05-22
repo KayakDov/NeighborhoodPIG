@@ -80,12 +80,13 @@ public class Kernel implements AutoCloseable {
      * @param dataType The type of data the file operates on.
      */
     public Kernel(String name, Type dataType) {
-        String fileName = name + ".ptx", functionName = name + "Kernel";
+        String fileName = "JCudaWrapper/kernels/ptx/" + dataType.folder + "/" + name + ".ptx", 
+               functionName = name + "Kernel";
         this.module = new CUmodule();
 
         try (
                 InputStream resourceStream = getClass().getClassLoader()
-                .getResourceAsStream("JCudaWrapper/kernels/ptx/" + dataType.folder + "/" + fileName)
+                .getResourceAsStream(fileName);
                 ) {
 
             File tempFile = File.createTempFile("kernel_", ".ptx");
@@ -95,7 +96,7 @@ public class Kernel implements AutoCloseable {
             checkResult(JCudaDriver.cuModuleLoad(module, tempFile.getAbsolutePath()));
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to load kernel file " + e.toString(), e);
+            throw new RuntimeException("Failed to load kernel file " + e.toString() +"\nFile name: " + fileName, e);
         }
 
         function = new CUfunction();

@@ -42,15 +42,17 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
     public GrayScaleHeatMapCreator(String[] sliceNames, String stackName, Handle handle, PArray2dToD2d image, PArray2dToD2d coherence, double tolerance) {
         super(sliceNames, stackName, handle, image);
         this.image = new PArray2dToF2d(image.entriesPerLine(), image.linesPerLayer(), image.targetDim().entriesPerLine, image.targetDim().numLines);
+        this.image.initTargets(handle);
 
         this.coherence = coherence;
         this.tolerance = tolerance;
         
-        Kernel.run("mapToFLoat", handle, 
-                image.deepSize(),
-                new PArray2dTo2d[]{image, this.image},
+        Kernel.run("mapToFloat", handle, 
+                size(),
+                new PArray2dTo2d[]{this.image, image},
                 this
-        );        
+        );
+        
     }
 
     /**

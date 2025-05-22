@@ -46,7 +46,7 @@ public class FijiPlugin implements PlugIn {
     
     @Override
     public void run(String string) {
-
+        
         ImagePlus imp = ij.WindowManager.getCurrentImage();
 
         imp.setOpenAsHyperStack(true);
@@ -84,7 +84,6 @@ public class FijiPlugin implements PlugIn {
             if (ui.useCoherence)
                 try(HeatMapCreator hmc = np.getCoherence()){hmc.printToFiji();}
 
-            //ij.IJ.showMessage("NeighborhoodPIG processing complete.");
         }
         if (!Array.allocatedArrays.isEmpty())
             throw new RuntimeException("Neighborhood PIG has a GPU memory leak.");
@@ -106,7 +105,7 @@ public class FijiPlugin implements PlugIn {
 
         try (Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, ui)) {
 
-            try(HeatMapCreator hmc = np.getAzimuthalAngles(true, .01)){hmc.printToFile("images/output/test3/Azimuthal");}
+            try(HeatMapCreator hmc = np.getAzimuthalAngles(false, .01)){hmc.printToFile("images/output/test3/Azimuthal");}
 
             if (depth > 1)
                 try(HeatMapCreator hmc = np.getZenithAngles(true, .01)){hmc.printToFile("images/output/test3/Zenith");}
@@ -128,6 +127,7 @@ public class FijiPlugin implements PlugIn {
             defaultRun();
             return;
         }
+
 
     }
 
