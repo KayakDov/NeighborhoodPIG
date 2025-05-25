@@ -2,10 +2,8 @@ package imageWork;
 
 import FijiInput.UserInput;
 import JCudaWrapper.array.Double.DArray2d;
-import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
-import fijiPlugin.NeighborhoodPIG;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
@@ -16,7 +14,6 @@ import java.awt.image.Raster;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.stream.IntStream;
 import javax.imageio.ImageIO;
 
 /**

@@ -22,7 +22,7 @@ public interface FArray extends Array {
      * @param dst Where the array is to be copied to.
      */
     public default void get(Handle handle, float[] dst) {
-        if (ld() > 1) {
+        if (hasPadding()) {
             try (FArray1d gpuArray = new FArray1d(dst.length)) {
                 get(handle, (FArray1d)gpuArray);
                 handle.synch();

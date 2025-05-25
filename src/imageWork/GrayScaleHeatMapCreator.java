@@ -44,7 +44,7 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
      */
     public GrayScaleHeatMapCreator(String[] sliceNames, String stackName, Handle handle, PArray2dToD2d image, PArray2dToD2d coherence, double tolerance) {
         super(sliceNames, stackName, handle, image);
-        
+
         this.image = new PArray2dToF2d(image.entriesPerLine(), image.linesPerLayer(), image.targetDim().entriesPerLine, image.targetDim().numLines);
         this.image.initTargets(handle);
 
@@ -78,30 +78,36 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
 
         float[] layerImage = new float[layerSize()];
         double[] layerCoherence = new double[layerSize()];
-        float[] result = new float[layerSize()];
 
         for (int t = 0; t < batchSize; t++) {
 
             for (int z = 0; z < depth; z++) {
 
-                image.get(z, t).getVal(handle).get(handle, layerImage);                
+                FloatProcessor fp = new FloatProcessor(width, height);
+//                fp.setMinAndMax(0, Math.PI);//TODO:not sure if I need this line.
+
+                image.get(z, t).getVal(handle).get(handle, layerImage);
                 coherence.get(z, t).getVal(handle).get(handle, layerCoherence);
-                
-                for (int row = 0; row < height; row++)
-                    for (int col = 0; col < width; col++) {
+
+                for (int col = 0; col < width; col++)
+                    for (int row = 0; row < height; row++) {
                         int fromInd = col * height + row;
-                        result[row * width + col] = layerImage[fromInd] * (layerCoherence[fromInd] <= tolerance ? 0f : 1f);
+
+                        fp.setf(col, row, layerImage[fromInd] * (layerCoherence[fromInd] <= tolerance ? 0f : 1f));
                     }
-                System.out.println("imageWork.GrayScaleHeatMapCreator.getIP()\n" + Arrays.toString(result));
-                stack.addSlice(
-                        sliceNames[z],
-                        new FloatProcessor(width, height, result)
-                );
+                stack.addSlice(sliceNames[z], fp);
+
+                // --- ADD THIS SECTION TO PRINT PIXEL VALUES ---
+                System.out.println("--- Pixels for Frame " + (t + 1) + ", Z-Slice " + (z + 1) + " ---");
+                printFloatProcessorPixels(fp);
+                System.out.println("--- End Pixels ---");
+                // --- END ADDITION ---
 
             }
         }
-        
-        
+
+        ImagePlus imp = new ImagePlus(stackName, stack);
+        imp.getProcessor().setMinAndMax(0, Math.PI);
 
         return setToHyperStack(new ImagePlus(stackName, stack));
     }
@@ -122,4 +128,21 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
         image.close();
     }
 
+    // Helper method to print the pixels of a FloatProcessor
+    private static void printFloatProcessorPixels(FloatProcessor fp) {
+        float[] pixels = (float[]) fp.getPixels(); // Get the 1D pixel array
+        int w = fp.getWidth();
+        int h = fp.getHeight();
+
+        for (int row = 0; row < h; row++) {
+            StringBuilder rowOutput = new StringBuilder();
+            for (int col = 0; col < w; col++) {
+                // Pixels are stored in row-major order within the 1D array
+                // Index for (row, col) is row * width + col
+                float pixelValue = pixels[row * w + col];
+                rowOutput.append(String.format("%.2f ", pixelValue)); // Format to 2 decimal places for brevity
+            }
+            System.out.println(rowOutput.toString());
+        }
+    }
 }

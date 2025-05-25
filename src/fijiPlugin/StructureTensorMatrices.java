@@ -40,7 +40,7 @@ public class StructureTensorMatrices extends Dimensions implements AutoCloseable
         zenith = azimuth.copyDim(handle);
         coherence = azimuth.copyDim(handle);        
         
-        eigen.set(0/*Math.min(grad.depth, 2)*/, coherence, azimuth, zenith);//TODO: restore higher eigen index
+        eigen.set(Math.min(grad.depth, 2), coherence, azimuth, zenith);//TODO: restore higher eigen index
     }
 
 
