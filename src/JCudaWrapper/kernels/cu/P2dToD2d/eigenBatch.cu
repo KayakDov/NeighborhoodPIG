@@ -625,8 +625,7 @@ public:
      * The azimuthal angle of this vector.
      */
     __device__ double azimuth(){
-        return (fabs(data[0]) <= tolerance && fabs(data[1]) <= tolerance) ? nan("") : atan2(data[1], data[0]);
-
+        return (data[0]*data[0] + data[1]*data[1] <= tolerance) ? nan("") : atan2(data[1], data[0]);
     }
     
     /**
@@ -635,7 +634,7 @@ public:
     __device__ double zenith(){
         if(data[2] >= 1 - tolerance) return 0;
         else if(data[2] <= tolerance - 1) return M_PI;
-        else if(fabs(data[2]) + fabs(data[1]) + fabs(data[0]) <= tolerance) return nan("");
+        else if(lengthSquared() <= tolerance) return nan("");
         else return acos(data[2]);
     }
 
@@ -753,10 +752,10 @@ extern "C" __global__ void eigenBatchKernel(
    
     int freeVariables = mat.rowEchelon();
         
-    Vec vec(getx3.ptr(vecDst, ldEVec, ldldEVec, ldPtrEVec), tolerance);
+    Vec vec(getx3.ptr(vecDst, ldEVec, ldldEVec, ldPtrEVec), 1e-5);
     
     vec.setEigenVec(mat, freeVariables, eigenInd);
-        
+
     src.set(azimuthal, ldAzi, ldldAzi, ldPtrAzi, vec.azimuth());
     src.set(zenith, ldZen, ldldZen, ldPtrZen, vec.zenith());
     

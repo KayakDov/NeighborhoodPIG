@@ -76,7 +76,7 @@ public interface Array extends AutoCloseable {
         if (!allocatedArrays.remove(ptr))
             throw new RuntimeException("Trying to remove a pointer that does not exist or has already been removed.");
         JCuda.cudaFree(ptr);
-
+//        System.out.println("JCudaWrapper.array.Array.close() " + pointer().toString());
     }
 
     /**
@@ -273,7 +273,7 @@ public interface Array extends AutoCloseable {
      * otherwise.
      */
     public default boolean hasPadding() {
-        return ld() != entriesPerLine() && size() != 1;
+        return ld() != 1 && (ld() <= entriesPerLine() || linesPerLayer() > 1);//ld() != entriesPerLine() && size() != 1;
     }
 
     /**

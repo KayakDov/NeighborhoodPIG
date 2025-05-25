@@ -90,7 +90,7 @@ public class DStrideArray2d extends DArray2d implements StrideArray {
      */
     @Override
     public DArray1d as1d() {
-        return new DArray1d(this, 0, size(), 1);
+        return new DArray1d(this, 0, size(), ld());
     }
 
     /**

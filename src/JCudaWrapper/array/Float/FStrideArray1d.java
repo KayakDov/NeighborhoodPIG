@@ -90,7 +90,7 @@ public class FStrideArray1d extends FArray1d implements StrideArray {
      */
     @Override
     public FArray1d sub(int start, int length) {
-        return new FArray1d(this, start, length);
+        return new FArray1d(this, start, length, ld());
     }
 
     /**
@@ -138,7 +138,7 @@ public class FStrideArray1d extends FArray1d implements StrideArray {
      */
     @Override
     public FArray1d getGrid(int arrayIndex) {
-        return new FArray1d(this, arrayIndex * strideLines(), arrayIndex * strideLines() + subArraySize());
+        return new FArray1d(this, arrayIndex * strideLines(), arrayIndex * strideLines() + subArraySize(), ld());
     }
 
     /**

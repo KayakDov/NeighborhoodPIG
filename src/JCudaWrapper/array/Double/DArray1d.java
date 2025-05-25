@@ -76,20 +76,7 @@ public class DArray1d extends Array1d implements DArray {
      * @param src The array to be copied from.
      * @param start The start index of the array.
      * @param size The length of the array.
-     */
-    public DArray1d(DArray src, int start, int size) {
-        super(src, start, size, 1);
-    }
-
-    /**
-     * Constructs a 1d sub array of the proffered array. If the array copied
-     * from is not 1d, then depending on the length, this array may include
-     * pitch.
-     *
-     * @param src The array to be copied from.
-     * @param start The start index of the array.
-     * @param size The length of the array.
-     * @param ld The increment.
+     * @param ld The increment over elements as they are stored in the gpu.
      */
     public DArray1d(DArray src, int start, int size, int ld) {
         super(src, start, size, ld);
@@ -664,7 +651,7 @@ public class DArray1d extends Array1d implements DArray {
      */
     @Override
     public DArray1d sub(int start, int length) {
-        return new DArray1d(this, start, length);
+        return new DArray1d(this, start, length, ld());
     }
 
     /**
@@ -709,9 +696,10 @@ public class DArray1d extends Array1d implements DArray {
      */
     public void get(Handle handle, double[] dst) {
 
-        if (ld() > 1) {
+        if (hasPadding()) {
             try (DArray1d gpuArray = new DArray1d(dst.length)) {
-                get(handle, gpuArray);
+                
+                get(handle, (DArray1d)gpuArray);
                 handle.synch();
                 gpuArray.get(handle, Pointer.to(dst));
             }

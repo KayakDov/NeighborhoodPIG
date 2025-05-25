@@ -96,19 +96,19 @@ public class FijiPlugin implements PlugIn {
 
 //        String imagePath = "images/input/cyl/"; int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
 //        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
-        String imagePath = "images/input/5debugs/"; int depth = 9; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
-//        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
+//        String imagePath = "images/input/5debugs/"; int depth = 9; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
+        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(30, 1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 
         UserInput ui = UserInput.defaultVals(neighborhoodSize);
 
         try (Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imagePath, depth, ui)) {
-
+                        
             try(HeatMapCreator hmc = np.getAzimuthalAngles(false, .01)){hmc.printToFile("images/output/test3/Azimuthal");}
-//
-//            if (depth > 1)
-//                try(HeatMapCreator hmc = np.getZenithAngles(true, .01)){hmc.printToFile("images/output/test3/Zenith");}
+
+            if (depth > 1)
+                try(HeatMapCreator hmc = np.getZenithAngles(false, .01)){hmc.printToFile("images/output/test3/Zenith");}
 
 //            np.getVectorImg(8, 6, false);
 

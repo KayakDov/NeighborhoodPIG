@@ -265,7 +265,7 @@ public class FArray2d extends Array2d implements FLineArray {
      */
     @Override
     public FArray1d entriesAt(int index) {
-        return new FArray1d(this, index, linesPerLayer());
+        return new FArray1d(this, index, linesPerLayer(), ld());
     }
 
     /**

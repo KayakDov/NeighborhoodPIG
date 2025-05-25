@@ -18,7 +18,7 @@ public interface DLineArray extends DArray {
      * @return
      */
     public default DArray1d getLine(int lineIndex) {
-        return new DArray1d(this, ld() * lineIndex, entriesPerLine());
+        return new DArray1d(this, ld() * lineIndex, entriesPerLine(), 1);
     }
 
     /**
@@ -36,7 +36,7 @@ public interface DLineArray extends DArray {
 //    @Override
 //    public default DArray setProduct(Handle handle, double scalar, DArray src) {
 //        Kernel.run("multiplyScalar", handle, size(), 
-//                new PArray2dTo2d[]{this},
+//                new PpArray2dTo2d[]{this},
 //                P.to(src), P.to(src.ld()), P.to(src.entriesPerLine()), P.to(scalar));
 //        return this;
 //    }

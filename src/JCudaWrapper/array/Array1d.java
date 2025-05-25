@@ -61,15 +61,13 @@ public abstract class Array1d implements Array {
      * @param start The start index in the array copied from where this array
      * begins.
      * @param size The number of elements in this array.
-     * @param ld The increment between elements of the src. If the src is
-     * already incremented, then this is the rate at which to increment over
-     * those increments.
+     * @param ld The increment between elements of the data as stored on the gpu.
      */
     public Array1d(Array src, int start, int size, int ld) {
         bytesPerEntry = src.bytesPerEntry();
         pointer = src.pointer().withByteOffset(start * bytesPerEntry);
-        this.size = size;
-        this.ld = size == 1? 1 : src.ld() * ld;
+        this.size = size;        
+        this.ld = ld;
     }
 
     /**

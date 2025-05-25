@@ -269,7 +269,7 @@ public class DArray2d extends Array2d implements DLineArray {
      */
     @Override
     public DArray1d entriesAt(int index) {
-        return new DArray1d(this, index, linesPerLayer());
+        return new DArray1d(this, index, linesPerLayer(), ld());
     }
 
     /**

@@ -121,7 +121,7 @@ public class FArray3d extends Array3d implements FLineArray {
      */
     @Override
     public FArray1d depth(int entryIndex, int lineIndex) {
-        return new FArray1d(this, ld() * lineIndex + entryIndex, layersPerGrid(), linesPerLayer());
+        return new FArray1d(this, ld() * lineIndex + entryIndex, layersPerGrid(), linesPerLayer()*ld());
     }
 
     /**

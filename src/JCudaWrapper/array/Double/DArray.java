@@ -24,11 +24,12 @@ public interface DArray extends Array {
      */
     public default void get(Handle handle, double[] dst) {
 
-        if (ld() > 1) {
-            DArray1d gpuArray = new DArray1d(dst.length);
-            get(handle, gpuArray);
-            handle.synch();
-            gpuArray.get(handle, Pointer.to(dst));
+        if (hasPadding()) {
+            try (DArray1d gpuArray = new DArray1d(dst.length)) {
+                get(handle, gpuArray);
+                handle.synch();
+                gpuArray.get(handle, Pointer.to(dst));
+            }
         } else get(handle, Pointer.to(dst));
 
     }
@@ -39,7 +40,7 @@ public interface DArray extends Array {
      * @param handle handle to the cuBLAS library context.
      */
     public double[] get(Handle handle);
-    
+
     /**
      * Copies to here with increments.
      *
@@ -70,7 +71,6 @@ public interface DArray extends Array {
 //        Kernel.run("fill", handle, size(), this, P.to(ld()), P.to(entriesPerLine()), P.to(ld()), P.to(fill));
 //        return this;
 //    }
-
     /**
      * Breaks this array into a a set of sub arrays, one after the other.
      *
@@ -126,38 +126,39 @@ public interface DArray extends Array {
                 Array.transpose(transA), Array.transpose(transB),
                 entriesPerLine(), linesPerLayer(),
                 P.to(alpha), a.pointer(), a.ld(),
-                P.to(beta), b==null?new Pointer():b.pointer(), b== null?1:b.ld(),
+                P.to(beta), b == null ? new Pointer() : b.pointer(), b == null ? 1 : b.ld(),
                 pointer(), ld()
         ));
         return this;
     }
-        
+
     /**
-     * A one dimensional representation of this array. 
-     * @return 
+     * A one dimensional representation of this array.
+     *
+     * @return
      */
-    public default DArray1d as1d(){
-        return new DArray1d(this, 0, size(), 1);
+    public default DArray1d as1d() {
+        return new DArray1d(this, 0, size(), ld());
     }
-    
+
     /**
      * {@inheritDoc }
-     */    
+     */
     @Override
-    public default DArray2d as2d(){
+    public default DArray2d as2d() {
         return new DArray2d(this, entriesPerLine());
     }
-    
+
     /**
      * A 3d representation of this array.
+     *
      * @param linesPerLayer
      * @return A 3d representation of this array.
      */
-    public default DArray3d as3d(int linesPerLayer){
+    public default DArray3d as3d(int linesPerLayer) {
         return new DArray3d(this, entriesPerLine(), linesPerLayer);
     }
-    
-    
+
 //    /**
 //     * Scales this vector by the scalar mult:
 //     *
@@ -172,16 +173,15 @@ public interface DArray extends Array {
 //     *
 //     */
 //    public DArray setProduct(Handle handle, double scalar, DArray src);
-    
-    
     /**
      * Gets the singleton at the desired index.
+     *
      * @param index The index of the desired singleton.
      * @return The singleton at the desired index.
      */
     @Override
-    public default DSingleton get(int index){
-         return new DSingleton(this, index);
+    public default DSingleton get(int index) {
+        return new DSingleton(this, index);
     }
 
 }

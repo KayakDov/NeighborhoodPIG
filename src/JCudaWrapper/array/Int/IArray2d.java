@@ -92,7 +92,7 @@ public class IArray2d extends Array2d implements IArray {
      */
     @Override
     public IArray1d entriesAt(int index) {
-        return new IArray1d(this, index, linesPerLayer());
+        return new IArray1d(this, index, linesPerLayer(), ld());
     }
 
     /**

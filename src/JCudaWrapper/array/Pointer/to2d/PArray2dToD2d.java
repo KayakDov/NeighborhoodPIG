@@ -32,6 +32,7 @@ public class PArray2dToD2d extends PArray2dTo2d implements PointToD2d {
     /**
      * Creates an empty array with the same dimensions as this array.
      *
+     * @param hand The context.
      * @return An empty array with the same dimensions as this array.
      */
     public PArray2dToD2d copyDim(Handle hand) {

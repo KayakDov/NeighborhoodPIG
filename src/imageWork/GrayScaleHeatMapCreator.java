@@ -1,5 +1,7 @@
 package imageWork;
 
+import JCudaWrapper.array.Double.DArray2d;
+import JCudaWrapper.array.Float.FArray2d;
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
@@ -10,6 +12,7 @@ import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.FloatProcessor;
+import java.util.Arrays;
 import java.util.stream.IntStream;
 
 /**
@@ -47,13 +50,13 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
 
         this.coherence = coherence;
         this.tolerance = tolerance;
-        
-        Kernel.run("mapToFloat", handle, 
+
+        Kernel.run("mapToFloat", handle,
                 size(),
                 new PArray2dTo2d[]{this.image, image},
                 this
         );
-        
+
     }
 
     /**
@@ -70,35 +73,35 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
      * @return The image plus for this image.
      */
     private ImagePlus getIP() {//TODO: look into multi threading this.
-        
+
         ImageStack stack = new ImageStack(width, height);
 
-        float[] colImage = new float[height];
-        double[] colCoherence = new double[height];
+        float[] layerImage = new float[layerSize()];
+        double[] layerCoherence = new double[layerSize()];
+        float[] result = new float[layerSize()];
 
         for (int t = 0; t < batchSize; t++) {
-            int frameInd = t * width * height * depth;
 
             for (int z = 0; z < depth; z++) {
 
-                FloatProcessor fp = new FloatProcessor(width, height);
-
-                for (int col = 0; col < width; col++) {
-                    image.get(z, t).getVal(handle).getLine(col).get(handle, colImage);
-                    if (coherence != null) 
-                        coherence.get(z, t).getVal(handle).getLine(col).get(handle, colCoherence);
-
-                    for (int i = 0; i < height; i++) if (colCoherence[i] <= tolerance) colImage[i] = 0;
-
-                    fp.putColumn(col, 0, colImage, height);
-                }
+                image.get(z, t).getVal(handle).get(handle, layerImage);                
+                coherence.get(z, t).getVal(handle).get(handle, layerCoherence);
+                
+                for (int row = 0; row < height; row++)
+                    for (int col = 0; col < width; col++) {
+                        int fromInd = col * height + row;
+                        result[row * width + col] = layerImage[fromInd] * (layerCoherence[fromInd] <= tolerance ? 0f : 1f);
+                    }
+                System.out.println("imageWork.GrayScaleHeatMapCreator.getIP()\n" + Arrays.toString(result));
                 stack.addSlice(
                         sliceNames[z],
-                        fp
+                        new FloatProcessor(width, height, result)
                 );
 
             }
         }
+        
+        
 
         return setToHyperStack(new ImagePlus(stackName, stack));
     }
@@ -109,14 +112,14 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
      * @param writeToFolder The folder where the image should be saved.
      */
     @Override
-    public void printToFile(String writeToFolder) {
+    public void printToFile(String writeToFolder) {//TODO: This doesn't seem to work.
 
         ImgPlsToFiles.saveSlices(getIP(), writeToFolder);
     }
 
     @Override
-    public void close(){
+    public void close() {
         image.close();
     }
-    
+
 }

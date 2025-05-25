@@ -56,7 +56,7 @@ public class DStrideArray3d extends DArray3d implements StrideArray {
      */
     @Override
     public DArray1d as1d() {
-        return new DArray1d(this, 0, size());
+        return new DArray1d(this, 0, size(), ld());
     }
 
     /**

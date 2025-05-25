@@ -115,7 +115,7 @@ public interface FArray extends Array {
      * @return A 1D representation of this array.
      */
     public default FArray1d as1d() {
-        return new FArray1d(this, 0, size(), 1);
+        return new FArray1d(this, 0, size(), ld());
     }
 
     /**

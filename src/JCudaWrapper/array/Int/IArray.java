@@ -61,7 +61,7 @@ public interface IArray extends Array {
      */
     @Override
     public default IArray1d as1d() {
-        return new IArray1d(this, 0, size(), 1);
+        return new IArray1d(this, 0, size(), ld());
     }
 
     /**

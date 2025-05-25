@@ -61,7 +61,7 @@ public class FStrideArray3d extends FArray3d implements StrideArray {
      */
     @Override
     public FArray1d as1d() {
-        return new FArray1d(this, 0, size());
+        return new FArray1d(this, 0, size(), ld());
     }
 
     /**

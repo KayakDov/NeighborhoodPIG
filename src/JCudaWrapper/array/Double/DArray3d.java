@@ -117,7 +117,7 @@ public class DArray3d extends Array3d implements DLineArray {
      */
     @Override
     public DArray1d depth(int entryIndex, int lineIndex) {
-        return new DArray1d(this, ld() * lineIndex + entryIndex, layersPerGrid(), linesPerLayer());
+        return new DArray1d(this, ld() * lineIndex + entryIndex, layersPerGrid(), linesPerLayer() * ld());
     }
 
     /**

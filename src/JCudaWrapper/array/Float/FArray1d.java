@@ -62,19 +62,6 @@ public class FArray1d extends Array1d implements FArray {
     }
 
     /**
-     * Constructs a 1d sub array of the proffered array. If the array copied
-     * from is not 1d, then depending on the length, this array may include
-     * pitch.
-     *
-     * @param src The array to be copied from.
-     * @param start The start index of the array.
-     * @param size The length of the array.
-     */
-    public FArray1d(FArray src, int start, int size) {
-        super(src, start, size, 1);
-    }
-
-    /**
      * {@inheritDoc }
      */
     @Override
@@ -90,7 +77,7 @@ public class FArray1d extends Array1d implements FArray {
      * @param src The array to be copied from.
      * @param start The start index of the array.
      * @param size The length of the array.
-     * @param ld The increment.
+     * @param ld The increment over elements as they are stored in the gpu.
      */
     public FArray1d(FArray src, int start, int size, int ld) {
         super(src, start, size, ld);
@@ -665,7 +652,7 @@ public class FArray1d extends Array1d implements FArray {
      */
     @Override
     public FArray1d sub(int start, int length) {
-        return new FArray1d(this, start, length);
+        return new FArray1d(this, start, length, ld());
     }
 
     /**
@@ -673,7 +660,7 @@ public class FArray1d extends Array1d implements FArray {
      */
     @Override
     public FArray1d sub(int start, int length, int ld) {
-        return new FArray1d(this, start, length, ld);
+        return new FArray1d(this, start, length, ld*ld());
     }
 
     /**
@@ -693,7 +680,7 @@ public class FArray1d extends Array1d implements FArray {
      */
     @Override
     public void get(Handle handle, float[] dst) {
-        if (ld() > 1) {
+        if (hasPadding()) {
             try (FArray1d gpuArray = new FArray1d(dst.length)) {
                 get(handle, (FArray1d)gpuArray);
                 handle.synch();

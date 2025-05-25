@@ -18,7 +18,7 @@ public interface FLineArray extends FArray {
      * @return
      */
     public default FArray1d getLine(int lineIndex) {
-        return new FArray1d(this, ld() * lineIndex, entriesPerLine());
+        return new FArray1d(this, ld() * lineIndex, entriesPerLine(), 1);
     }
     
     /**

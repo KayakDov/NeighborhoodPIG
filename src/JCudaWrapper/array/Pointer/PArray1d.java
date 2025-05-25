@@ -46,7 +46,7 @@ public abstract class PArray1d extends Array1d implements PArray {
      * @param ld The increment.
      */
     public PArray1d(PArray1d src, int start, int length, int ld) {
-        super(src, start, length, src.ld() * ld);
+        super(src, start, length, ld);
     }
 
     

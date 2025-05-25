@@ -49,6 +49,7 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
         try (Gradient grad = new Gradient(handle, image, ui.neighborhoodSize)) {            
             stm = new StructureTensorMatrices(handle, grad, ui);
         }
+        
     }
 
     /**

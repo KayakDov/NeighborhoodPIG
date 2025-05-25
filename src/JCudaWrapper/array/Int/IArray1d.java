@@ -28,20 +28,7 @@ public class IArray1d extends Array1d implements IArray {
     public IArray1d(int numElements) {
         super(numElements, Sizeof.INT);
     }
-    
-    /**
-     * Constructs a 1d sub array of the proffered array. If the array copied
-     * from is not 1d, then depending on the length, this array may include
-     * pitch.
-     *
-     * @param src The array to be copied from.
-     * @param start The start index of the array.
-     * @param size The length of the array.
-     */
-    public IArray1d(IArray src, int start, int size) {
-        super(src, start, size, 1);
-    }
-    
+        
     /**
      * Sets the gpu array from a cpu array.
      * @param handle The context.
@@ -59,7 +46,7 @@ public class IArray1d extends Array1d implements IArray {
      * @param src The array to be copied from.
      * @param start The start index of the array.
      * @param size The length of the array.
-     * @param ld The increment between elements.
+     * @param ld The increment between elements as they are stored in the gpu.
      */
     public IArray1d(IArray src, int start, int size, int ld) {
         super(src, start, size, ld);
