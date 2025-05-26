@@ -52,10 +52,9 @@ public class FijiPlugin implements PlugIn {
         imp.setOpenAsHyperStack(true);
 
         if (!validImage(imp)) return;
-
+        
         UserInput ui;
-        try {
-            ui = UserInput.fromDiolog(imp);
+        try { ui = UserInput.fromDiolog(imp);
         } catch (UserCanceled ex) {
             System.out.println("fijiPlugin.FijiPlugin.run() User canceled diolog.");
             return;
@@ -68,8 +67,7 @@ public class FijiPlugin implements PlugIn {
 
         
         
-        try (
-                Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, ui)) {
+        try (Handle handle = new Handle(); NeighborhoodPIG np = NeighborhoodPIG.get(handle, imp, ui)) {           
             
             if (ui.heatMap) {
                 try(HeatMapCreator hmc = np.getAzimuthalAngles(false, 0.01)){hmc.printToFiji();};
@@ -95,9 +93,9 @@ public class FijiPlugin implements PlugIn {
     public static void defaultRun() {
 
 //        String imagePath = "images/input/cyl/"; int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
-//        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
+        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
 //        String imagePath = "images/input/5debugs/"; int depth = 9; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
-        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
+//        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(30, 1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 

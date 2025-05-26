@@ -84,7 +84,6 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
             for (int z = 0; z < depth; z++) {
 
                 FloatProcessor fp = new FloatProcessor(width, height);
-//                fp.setMinAndMax(0, Math.PI);//TODO:not sure if I need this line.
 
                 image.get(z, t).getVal(handle).get(handle, layerImage);
                 coherence.get(z, t).getVal(handle).get(handle, layerCoherence);
@@ -96,13 +95,6 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
                         fp.setf(col, row, layerImage[fromInd] * (layerCoherence[fromInd] <= tolerance ? 0f : 1f));
                     }
                 stack.addSlice(sliceNames[z], fp);
-
-                // --- ADD THIS SECTION TO PRINT PIXEL VALUES ---
-                System.out.println("--- Pixels for Frame " + (t + 1) + ", Z-Slice " + (z + 1) + " ---");
-                printFloatProcessorPixels(fp);
-                System.out.println("--- End Pixels ---");
-                // --- END ADDITION ---
-
             }
         }
 

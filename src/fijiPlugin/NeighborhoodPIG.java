@@ -197,8 +197,8 @@ public class NeighborhoodPIG extends Dimensions implements AutoCloseable {
      * @return A neighborhoodPIG.
      */
     public static NeighborhoodPIG get(Handle handle, ImagePlus imp, UserInput ui) {
-
-        try (PArray2dToD2d gpuImmage = ProcessImage.processManyImages(handle, imp, ui)) {
+    
+        try (PArray2dToD2d gpuImmage = ProcessImage.processImages(handle, imp, ui)) {
 
             return new NeighborhoodPIG(
                     handle,

@@ -23,11 +23,10 @@ public abstract class HeatMapCreator extends Dimensions implements AutoCloseable
 
     /**
      * 
-     * @param cpuColors column major 
-     * @param sliceNames
-     * @param stackName
-     * @param handle
-     * @param image 
+     * @param sliceNames The names of the slices.
+     * @param stackName The name of the stack.
+     * @param handle The context.
+     * @param image The image to be drawn.
      */
     protected HeatMapCreator(String[] sliceNames, String stackName, Handle handle, PArray2dToD2d image) {
         super(handle, image);

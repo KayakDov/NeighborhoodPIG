@@ -37,18 +37,6 @@ public class PSingletonToD2d extends PSingletonTo2d implements PointToD2d{
         copy.set(handle, this);
         return copy;
     }
-
-    /**
-     * Sets the pointer in this singleton to point to val.
-     * @param handle
-     * @param val The target of the pointer in this singleton.
-     * @return this.
-     */
-    public PSingletonToD2d setVal(Handle handle, DArray2d val) {
-        set(handle, Pointer.to(val.pointer()));
-        System.out.println("JCudaWrapper.array.Pointer.to2d.PSingletonToD2d.setVal()");
-        return this;
-    }
     
     /**
      * The array pointed to by the pointer held in this singleton.

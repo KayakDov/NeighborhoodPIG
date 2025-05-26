@@ -103,51 +103,6 @@ public class ProcessImage {
     }
 
     /**
-     * Processes a hyperstack and returns a FArray containing the processed
-     * image data.
-     *
-     * @param handle The handle used for FArray operations.
-     * @param imp The ImagePlus object representing the hyperstack.
-     * @param ui Down sampling requests are used to potentially shave off a bit
-     * of the image so that the image dimensions are divisible by the down
-     * sample factor.
-     * @return A FArray containing the image data in column-major order for all
-     * frames, slices, and channels.
-     */
-    public static final PArray2dToD2d processImages(Handle handle, ImagePlus imp, UserInput ui) {
-        // Convert the image to grayscale if necessary
-        if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32) {
-            System.out.println("fijiPlugin.NeighborhoodPIG.processImages(): Converting image to grayscale.");
-            IJ.run(imp, "32-bit", "");
-        }
-        int width = ui.downSample(imp.getWidth());
-        int height = ui.downSample(imp.getHeight());
-        int channels = imp.getNChannels();
-        int depth = imp.getNSlices();
-        int frames = imp.getNFrames();
-        int imgSize = width * height;
-        
-        PArray2dToD2d processedImage = new PArray2dToD2d(depth, frames, height, width);
-        
-        double[] columnMajorSlice = new double[imgSize];
-        // Iterate over frames, slices, and channels
-        for (int frame = 1; frame <= frames; frame++) {
-            for (int slice = 1; slice <= depth; slice++) {
-                for (int channel = 1; channel <= channels; channel++) {
-                    imp.setPosition(channel, slice, frame);
-                    ImageProcessor ip = imp.getProcessor();
-                    float[][] pixels = ip.getFloatArray();
-                    for (int col = 0; col < width; col++)
-                        System.arraycopy(pixels[col], 0, columnMajorSlice, col * height, height);
-
-                    processedImage.get(slice - 1, frame - 1).set(handle, new DArray2d(height, width).set(handle, columnMajorSlice));
-                }
-            }
-        }
-        return processedImage;
-    }
-
-    /**
      * Processes a hyperstack and returns a PArray2dToD2d containing the
      * processed image data. The 2d array of pointers points to the layers of
      * the frames, where each column is a frame and each row is a layer of that
@@ -161,7 +116,8 @@ public class ProcessImage {
      * @return A FArray containing the image data in column-major order for all
      * frames, slices, and channels.
      */
-    public static final PArray2dToD2d processManyImages(Handle handle, ImagePlus imp, UserInput ui) {
+    public static final PArray2dToD2d processImages(Handle handle, ImagePlus imp, UserInput ui) {
+        
         // Convert the image to grayscale if necessary
         if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32) {
             System.out.println("fijiPlugin.NeighborhoodPIG.processImages(): Converting image to grayscale.");
@@ -180,24 +136,26 @@ public class ProcessImage {
         for (int frame = 1; frame <= frames; frame++) {
             for (int slice = 1; slice <= depth; slice++) {
                 for (int channel = 1; channel <= channels; channel++) {
+                    
                     imp.setPosition(channel, slice, frame);
 
                     float[][] pixels = imp.getProcessor().getFloatArray();
+                    
+                    
 
                     for(int col = 0; col < width; col++)
                         for(int row = 0; row < height; row++)
                             columnMajorSlice[col*height + row] = pixels[col][row];
 
-                    DArray2d gpuSlice = new DArray2d(height, width).set(handle, columnMajorSlice);
-
-                    System.out.println("imageWork.ProcessImage.processManyImages()");
+                    DArray2d gpuSlice = new DArray2d(height, width).set(handle, columnMajorSlice);              
                     
-                    processedImage.get(slice - 1, frame - 1).setVal(handle, gpuSlice);
-                    
-                    
+                    processedImage.get(slice - 1, frame - 1).set(handle, gpuSlice);
                 }
             }
         }
+        
+        System.out.println("imageWork.ProcessImage.processManyImages()\n" + processedImage);
+        
         return processedImage;
     }
 
