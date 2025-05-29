@@ -1,20 +1,11 @@
 package imageWork;
 
-import JCudaWrapper.array.Double.DArray2d;
-import JCudaWrapper.array.Float.FArray2d;
-import JCudaWrapper.array.Float.FStrideArray3d;
-import JCudaWrapper.array.Kernel;
-import JCudaWrapper.array.P;
-import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
-import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.FloatProcessor;
-import java.util.Arrays;
-import java.util.stream.IntStream;
 
 /**
  * A class for creating grayscale images from tensor data.
@@ -47,12 +38,10 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
     public GrayScaleHeatMapCreator(String[] sliceNames, String stackName, Handle handle, PArray2dToF2d image, PArray2dToF2d coherence, double tolerance, Dimensions dim) {
         super(sliceNames, stackName, dim, handle);
 
-        this.image = new PArray2dToF2d(image.entriesPerLine(), image.linesPerLayer(), image.targetDim().entriesPerLine, image.targetDim().numLines);
-        this.image.initTargets(handle);
+        this.image = image;
 
         this.coherence = coherence;
         this.tolerance = tolerance;
-
     }
 
     /**
@@ -109,11 +98,6 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
     public void printToFile(String writeToFolder) {//TODO: This doesn't seem to work.
 
         ImgPlsToFiles.saveSlices(getIP(), writeToFolder);
-    }
-
-    @Override
-    public void close() {
-        image.close();
     }
 
     // Helper method to print the pixels of a FloatProcessor

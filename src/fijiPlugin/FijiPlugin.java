@@ -70,17 +70,15 @@ public class FijiPlugin implements PlugIn {
         try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, imp, ui)) {           
             
             if (ui.heatMap) {
-                try(HeatMapCreator hmc = np.getAzimuthalAngles(false, 0.01)){hmc.printToFiji();};
+                np.getAzimuthalAngles(false, 0.01).printToFiji();
 
-                if (imp.getNSlices() > 1)
-                    try(HeatMapCreator hmc = np.getZenithAngles(false, 0.01)){hmc.printToFiji();}
+                if (imp.getNSlices() > 1) np.getZenithAngles(false, 0.01).printToFiji();
             }
 
             if (ui.vectorField)
                 np.getVectorImg(ui.vfSpacing, ui.vfMag, false).show();
 
-            if (ui.useCoherence)
-                try(HeatMapCreator hmc = np.getCoherence()){hmc.printToFiji();}
+            if (ui.useCoherence) np.getCoherence().printToFiji();
 
         }
         if (!Array.allocatedArrays.isEmpty())
@@ -106,10 +104,9 @@ public class FijiPlugin implements PlugIn {
         
         try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, imp, ui)) {
                         
-            try(HeatMapCreator hmc = np.getAzimuthalAngles(false, .01)){hmc.printToFile("images/output/test3/Azimuthal");}
+            np.getAzimuthalAngles(false, .01).printToFile("images/output/test3/Azimuthal");
 
-            if (depth > 1)
-                try(HeatMapCreator hmc = np.getZenithAngles(false, .01)){hmc.printToFile("images/output/test3/Zenith");}
+            if (depth > 1) np.getZenithAngles(false, .01).printToFile("images/output/test3/Zenith");
 
 //            np.getVectorImg(8, 6, false);
 

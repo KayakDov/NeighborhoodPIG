@@ -9,7 +9,7 @@ import fijiPlugin.Dimensions;
  *
  * @author E. Dov Neimand
  */
-public abstract class HeatMapCreator implements AutoCloseable{
+public abstract class HeatMapCreator {
 
     /**
      * Array storing color data for each tensor element.
@@ -44,9 +44,6 @@ public abstract class HeatMapCreator implements AutoCloseable{
      * @param writeToFolder The folder where images will be saved.
      */
     public abstract void printToFile(String writeToFolder);
-    
-    @Override
-    public abstract void close();
 
     
 }
