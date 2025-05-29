@@ -1,40 +1,46 @@
 package fijiPlugin;
 
+import JCudaWrapper.array.Int.IArray;
+import JCudaWrapper.array.Int.IArray2d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
+import jcuda.runtime.JCuda;
+import main.Test;
 
 /**
  * A set of 3x3 matrices, their eigenvectors and values.
  *
  * @author E. Dov Neimand
  */
-public class Eigen extends Dimensions implements AutoCloseable {//TODO: maybe incorporate this up into StructureTensorMatrices.
+public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up into StructureTensorMatrices.
 
     private final double tolerance;
     private final int downsampleFactorXY;
+    private final Dimensions dim;
+    private final Handle handle;
 
     /**
      * Each layer in this matrix is for a different pixel, in column major
      * order.
      */
-    public final PArray2dToD2d[][] mat;
+    public PArray2dToD2d[][] mat;
 
-    /**
-     * These are organized in the same columns, layers, and grids as the initial
-     * picture. The rows are changed so that each set of 3 eigenvectors are
-     * consecutive in each column.
-     */
-    public final PArray2dToD2d values;//TODO: there may not be any need to store eigenvalues.
-
-    /**
-     * The first eigevector of each structureTensor with mathcin columns and
-     * layers as the original pixels, and rows * 3.
-     */
-    public final PArray2dToD2d vectors;
-
+//    /**
+//     * These are organized in the same columns, layers, and grids as the initial
+//     * picture. The rows are changed so that each set of 3 eigenvectors are
+//     * consecutive in each column.
+//     */
+//    public final PArray2dToD2d values;//TODO: there may not be any need to store eigenvalues.
+//
+//    /**
+//     * The first eigevector of each structureTensor with mathcin columns and
+//     * layers as the original pixels, and rows * 3.
+//     */
+//    public final PArray2dToD2d vectors;
     /**
      *
      * @param handle
@@ -44,17 +50,22 @@ public class Eigen extends Dimensions implements AutoCloseable {//TODO: maybe in
      * @param tolerance
      */
     public Eigen(Handle handle, Dimensions dim, int downSampleFactorXY, double tolerance) {
-        super(dim);
+        this.dim = dim;
+        this.handle = handle;
         this.downsampleFactorXY = downSampleFactorXY;
         this.tolerance = tolerance;
         mat = new PArray2dToD2d[3][3];
+
         for (int i = 0; i < 3; i++)
             for (int j = i; j < 3; j++)
-                mat[j][i] = mat[i][j] = dim.empty().initTargets(handle);
+                mat[j][i] = mat[i][j] = dim.emptyP2dToD2d(handle);
 
-        values = new PArray2dToD2d(dim.depth, dim.batchSize, (dim.height / downSampleFactorXY) * 3, dim.width / downSampleFactorXY).initTargets(handle);
-        vectors = values.copyDim(handle);
-
+//        vectors = new PArray2dToF2d(
+//                dim.depth,
+//                dim.batchSize,
+//                (dim.height / downSampleFactorXY) * 3,
+//                dim.width / downSampleFactorXY
+//        ).initTargets(handle);
     }
 
     /**
@@ -68,39 +79,40 @@ public class Eigen extends Dimensions implements AutoCloseable {//TODO: maybe in
         return mat[row][col];
     }
 
-
     /**
      * Sets the eigen values and the eigen vectors at the requested index.
      *
      * @param eigenInd If the index is 0, then the eigen vectors that corespond
      * to the greatest eigenvalue, if the index is one, then the 2nd greatest.
+     * @param vectors
      * @param coherence Where to store the coherence data.
      * @param azimuth Location to load the azimuthal angles.
      * @param zenith Location to load the zenith angles.
+     * @param downSampledDim
      */
-    public void set(int eigenInd, PArray2dToD2d coherence, PArray2dToD2d azimuth, PArray2dToD2d zenith) {
-            
+    public void set(int eigenInd, PArray2dToF2d vectors, PArray2dToF2d coherence, PArray2dToF2d azimuth, PArray2dToF2d zenith, IArray downSampledDim) {
+
         Kernel.run("eigenBatch", handle,
-                size(),
+                dim.size(),
                 new PArray2dTo2d[]{
-                    mat[0][0], 
-                    mat[0][1], 
-                    mat[0][2], 
-                    mat[1][1], 
-                    mat[1][2], 
-                    mat[2][2], 
-                    values, 
-                    vectors, 
-                    coherence, 
-                    azimuth, 
+                    mat[0][0],
+                    mat[0][1],
+                    mat[0][2],
+                    mat[1][1],
+                    mat[1][2],
+                    mat[2][2],
+                    vectors,
+                    coherence,
+                    azimuth,
                     zenith
                 },
-                this,
-                P.to(downsampleFactorXY), 
+                dim,
+                P.to(downsampleFactorXY),
                 P.to(eigenInd),
-                P.to(tolerance)
+                P.to(tolerance),
+                P.to(downSampledDim)
         );
-        
+
     }
 
     /**
@@ -108,17 +120,16 @@ public class Eigen extends Dimensions implements AutoCloseable {//TODO: maybe in
      */
     @Override
     public void close() {
-        for (int i = 0; i < mat.length; i++)
-            for (int j = i; j < mat[0].length; j++)
-                mat[i][j].close();
+        if (mat != null)
+            for (int i = 0; i < mat.length; i++)
+                for (int j = i; j < mat[0].length; j++)
+                    mat[i][j].close();
+        mat = null;
 
-        values.close();
-        vectors.close();
+//        values.close();
+//        vectors.close();
     }
 }
-
-
-
 
 //    /**
 //     * Sets the eiganvalues.

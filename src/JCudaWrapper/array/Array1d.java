@@ -1,14 +1,11 @@
 package JCudaWrapper.array;
 
-import JCudaWrapper.array.Pointer.to1d.PSingletonTo1d;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Pointer;
 import jcuda.driver.CUdeviceptr;
 import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaMemcpyKind;
 import jcuda.runtime.cudaPitchedPtr;
-import JCudaWrapper.array.Pointer.to1d.PointTo1d;
-import java.util.Arrays;
 
 /**
  * A one-dimensional array stored in GPU memory. This class provides methods for
@@ -29,12 +26,12 @@ public abstract class Array1d implements Array {
      * Creates a new empty array.
      *
      * @param size The number of elements in the array.
-     * @param bytesPerElement The number of bytes each element uses.
+     * @param bytesPerEntry The number of bytes each element uses.
      */
-    public Array1d(int size, int bytesPerElement) {
+    public Array1d(int size, int bytesPerEntry) {
         pointer = new CUdeviceptr();
-        this.bytesPerEntry = bytesPerElement;
-        opCheck(JCuda.cudaMalloc(pointer, size * bytesPerElement));
+        this.bytesPerEntry = bytesPerEntry;
+        opCheck(JCuda.cudaMalloc(pointer, size * bytesPerEntry));
         this.size = size;
         Array.recordMemAloc(pointer);
         ld = 1;
@@ -230,4 +227,5 @@ public abstract class Array1d implements Array {
      * @return A sub array of this array.
      */
     public abstract Array1d sub(int start, int size, int ld);
+   
 }

@@ -34,7 +34,7 @@ public:
      * @param ldPtrs           Leading dimension of pointersToLayers (stride across frames).
      * @param scalar           Scalar multiplier.
      */
-    __device__ void multiply(double** pointersToLayers, const int* ldLayers, const int ldld, const int ldPtrs, double scalar) {
+    __device__ void multiply(float** pointersToLayers, const int* ldLayers, const int ldld, const int ldPtrs, double scalar) {
         pointersToLayers[ptrIndex(ldPtrs)][elementIndex(ldLayers, ldld)] *= scalar;
     }
 
@@ -46,7 +46,6 @@ public:
      * @return         Offset into the 2D layer data.
      */
     __device__ int elementIndex(const int* ldLayers, const int ldld) const {
-        return ((idx%layerArea) / height) * ldLayers[frameInd * ldld + layerInd] + (idx % height);
     }
 
     /**
@@ -85,7 +84,7 @@ public:
  */
 extern "C" __global__ void multiplyScalarKernel(
     const int totalElements,
-    double** pointersToLayers, const int* ldLayers, const int ldld, const int ldPtrs,
+    float** pointersToLayers, const int* ldLayers, const int ldld, const int ldPtrs,
     const int* dim,
     const double scalar
 ) {

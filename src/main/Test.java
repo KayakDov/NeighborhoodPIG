@@ -1,19 +1,10 @@
 package main;
 
-import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Double.DArray2d;
 import JCudaWrapper.array.Float.FArray;
-import JCudaWrapper.array.Float.FArray2d;
-import JCudaWrapper.array.Int.IArray1d;
-import JCudaWrapper.array.Int.IArray2d;
-import JCudaWrapper.array.Kernel;
-import JCudaWrapper.array.P;
-import JCudaWrapper.array.Pointer.PArray;
-import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
-import fijiPlugin.Dimensions;
-import java.util.Arrays;
+import jcuda.runtime.JCuda;
 
 /**
  * Debugging tests constructed here.
@@ -66,6 +57,17 @@ public class Test {
 
         }
 
+    }
+    
+    /**
+     * Gets the gpu memory.
+     * @return The gpu memory.
+     */
+    public static String memory(){
+        long[] free = new long[1];
+        long[] total = new long[1];
+        JCuda.cudaMemGetInfo(free, total);
+        return "Free: " + free[0]*8e-9 + " GB, Total: " + total[0]*8e-9 + " GB";
     }
 }
 //verena

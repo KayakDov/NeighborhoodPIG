@@ -3,6 +3,8 @@ package imageWork;
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
+import JCudaWrapper.resourceManagement.Handle;
 import MathSupport.Cube;
 import MathSupport.Line;
 import MathSupport.Point3d;
@@ -23,23 +25,26 @@ import java.util.stream.IntStream;
  *
  * @author E. Dov Neimand
  */
-public class VectorImg extends Dimensions {
+public class VectorImg {
 
     private final FloatProcessor[] fp;
     private final Cube space;
     private final VecManager gridVecs;
     private final int spacing, r;
-    private final double[] gridIntensity;
-    private final PArray2dToD2d vecs, intensity;
+    private final float[] gridIntensity;
+    private final PArray2dToF2d vecs, intensity;
     private final ImageStack stack;    
     private final boolean useNon0Intensities;
     private final double tolerance;
+    private final Dimensions dim;
+    private final Handle handle;
 
     /**
      * Constructs a new VectorImg with the specified parameters to generate an
      * ImagePlus displaying the vector field from vector and intensity data.
      *
-     * @param dims The dimensions of the image.
+     * @param handle The context
+     * @param dim The dimensions of the image.
      * @param vecMag The magnitude of the vectors.
      * @param vecs The {@link FStrideArray3d} containing vector data.
      * @param intensity The {@link FStrideArray3d} containing intensity data.
@@ -51,22 +56,23 @@ public class VectorImg extends Dimensions {
      * @param tolerance If useNon0Intensities is false then this determines the
      * threshold for what is close to 0.
      */
-    public VectorImg(Dimensions dims, int vecMag, PArray2dToD2d vecs, PArray2dToD2d intensity, int spacing, boolean useNon0Intensities, double tolerance) {
-        super(dims);
-
+    public VectorImg(Handle handle, Dimensions dim, int vecMag, PArray2dToF2d vecs, PArray2dToF2d intensity, int spacing, boolean useNon0Intensities, double tolerance) {
+        this.handle = handle;
+        this.dim = dim;
+        
         space = new Cube(
-                (width - 1) * spacing + vecMag + 2,
-                (height - 1) * spacing + vecMag + 2,
-                vecs.layersPerGrid() == 1 ? 1 : (depth - 1) * spacing + vecMag + 2
+                (dim.width - 1) * spacing + vecMag + 2,
+                (dim.height - 1) * spacing + vecMag + 2,
+                vecs.layersPerGrid() == 1 ? 1 : (dim.depth - 1) * spacing + vecMag + 2
         );
 
         stack = new ImageStack(space.width(), space.height());
 
         fp = new FloatProcessor[space.depth() + (vecs.layersPerGrid() == 1 ? 0 : 1)];
 
-        gridIntensity = intensity == null ? null : new double[tensorSize()];
+        gridIntensity = intensity == null ? null : new float[dim.tensorSize()];
 
-        gridVecs = new VecManager(this);
+        gridVecs = new VecManager(dim);
 
         r = vecMag / 2;
         this.vecs = vecs;
@@ -85,13 +91,13 @@ public class VectorImg extends Dimensions {
      */
     public ImagePlus get() {
 
-        IntStream str = IntStream.range(0, batchSize);
-        if (batchSize > 1) str = str.parallel();
+        IntStream str = IntStream.range(0, dim.batchSize);
+        if (dim.batchSize > 1) str = str.parallel();
         
         str.forEach(this::computeGrid);
 
         ImagePlus image = new ImagePlus("Nematics", stack);
-        image.setDimensions(1, depth, batchSize);
+        image.setDimensions(1, dim.depth, dim.batchSize);
         return image;
     }
 
@@ -104,9 +110,9 @@ public class VectorImg extends Dimensions {
 
         Arrays.setAll(fp, i -> new FloatProcessor(space.width(), space.height()));
 
-        IntStream str = IntStream.range(0, depth);
+        IntStream str = IntStream.range(0, dim.depth);
 
-        if (batchSize == 1) str = str.parallel();
+        if (dim.batchSize == 1) str = str.parallel();
 
         str.forEach(z -> computeLayer(t, z));
 
@@ -158,11 +164,11 @@ public class VectorImg extends Dimensions {
         Point3d vec1 = new Point3d(), vec2 = new Point3d();
         Pencil drawer = new Pencil();
         
-        for (int col = 0; col < width; col++) {
+        for (int col = 0; col < dim.width; col++) {
 
-            int colIndex = col * height;
+            int colIndex = col * dim.height;
 
-            for (int row = 0; row < height; row++) {
+            for (int row = 0; row < dim.height; row++) {
 
                 double localIntensity = gridIntensity[colIndex + row];
 
@@ -172,9 +178,9 @@ public class VectorImg extends Dimensions {
                     gridVecs.get(row, col, vec1, r);
 
                     if (vec1.isFinite() && vec1.normSq() > 1) {
-                        if (depth == 1) vec1.setZ(0);
+                        if (dim.depth == 1) vec1.setZ(0);
 
-                        line.getA().set(col, row, z).scale(spacing).translate(r + 1, r + 1, depth == 1 ? 0 : r + 1);
+                        line.getA().set(col, row, z).scale(spacing).translate(r + 1, r + 1, dim.depth == 1 ? 0 : r + 1);
                         line.getB().set(line.getA());
                         line.getA().translate(vec1);
                         line.getB().translate(vec1.scale(-1));

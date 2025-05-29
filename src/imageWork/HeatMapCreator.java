@@ -1,38 +1,35 @@
 
 package imageWork;
 
-import JCudaWrapper.array.Float.FArray3d;
-import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;
-import ij.ImagePlus;
-import ij.plugin.HyperStackConverter;
 
 /**
  *
  * @author E. Dov Neimand
  */
-public abstract class HeatMapCreator extends Dimensions implements AutoCloseable{
+public abstract class HeatMapCreator implements AutoCloseable{
 
     /**
      * Array storing color data for each tensor element.
      */
     protected final String[] sliceNames;
     protected final String stackName;
+    protected final Dimensions dim;
+    protected final Handle handle;
 
     /**
      * 
      * @param sliceNames The names of the slices.
      * @param stackName The name of the stack.
-     * @param handle The context.
-     * @param image The image to be drawn.
+     * @param dim The dimensions of this heat map.
      */
-    protected HeatMapCreator(String[] sliceNames, String stackName, Handle handle, PArray2dToD2d image) {
-        super(handle, image);
-       
+    protected HeatMapCreator(String[] sliceNames, String stackName, Dimensions dim, Handle handle) {
         this.sliceNames = sliceNames;
         this.stackName = stackName;
+        this.dim = dim;
+        this.handle = handle;
     }
 
     /**
@@ -48,18 +45,6 @@ public abstract class HeatMapCreator extends Dimensions implements AutoCloseable
      */
     public abstract void printToFile(String writeToFolder);
     
-    public ImagePlus setToHyperStack(ImagePlus imp){
-        if (batchSize > 1) {
-            imp = HyperStackConverter.toHyperStack(
-                    imp,
-                    1,
-                    depth,
-                    batchSize
-            );
-        }
-        return imp;
-    }
-
     @Override
     public abstract void close();
 

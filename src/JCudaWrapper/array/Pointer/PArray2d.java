@@ -42,7 +42,7 @@ public abstract class PArray2d extends Array2d implements PArray{
     public String toString() {
         JCuda.cudaDeviceSynchronize();
         try (Handle hand = new Handle()) {
-            return Arrays.toString(get(hand));
+            return Arrays.toString(get(hand)).replace(", [", ",\n[");
         }
     }
     

@@ -7,6 +7,14 @@
             <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/NeighborhoodPIG.java</file>
             <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/StructureTensorMatrices.java</file>
             <file>file:/home/dov/projects/NieghborhoodPIG/src/imageWork/GrayScaleHeatMapCreator.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/NeighborhoodProductSums.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/Dimensions.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/Gradient.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/JCudaWrapper/array/Pointer/to2d/PArray2dToD2d.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/Eigen.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/JCudaWrapper/array/Array.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/JCudaWrapper/array/Kernel.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/imageWork/ProcessImage.java</file>
         </group>
     </open-files>
 </project-private>

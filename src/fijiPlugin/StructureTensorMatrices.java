@@ -1,55 +1,65 @@
 package fijiPlugin;
 
 import FijiInput.UserInput;
-import JCudaWrapper.array.Float.FStrideArray3d;
-import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
+import ij.ImagePlus;
 
 /**
  *
  * @author E. Dov Neimand
  */
-public class StructureTensorMatrices extends Dimensions implements AutoCloseable {
+public class StructureTensorMatrices implements AutoCloseable {
 
     public final Eigen eigen;
-    private final PArray2dToD2d azimuth, zenith, coherence;
+    private final PArray2dToF2d azimuth, zenith, coherence, vectors;//TODO:store these on cpu instead of gpu.
+    public final Dimensions dim;
 
     /**
      * Finds the structure tensor for every pixel in the image and stores them
      * in a column major format.
      *
      * @param handle The context.
-     * @param grad The pixel intensity gradient of the image.
+     * @param imp The image for which the structure tensors are to be generated.
      * @param ui User selected specifications.
      *
      */
-    public StructureTensorMatrices(Handle handle, Gradient grad, UserInput ui) {
-        super(handle, grad.x[0]);
+    public StructureTensorMatrices(Handle handle, ImagePlus imp, UserInput ui) {
+        try (Gradient grad = new Gradient(handle, imp, ui)) {
 
-        float bigTolerance = 255*255*ui.neighborhoodSize.xyR*ui.neighborhoodSize.xyR*ui.neighborhoodSize.zR*5e-7f;
-        
-        eigen = new Eigen(handle, grad, ui.downSampleFactorXY, bigTolerance);
+            dim = grad.dim;
 
-        try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, ui.neighborhoodSize, grad.x[0])) {
-            for (int i = 0; i < 3; i++)
-                for (int j = i; j < 3; j++)
-                    nps.set(grad.x[i], grad.x[j], eigen.at(i, j));
+            float bigTolerance = 255 * 255 * ui.neighborhoodSize.xyR * ui.neighborhoodSize.xyR * ui.neighborhoodSize.zR * 5e-7f;
+
+            eigen = new Eigen(handle, dim, ui.downSampleFactorXY, bigTolerance);
+
+            try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, ui.neighborhoodSize, dim)) {
+
+                for (int i = 0; i < 3; i++)
+                    for (int j = i; j < 3; j++)
+                        nps.set(grad.x[i], grad.x[j], eigen.at(i, j));
+            }
         }
-       
-        azimuth = new PArray2dToD2d(depth, batchSize, height / ui.downSampleFactorXY, width / ui.downSampleFactorXY).initTargets(handle);
-        zenith = azimuth.copyDim(handle);
-        coherence = azimuth.copyDim(handle);        
-        
-        eigen.set(Math.min(grad.depth, 2), coherence, azimuth, zenith);//TODO: restore higher eigen index
-    }
 
+        try (Dimensions downSampled = new Dimensions(handle, dim.height / ui.downSampleFactorXY, dim.width / ui.downSampleFactorXY, dim.depth, dim.batchSize)) {  //TODO: make sure downsampled dimensions are used everywhere they are needed!
+
+            azimuth = downSampled.emptyP2dToF2d(handle);
+            zenith = downSampled.emptyP2dToF2d(handle);
+            coherence = downSampled.emptyP2dToF2d(handle);
+            vectors = new PArray2dToF2d(downSampled.depth, downSampled.batchSize, downSampled.height * 3, downSampled.width).initTargets(handle);
+
+            eigen.set(/*Math.min(dim.depth, 2)*/0, vectors, coherence, azimuth, zenith, downSampled.getGpuDim());//TODO: reset vector index
+
+            eigen.close();
+        }
+    }
 
     /**
      * The coherence matrix.
      *
      * @return The coherence matrix.
      */
-    public PArray2dToD2d getCoherence() {
+    public PArray2dToF2d getCoherence() {
         return coherence;
     }
 
@@ -58,7 +68,7 @@ public class StructureTensorMatrices extends Dimensions implements AutoCloseable
      *
      * @return Thew matrix of orientations.
      */
-    public PArray2dToD2d azimuthAngle() {
+    public PArray2dToF2d azimuthAngle() {
         return azimuth;
     }
 
@@ -67,7 +77,7 @@ public class StructureTensorMatrices extends Dimensions implements AutoCloseable
      *
      * @return Thew matrix of orientations.
      */
-    public PArray2dToD2d zenithAngle() {
+    public PArray2dToF2d zenithAngle() {
         return zenith;
     }
 
@@ -81,6 +91,8 @@ public class StructureTensorMatrices extends Dimensions implements AutoCloseable
         azimuth.close();
         zenith.close();
         coherence.close();
+        vectors.close();
+        dim.close();
     }
 
     /**
@@ -102,46 +114,15 @@ public class StructureTensorMatrices extends Dimensions implements AutoCloseable
                 + "\n\nzz\n" + eigen.at(2, 2).toString();
     }
 
+    /**
+     * The neighborhood gradient at each pixel, stored so that each column is
+     * consecutive 3-dimensional vectors.
+     *
+     * @return The neighborhood gradient at each pixel, stored so that each
+     * column is consecutive 3-dimensional vectors.
+     */
+    public PArray2dToF2d getVectors() {
+        return vectors;
+    }
+
 }
-
-
-//
-//    /**
-//     * All the eigen vectors with y less than 0 are mulitplied by -1.
-//     *
-//     */
-//    public final void setVecs0ToPi() {
-//        FArray3d eVecs = eigen.vectors;
-//        Kernel.run("vecToNematic", handle,
-//                coherence.size(),
-//                eVecs,
-//                P.to(eVecs.ld()),
-//                P.to(eVecs.entriesPerLine()),
-//                P.to(eVecs),
-//                P.to(eVecs.ld()),
-//                P.to(eVecs.entriesPerLine())
-//        );
-//    }
-//
-//    /**
-//     * Sets the orientations from the eigenvectors.
-//     *
-//     * @param tolerance What is considered 0.
-//     */
-//    public final void setOrientations(float tolerance) {
-//
-//        Kernel.run("toSpherical", handle, azimuth.size(),
-//                eigen.vectors,
-//                P.to(eigen.vectors.entriesPerLine()),
-//                P.to(eigen.vectors.ld()),
-//                P.to(azimuth),
-//                P.to(azimuth.entriesPerLine()),
-//                P.to(azimuth.ld()),
-//                P.to(zenith),
-//                P.to(zenith.entriesPerLine()),
-//                P.to(zenith.ld()),
-//                P.to(0.01f)
-//        );
-
-
-

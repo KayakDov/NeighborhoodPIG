@@ -49,7 +49,7 @@ public abstract class PSingletonTo2d extends PSingleton implements PointTo2d {
     public PSingletonTo2d set(Handle handle, Array2d val) {
         Pointer cpuPointer = P.to(val);
         super.set(handle, cpuPointer);
-        targetLD.set(handle, val.ld());
+        targetLD.set(handle, val.ld());        
         return this;
     }       
     

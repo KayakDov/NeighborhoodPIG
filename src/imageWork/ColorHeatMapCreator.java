@@ -1,14 +1,12 @@
 package imageWork;
 
-import JCudaWrapper.array.Float.FStrideArray3d;
-import JCudaWrapper.array.Int.IArray;
-import JCudaWrapper.array.Int.IStrideArray3d;
 import JCudaWrapper.array.Kernel;
-import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToI2d;
 import JCudaWrapper.resourceManagement.Handle;
+import fijiPlugin.Dimensions;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.ColorProcessor;
@@ -16,7 +14,6 @@ import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import javax.imageio.ImageIO;
-import main.Test;
 
 /**
  * A class for creating orientation heatmaps and saving them as images.
@@ -38,21 +35,22 @@ public class ColorHeatMapCreator extends HeatMapCreator implements AutoCloseable
      * @param stackName The name of the stack.
      * @param orientation The dimensions.
      * @param coherence The intensity of each color.
+     * @param dim The dimensions.
      */
-    public ColorHeatMapCreator(Handle handle, String[] sliceNames, String stackName, PArray2dToD2d orientation, PArray2dToD2d coherence) {
-        super(sliceNames, stackName, handle, orientation);
-        orientation.setProduct(handle, 2);
+    public ColorHeatMapCreator(Handle handle, String[] sliceNames, String stackName, PArray2dToF2d orientation, PArray2dToF2d coherence, Dimensions dim) {
+        super(sliceNames, stackName, dim, handle);
+        orientation.scale(handle, 2);
 
-        colors = new PArray2dToI2d(depth, batchSize, height, width);
+        colors = new PArray2dToI2d(dim.depth, dim.batchSize, dim.height, dim.width);
         colors.initTargets(handle);
 
         Kernel.run("colors", handle,
-                size(),
+                dim.size(),
                 new PArray2dTo2d[]{orientation, colors, coherence},
-                this
+                dim
         );
         
-        orientation.setProduct(handle, 0.5);
+        orientation.scale(handle, 0.5);
 
     }
 
@@ -66,7 +64,7 @@ public class ColorHeatMapCreator extends HeatMapCreator implements AutoCloseable
      * @return The color as an integer in RGB format.
      */
     private int getPixelInt(int[] layer, int x, int y) {
-        return layer[x * height + y];
+        return layer[x * dim.height + y];
     }
 
     /**
@@ -94,28 +92,28 @@ public class ColorHeatMapCreator extends HeatMapCreator implements AutoCloseable
     @Override
     public final void printToFiji() {
 
-        int[] layer = new int[height*width];
+        int[] layer = new int[dim.layerSize()];
         
-        ImageStack stack = new ImageStack(width, height);
+        ImageStack stack = dim.getImageStack();
 
-        for (int frameIndex = 0; frameIndex < batchSize; frameIndex++) {
-            for (int layerIndex = 0; layerIndex < depth; layerIndex++) {
+        for (int frameIndex = 0; frameIndex < dim.batchSize; frameIndex++) {
+            for (int layerIndex = 0; layerIndex < dim.depth; layerIndex++) {
                 
                 setLayer(layerIndex, frameIndex, layer);
                 
-                ColorProcessor cp = new ColorProcessor(width, height);
+                ColorProcessor cp = new ColorProcessor(dim.width, dim.height);
 
-                for (int x = 0; x < width; x++)
-                    for (int y = 0; y < height; y++)
+                for (int x = 0; x < dim.width; x++)
+                    for (int y = 0; y < dim.height; y++)
                         cp.set(x, y, getPixelInt(layer, x, y));
 
-                stack.addSlice(sliceNames[frameIndex * depth + layerIndex], cp);
+                stack.addSlice(sliceNames[frameIndex * dim.depth + layerIndex], cp);
             }
         }
 
         ImagePlus imp = new ImagePlus(stackName, stack);
 
-        setToHyperStack(imp).show();
+        dim.setToHyperStack(imp).show();
     }
 
     /**
@@ -140,16 +138,16 @@ public class ColorHeatMapCreator extends HeatMapCreator implements AutoCloseable
         if (!directory.exists()) directory.mkdirs();
 
         int[] pixelRGB = new int[3];
-        int[] layer = new int[height*width];
+        int[] layer = new int[dim.layerSize()];
 
-        for (int frameInd = 0; frameInd < batchSize; frameInd++) {
-            for (int layerInd = 0; layerInd < depth; layerInd++) {
+        for (int frameInd = 0; frameInd < dim.batchSize; frameInd++) {
+            for (int layerInd = 0; layerInd < dim.depth; layerInd++) {
                 
                 setLayer(layerInd, frameInd, layer);
                 
                 BufferedImage image = createImage(layer, pixelRGB);
 
-                String fileName = sliceNames[frameInd * depth + layerInd],
+                String fileName = sliceNames[frameInd * dim.depth + layerInd],
                         fileType = fileName.substring(fileName.lastIndexOf('.') + 1);
 
                 File outputFile = new File(writeToFolder, fileName);
@@ -174,11 +172,11 @@ public class ColorHeatMapCreator extends HeatMapCreator implements AutoCloseable
      * @return A BufferedImage representing the heatmap.
      */
     private BufferedImage createImage(int[] layer, int[] pixelRGB) {
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        BufferedImage image = new BufferedImage(dim.width, dim.height, BufferedImage.TYPE_INT_RGB);
         WritableRaster raster = image.getRaster();
 
-        for (int row = 0; row < height; row++) {
-            for (int col = 0; col < width; col++) {
+        for (int row = 0; row < dim.height; row++) {
+            for (int col = 0; col < dim.width; col++) {
                 getPixelArray(layer, col, row, pixelRGB);
                 raster.setPixel(col, row, pixelRGB);
             }

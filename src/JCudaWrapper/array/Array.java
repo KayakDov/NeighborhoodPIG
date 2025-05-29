@@ -29,6 +29,7 @@ public interface Array extends AutoCloseable {
     public static void recordMemAloc(Pointer p) {
         allocatedArrays.add(p);
 //        System.out.println("JCudaWrapper.array.Array.recordMemAloc() " + p.toString());
+//        new Exception("TODO: delete me").printStackTrace();
     }
 
     /**
@@ -300,4 +301,11 @@ public interface Array extends AutoCloseable {
      */
     public Array3d as3d(int linesPerLayer);
 
+    /**
+     * The total memory used by this array.
+     * @return The total memory used by this array.
+     */
+    public default long totalMemoryUsed(){
+        return (size()/entriesPerLine())*ld()*bytesPerEntry();
+    }
 }

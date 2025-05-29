@@ -10,35 +10,40 @@ import JCudaWrapper.resourceManagement.Handle;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 import jcuda.Pointer;
+import jcuda.Sizeof;
+import jcuda.runtime.JCuda;
 
 /**
  *
  * @author E. Dov Neimand
  */
-public interface PointTo2d extends PArray{
- 
+public interface PointTo2d extends PArray {
+
     /**
      * An array that contains the pitch value of each pointed to array.
+     *
      * @return An array that contains the pitch value of each pointed to array.
      */
     public IArray targetLD();
-    
+
     /**
      * The number of entries per line in the arrays pointed to.
+     *
      * @return The number of entries per line in the arrays pointed to.
      */
     public TargetDim2d targetDim();
-    
 
     /**
      * Describes any line array, except that there's nto pointer information.
      */
-    public class TargetDim2d{
+    public class TargetDim2d {
+
         public final int entriesPerLine;
         public final int numLines;
 
         /**
          * Constructor
+         *
          * @param entriesPerLine The number of entries on each line.
          * @param numLines The number of lines.
          */
@@ -46,16 +51,17 @@ public interface PointTo2d extends PArray{
             this.entriesPerLine = entriesPerLine;
             this.numLines = numLines;
         }
-        
+
         /**
          * The number of entries items.
+         *
          * @return The number of entries.
          */
-        public int size(){
-            return entriesPerLine*numLines;
+        public int size() {
+            return entriesPerLine * numLines;
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -68,10 +74,29 @@ public interface PointTo2d extends PArray{
      * {@inheritDoc}
      */
     @Override
-    public default void close(){
+    public default void close() {
         targetLD().close();
         PArray.super.close();
     }
-    
-    
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public default long totalMemoryUsed() {
+        long memoryUsed = targetLD().totalMemoryUsed() + 
+                + ld() * linesPerLayer() * bytesPerEntry();
+
+        JCuda.cudaDeviceSynchronize();
+
+        try (Handle hand = new Handle()) {
+            
+            int[] lds = targetLD().get(hand);
+            
+            for (int ld :lds) memoryUsed += ld * targetDim().numLines * targetBytesPerEntry();
+        }
+
+        return memoryUsed;
+    }
+
 }

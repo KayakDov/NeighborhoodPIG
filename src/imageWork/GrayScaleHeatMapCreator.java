@@ -9,6 +9,7 @@ import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
+import fijiPlugin.Dimensions;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.FloatProcessor;
@@ -27,7 +28,7 @@ import java.util.stream.IntStream;
 public class GrayScaleHeatMapCreator extends HeatMapCreator {
 
     private final PArray2dToF2d image;
-    private final PArray2dToD2d coherence;
+    private final PArray2dToF2d coherence;
     private final double tolerance;
 
     /**
@@ -41,21 +42,16 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
      * or very near 0. Set to null to avoid doing this, if for example you want
      * to map coherence.
      * @param tolerance Defines what is close to 0.
+     * @param dim The dimensions.
      */
-    public GrayScaleHeatMapCreator(String[] sliceNames, String stackName, Handle handle, PArray2dToD2d image, PArray2dToD2d coherence, double tolerance) {
-        super(sliceNames, stackName, handle, image);
+    public GrayScaleHeatMapCreator(String[] sliceNames, String stackName, Handle handle, PArray2dToF2d image, PArray2dToF2d coherence, double tolerance, Dimensions dim) {
+        super(sliceNames, stackName, dim, handle);
 
         this.image = new PArray2dToF2d(image.entriesPerLine(), image.linesPerLayer(), image.targetDim().entriesPerLine, image.targetDim().numLines);
         this.image.initTargets(handle);
 
         this.coherence = coherence;
         this.tolerance = tolerance;
-
-        Kernel.run("mapToFloat", handle,
-                size(),
-                new PArray2dTo2d[]{this.image, image},
-                this
-        );
 
     }
 
@@ -74,23 +70,23 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
      */
     private ImagePlus getIP() {//TODO: look into multi threading this.
 
-        ImageStack stack = new ImageStack(width, height);
+        ImageStack stack = dim.getImageStack();
 
-        float[] layerImage = new float[layerSize()];
-        double[] layerCoherence = new double[layerSize()];
+        float[] layerImage = new float[dim.layerSize()];
+        float[] layerCoherence = new float[dim.layerSize()];
 
-        for (int t = 0; t < batchSize; t++) {
+        for (int t = 0; t < dim.batchSize; t++) {
 
-            for (int z = 0; z < depth; z++) {
+            for (int z = 0; z < dim.depth; z++) {
 
-                FloatProcessor fp = new FloatProcessor(width, height);
+                FloatProcessor fp = dim.getFloatProcessor();
 
                 image.get(z, t).getVal(handle).get(handle, layerImage);
                 coherence.get(z, t).getVal(handle).get(handle, layerCoherence);
 
-                for (int col = 0; col < width; col++)
-                    for (int row = 0; row < height; row++) {
-                        int fromInd = col * height + row;
+                for (int col = 0; col < dim.width; col++)
+                    for (int row = 0; row < dim.height; row++) {
+                        int fromInd = col * dim.height + row;
 
                         fp.setf(col, row, layerImage[fromInd] * (layerCoherence[fromInd] <= tolerance ? 0f : 1f));
                     }
@@ -101,7 +97,7 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
         ImagePlus imp = new ImagePlus(stackName, stack);
         imp.getProcessor().setMinAndMax(0, Math.PI);
 
-        return setToHyperStack(new ImagePlus(stackName, stack));
+        return dim.setToHyperStack(new ImagePlus(stackName, stack));
     }
 
     /**

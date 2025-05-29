@@ -1,6 +1,5 @@
 #include <cuda_runtime.h>
 #include <math.h>
-//TODO: precompute layer and tensor sizes.
 
 /**
  * Uses Kahan's method for more accurate mulitplication.
@@ -29,8 +28,7 @@ __device__ inline void swap(double& a, double& b) {
  * the appropriate index to retrieve a value based on a flattened linear index.
  */
 class Get{
-private:
-    const int height;          ///< Height of each 2D slice.
+public:
     const int idx;             ///< Linear index of the element being processed by the current thread.
     const int downSampleFactorXY; ///< Downsampling factor in the x and y dimensions.
     const int layerSize;       ///< Size of a single 2D slice (height * width).
@@ -38,46 +36,34 @@ private:
     const int frame;           ///< Index of the current frame.
     const int row;
     const int col;
-public:
+
     /**
      * @brief Constructs a Get object to calculate indices for accessing elements in a 3D data batch.
      * @param inputIdx The linear index of the element being processed by the current thread, before downsampling.
-     * @param height The height of each 2D slice.
      * @param width The width of each 2D slice.
      * @param depth The number of slices along the depth dimension (per frame).
      * @param downSampleFactorXY The downsampling factor applied in the x and y dimensions.
      */
-    __device__ Get(const int inputIdx, const int height, const int* dim, const int downSampleFactorXY)
+    __device__ Get(const int inputIdx, const int* dim, const int downSampleFactorXY)
     : idx(inputIdx * downSampleFactorXY), 
-      height(height), 
       downSampleFactorXY(downSampleFactorXY), 
-      layerSize(dim[1]*height), 
-      layer((idx / layerSize) % dim[2]), 
-      frame(idx / (layerSize * dim[2])),
-      row(idx % height),
-      col(downSampleFactorXY * ((idx % (layerSize/downSampleFactorXY/downSampleFactorXY)) / height)) {}
+      layerSize(dim[4]), 
+      layer((idx / dim[4]) % dim[2]), 
+      frame(idx / (dim[4] * dim[2])),
+      row(idx % dim[0]),
+      col(downSampleFactorXY * ((idx % (dim[4]/downSampleFactorXY/downSampleFactorXY)) / dim[0])) {}
 
-    /**
-     * @brief Retrieves a value from the source data array based on the calculated multi-dimensional index.
-     * @param src Array of pointers, where each pointer points to the beginning of a 2D slice.
-     * @param ld Array of leading dimensions for each 2D slice (corresponding to the pointers in src).
-     * @param ldld Leading dimension of the ld array (stride between leading dimensions in memory).
-     * @param ldPtr Leading dimension of the src array (stride between pointers to different slices in memory).
-     * @return The value at the computed index within the specified slice.
-     */
-    __device__ double operator()(const double** src, const int* ld, const int ldld, const int ldPtr) {
-        return src[layerInd(ldPtr)][ind(ld, ldld)];
-    }
     
 
     /**
      * @brief Computes the column-major index within a single 2D slice (height x width).
+     * @tparam T The data type of the array elements.
      * @param ld Array of leading dimensions for each 2D slice.
      * @param ldld Leading dimension of the ld array.
      * @return The column-major index within the current 2D slice.
      */
-    __device__ int ind(const int* ld, const int ldld) const{
-        return col * ld[layerInd(ldld)] + row;
+    __device__ int word(const int* ld, const int ldld) const{
+        return col * ld[page(ldld)] + row;
     }
 
     /**
@@ -85,16 +71,8 @@ public:
      * @param ldPtr Leading dimension of the array of pointers.
      * @return The index of the pointer to the current 2D slice.
      */
-    __device__ int layerInd(const int ldPtr) const{
+    __device__ int page(const int ldPtr) const{
         return frame * ldPtr + layer;
-    }
-    
-    
-    /**
-     * Points to the desired location.
-     */
-    __device__ double* ptr(double** src, const int* ld, const int ldld, const int ldPtr){
-        return src[layerInd(ldPtr)] + ind(ld, ldld);
     }
     
     
@@ -106,16 +84,32 @@ public:
      * @param ldPtr Leading dimension of the src array (stride between pointers to different slices in memory).
      * @return The value at the computed index within the specified slice.
      */
-    __device__ void set(double** src, const int* ld, const int ldld, const int ldPtr, double val) {
-        *ptr(src, ld, ldld, ldPtr) = val;
+     template <typename T>
+    __device__ T operator()(const T** src, const int* ld, const int ldld, const int ldPtr) {
+        return src[page(ldPtr)][word(ld, ldld)];
+    }
+    
+    
+    /**
+     * @brief Sets the value from the source data array based on the calculated multi-dimensional index.
+     * @tparam T The data type of the array elements.
+     * @param src Array of pointers, where each pointer points to the beginning of a 2D slice.
+     * @param ld Array of leading dimensions for each 2D slice (corresponding to the pointers in src).
+     * @param ldld Leading dimension of the ld array (stride between leading dimensions in memory).
+     * @param ldPtr Leading dimension of the src array (stride between pointers to different slices in memory).
+     * @return The value at the computed index within the specified slice.
+     */
+     template <typename T>
+    __device__ void set(T** src, const int* ld, const int ldld, const int ldPtr, T val) {
+        src[page(ldPtr)][word(ld, ldld)] = val;
     }
     
     /**
      * @brief Prints the internal state of the Get object.
      */
-    __device__ void print() const {
-        printf("Get(idx: %d, frame: %d, layer: %d, height: %d, layerSize: %d, downSampleFactorXY: %d, col: %d, row: %d)\n",
-               idx, frame, layer, height, layerSize, downSampleFactorXY, col, row);
+    __device__ void print(const int* ld, int ldld, int ldPtr) const {
+        printf("Get\n idx: %d, frame: %d, layer: %d, lyayerSize: %d, downSampleFactorXY: %d, \ncol: %d, row: %d, page: %d, word: %d, ld: %d, ldld: %d, ldPtr: %d\n\n",
+               idx, frame, layer, layerSize, downSampleFactorXY, col, row, page(ldPtr), word(ld, ldld), ld[page(ldld)], ldld, ldPtr);
     }
 };
 
@@ -422,7 +416,7 @@ public:
  */
 class Vec {
 private:
-    double* data;
+    double data[3];
     double tolerance;
     
     /**
@@ -480,7 +474,7 @@ public:
      * @brief Constructs a Vec object.
      * @param data Pointer to the double array (size 3) representing the vector.
      */
-    __device__ Vec(double* data, double tolerance):data(data), tolerance(tolerance){}
+    __device__ Vec(double tolerance): tolerance(tolerance){}
 
     /**
      * @brief Sets the components of the vector.
@@ -624,14 +618,14 @@ public:
     /**
      * The azimuthal angle of this vector.
      */
-    __device__ double azimuth(){
+    __device__ float azimuth(){
         return (data[0]*data[0] + data[1]*data[1] <= tolerance) ? nan("") : atan2(data[1], data[0]);
     }
     
     /**
      * The zenith angle of this vector.
      */
-    __device__ double zenith(){
+    __device__ float zenith(){
         if(data[2] >= 1 - tolerance) return 0;
         else if(data[2] <= tolerance - 1) return M_PI;
         else if(lengthSquared() <= tolerance) return nan("");
@@ -648,8 +642,19 @@ public:
         sortDescending();
     }
     
+    /**
+     * The multiplicity at the requested index.
+     * @param the index of the desired multiplicity.
+     */
     __device__ int multiplicity(int ind){
         return (data[0] == data[ind]) + (data[1] == data[ind]) + (data[2] == data[ind]) - 1;
+    }
+    
+    /**
+     * Copies these values to the desired location.
+     */
+    __device__ void writeTo(float* dst){    
+     	for(int i = 0; i < 3; i++) dst[i] = (float)data[i];
     }
     
 };
@@ -687,16 +692,6 @@ public:
  
  * @param dim  height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
  
- * @param valDst Array of pointers to the output eigenvalues (size: (n / downSampleFactorXY / downSampleFactorXY) * 3).
- * @param ldEVal Leading dimension for accessing eigenvalues in valDst (stride between sets of 3 eigenvalues).
- * @param ldldEVal Leading dimension of the ldEVal array.
- * @param ldPtrEVal Leading dimension of the valDst pointer array.
- * @param downSampleFactorXY Evaluate 1 of every how many structure tensors in x and y dimensions.
- * @param eigenInd Which eigenvalue to focus on for eigenvector calculation (0, 1, or 2).
- * @param vecDst Array of pointers to the output eigenvectors (size: (n / downSampleFactorXY / downSampleFactorXY) * 3).
- * @param ldEVec Leading dimension for accessing eigenvectors in vecDst (stride between sets of 3 eigenvectors).
- * @param ldldEVec Leading dimension of the ldEVec array.
- * @param ldPtrEVec Leading dimension of the vecDst pointer array.
  * @param tolerance Tolerance for floating-point comparisons.
  * @param zenith where the zenith angles, between 0 and pi, will be stored.
  * @param azimuthal where the Azimuthal angles, between 0 and pi, will be stored.
@@ -711,24 +706,24 @@ extern "C" __global__ void eigenBatchKernel(
     const double** yz, const int* ldyz, const int ldldyz, const int ldPtryz,
     const double** zz, const int* ldzz, const int ldldzz, const int ldPtrzz,
 
-    double** valDst, const int* ldEVal, const int ldldEVal, const int ldPtrEVal,
-    double** vecDst, const int* ldEVec, const int ldldEVec, const int ldPtrEVec,
-
-    double** coherence, const int* ldCoh, const int ldldCoh, const int ldPtrCoh,
-    
-    double** azimuthal, const int* ldAzi, const int ldldAzi, const int ldPtrAzi,
-    double** zenith, const int* ldZen, const int ldldZen, const int ldPtrZen,
+    float** eVecs, const int* ldEVec, const int ldldEVec, const int ldPtrEVec,    
+    float** coherence, const int* ldCoh, const int ldldCoh, const int ldPtrCoh,    
+    float** azimuthal, const int* ldAzi, const int ldldAzi, const int ldPtrAzi,
+    float** zenith, const int* ldZen, const int ldldZen, const int ldPtrZen,
         
     const int* dim,
     
     const int downSampleFactorXY, const int eigenInd,
-    const double tolerance
+    const double tolerance,
+    const int* dsDim
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= n/downSampleFactorXY/downSampleFactorXY) return;
+  
+        
     
-    Get src(idx, dim[0], dim, downSampleFactorXY);
+    Get src(idx, dim, downSampleFactorXY);
     
     Matrix3x3 mat(
     	src(xx, ldxx, ldldxx, ldPtrxx), src(xy, ldxy, ldldxy, ldPtrxy), src(xz, ldxz, ldldxz, ldPtrxz), 
@@ -736,15 +731,13 @@ extern "C" __global__ void eigenBatchKernel(
     					                                src(zz, ldzz, ldldzz, ldPtrzz),
         tolerance
     );
-        
-    Get getx3(3*idx, dim[0] * 3, dim, 1);
     
-    Vec eVals(getx3.ptr(valDst, ldEVal, ldldEVal, ldPtrEVal), tolerance);
+    Vec eVals(tolerance);
     eVals.setEVal(mat);
         
-    if (eVals(0) <=  tolerance) src.set(coherence, ldCoh, ldldCoh, ldPtrCoh, 0);
+    if (eVals(0) <=  tolerance) src.set(coherence, ldCoh, ldldCoh, ldPtrCoh, (float)0);
     else {
-        double coherenceVal = (eVals(0) - eVals(1)) / (eVals(0) + eVals(1) + eVals(2));        
+        float coherenceVal = (eVals(0) - eVals(1)) / (eVals(0) + eVals(1) + eVals(2));        
         src.set(coherence, ldCoh, ldldCoh, ldPtrCoh, coherenceVal);
     }
 
@@ -752,12 +745,14 @@ extern "C" __global__ void eigenBatchKernel(
    
     int freeVariables = mat.rowEchelon();
         
-    Vec vec(getx3.ptr(vecDst, ldEVec, ldldEVec, ldPtrEVec), 1e-5);
+    Vec vec(1e-5);
     
     vec.setEigenVec(mat, freeVariables, eigenInd);
-
-    src.set(azimuthal, ldAzi, ldldAzi, ldPtrAzi, vec.azimuth());
-    src.set(zenith, ldZen, ldldZen, ldPtrZen, vec.zenith());
     
+    Get dst(idx, dsDim, 1);
+        
+     vec.writeTo(eVecs[dst.page(ldPtrEVec)] + ((idx % dsDim[4]) / dsDim[0]) * ldEVec[dst.page(ldldEVec)] + (idx % dsDim[0]) * 3);
+    dst.set(azimuthal, ldAzi, ldldAzi, ldPtrAzi, vec.azimuth());
+    dst.set(zenith, ldZen, ldldZen, ldPtrZen, vec.zenith());
 }
 

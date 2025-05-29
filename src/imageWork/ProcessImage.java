@@ -2,13 +2,17 @@ package imageWork;
 
 import FijiInput.UserInput;
 import JCudaWrapper.array.Double.DArray2d;
+import JCudaWrapper.array.Float.FArray2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
+import fijiPlugin.Dimensions;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.io.Opener;
 import ij.process.ImageProcessor;
+import java.awt.Dimension;
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
 import java.io.File;
@@ -30,42 +34,32 @@ public class ProcessImage {
      * @param folderPath The path to the folder containing the image files. The
      * number of images in the folder should be a multiple of depth.
      * @param depth The number of images to include in each frame of the
-     * ImagePlus stack.
+     * ImagePlus stack. This must be greater than 0.
      * @return An ImagePlus object representing the combined image stack, or
      * null if the folder is empty or invalid.
      * @throws IllegalArgumentException If the depth is less than or equal to
      * zero.
      */
     public static ImagePlus imagePlus(String folderPath, int depth) {
-        if (depth <= 0) {
-            throw new IllegalArgumentException("Depth must be greater than zero.");
-        }
+
         File[] files = getImageFiles(folderPath);
+
         Opener opener = new Opener();
-        ImagePlus img = opener.openImage(files[0].getAbsolutePath());
-        ImageStack frames = new ImageStack(img.getWidth(), img.getHeight());
-        for (int frameIndex = 0; frameIndex < files.length / depth; frameIndex++) {
-            ImageStack layers = new ImageStack(img.getWidth(), img.getHeight());
-            for (int layerIndex = 0; layerIndex < depth; layerIndex++) {
-                img = opener.openImage(files[frameIndex * depth + layerIndex].getAbsolutePath());
-                layers.addSlice(img.getProcessor());
-            }
-            frames.addSlice("frame " + frameIndex, layers.getProcessor(1)); // Add the completed frame
-        }
-        return new ImagePlus("Combined Image Stack", frames);
+        ImagePlus imp = opener.openImage(files[0].getPath());
+
+        Dimensions dim = new Dimensions(null, imp.getHeight(), imp.getWidth(), depth, files.length/depth);
+        
+        ImageStack frameSequence = dim.getImageStack();
+
+        for (File file : files) {
+            imp = opener.openImage(file.getAbsolutePath());
+            frameSequence.addSlice(imp.getProcessor());
+        }        
+
+        return dim.setToHyperStack(new ImagePlus(folderPath.substring(Math.max(folderPath.lastIndexOf(File.pathSeparator), 0)), frameSequence));
+        
     }
 
-    /**
-     * Copies the raster to an array in column major order.
-     *
-     * @param raster The raster being written from.
-     * @param writeTo The array being written to.
-     */
-    private static void toColMjr(Raster raster, double[] writeTo) {
-        for (int col = 0; col < raster.getWidth(); col++) 
-            for (int row = 0; row < raster.getHeight(); row++) 
-                writeTo[col * raster.getHeight() + row] = raster.getSample(col, row, 0);
-    }
 
     /**
      * Uses the suffix of the string to determine if it describes a picture
@@ -116,8 +110,8 @@ public class ProcessImage {
      * @return A FArray containing the image data in column-major order for all
      * frames, slices, and channels.
      */
-    public static final PArray2dToD2d processImages(Handle handle, ImagePlus imp, UserInput ui) {
-        
+    public static final PArray2dToF2d processImages(Handle handle, ImagePlus imp, UserInput ui) {
+
         // Convert the image to grayscale if necessary
         if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32) {
             System.out.println("fijiPlugin.NeighborhoodPIG.processImages(): Converting image to grayscale.");
@@ -130,71 +124,29 @@ public class ProcessImage {
         int frames = imp.getNFrames();
         int imgSize = width * height;
 
-        PArray2dToD2d processedImage = new PArray2dToD2d(depth, frames, height, width);
-        double[] columnMajorSlice = new double[imgSize];
+        PArray2dToF2d processedImage = new PArray2dToF2d(depth, frames, height, width);
+        float[] columnMajorSlice = new float[imgSize];
 
         for (int frame = 1; frame <= frames; frame++) {
             for (int slice = 1; slice <= depth; slice++) {
                 for (int channel = 1; channel <= channels; channel++) {
-                    
+
                     imp.setPosition(channel, slice, frame);
 
                     float[][] pixels = imp.getProcessor().getFloatArray();
-                    
-                    
 
-                    for(int col = 0; col < width; col++)
-                        for(int row = 0; row < height; row++)
-                            columnMajorSlice[col*height + row] = pixels[col][row];
+                    for (int col = 0; col < width; col++)
+                        for (int row = 0; row < height; row++)
+                            columnMajorSlice[col * height + row] = pixels[col][row];
 
-                    DArray2d gpuSlice = new DArray2d(height, width).set(handle, columnMajorSlice);              
-                    
+                    FArray2d gpuSlice = new FArray2d(height, width).set(handle, columnMajorSlice);
+
                     processedImage.get(slice - 1, frame - 1).set(handle, gpuSlice);
                 }
             }
         }
-        
-        System.out.println("imageWork.ProcessImage.processManyImages()\n" + processedImage);
-        
+
         return processedImage;
-    }
-
-    /**
-     * Converts grayscale or RGB image files in a folder into a single
-     * column-major GPU array of pixel values. RGB images are converted to
-     * grayscale first.
-     *
-     * @param handle Context.
-     * @param pics Path to the folder containing image files.
-     * @param height The height of the pictures.
-     * @param width The width of the pictures.
-     * @param depth The depth of the image.
-     *
-     * @return A single column-major GPU array containing pixel values of all
-     * images.
-     * @throws IllegalArgumentException If no valid images are found in the
-     * folder.
-     */
-    public static final PArray2dToD2d processImages(Handle handle, File[] pics, int height, int width, int depth) {
-
-        PArray2dToD2d pixelsGPU = new PArray2dToD2d(depth, pics.length / depth, height, width);
-        
-        double[] imgPixelsColMaj = new double[width * height];
-        
-        for (int i = 0; i < pics.length; i++) {
-            try {
-                BufferedImage bi = ImageIO.read(pics[i]);
-                if (width < bi.getWidth() || height < bi.getHeight()) bi = bi.getSubimage(0, 0, width, height);
-                
-                toColMjr(grayScale(bi).getData(), imgPixelsColMaj);
-                
-                pixelsGPU.get(i % depth, i / depth).set(handle, new DArray2d(height, width).set(handle, imgPixelsColMaj));
-            
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Error reading image file: " + pics[i].getName(), e);
-            }
-        }
-        return pixelsGPU;
     }
 
     /**
@@ -203,7 +155,7 @@ public class ProcessImage {
      * @param parentDirectory The directory with the desired image files.
      * @return All the image files in the directory.
      */
-    public static File[] getImageFiles(String parentDirectory) {
+    private static File[] getImageFiles(String parentDirectory) {
         File folder = new File(parentDirectory);
         if (!folder.exists() || !folder.isDirectory()) {
             throw new IllegalArgumentException("The provided path is not a valid folder.");

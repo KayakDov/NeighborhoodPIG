@@ -45,6 +45,45 @@ public:
       }
 
     /**
+     * @brief Retrieves a value from the source 4D dataset using the calculated indices.
+     *
+     * @param src   Array of pointers to 2D slices, arranged in frame-major and then depth-major order.
+     * @param ld    Array of leading dimensions for each slice (used for column-major indexing).
+     * @param ldld  Leading dimension of the ld array (stride across layers).
+     * @param ldPtr Leading dimension of the src array (stride across frames).
+     * @return      The double value at the resolved position in the 4D dataset.
+     */
+    __device__ double operator()(const float** src, const int* ld, const int ldld, const int ldPtr) {
+        return src[page(ldPtr)][word(ld, ldld)];
+    }
+    
+    /**
+     * @brief Retrieves a value from the source 4D dataset using the calculated indices.
+     *
+     * @param src   Array of pointers to 2D slices, arranged in frame-major and then depth-major order.
+     * @param ld    Array of leading dimensions for each slice (used for column-major indexing).
+     * @param ldld  Leading dimension of the ld array (stride across layers).
+     * @param ldPtr Leading dimension of the src array (stride across frames).
+     * @return      The double value at the resolved position in the 4D dataset.
+     */
+    __device__ double operator()(double** src, const int* ld, const int ldld, const int ldPtr) {
+	return src[page(ldPtr)][word(ld, ldld)];
+    }
+
+    /**
+     * @brief Sets a value in the destination 4D dataset using the calculated indices.
+     *
+     * @param src   Array of pointers to 2D slices, arranged in frame-major and then depth-major order.
+     * @param ld    Array of leading dimensions for each slice (used for column-major indexing).
+     * @param ldld  Leading dimension of the ld array (stride across layers).
+     * @param ldPtr Leading dimension of the src array (stride across frames).
+     * @param val   The double value to store in the specified location.
+     */
+    __device__ void set(double** src, const int* ld, const int ldld, const int ldPtr, double val) {
+        src[page(ldPtr)][word(ld, ldld)] = val;
+    }
+
+    /**
      * @brief Computes the column-major index within the current 2D slice.
      * 
      * @param ld   Array of leading dimensions (strides) for each 2D slice.
@@ -75,34 +114,6 @@ public:
                idx, frame, layer, height, layerSize, col, row,
                dim[0], dim[1], dim[2], dim[3], dim[4], dim[5], (dim + 6)[0]); // Added dim print
     }
-    
-    
-    /**
-     * @brief Retrieves a value from the source 4D dataset using the calculated indices.
-     *
-     * @param src   Array of pointers to 2D slices, arranged in frame-major and then depth-major order.
-     * @param ld    Array of leading dimensions for each slice (used for column-major indexing).
-     * @param ldld  Leading dimension of the ld array (stride across layers).
-     * @param ldPtr Leading dimension of the src array (stride across frames).
-     * @return      The double value at the resolved position in the 4D dataset.
-     */
-    __device__ double operator()(const float** src, const int* ld, const int ldld, const int ldPtr) {
-        return src[page(ldPtr)][word(ld, ldld)];
-    }
-    
-    /**
-     * @brief Sets a value in the destination 4D dataset using the calculated indices.
-     *
-     * @param src   Array of pointers to 2D slices, arranged in frame-major and then depth-major order.
-     * @param ld    Array of leading dimensions for each slice (used for column-major indexing).
-     * @param ldld  Leading dimension of the ld array (stride across layers).
-     * @param ldPtr Leading dimension of the src array (stride across frames).
-     * @param val   The double value to store in the specified location.
-     */
-    __device__ void set(double** src, const int* ld, const int ldld, const int ldPtr, double val) {
-        src[page(ldPtr)][word(ld, ldld)] = val;
-    }
-
 };
 
 /**
@@ -143,7 +154,7 @@ extern "C" __global__ void setEBEProductKernel(
     const float** a, const int* xyLdA, const int ldldA, const int ztLdA,
     const float** b, const int* xyLdB, const int ldldB, const int ztLdB,
     
-    const int* dim //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6    
+    const int* dim //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= n) return;

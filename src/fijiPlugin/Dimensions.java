@@ -1,10 +1,14 @@
 package fijiPlugin;
 
-import JCudaWrapper.array.Float.FStrideArray3d;
-import JCudaWrapper.array.Int.IArray;
 import JCudaWrapper.array.Int.IArray1d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
+import ij.ImagePlus;
+import ij.ImageStack;
+import ij.plugin.HyperStackConverter;
+import ij.process.FloatProcessor;
+import java.io.Closeable;
 
 /**
  * Represents the dimensions and strides of a 3D tensor with additional stride
@@ -20,7 +24,7 @@ import JCudaWrapper.resourceManagement.Handle;
  *
  * @author E.Dov Neimand
  */
-public class Dimensions{
+public class Dimensions implements Closeable {
 
     /**
      * The height (number of rows) of the tensor.
@@ -41,22 +45,21 @@ public class Dimensions{
      * The batch size (number of tensors in a batch).
      */
     public final int batchSize;
-    
-    public final Handle handle;
+
+    private IArray1d gpuDim;
 
     /**
      * Constructs a new TensorOrd3dStrideDim with the specified dimensions,
      * strides, and batch size.
      *
-     * @param handle The handle.
+     * @param handle The handle. Set this to null to block creation of a
+     * dimensions gpu array.
      * @param height The height (number of rows) of the tensor.
      * @param width The width (number of columns) of the tensor.
      * @param depth The depth (number of layers) of the tensor.
-     * @param layerDist The distance between consecutive layers in memory.
      * @param batchSize The number of tensors in a batch.
      */
     public Dimensions(Handle handle, int height, int width, int depth, int batchSize) {
-        this.handle = handle;
         this.height = height;
         this.width = width;
         this.depth = depth;
@@ -65,38 +68,29 @@ public class Dimensions{
         if ((long) width * height * depth * batchSize > Integer.MAX_VALUE)
             throw new IllegalArgumentException("Image size exceeds array limit.");
 
+        gpuDim = handle == null
+                ? null
+                : new IArray1d(handle,
+                        height, //0 -> height
+                        width, //1 -> width
+                        depth, //2 -> depth
+                        batchSize,//3 -> numTensorts
+                        height * width,//4 -> layerSize
+                        tensorSize(),//5  -> tensorSize 
+                        tensorSize() * batchSize //6 -> batchSize (number of elements, not tensors, in the batch)
+                );
+
     }
-        
+
     /**
-     * Copy constructor.
+     * The gpu dimensions.
      *
-     * @param handle The context.
-     * @param copyFrom The item being copied.
+     * @return The gpu dimensions.
      */
-    public Dimensions(Handle handle, FStrideArray3d copyFrom) {
-        this(handle, copyFrom.entriesPerLine(), copyFrom.linesPerLayer(), copyFrom.layersPerGrid(), copyFrom.batchSize);
+    public IArray1d getGpuDim() {
+        return gpuDim;
     }
-    
-    /**
-     * Copy constructor.
-     *
-     * @param handle The context.
-     * @param copyFrom The item being copied.
-     */
-    public Dimensions(Handle handle, PArray2dToD2d copyFrom) {
-        this(handle, copyFrom.targetDim().entriesPerLine, copyFrom.targetDim().numLines, copyFrom.entriesPerLine(), copyFrom.linesPerLayer());
-    }
-        
-    /**
-     * Copy constructor.
-     *
-     * @param handle The context.
-     * @param copyFrom The item being copied.
-     */
-    public Dimensions(Dimensions copyFrom) {
-        this(copyFrom.handle, copyFrom.height, copyFrom.width, copyFrom.depth, copyFrom.batchSize);
-    }
-    
+
     /**
      * Calculates the size of a single layer (width × height).
      *
@@ -111,7 +105,7 @@ public class Dimensions{
      *
      * @return The number of elements in the tensor.
      */
-    public int tensorSize() {
+    public final int tensorSize() {
         return layerSize() * depth;
     }
 
@@ -137,29 +131,69 @@ public class Dimensions{
                 + ", totalSize= " + size()
                 + '}';
     }
-    
+
     /**
-     * An empty array with these dimensions.
+     * An empty array with these dimensions. The pointers in the array have been
+     * alocated.
+     *
+     * @param hand The context
      * @return An empty array with these dimensions.
      */
-    public PArray2dToD2d empty(){
-        return new PArray2dToD2d(depth, batchSize, height, width);
+    public PArray2dToD2d emptyP2dToD2d(Handle hand) {
+        return new PArray2dToD2d(depth, batchSize, height, width).initTargets(hand);
     }
-    
     /**
-     * An IArray containing the dimensions.
-     * @return an IArray containing the dimensions.
+     * An empty array with these dimensions. The pointers in the array have been
+     * allocated.
+     *
+     * @param hand The context
+     * @return An empty array with these dimensions.
      */
-    public IArray1d gpuDim(){//TODO: this is created and destroyed multiple times, do that only once.
-        IArray1d dim = new IArray1d(handle, 
-            height, //0 -> height
-            width, //1 -> width
-            depth, //2 -> depth
-            batchSize,//3 -> numTensorts
-            height * width,//4 -> layerSize
-            tensorSize(),//5  -> tensorSize 
-            tensorSize() * batchSize //6 -> batchSize (number of elements, not tensors, in the batch)
-        );
-        return dim;
+    public PArray2dToF2d emptyP2dToF2d(Handle hand) {
+        return new PArray2dToF2d(depth, batchSize, height, width).initTargets(hand);
+    }
+
+    /**
+     * Turns the stack into a hyper stack with these dimensions.
+     *
+     * @param imp
+     * @return
+     */
+    public ImagePlus setToHyperStack(ImagePlus imp) {
+        if (batchSize > 1) {
+            imp = HyperStackConverter.toHyperStack(
+                    imp,
+                    1,
+                    depth,
+                    batchSize
+            );
+        }
+        return imp;
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public void close() {
+        gpuDim.close();
+    }
+
+    /**
+     * An image stack with this width and height.
+     *
+     * @return An image stack with this width and height.
+     */
+    public ImageStack getImageStack() {
+        return new ImageStack(width, height);
+    }
+
+    /**
+     * A float processor with these dimensions.
+     *
+     * @return A float processor with these dimensions.
+     */
+    public FloatProcessor getFloatProcessor() {
+        return new FloatProcessor(width, height);
     }
 }

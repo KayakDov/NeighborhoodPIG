@@ -2,6 +2,7 @@ package imageWork;
 
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import MathSupport.Point3d;
 import fijiPlugin.Dimensions;
@@ -9,9 +10,10 @@ import fijiPlugin.Dimensions;
 /**
  * Inner class to manage vector data.
  */
-public class VecManager extends Dimensions{
+public class VecManager {
 
-    private final double[] vecs;
+    private final float[] vecs;
+    private Dimensions dim;
 
     /**
      * Constructs a new VecManager with the specified size.
@@ -19,8 +21,8 @@ public class VecManager extends Dimensions{
      * @param d The dimensions (number and organization of 3d vectors) in this manager
      */
     public VecManager(Dimensions d) {
-        super(d);
-        this.vecs = new double[d.tensorSize()*3];
+        this.dim = d;
+        this.vecs = new float[d.tensorSize()*3];
     }
 
     /**
@@ -34,7 +36,7 @@ public class VecManager extends Dimensions{
      * @param handle
      * @return this.
      */
-    public VecManager setFrom(PArray2dToD2d gpuVecs, int gridIndex, int layerIndex, Handle handle) {
+    public VecManager setFrom(PArray2dToF2d gpuVecs, int gridIndex, int layerIndex, Handle handle) {
         gpuVecs.get(layerIndex, gridIndex).getVal(handle).get(handle, vecs);
         return this;
     }
@@ -47,7 +49,7 @@ public class VecManager extends Dimensions{
      * @return The index of the vector.
      */
     public int vecIndex(int row, int col) {
-        return (col * height + row) * 3;
+        return (col * dim.height + row) * 3;
     }
 
     /**
@@ -99,9 +101,9 @@ public class VecManager extends Dimensions{
     public String toString() {
         StringBuilder sb = new StringBuilder();
         Point3d p = new Point3d();
-        for (int row = 0; row < height; row++)
-            for (int col = 0; col < height; col++)
-                for (int layer = 0; layer < depth; layer++) {
+        for (int row = 0; row < dim.height; row++)
+            for (int col = 0; col < dim.height; col++)
+                for (int layer = 0; layer < dim.depth; layer++) {
                     get(row, col,p, 100);
                     sb.append("\n").append(p);
                 }

@@ -24,14 +24,14 @@ public abstract class PArray2dTo2d extends PArray2d implements PointTo2d {
      * @param entriesPerLine The number of pointers per line of pointers.
      * @param numLines The number of lines of pointers.
      * @param targetEntPerLine The number of entries per line in the arrays
-     * that are pointed to..
+     * that are pointed to.
      * @param targetNumLines The number of lines in the arrays that are
      * pointed to.
      */
     public PArray2dTo2d(int entriesPerLine, int numLines, int targetEntPerLine, int targetNumLines) {
         super(entriesPerLine, numLines);
         targetDim = new TargetDim2d(targetEntPerLine, targetNumLines);
-        targetLD = new IArray2d(entriesPerLine, numLines);
+        targetLD = new IArray2d(entriesPerLine, numLines);        
     }
     
     

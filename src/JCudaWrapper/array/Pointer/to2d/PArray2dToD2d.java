@@ -2,7 +2,6 @@ package JCudaWrapper.array.Pointer.to2d;
 
 import JCudaWrapper.array.Pointer.to1d.PArray1dToD1d;
 import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.Double.DArray;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
@@ -44,7 +43,7 @@ public class PArray2dToD2d extends PArray2dTo2d implements PointToD2d {
      */
     @Override
     public PArray2dToD2d initTargets(Handle hand) {
-        PointToD2d.super.initTargets(hand); 
+        PointToD2d.super.initTargets(hand);
         return this;
     }
     
@@ -93,17 +92,5 @@ public class PArray2dToD2d extends PArray2dTo2d implements PointToD2d {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
-    /**
-     * Multiplies every element in the target arrays by the scalar.
-     * @param handle
-     * @param scalar
-     */
-    public void setProduct(Handle handle, double scalar) {
-        Kernel.run("multiplyScalar", handle, targetSize(),
-                new PArray2dTo2d[]{this},
-                new Dimensions(handle, targetDim().entriesPerLine, targetDim().numLines, entriesPerLine(), linesPerLayer()),
-                P.to(scalar)
-        );
-        
-    }
+    
 }

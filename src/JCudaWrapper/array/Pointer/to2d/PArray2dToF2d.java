@@ -1,8 +1,11 @@
 package JCudaWrapper.array.Pointer.to2d;
 
 import JCudaWrapper.array.Array3d;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to1d.PArray1dToD1d;
 import JCudaWrapper.resourceManagement.Handle;
+import fijiPlugin.Dimensions;
 import jcuda.Sizeof;
 
 /**
@@ -75,5 +78,29 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d{
     public Array3d as3d(int linesPerLayer) {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
-    
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public PArray2dToF2d initTargets(Handle hand) {
+        PointToF2d.super.initTargets(hand); 
+        return this;
+    }
+
+
+    /**
+     * Multiplies every element in the target arrays by the scalar.
+     * @param handle
+     * @param scalar
+     */
+    public void scale(Handle handle, double scalar) {
+        Kernel.run("multiplyScalar", handle, targetSize(),
+                new PArray2dTo2d[]{this},
+                new Dimensions(handle, targetDim().entriesPerLine, targetDim().numLines, entriesPerLine(), linesPerLayer()),
+                P.to(scalar)
+        );
+        
+    }
+
 }

@@ -64,7 +64,7 @@ public:
  */
 class Grad{
 private:
-    const double** data; ///< Pointer to batched tensor data.
+    const float** data; ///< Pointer to batched tensor data.
     const int page;      ///< Offset into the layer matrix.
     const int word;      ///< Offset within the tensor layer.
     
@@ -79,7 +79,7 @@ public:
      * @param ldld Leading dimension of ldMatrix.
      * @param ldPtr Leading dimension of the pointer matrix.
      */
-    __device__ Grad(const double** data, const Indices& inds, const int* dim, const int* ld, const int ldld, const int ldPtr):
+    __device__ Grad(const float** data, const Indices& inds, const int* dim, const int* ld, const int ldld, const int ldPtr):
         data(data), 
         page(inds.page(ldPtr)), 
         word(inds.word(ld, ldld)){}
@@ -154,10 +154,10 @@ public:
  */
 extern "C" __global__ void batchGradientsKernel(
     const int n, 
-    const double** mat, const int* ldMat, const int ldldMat, const int ldPtrMat,
-    double** dX, const int* ldx, const int ldldX, const int ldPtrX,
-    double** dY, const int* ldy, const int ldldY, const int ldPtrY,
-    double** dZ, const int* ldz, const int ldldZ, const int ldPtrZ,
+    const float** mat, const int* ldMat, const int ldldMat, const int ldPtrMat,
+    float** dX, const int* ldx, const int ldldX, const int ldPtrX,
+    float** dY, const int* ldy, const int ldldY, const int ldPtrY,
+    float** dZ, const int* ldz, const int ldldZ, const int ldPtrZ,
     const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
     const double zLayerMult
 ) {    

@@ -184,6 +184,4 @@ public abstract class LineArray implements Array {
     public int ld() {
         return pitch() / bytesPerEntry();
     }
-
-    
 }

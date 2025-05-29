@@ -1,13 +1,9 @@
 package JCudaWrapper.array;
 
-import JCudaWrapper.array.Pointer.to2d.PSingletonTo2d;
 import jcuda.Pointer;
 import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaMemcpyKind;
 import JCudaWrapper.resourceManagement.Handle;
-import java.util.Arrays;
-import java.util.HashSet;
-import jcuda.driver.JCudaDriver;
 
 /**
  * Represents a 2D GPU array with memory allocated on the device. This class
@@ -170,7 +166,4 @@ public abstract class Array2d extends LineArray {
 
         return as1d().sub(index, ld() * (linesPerLayer() - 1) + 1, ld());
     }
-
-    
-    
 }

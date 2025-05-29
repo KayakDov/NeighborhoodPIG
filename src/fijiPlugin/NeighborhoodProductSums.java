@@ -1,12 +1,11 @@
 package fijiPlugin;
 
 import JCudaWrapper.array.Float.FArray;
-import JCudaWrapper.array.Float.FStrideArray3d;
-import JCudaWrapper.array.Int.IArray1d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 
 /**
@@ -20,12 +19,14 @@ import JCudaWrapper.resourceManagement.Handle;
  *
  * @author E. Dov Neimand
  */
-public class NeighborhoodProductSums extends Dimensions implements AutoCloseable {
+public class NeighborhoodProductSums implements AutoCloseable {
 
 //    private final Vector halfNOnes;
     private final PArray2dToD2d workSpace1, workSpace2;
     private final Kernel nSum;
     private final Mapper X, Y, Z;
+    private final Handle handle;
+    private final Dimensions dim;
 
     /**
      * Constructs a {@code NeighborhoodProductSums} instance to compute the sum
@@ -37,26 +38,20 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
      * @param dim Dimensions from this will be copied.
      *
      */
-    public NeighborhoodProductSums(Handle handle, NeighborhoodDim nRad, PArray2dToD2d dim) {
-        super(handle, dim);
+    public NeighborhoodProductSums(Handle handle, NeighborhoodDim nRad, Dimensions dim) {
 
-        Z = new Mapper(height * width * batchSize, depth, 2, nRad.zR);
+        this.handle = handle; this.dim = dim;
+        
+        Z = new Mapper(dim.height * dim.width * dim.batchSize, dim.depth, 2, nRad.zR);
 
-        Y = new Mapper(depth * width * batchSize, height, 1, nRad.xyR);
+        Y = new Mapper(dim.depth * dim.width * dim.batchSize, dim.height, 1, nRad.xyR);
 
-        X = new Mapper(depth * height * batchSize, width, 0, nRad.xyR);
+        X = new Mapper(dim.depth * dim.height * dim.batchSize, dim.width, 0, nRad.xyR);
 
-        workSpace2 = dim.copyDim(handle);
-        workSpace1 = dim.copyDim(handle);
+        workSpace2 = dim.emptyP2dToD2d(handle);
+        workSpace1 = dim.emptyP2dToD2d(handle);
 
         nSum = new Kernel("neighborhoodSum3d", Kernel.Type.PTR_TO_DOUBLE_2D);
-    }
-
-    /**
-     * The Z stride size in a matrix.
-     */
-    private static int matZStride(FArray mat) {
-        return mat.ld() * mat.linesPerLayer();
     }
 
     /**
@@ -97,7 +92,7 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
             nSum.run(handle,
                     numThreads,
                     new PArray2dTo2d[]{src, dst},
-                    NeighborhoodProductSums.this,
+                    dim.getGpuDim(),
                     P.to(numSteps),
                     P.to(nRad),
                     P.to(dirOrd)
@@ -117,24 +112,17 @@ public class NeighborhoodProductSums extends Dimensions implements AutoCloseable
      * @param dst Store the result here in column major order. Note that the
      * increment of this vector is probably not one.
      */
-    public void set(PArray2dToD2d a, PArray2dToD2d b, PArray2dToD2d dst) {
+    public void set(PArray2dToF2d a, PArray2dToF2d b, PArray2dToD2d dst) {
 
-//        System.out.println("fijiPlugin.NeighborhoodProductSums.set() a = " + a.toString());
-//        System.out.println("fijiPlugin.NeighborhoodProductSums.set() b = " + b.toString());
-        
-        Kernel.run("addEBEProduct", handle,
-                size(),
+        Kernel.run("setEBEProduct", handle,
+                dim.size(),
                 new PArray2dTo2d[]{workSpace1, a, b},
-                this,
-                P.to(1.0),
-                P.to(0.0)
+                dim
         );
 
-//        System.out.println("fijiPlugin.NeighborhoodProductSums.set() c = " + workSpace1
-//                .toString());
         X.neighborhoodSum(workSpace1, workSpace2);
 
-        if (depth > 1) {
+        if (dim.depth > 1) {
             Y.neighborhoodSum(workSpace2, workSpace1);
             Z.neighborhoodSum(workSpace1, dst);
         } else
