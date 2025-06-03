@@ -116,6 +116,29 @@ public:
 
 
 };
+
+__device__ void batchGradients(const int n, 
+    const float** mat, const int* ldMat, const int ldldMat, const int ldPtrMat,
+    float** dX, const int* ldx, const int ldldX, const int ldPtrX,
+    float** dY, const int* ldy, const int ldldY, const int ldPtrY,
+    float** dZ, const int* ldz, const int ldldZ, const int ldPtrZ,
+    const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+    const double zLayerMult
+){
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+        
+    if (idx >= n) return;
+
+    const Indices inds(idx, dim);
+
+    const Grad grad(mat, inds, dim, ldMat, ldldMat, ldPtrMat);
+    
+    switch(idx / dim[6]){ 
+    	case 0: dX[inds.page(ldPtrX)][inds.word(ldx, ldldX)] = grad.at((idx % dim[4]) / dim[0],            dim[1],  1,          0, ldMat[inds.page(ldPtrMat)]); break;
+	case 1: dY[inds.page(ldPtrY)][inds.word(ldy, ldldY)] = grad.at(idx % dim[0],            dim[0],  1,          0, 1                         ); break;
+	case 2: dZ[inds.page(ldPtrZ)][inds.word(ldz, ldldZ)] = grad.at((idx % dim[5]) / dim[4], dim[2],  zLayerMult, 1, 0                         );
+    }
+}
 /**
  * Computes numerical gradients for a batch of 3D tensors using finite differences.
  * 
@@ -152,7 +175,7 @@ public:
  * @param ldPtrZ Leading dimension of pointer matrix dZ.
  * @param zLayerMult Scaling factor for the z-gradient (accounts for spacing differences between z-layers and x/y pixels).
  */
-extern "C" __global__ void batchGradientsKernel(
+extern "C" __global__ void batchGradients3d(
     const int n, 
     const float** mat, const int* ldMat, const int ldldMat, const int ldPtrMat,
     float** dX, const int* ldx, const int ldldX, const int ldPtrX,
@@ -161,19 +184,31 @@ extern "C" __global__ void batchGradientsKernel(
     const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
     const double zLayerMult
 ) {    
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-        
-    if (idx >= n) return;
-
-    const Indices inds(idx, dim);
-
-    const Grad grad(mat, inds, dim, ldMat, ldldMat, ldPtrMat);
-    
-    switch(idx / dim[6]){ 
-    	case 0: dX[inds.page(ldPtrX)][inds.word(ldx, ldldX)] = grad.at((idx % dim[4]) / dim[0],            dim[1],  1,          0, ldMat[inds.page(ldPtrMat)]); break;
-	case 1: dY[inds.page(ldPtrY)][inds.word(ldy, ldldY)] = grad.at(idx % dim[0],            dim[0],  1,          0, 1                         ); break;
-	case 2: dZ[inds.page(ldPtrZ)][inds.word(ldz, ldldZ)] = grad.at((idx % dim[5]) / dim[4], dim[2],  zLayerMult, 1, 0                         );
-    }
-
+    batchGradients(    
+        n, 
+        mat, ldMat, ldldMat, ldPtrMat,
+        dX, ldx, ldldX, ldPtrX,
+        dY, ldy, ldldY, ldPtrY,
+        dZ, ldz, ldldZ, ldPtrZ,
+        dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+        zLayerMult
+    );
 }
-
+extern "C" __global__ void batchGradients2d(
+    const int n, 
+    const float** mat, const int* ldMat, const int ldldMat, const int ldPtrMat,
+    float** dX, const int* ldx, const int ldldX, const int ldPtrX,
+    float** dY, const int* ldy, const int ldldY, const int ldPtrY,    
+    const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+    const double zLayerMult
+) {
+    batchGradients(    
+        n, 
+        mat, ldMat, ldldMat, ldPtrMat,
+        dX, ldx, ldldX, ldPtrX,
+        dY, ldy, ldldY, ldPtrY,
+        nullptr, nullptr, -1, -1,
+        dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+        zLayerMult
+    );
+}

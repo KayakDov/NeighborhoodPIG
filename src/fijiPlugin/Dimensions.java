@@ -134,23 +134,23 @@ public class Dimensions implements Closeable {
 
     /**
      * An empty array with these dimensions. The pointers in the array have been
-     * alocated.
-     *
-     * @param hand The context
-     * @return An empty array with these dimensions.
-     */
-    public PArray2dToD2d emptyP2dToD2d(Handle hand) {
-        return new PArray2dToD2d(depth, batchSize, height, width).initTargets(hand);
-    }
-    /**
-     * An empty array with these dimensions. The pointers in the array have been
      * allocated.
      *
      * @param hand The context
      * @return An empty array with these dimensions.
      */
+    public PArray2dToD2d emptyP2dToD2d(Handle hand) {
+        return new PArray2dToD2d(depth, batchSize, height, width, hand);
+    }
+    /**
+     * An empty array with these dimensions. The pointers in the array have been
+     * allocated.
+     *
+     * @param hand The context.  Leave this null in order to not allocate target memory.
+     * @return An empty array with these dimensions.
+     */
     public PArray2dToF2d emptyP2dToF2d(Handle hand) {
-        return new PArray2dToF2d(depth, batchSize, height, width).initTargets(hand);
+        return new PArray2dToF2d(depth, batchSize, height, width, hand);
     }
 
     /**
@@ -195,5 +195,13 @@ public class Dimensions implements Closeable {
      */
     public FloatProcessor getFloatProcessor() {
         return new FloatProcessor(width, height);
+    }
+    
+    /**
+     * True if depth > 1, false otherwise.
+     * @return True if depth > 1, false otherwise.
+     */
+    public boolean hasDepth(){
+        return depth > 1;
     }
 }

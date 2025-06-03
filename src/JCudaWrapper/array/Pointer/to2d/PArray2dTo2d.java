@@ -12,11 +12,9 @@ import java.util.Arrays;
  * @author E. Dov Neimand
  */
 public abstract class PArray2dTo2d extends PArray2d implements PointTo2d {
-    
-    
-    private final TargetDim2d targetDim;
-    private final IArray2d targetLD;
-
+        
+    protected TargetDim2d targetDim;
+    protected IArray2d targetLD;
     
     /**
      * Constructs the empty array.
@@ -27,11 +25,13 @@ public abstract class PArray2dTo2d extends PArray2d implements PointTo2d {
      * that are pointed to.
      * @param targetNumLines The number of lines in the arrays that are
      * pointed to.
+     * @param initializeTargets Leave null to not initialize targets.  Otherwise the handle is used for that.
      */
-    public PArray2dTo2d(int entriesPerLine, int numLines, int targetEntPerLine, int targetNumLines) {
+    public PArray2dTo2d(int entriesPerLine, int numLines, int targetEntPerLine, int targetNumLines, Handle initializeTargets) {
         super(entriesPerLine, numLines);
+        targetLD = new IArray2d(entriesPerLine, numLines);
         targetDim = new TargetDim2d(targetEntPerLine, targetNumLines);
-        targetLD = new IArray2d(entriesPerLine, numLines);        
+        if(initializeTargets != null) initTargets(initializeTargets);
     }
     
     
@@ -47,23 +47,16 @@ public abstract class PArray2dTo2d extends PArray2d implements PointTo2d {
     public PArray2dTo2d set(Handle handle, Array2d... srcCPUArrayOfArrays) {
         super.set(handle, srcCPUArrayOfArrays);
 
-        targetLD().set(
-                handle,
-                Arrays.stream(srcCPUArrayOfArrays)
+        int[] cpuTargetLD = Arrays.stream(srcCPUArrayOfArrays)
                         .mapToInt(array -> array.ld())
-                        .toArray()
-        );
+                        .toArray();
+        
+        targetLD().set(handle, cpuTargetLD);
         return this;
     }
     
     
-    /**
-     * {@inheritDoc }
-     */
-    @Override
-    public IArray2d targetLD() {
-        return targetLD;
-    }
+
 
     /**
      * {@inheritDoc }
@@ -72,4 +65,22 @@ public abstract class PArray2dTo2d extends PArray2d implements PointTo2d {
     public TargetDim2d targetDim() {
         return targetDim;
     }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public IArray targetLD() {
+        return targetLD;
+    }
+    
+    /**
+     *{@inheritDoc }
+     */
+    @Override
+    public void close(){
+        targetLD.close();
+        super.close();
+    }
 }
+

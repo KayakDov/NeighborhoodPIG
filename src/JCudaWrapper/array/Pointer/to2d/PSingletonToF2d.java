@@ -29,7 +29,7 @@ public class PSingletonToF2d extends PSingletonTo2d implements PointToF2d{
     @Override
     public PSingletonToF2d copy(Handle handle) {
         PSingletonToF2d copy = new PSingletonToF2d(
-                new PArray2dToF2d(1, 1, targetDim.entriesPerLine, targetDim.numLines), 
+                new PArray2dToF2d(1, 1, targetDim.entriesPerLine, targetDim.numLines, handle), 
                 0
         );
         copy.set(handle, this);

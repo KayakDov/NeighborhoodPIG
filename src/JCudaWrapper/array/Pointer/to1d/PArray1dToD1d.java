@@ -210,4 +210,13 @@ public class PArray1dToD1d extends PArray1d implements PointToD1d{
 
     }
 
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public TargetDim2d targetDim() {
+        return new TargetDim2d(1, size());
+    }
+
+
 }

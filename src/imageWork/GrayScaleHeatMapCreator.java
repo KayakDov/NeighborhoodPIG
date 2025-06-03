@@ -77,7 +77,7 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
                     for (int row = 0; row < dim.height; row++) {
                         int fromInd = col * dim.height + row;
 
-                        fp.setf(col, row, layerImage[fromInd] * (layerCoherence[fromInd] <= tolerance ? 0f : 1f));
+                        fp.setf(col, row, layerCoherence[fromInd] > tolerance ? layerImage[fromInd] : Float.NaN);
                     }
                 stack.addSlice(sliceNames[z], fp);
             }

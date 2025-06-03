@@ -124,7 +124,7 @@ public class ProcessImage {
         int frames = imp.getNFrames();
         int imgSize = width * height;
 
-        PArray2dToF2d processedImage = new PArray2dToF2d(depth, frames, height, width);
+        PArray2dToF2d processedImage = new PArray2dToF2d(depth, frames, height, width, handle);
         float[] columnMajorSlice = new float[imgSize];
 
         for (int frame = 1; frame <= frames; frame++) {
@@ -136,12 +136,9 @@ public class ProcessImage {
                     float[][] pixels = imp.getProcessor().getFloatArray();
 
                     for (int col = 0; col < width; col++)
-                        for (int row = 0; row < height; row++)
-                            columnMajorSlice[col * height + row] = pixels[col][row];
+                        System.arraycopy(pixels[col], 0, columnMajorSlice, col * height, height);
 
-                    FArray2d gpuSlice = new FArray2d(height, width).set(handle, columnMajorSlice);
-
-                    processedImage.get(slice - 1, frame - 1).set(handle, gpuSlice);
+                    processedImage.get(slice - 1, frame - 1).getVal(handle).set(handle, columnMajorSlice);
                 }
             }
         }

@@ -29,7 +29,7 @@ public interface Array extends AutoCloseable {
     public static void recordMemAloc(Pointer p) {
         allocatedArrays.add(p);
 //        System.out.println("JCudaWrapper.array.Array.recordMemAloc() " + p.toString());
-//        new Exception("TODO: delete me").printStackTrace();
+//        (new RuntimeException("Allocate " + p.toString() + "TODO: delete me")).printStackTrace(System.out);
     }
 
     /**
@@ -73,11 +73,12 @@ public interface Array extends AutoCloseable {
      */
     @Override
     public default void close() {
+//        (new RuntimeException("Close " + pointer().toString() + "TODO: delete me")).printStackTrace(System.out);
         Pointer ptr = pointer();
         if (!allocatedArrays.remove(ptr))
-            throw new RuntimeException("Trying to remove a pointer that does not exist or has already been removed.");
+            throw new RuntimeException("Trying to remove a pointer, (" + ptr.toString() + ") that does not exist or has already been removed.");
         JCuda.cudaFree(ptr);
-//        System.out.println("JCudaWrapper.array.Array.close() " + pointer().toString());
+        
     }
 
     /**

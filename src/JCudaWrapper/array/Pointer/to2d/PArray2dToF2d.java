@@ -12,38 +12,42 @@ import jcuda.Sizeof;
  *
  * @author E. Dov Neimand
  */
-public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d{
+public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d {
 
     /**
      * Constructs the empty array.
      *
      * @param entriesPerLine The number of pointers per line of pointers.
      * @param numLines The number of lines of pointers.
-     * @param targetEntPerLine The number of entries per line in the arrays
-     * that are pointed to..
-     * @param targetNumLines The number of lines in the arrays that are
-     * pointed to.
+     * @param targetEntPerLine The number of entries per line in the arrays that
+     * are pointed to..
+     * @param targetNumLines The number of lines in the arrays that are pointed
+     * to.
+     * @param initializeTargets Leave null to not initialize targets. Otherwise,
+     * this context is used to initialize targets.
      */
-    public PArray2dToF2d(int entriesPerLine, int numLines, int targetEntPerLine, int targetNumLines) {
-        super(entriesPerLine, numLines, targetEntPerLine, targetNumLines);
+    public PArray2dToF2d(int entriesPerLine, int numLines, int targetEntPerLine, int targetNumLines, Handle initializeTargets) {
+        super(entriesPerLine, numLines, targetEntPerLine, targetNumLines, initializeTargets);
     }
 
     /**
      * Creates an empty array with the same dimensions as this array.
+     * @param initializeTargets Leave null to not initialize targets. Otherwise,
+     * this context is used to initialize targets.*
      * @return An empty array with the same dimensions as this array.
      */
-    public PArray2dToF2d copyDim(){
-        return new PArray2dToF2d(entriesPerLine(), linesPerLayer(), targetDim().entriesPerLine, targetDim().numLines);
-    }    
-    
+    public PArray2dToF2d copyDim(Handle initializeTargets) {
+        return new PArray2dToF2d(entriesPerLine(), linesPerLayer(), targetDim().entriesPerLine, targetDim().numLines, initializeTargets);
+    }
+
     /**
      * {@inheritDoc }
      */
     @Override
     public PSingletonToF2d get(int indexInLine, int lineNumber) {
-        return get(lineNumber * entriesPerLine() + indexInLine); 
+        return get(lineNumber * entriesPerLine() + indexInLine);
     }
-    
+
     /**
      * @deprecated
      */
@@ -84,13 +88,13 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d{
      */
     @Override
     public PArray2dToF2d initTargets(Handle hand) {
-        PointToF2d.super.initTargets(hand); 
+        PointToF2d.super.initTargets(hand);
         return this;
     }
 
-
     /**
      * Multiplies every element in the target arrays by the scalar.
+     *
      * @param handle
      * @param scalar
      */
@@ -100,7 +104,7 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d{
                 new Dimensions(handle, targetDim().entriesPerLine, targetDim().numLines, entriesPerLine(), linesPerLayer()),
                 P.to(scalar)
         );
-        
+
     }
 
 }

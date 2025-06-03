@@ -54,18 +54,13 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
         this.handle = handle;
         this.downsampleFactorXY = downSampleFactorXY;
         this.tolerance = tolerance;
-        mat = new PArray2dToD2d[3][3];
 
-        for (int i = 0; i < 3; i++)
-            for (int j = i; j < 3; j++)
-                mat[j][i] = mat[i][j] = dim.emptyP2dToD2d(handle);
+        int numDim = dim.hasDepth() ? 3 : 2;
+        mat = new PArray2dToD2d[numDim][numDim];
 
-//        vectors = new PArray2dToF2d(
-//                dim.depth,
-//                dim.batchSize,
-//                (dim.height / downSampleFactorXY) * 3,
-//                dim.width / downSampleFactorXY
-//        ).initTargets(handle);
+        for (int i = 0; i < numDim; i++)
+            for (int j = i; j < numDim; j++)
+                mat[i][j] = mat[j][i] = dim.emptyP2dToD2d(handle);
     }
 
     /**
@@ -75,7 +70,7 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
      * @param col The column of the desired vector.
      * @return All the values of all the structure tensors at the given indices.
      */
-    public PArray2dToD2d at(int row, int col) {
+    public PArray2dToD2d getMatValsAt(int row, int col) {
         return mat[row][col];
     }
 
@@ -92,26 +87,44 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
      */
     public void set(int eigenInd, PArray2dToF2d vectors, PArray2dToF2d coherence, PArray2dToF2d azimuth, PArray2dToF2d zenith, IArray downSampledDim) {
 
-        Kernel.run("eigenBatch", handle,
-                dim.size(),
-                new PArray2dTo2d[]{
-                    mat[0][0],
-                    mat[0][1],
-                    mat[0][2],
-                    mat[1][1],
-                    mat[1][2],
-                    mat[2][2],
-                    vectors,
-                    coherence,
-                    azimuth,
-                    zenith
-                },
-                dim,
-                P.to(downsampleFactorXY),
-                P.to(eigenInd),
-                P.to(tolerance),
-                P.to(downSampledDim)
-        );
+        System.out.println("fijiPlugin.Eigen.set()\n" + dim.toString());
+        
+        if (dim.hasDepth()) Kernel.run("eigenBatch3d", handle,
+                    dim.size(),
+                    new PArray2dTo2d[]{
+                        mat[0][0],
+                        mat[0][1],
+                        mat[0][2],
+                        mat[1][1],
+                        mat[1][2],
+                        mat[2][2],
+                        vectors,
+                        coherence,
+                        azimuth,
+                        zenith
+                    },
+                    dim,
+                    P.to(downsampleFactorXY),
+                    P.to(eigenInd),
+                    P.to(tolerance),
+                    P.to(downSampledDim)
+            );
+        else Kernel.run("eigenBatch2d", handle,
+                    dim.size(),
+                    new PArray2dTo2d[]{
+                        mat[0][0],
+                        mat[0][1],
+                        mat[1][1],
+                        vectors,
+                        coherence,
+                        azimuth
+                    },
+                    dim,
+                    P.to(downSampledDim),
+                    P.to(downsampleFactorXY),
+                    P.to(eigenInd),
+                    P.to(tolerance)
+            );
 
     }
 

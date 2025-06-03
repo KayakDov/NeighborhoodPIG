@@ -21,7 +21,6 @@ import JCudaWrapper.resourceManagement.Handle;
  */
 public class NeighborhoodProductSums implements AutoCloseable {
 
-//    private final Vector halfNOnes;
     private final PArray2dToD2d workSpace1, workSpace2;
     private final Kernel nSum;
     private final Mapper X, Y, Z;
@@ -51,7 +50,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
         workSpace2 = dim.emptyP2dToD2d(handle);
         workSpace1 = dim.emptyP2dToD2d(handle);
 
-        nSum = new Kernel("neighborhoodSum3d", Kernel.Type.PTR_TO_DOUBLE_2D);
+        nSum = new Kernel("neighborhoodSum3d");
     }
 
     /**

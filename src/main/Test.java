@@ -35,7 +35,7 @@ public class Test {
     }
     
     public static void test2dto2d(){
-                try (Handle hand = new Handle(); PArray2dToD2d p = new PArray2dToD2d(2, 2, 2, 2);) {
+                try (Handle hand = new Handle(); PArray2dToD2d p = new PArray2dToD2d(2, 2, 2, 2, null);) {
             
 
             DArray2d[] a = new DArray2d[]{

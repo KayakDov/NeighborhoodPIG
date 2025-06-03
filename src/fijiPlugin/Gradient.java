@@ -30,28 +30,33 @@ public class Gradient implements AutoCloseable {
      * forward/backward differences for boundary points.
      *
      * @param handle The context
-     * @param imp  The image from which the pixel gradients are to be taken.
+     * @param imp The image from which the pixel gradients are to be taken.
      * @param ui The input from the user.
      *
      *
      */
-    public Gradient(Handle handle, ImagePlus imp, UserInput ui) {        
+    public Gradient(Handle handle, ImagePlus imp, UserInput ui) {
 
-        
-        
         try (PArray2dToF2d pic = ProcessImage.processImages(handle, imp, ui)) {
-            
-            
-            dim = new Dimensions(handle, pic.targetDim().entriesPerLine, pic.targetDim().numLines, pic.entriesPerLine(), pic.linesPerLayer());
-            
-            x = new PArray2dToF2d[]{dim.emptyP2dToF2d(handle), dim.emptyP2dToF2d(handle), dim.emptyP2dToF2d(handle)};
 
-            Kernel.run("batchGradients", handle,
-                    dim.size() * 3,
-                    new PArray2dTo2d[]{pic, x[0], x[1], x[2]},
-                    dim,
-                    P.to(ui.neighborhoodSize.layerRes)
-            );
+            dim = new Dimensions(handle, pic.targetDim().entriesPerLine, pic.targetDim().numLines, pic.entriesPerLine(), pic.linesPerLayer());
+
+            x = new PArray2dToF2d[dim.depth > 1 ? 3 : 2];
+
+            PArray2dTo2d[] dataParams = new PArray2dTo2d[x.length + 1];
+            dataParams[0] = pic;
+            for (int i = 0; i < x.length; i++) dataParams[i + 1] = x[i] = dim.emptyP2dToF2d(handle);
+
+            try (Kernel batchGrad = new Kernel("batchGradients", "batchGradients" + x.length + "d")) {
+
+                batchGrad.run(
+                        handle,
+                        dim.size() * x.length,
+                        dataParams,
+                        dim.getGpuDim(),
+                        P.to(ui.neighborhoodSize.layerRes)
+                );
+            }
         }
 
     }

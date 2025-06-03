@@ -696,7 +696,7 @@ public:
  * @param zenith where the zenith angles, between 0 and pi, will be stored.
  * @param azimuthal where the Azimuthal angles, between 0 and pi, will be stored.
  */
-extern "C" __global__ void eigenBatchKernel(
+extern "C" __global__ void eigenBatch3dKernel(
     const int n, 
     
     const double** xx, const int* ldxx, const int ldldxx, const int ldPtrxx, 

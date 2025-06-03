@@ -31,7 +31,7 @@ public class PSingletonToD2d extends PSingletonTo2d implements PointToD2d{
     @Override
     public PSingletonToD2d copy(Handle handle) {
         PSingletonToD2d copy = new PSingletonToD2d(
-                new PArray2dToD2d(1, 1, targetDim.entriesPerLine, targetDim.numLines), 
+                new PArray2dToD2d(1, 1, targetDim.entriesPerLine, targetDim.numLines, handle), 
                 0
         );
         copy.set(handle, this);

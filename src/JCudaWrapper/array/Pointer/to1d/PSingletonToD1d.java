@@ -116,4 +116,14 @@ public class PSingletonToD1d extends PSingletonTo1d implements PointToD1d {
         return new DArray1d(arrayAddress, targetSize());
     }
 
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public TargetDim2d targetDim() {
+        return new TargetDim2d(1, size());
+    }
+
+
+    
 }

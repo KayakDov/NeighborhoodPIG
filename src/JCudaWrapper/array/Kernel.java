@@ -49,54 +49,44 @@ public class Kernel implements AutoCloseable {
     private final static int BLOCK_SIZE = 256;
 
     private CUmodule module;//TODO: set this up so that multiple kernels can use the same module.
+    
 
-    public enum Type {
-
-        DOUBLE("double"), FLOAT("float"), PTR_TO_DOUBLE_2D("P2dToD2d");
-
-        public final String folder;
-
-        /**
-         * Constructs the DataType
-         *
-         * @param parentFileName The name of the parent file that has the
-         * classes dealing with this datatype.
-         */
-        private Type(String parentFileName) {
-            this.folder = parentFileName;
-        }
+    /**
+     * Sets up a kernel whose main method's name is the same as its file name
+     * plus the word "Kernel".
+     *
+     * @param name The name of the file, without the .cu.
+     */
+    public Kernel(String name) {
+        this(name, name + "Kernel");
     }
 
     /**
      * Constructs a {@code Kernel} object that loads a CUDA module from a given
      * file and retrieves a function handle for the specified kernel function.
      *
-     * @param name The name of the file without the .cu or .ptx at the end of
+     * @param cuName The name of the file without the .cu or .ptx at the end of
      * it. This should also be the name of the main function in the kernel with
      * the work "Kernel" appended.
-     * @param dataType The type of data the file operates on.
+     * @param functionName The name of the main function.
      */
-    public Kernel(String name, Type dataType) {
-        String fileName = "JCudaWrapper/kernels/ptx/" + dataType.folder + "/" + name + ".ptx",
-                functionName = name + "Kernel";
+    public Kernel(String cuName, String functionName) {
+        String fileName = "JCudaWrapper/kernels/ptx/P2dToD2d/" + cuName + ".ptx";
         this.module = new CUmodule();
 
         try (
                 InputStream resourceStream = getClass().getClassLoader()
                         .getResourceAsStream(fileName);) {
-
-                    File tempFile = File.createTempFile("kernel_", ".ptx");
-                    tempFile.deleteOnExit(); // Clean up after the program ends
-                    Files.copy(resourceStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);  //TODO: copying the file seems ineficiant.  Can this be made faster?
-
-                    checkResult(JCudaDriver.cuModuleLoad(module, tempFile.getAbsolutePath()));
-
-                } catch (Exception e) {
-                    throw new RuntimeException("Failed to load kernel file " + e.toString() + "\nFile name: " + fileName, e);
-                }
-
-                function = new CUfunction();
-                checkResult(JCudaDriver.cuModuleGetFunction(function, module, functionName));
+            File tempFile = File.createTempFile("kernel_", ".ptx");
+            tempFile.deleteOnExit(); // Clean up after the program ends
+            Files.copy(resourceStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);  //TODO: copying the file seems ineficiant.  Can this be made faster?
+            checkResult(JCudaDriver.cuModuleLoad(module, tempFile.getAbsolutePath()));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load kernel file " + e.toString() + "\nFile name: " + fileName, e);
+        }
+        
+        function = new CUfunction();
+        checkResult(JCudaDriver.cuModuleGetFunction(function, module, functionName));    
     }
 
     /**
@@ -114,7 +104,7 @@ public class Kernel implements AutoCloseable {
      */
     public static void run(String name, Handle handle, int numThreads, Pointer... additionalArguments) {//TODO: organize this so vectors are always followed by their ld and height.
 
-        try (Kernel km = new Kernel(name, Type.PTR_TO_DOUBLE_2D)) {
+        try (Kernel km = new Kernel(name)) {
             km.run(handle, numThreads, additionalArguments);
         }
     }
@@ -167,7 +157,7 @@ public class Kernel implements AutoCloseable {
      */
     public static void run(String name, Handle handle, int numThreads, PArray2dTo2d[] arrays, Dimensions dim, Pointer... additionalParmaters) {
 
-        try (Kernel km = new Kernel(name, Type.PTR_TO_DOUBLE_2D)) {
+        try (Kernel km = new Kernel(name)) {
             km.run(handle, numThreads, arrays, dim.getGpuDim(), additionalParmaters);
         }
     }

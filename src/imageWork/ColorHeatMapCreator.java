@@ -41,8 +41,7 @@ public class ColorHeatMapCreator extends HeatMapCreator implements AutoCloseable
         super(sliceNames, stackName, dim, handle);
         orientation.scale(handle, 2);
 
-        colors = new PArray2dToI2d(dim.depth, dim.batchSize, dim.height, dim.width);
-        colors.initTargets(handle);
+        colors = new PArray2dToI2d(dim.depth, dim.batchSize, dim.height, dim.width, handle);
 
         Kernel.run("colors", handle,
                 dim.size(),

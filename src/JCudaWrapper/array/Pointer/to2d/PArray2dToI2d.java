@@ -18,17 +18,19 @@ public class PArray2dToI2d extends PArray2dTo2d implements PointToI2d {
      * that are pointed to..
      * @param targetNumLines The number of lines in the arrays that are
      * pointed to.
+     * @param hand Used to allocate target memory.  Leave null to not allocate.
      */
-    public PArray2dToI2d(int entriesPerLine, int numLines, int targetEntPerLine, int targetNumLines) {
-        super(entriesPerLine, numLines, targetEntPerLine, targetNumLines);
+    public PArray2dToI2d(int entriesPerLine, int numLines, int targetEntPerLine, int targetNumLines, Handle hand) {
+        super(entriesPerLine, numLines, targetEntPerLine, targetNumLines, hand);
     }
 
     /**
      * Creates an empty array with the same dimensions as this array.
+     * @param hand Used to allocate target memory.  Leave null to not allocate.
      * @return An empty array with the same dimensions as this array.
      */
-    public PArray2dToI2d copyDim(){
-        return new PArray2dToI2d(entriesPerLine(), linesPerLayer(), targetDim().entriesPerLine, targetDim().numLines);
+    public PArray2dToI2d copyDim(Handle handle){
+        return new PArray2dToI2d(entriesPerLine(), linesPerLayer(), targetDim().entriesPerLine, targetDim().numLines, handle);
     }    
     
     /**
