@@ -44,14 +44,14 @@ public:
      * @param depth The number of slices along the depth dimension (per frame).
      * @param downSampleFactorXY The downsampling factor applied in the x and y dimensions.
      */
-    __device__ Get(const int inputIdx, const int* dim, const int downSampleFactorXY)
-    : idx(inputIdx * downSampleFactorXY), 
+    __device__ Get(const int idx, const int* dim, const int downSampleFactorXY)
+    : idx(idx), 
       downSampleFactorXY(downSampleFactorXY), 
       layerSize(dim[4]), 
       layer((idx / dim[4]) % dim[2]), 
       frame(idx / (dim[4] * dim[2])),
-      row(idx % dim[0]),
-      col(downSampleFactorXY * ((idx % (dim[4]/downSampleFactorXY/downSampleFactorXY)) / dim[0])) {}
+      row((idx % dim[0])*downSampleFactorXY),
+      col(((idx % dim[4])/dim[0])*downSampleFactorXY) {}
 
     
 
@@ -718,22 +718,21 @@ extern "C" __global__ void eigenBatch3dKernel(
     const int* dim,
     
     const int downSampleFactorXY, const int eigenInd,
-    const double tolerance,
-    const int* dsDim
+    const double tolerance    
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= n/downSampleFactorXY/downSampleFactorXY) return;
+    if (idx >= n) return;
   
         
     
     Get src(idx, dim, downSampleFactorXY);
-    Get dst(idx, dsDim, 1);
+    Get dst(idx, dim, 1);
     
     Matrix3x3 mat(
     	src(xx, ldxx, ldldxx, ldPtrxx), src(xy, ldxy, ldldxy, ldPtrxy), src(xz, ldxz, ldldxz, ldPtrxz), 
                                         src(yy, ldyy, ldldyy, ldPtryy), src(yz, ldyz, ldldyz, ldPtryz), 
-    					                                src(zz, ldzz, ldldzz, ldPtrzz),
+    					                                                src(zz, ldzz, ldldzz, ldPtrzz),
         tolerance
     );
     
@@ -749,7 +748,7 @@ extern "C" __global__ void eigenBatch3dKernel(
     
     vec.setEigenVec(mat, mat.rowEchelon(), eigenInd);
     
-    vec.writeTo(eVecs[dst.page(ldPtrEVec)] + ((idx % dsDim[4]) / dsDim[0]) * ldEVec[dst.page(ldldEVec)] + (idx % dsDim[0]) * 3);
+    vec.writeTo(eVecs[dst.page(ldPtrEVec)] + dst.col * ldEVec[dst.page(ldldEVec)] + dst.row * 3);
     dst.set(azimuthal, ldAzi, ldldAzi, ldPtrAzi, vec.azimuth());
     dst.set(zenith, ldZen, ldldZen, ldPtrZen, vec.zenith());
 }

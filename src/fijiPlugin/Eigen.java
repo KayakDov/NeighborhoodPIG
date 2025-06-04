@@ -84,13 +84,12 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
      * @param azimuth Location to load the azimuthal angles.
      * @param zenith Location to load the zenith angles.
      * @param downSampledDim
+     * @return this.
      */
-    public void set(int eigenInd, PArray2dToF2d vectors, PArray2dToF2d coherence, PArray2dToF2d azimuth, PArray2dToF2d zenith, IArray downSampledDim) {
-
-        System.out.println("fijiPlugin.Eigen.set()\n" + dim.toString());
+    public Eigen set(int eigenInd, PArray2dToF2d vectors, PArray2dToF2d coherence, PArray2dToF2d azimuth, PArray2dToF2d zenith, Dimensions downSampledDim) {
         
         if (dim.hasDepth()) Kernel.run("eigenBatch3d", handle,
-                    dim.size(),
+                    azimuth.deepSize(),
                     new PArray2dTo2d[]{
                         mat[0][0],
                         mat[0][1],
@@ -103,14 +102,12 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
                         azimuth,
                         zenith
                     },
-                    dim,
-                    P.to(downsampleFactorXY),
+                    downSampledDim, //TODO: fix cu so that it used downSampledDim
                     P.to(eigenInd),
-                    P.to(tolerance),
-                    P.to(downSampledDim)
+                    P.to(tolerance)
             );
         else Kernel.run("eigenBatch2d", handle,
-                    dim.size(),
+                    azimuth.deepSize(),
                     new PArray2dTo2d[]{
                         mat[0][0],
                         mat[0][1],
@@ -119,13 +116,13 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
                         coherence,
                         azimuth
                     },
-                    dim,
-                    P.to(downSampledDim),
+                    downSampledDim,
                     P.to(downsampleFactorXY),
                     P.to(eigenInd),
                     P.to(tolerance)
             );
-
+                
+        return this;
     }
 
     /**
@@ -138,67 +135,5 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
                 for (int j = i; j < mat[0].length; j++)
                     mat[i][j].close();
         mat = null;
-
-//        values.close();
-//        vectors.close();
     }
 }
-
-//    /**
-//     * Sets the eiganvalues.
-//     *
-//     *
-//     * @return this
-//     */
-//    public final Eigen setEigenVals() {
-//
-//        Kernel.run("eigenValsBatch", handle,
-//                size(),
-//                mat[0][0], P.to(mat[0][0].ld()),
-//                P.to(mat[0][1]), P.to(mat[0][1].ld()),
-//                P.to(mat[0][2]), P.to(mat[0][2].ld()),
-//                P.to(mat[1][1]), P.to(mat[1][1].ld()),
-//                P.to(mat[1][2]), P.to(mat[1][2].ld()),
-//                P.to(mat[2][2]), P.to(mat[2][2].ld()),
-//                P.to(mat[0][0].entriesPerLine()),
-//                P.to(values),
-//                P.to(values.ld()),
-//                P.to(values.entriesPerLine()),
-//                P.to(downsampleFactorXY)
-//        );
-//
-//        return this;
-//    }
-//
-///**
-//     * Sets the eiganvectors.
-//     *
-//     * @param vecsIndex, 0 for the first eigen vector of each matrix, 1 for the
-//     * second, or 2 for the third.
-//     * @return this
-//     */
-//    public final Eigen setEiganVectors(int vecsIndex) {
-//
-//        Kernel.run("eigenVecBatch3x3", handle,
-//                size(),
-//                mat[0][0], P.to(mat[0][0].ld()),
-//                P.to(mat[0][1]), P.to(mat[0][1].ld()),
-//                P.to(mat[0][2]), P.to(mat[0][2].ld()),
-//                P.to(mat[1][1]), P.to(mat[1][1].ld()),
-//                P.to(mat[1][2]), P.to(mat[1][2].ld()),
-//                P.to(mat[2][2]), P.to(mat[2][2].ld()),
-//                P.to(height),
-//                P.to(vectors),
-//                P.to(vectors.ld()),
-//                P.to(vectors.entriesPerLine()),
-//                Pointer.to(values.pointer(vecsIndex)),
-//                P.to(values.ld()),
-//                P.to(values.entriesPerLine()),
-//                P.to(downsampleFactorXY),
-//                P.to(vecsIndex),
-//                P.to(tolerance)
-//        );
-//
-////        System.out.println("fijiPlugin.Eigan.setEiganVectors() \n" + Arrays.toString(vectors));
-//        return this;
-//    }

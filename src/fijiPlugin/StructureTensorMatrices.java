@@ -29,15 +29,14 @@ public class StructureTensorMatrices implements AutoCloseable {
             
             dim = grad.dim;
 
-            float bigTolerance = 255 * 255 * ui.neighborhoodSize.xyR * ui.neighborhoodSize.xyR * ui.neighborhoodSize.zR * 5e-7f;
+            float bigTolerance = 255 * 255 * ui.neighborhoodSize.xyR * ui.neighborhoodSize.xyR * ui.neighborhoodSize.zR * 5e-8f;
 
             eigen = new Eigen(handle, dim, ui.downSampleFactorXY, bigTolerance);
 
             try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, ui.neighborhoodSize, dim)) {
 
-                int numDim = dim.hasDepth()? 3 : 2;
-                for (int i = 0; i < numDim; i++)
-                    for (int j = i; j < numDim; j++)
+                for (int i = 0; i < dim.num(); i++)
+                    for (int j = i; j < dim.num(); j++)
                         nps.set(grad.x[i], grad.x[j], eigen.getMatValsAt(i, j));
             }
         }
@@ -48,12 +47,10 @@ public class StructureTensorMatrices implements AutoCloseable {
             azimuth = downSampled.emptyP2dToF2d(handle);
             zenith = dim.hasDepth()?downSampled.emptyP2dToF2d(handle):null;
             coherence = downSampled.emptyP2dToF2d(handle);
-            vectors = new PArray2dToF2d(downSampled.depth, downSampled.batchSize, downSampled.height * (dim.hasDepth()?3:2), downSampled.width, handle);
+            vectors = new PArray2dToF2d(downSampled.depth, downSampled.batchSize, downSampled.height * dim.num(), downSampled.width, handle);
 
-            eigen.set(Math.min(dim.depth, 2), vectors, coherence, azimuth, zenith, downSampled.getGpuDim());//TODO: restore later eigenevec
-
+            eigen.set(dim.num() - 1, vectors, coherence, azimuth, zenith, downSampled).close();
             
-            eigen.close();
         }
     }
 

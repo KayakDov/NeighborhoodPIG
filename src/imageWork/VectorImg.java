@@ -63,12 +63,12 @@ public class VectorImg {
         space = new Cube(
                 (dim.width - 1) * spacing + vecMag + 2,
                 (dim.height - 1) * spacing + vecMag + 2,
-                vecs.layersPerGrid() == 1 ? 1 : (dim.depth - 1) * spacing + vecMag + 2
+                dim.hasDepth() ? (dim.depth - 1) * spacing + vecMag + 2 : 1
         );
 
         stack = new ImageStack(space.width(), space.height());
 
-        fp = new FloatProcessor[space.depth() + (vecs.layersPerGrid() == 1 ? 0 : 1)];
+        fp = new FloatProcessor[space.depth() + (dim.hasDepth() ? 1 : 0)];
 
         gridIntensity = intensity == null ? null : new float[dim.tensorSize()];
 

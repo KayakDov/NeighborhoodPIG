@@ -204,4 +204,14 @@ public class Dimensions implements Closeable {
     public boolean hasDepth(){
         return depth > 1;
     }
+    
+    /**
+     * 3 if depth is a dimension, otherwise 2.
+     * @return 3 if depth is a dimension, otherwise 2.
+     */
+    public int num(){
+        return hasDepth()? 3: 2;
+    }
+    
+    
 }

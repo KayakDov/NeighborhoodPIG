@@ -8,7 +8,7 @@ import MathSupport.Point3d;
 import fijiPlugin.Dimensions;
 
 /**
- * Inner class to manage vector data.
+ * class to manage vector data.
  */
 public class VecManager {
 
@@ -22,7 +22,7 @@ public class VecManager {
      */
     public VecManager(Dimensions d) {
         this.dim = d;
-        this.vecs = new float[d.tensorSize()*3];
+        this.vecs = new float[d.tensorSize()*dim.num()];
     }
 
     /**
@@ -49,7 +49,7 @@ public class VecManager {
      * @return The index of the vector.
      */
     public int vecIndex(int row, int col) {
-        return (col * dim.height + row) * 3;
+        return (col * dim.height + row) * dim.num();
     }
 
     /**
@@ -61,7 +61,7 @@ public class VecManager {
      * @param vec The array to store the retrieved vector.
      */
     public void get(int row, int col, double[] vec) {
-        System.arraycopy(vecs, vecIndex(row, col), vec, 0, 3);
+        System.arraycopy(vecs, vecIndex(row, col), vec, 0, dim.num());
     }
     
     
@@ -75,7 +75,7 @@ public class VecManager {
      * @return the vector.
      */
     public double[] get(int row, int col, int layer) {
-        double[] vec = new double[3];
+        double[] vec = new double[dim.num()];
         get(row, col, vec);
         return vec;
     }
@@ -91,7 +91,7 @@ public class VecManager {
      */
     public void get(int row, int col,  Point3d p, double scale){
         int ind = vecIndex(row, col);
-        p.set(scale * vecs[ind], scale * vecs[ind + 1], scale * vecs[ind + 2]);
+        p.set(scale * vecs[ind], scale * vecs[ind + 1], dim.hasDepth() ? scale * vecs[ind + 2]:0);
     }
 
     /**

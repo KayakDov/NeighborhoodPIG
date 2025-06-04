@@ -38,7 +38,7 @@ public class Gradient implements AutoCloseable {
     public Gradient(Handle handle, ImagePlus imp, UserInput ui) {
 
         try (PArray2dToF2d pic = ProcessImage.processImages(handle, imp, ui)) {
-
+            
             dim = new Dimensions(handle, pic.targetDim().entriesPerLine, pic.targetDim().numLines, pic.entriesPerLine(), pic.linesPerLayer());
 
             x = new PArray2dToF2d[dim.depth > 1 ? 3 : 2];

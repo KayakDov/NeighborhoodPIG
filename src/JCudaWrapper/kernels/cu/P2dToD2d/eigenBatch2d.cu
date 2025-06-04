@@ -29,12 +29,12 @@ public:
      * @param downSampleFactorXY The downsampling factor applied in the x and y dimensions.
      */
     __device__ Get(const int inputIdx, const int* dim, const int downSampleFactorXY)
-    : idx(inputIdx * downSampleFactorXY), 
+    : idx(inputIdx), 
       downSampleFactorXY(downSampleFactorXY), 
       layerSize(dim[4]), 
       frame(idx / dim[4]),
-      row(idx % dim[0]),
-      col(downSampleFactorXY * ((idx % (dim[4]/downSampleFactorXY/downSampleFactorXY)) / dim[0])) {}
+      row((idx % dim[0]) * downSampleFactorXY),
+      col(((idx % dim[4])/dim[0]) * downSampleFactorXY) {}
 
     
 
@@ -91,7 +91,7 @@ public:
      * @brief Prints the internal state of the Get object.
      */
     __device__ void print(const int* ld, int ldld, int ldPtr) const {
-        printf("Get\n idx: %d, frame: %d: lyayerSize: %d, downSampleFactorXY: %d, \ncol: %d, row: %d, page: %d, word: %d, ld: %d, ldld: %d, ldPtr: %d\n\n",
+        printf("Get\n idx: %d, frame: %d: layerSize: %d, downSampleFactorXY: %d, \ncol: %d, row: %d, page: %d, word: %d, ld: %d, ldld: %d, ldPtr: %d\n\n",
                idx, frame, layerSize, downSampleFactorXY, col, row, page(ldPtr), word(ld, ldld), ld[page(ldld)], ldld, ldPtr);
     }
 };
@@ -121,6 +121,20 @@ public:
     __device__ double trace() const { return mat[0][0] + mat[1][1]; }
     __device__ double determinant() const { return mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0]; }
     __device__ double operator()(int row, int col) const { return mat[row][col]; }
+    
+    /**
+     * @brief Prints the contents of the Matrix2x2 object.
+     * For debugging purposes.
+     */
+    __device__ void print() const {
+        printf("Matrix2x2 Debug Info (Thread %d)\n", threadIdx.x + blockIdx.x * blockDim.x);
+        printf("  [ %.6f  %.6f ]\n", mat[0][0], mat[0][1]);
+        printf("  [ %.6f  %.6f ]\n", mat[1][0], mat[1][1]);
+        printf("  Tolerance: %.6f\n", tolerance);
+        printf("  Trace: %.6f\n", trace());
+        printf("  Determinant: %.6f\n", determinant());
+        printf("\n");
+    }
 };
 
 /**
@@ -143,7 +157,8 @@ public:
     __device__ double& operator[](int i) { return data[i]; }
     __device__ double operator()(int i) const { return data[i]; }
 
-    __device__ double length() const { return sqrt(data[0] * data[0] + data[1] * data[1]); }
+    __device__ double lengthSquared() const {return data[0] * data[0] + data[1] * data[1];}
+    __device__ double length() const { return sqrt(lengthSquared()); }
 
     __device__ void normalize() {
         double len = length();
@@ -153,14 +168,12 @@ public:
             if (data[1] < 0 || (fabs(data[1]) <= tolerance && data[0] < 0)) {
                 data[0] *= -1; data[1] *= -1;
             }
-        } else {
-            data[0] = 1.0; data[1] = 0.0;
         }
     }
 
     __device__ void setEigenVec(const Matrix2x2& mat, const double eVal, int vecInd) {
-        if(mat(1, 0) > tolerance) set(eVal - mat(1, 1), mat(1, 0));
-        else if(mat(0, 1) > tolerance) set(mat(0, 1), eVal - mat(0, 0));
+        if(fabs(mat(1, 0)) > tolerance) set(eVal - mat(1, 1), mat(1, 0));
+        else if(fabs(mat(0, 1)) > tolerance) set(mat(0, 1), eVal - mat(0, 0));
         else if(vecInd) set(1, 0); 
         else set(0, 1);
         
@@ -168,7 +181,7 @@ public:
     }
 
     __device__ float angle() const { 
-        return atan2(data[1], data[0]); 
+        return (lengthSquared() <= 1e-6) ? NAN : atan2(data[1], data[0]); 
     }
 
     __device__ void setEVal(const Matrix2x2& mat) {
@@ -230,7 +243,6 @@ extern "C" __global__ void eigenBatch2dKernel(
     float** angle, const int* ldAng, const int ldldAng, const int ldPtrAng,
 
     const int* dim,
-    const int* dsDim,
 
     const int downSampleFactor, // Add downsampling factor
     const int eigenInd,
@@ -242,23 +254,29 @@ extern "C" __global__ void eigenBatch2dKernel(
 
     Get src(idx, dim, downSampleFactor);
     
-    Matrix2x2 mat(
+    const Matrix2x2 mat(
     	src(xx, ldxx, ldldxx, ldPtrxx), src(xy, ldxy, ldldxy, ldPtrxy),
                                         src(yy, ldyy, ldldyy, ldPtryy),
         tolerance
     );
 
-    Vec eVals(tolerance);
+    Vec eVals(1e-5);
     eVals.setEVal(mat);
-
-    Get dst(idx, dsDim, 1);
+    
+    Get dst(idx, dim, 1);
 
     dst.set(coherence, ldCoh, ldldCoh, ldPtrCoh, (float)eVals.coherence());
 
     Vec vec(tolerance);
     vec.setEigenVec(mat, eVals(eigenInd), eigenInd);
     
-    vec.writeTo(eVecs[dst.page(ldPtrEVec)] + ((idx % dsDim[4]) / dsDim[0]) * ldEVec[dst.page(ldldEVec)] + (idx % dsDim[0]) * 2);
-    dst.set(angle, ldAng, ldldAng, ldPtrAng, vec.angle());
+    /*if(idx == 114 + 19*4 + 0) {
+        mat.print();
+        vec.print();
+        dst.print(ldxy, ldldxy, ldPtrxy);
+        dst.print(ldEVec, ldldEVec, ldPtrEVec);
+    }*/
     
+    vec.writeTo(eVecs[dst.page(ldPtrEVec)] + dst.col * ldEVec[dst.page(ldldEVec)] + 2 * dst.row);
+    dst.set(angle, ldAng, ldldAng, ldPtrAng, vec.angle());
 }

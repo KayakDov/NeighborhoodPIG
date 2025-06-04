@@ -298,5 +298,14 @@ public class FArray2d extends Array2d implements FLineArray {
     public FArray2d(Pointer to2d, int entriesPerLine, int numLines, int ld) {
         super(to2d, entriesPerLine, numLines, ld, Sizeof.FLOAT);
     }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public FSingleton get(int indexInLine, int lineNumber) {
+        return new FSingleton(this, lineNumber * entriesPerLine() + indexInLine);
+    }
+    
     
 }

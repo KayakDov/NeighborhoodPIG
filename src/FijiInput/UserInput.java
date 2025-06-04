@@ -65,7 +65,7 @@ public class UserInput {
      * @param vfMag The magnitude of the vectors in the vector field.
      * @param tolerance The tolerance value.
      */
-    private UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, boolean useCoherence, int vfSpacing, int vfMag, float tolerance, int inverseRes) {
+    private UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, boolean useCoherence, int vfSpacing, int vfMag, float tolerance, int downSampleFactorXY) {
         this.neighborhoodSize = neighborhoodSize;
         this.heatMap = heatMap;
         this.vectorField = vectorField;
@@ -73,7 +73,7 @@ public class UserInput {
         this.vfSpacing = vfSpacing;
         this.vfMag = vfMag;
         this.tolerance = tolerance;
-        this.downSampleFactorXY = inverseRes;
+        this.downSampleFactorXY = downSampleFactorXY;
     }
 
     /**

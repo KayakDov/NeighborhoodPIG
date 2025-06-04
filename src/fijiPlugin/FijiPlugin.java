@@ -91,8 +91,8 @@ public class FijiPlugin implements PlugIn {
 
         
         
-        String imagePath = "images/input/cyl/"; int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
-//        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);        
+//        String imagePath = "images/input/cyl/"; int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
+        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(30, 1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
