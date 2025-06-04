@@ -56,7 +56,7 @@ public class NeighborhoodPIG implements AutoCloseable {
                 "Azimuth Angle Heatmap",
                 stm.azimuthAngle(),
                 stm.getCoherence(),
-                stm.dim
+                stm.downSampled
         ) : new GrayScaleHeatMapCreator(
                 concat(sourceFileNames, " Azimuth"),
                 "Azimuth Angle Heatmap",
@@ -64,7 +64,7 @@ public class NeighborhoodPIG implements AutoCloseable {
                 stm.azimuthAngle(),
                 stm.getCoherence(),
                 tolerance,
-                stm.dim
+                stm.downSampled
         );
     }
 
@@ -82,7 +82,7 @@ public class NeighborhoodPIG implements AutoCloseable {
                 "Zenith Angle Heatmap",
                 stm.zenithAngle(),
                 stm.getCoherence(),
-                stm.dim
+                stm.downSampled
         )
                 : new GrayScaleHeatMapCreator(
                         concat(sourceFileNames, " Zenith Angle"),
@@ -91,7 +91,7 @@ public class NeighborhoodPIG implements AutoCloseable {
                         stm.zenithAngle(),
                         stm.getCoherence(),
                         tolerance,
-                        stm.dim
+                        stm.downSampled
                 );
     }
 

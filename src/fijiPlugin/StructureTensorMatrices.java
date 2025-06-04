@@ -13,7 +13,7 @@ public class StructureTensorMatrices implements AutoCloseable {
 
     public final Eigen eigen;
     private final PArray2dToF2d azimuth, zenith, coherence, vectors;//TODO:store these on cpu instead of gpu.
-    public final Dimensions dim;
+    public final Dimensions dim, downSampled;
 
     /**
      * Finds the structure tensor for every pixel in the image and stores them
@@ -26,7 +26,7 @@ public class StructureTensorMatrices implements AutoCloseable {
      */
     public StructureTensorMatrices(Handle handle, ImagePlus imp, UserInput ui) {
         try (Gradient grad = new Gradient(handle, imp, ui)) {
-            
+
             dim = grad.dim;
 
             float bigTolerance = 255 * 255 * ui.neighborhoodSize.xyR * ui.neighborhoodSize.xyR * ui.neighborhoodSize.zR * 5e-8f;
@@ -41,17 +41,15 @@ public class StructureTensorMatrices implements AutoCloseable {
             }
         }
 
-        try (Dimensions downSampled = new Dimensions(handle, dim.height / ui.downSampleFactorXY, dim.width / ui.downSampleFactorXY, dim.depth, dim.batchSize)) {  //TODO: make sure downsampled dimensions are used everywhere they are needed!
+        downSampled = new Dimensions(handle, dim.height / ui.downSampleFactorXY, dim.width / ui.downSampleFactorXY, dim.depth, dim.batchSize);
 
-            
-            azimuth = downSampled.emptyP2dToF2d(handle);
-            zenith = dim.hasDepth()?downSampled.emptyP2dToF2d(handle):null;
-            coherence = downSampled.emptyP2dToF2d(handle);
-            vectors = new PArray2dToF2d(downSampled.depth, downSampled.batchSize, downSampled.height * dim.num(), downSampled.width, handle);
+        azimuth = downSampled.emptyP2dToF2d(handle);
+        zenith = dim.hasDepth() ? downSampled.emptyP2dToF2d(handle) : null;
+        coherence = downSampled.emptyP2dToF2d(handle);
+        vectors = new PArray2dToF2d(downSampled.depth, downSampled.batchSize, downSampled.height * dim.num(), downSampled.width, handle);
 
-            eigen.set(dim.num() - 1, vectors, coherence, azimuth, zenith, downSampled).close();
-            
-        }
+        eigen.set(dim.num() - 1, vectors, coherence, azimuth, zenith, downSampled).close();
+
     }
 
     /**
@@ -89,10 +87,11 @@ public class StructureTensorMatrices implements AutoCloseable {
 
         eigen.close();
         azimuth.close();
-        if(zenith != null) zenith.close();
+        if (zenith != null) zenith.close();
         coherence.close();
         vectors.close();
         dim.close();
+        downSampled.close();
     }
 
     /**
@@ -108,9 +107,9 @@ public class StructureTensorMatrices implements AutoCloseable {
     public String toString() {
         return "xx\n" + eigen.getMatValsAt(0, 0).toString()
                 + "\n\nxy\n" + eigen.getMatValsAt(0, 1).toString()
-                + (dim.hasDepth()?"\n\nxz\n" + eigen.getMatValsAt(0, 2).toString():"")
+                + (dim.hasDepth() ? "\n\nxz\n" + eigen.getMatValsAt(0, 2).toString() : "")
                 + "\n\nyy\n" + eigen.getMatValsAt(1, 1).toString()
-                + (dim.hasDepth()?"\n\nyz\n" + eigen.getMatValsAt(1, 2).toString()
+                + (dim.hasDepth() ? "\n\nyz\n" + eigen.getMatValsAt(1, 2).toString()
                 + "\n\nzz\n" + eigen.getMatValsAt(2, 2).toString() : "");
     }
 
