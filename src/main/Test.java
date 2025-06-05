@@ -2,8 +2,13 @@ package main;
 
 import JCudaWrapper.array.Double.DArray2d;
 import JCudaWrapper.array.Float.FArray;
+import JCudaWrapper.array.Float.FArray2d;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
+import fijiPlugin.Dimensions;
 import jcuda.runtime.JCuda;
 
 /**
@@ -33,41 +38,40 @@ public class Test {
             if (!Float.isFinite(cpuArray[i])) count++;
         return count;
     }
-    
-    public static void test2dto2d(){
-                try (Handle hand = new Handle(); PArray2dToD2d p = new PArray2dToD2d(2, 2, 2, 2, null);) {
-            
 
-            DArray2d[] a = new DArray2d[]{
-                new DArray2d(2, 2),
-                new DArray2d(2, 2),
-                new DArray2d(2, 2),
-                new DArray2d(2, 2)
+    public static void test2dto2d() {
+        try (
+                Handle hand = new Handle(); 
+                Dimensions dim = new Dimensions(hand, 2, 2, 2, 2); 
+                PArray2dToF2d p = dim.emptyP2dToF2d(null)
+                ) {
+
+            FArray2d[] a = new FArray2d[]{
+                new FArray2d(2, 2).set(hand, 1, 2, 3, 4),
+                new FArray2d(2, 2).set(hand, 4, 3, 2, 1),
+                new FArray2d(2, 2).set(hand, 9, 12, 3, -1),
+                new FArray2d(2, 2).set(hand, 7, 8, 70, 80)
             };
 
-            a[0].set(hand, 1, 2, 3, 4);
-            a[1].set(hand, 4, 3, 2, 1);
-            a[2].set(hand, 9, 12, 3, -1);
-            a[3].set(hand, 7, 8, 70, 80);
-
             p.set(hand, a);
-            p.get(1, 0).set(hand, a[3]);
+            
+            p.scale(hand, 100);
 
             System.out.println(p.toString());
 
         }
 
     }
-    
+
     /**
      * Gets the gpu memory.
+     *
      * @return The gpu memory.
      */
-    public static String memory(){
+    public static String memory() {
         long[] free = new long[1];
         long[] total = new long[1];
         JCuda.cudaMemGetInfo(free, total);
-        return "Free: " + free[0]*8e-9 + " GB, Total: " + total[0]*8e-9 + " GB";
+        return "Free: " + free[0] * 8e-9 + " GB, Total: " + total[0] * 8e-9 + " GB";
     }
 }
-//verena

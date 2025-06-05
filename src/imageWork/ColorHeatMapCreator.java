@@ -49,7 +49,7 @@ public class ColorHeatMapCreator extends HeatMapCreator implements AutoCloseable
                 dim
         );
         
-        orientation.scale(handle, 0.5);
+        orientation.scale(handle, 0.5f);
 
     }
 

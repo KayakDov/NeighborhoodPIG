@@ -88,6 +88,8 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
      */
     public Eigen set(int eigenInd, PArray2dToF2d vectors, PArray2dToF2d coherence, PArray2dToF2d azimuth, PArray2dToF2d zenith, Dimensions downSampledDim) {
         
+        System.out.println("fijiPlugin.Eigen.set() dim = " + downSampledDim);
+        
         if (dim.hasDepth()) Kernel.run("eigenBatch3d", handle,
                     azimuth.deepSize(),
                     new PArray2dTo2d[]{
@@ -102,7 +104,8 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
                         azimuth,
                         zenith
                     },
-                    downSampledDim, //TODO: fix cu so that it used downSampledDim
+                    downSampledDim,
+                    P.to(downsampleFactorXY),
                     P.to(eigenInd),
                     P.to(tolerance)
             );
@@ -121,7 +124,12 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
                     P.to(eigenInd),
                     P.to(tolerance)
             );
-                
+        
+        System.out.println("fijiPlugin.Eigen.set() Vectors\n" + vectors);
+        System.out.println("fijiPlugin.Eigen.set() azimuth\n" + azimuth);
+        System.out.println("fijiPlugin.Eigen.set() zenith\n" + zenith);
+        System.out.println("fijiPlugin.Eigen.set() coherence\n" + coherence);
+        
         return this;
     }
 

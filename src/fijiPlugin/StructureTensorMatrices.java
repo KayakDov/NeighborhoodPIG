@@ -27,11 +27,9 @@ public class StructureTensorMatrices implements AutoCloseable {
     public StructureTensorMatrices(Handle handle, ImagePlus imp, UserInput ui) {
         try (Gradient grad = new Gradient(handle, imp, ui)) {
 
-            dim = grad.dim;
+            dim = grad.dim;            
 
-            float bigTolerance = 255 * 255 * ui.neighborhoodSize.xyR * ui.neighborhoodSize.xyR * ui.neighborhoodSize.zR * 5e-8f;
-
-            eigen = new Eigen(handle, dim, ui.downSampleFactorXY, bigTolerance);
+            eigen = new Eigen(handle, dim, ui.downSampleFactorXY, ui.tolerance);
 
             try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, ui.neighborhoodSize, dim)) {
 

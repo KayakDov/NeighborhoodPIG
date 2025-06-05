@@ -30,18 +30,6 @@ public class GenDebugFile {
         return black;
     }
 
-    public static int[][][] cylinder(int depth, int height, int width, int r) {
-        int[][][] env = new int[depth][height][width];
-        int centX = width / 2, centY = height / 2;
-
-        for (int i = 0; i < height; i++)
-            for (int j = 0; j < width; j++)
-                for (int k = 0; k < depth; k++)
-                    if ((i - centY) * (i - centY) + (j - centX) * (j - centX) <= r * r)
-                        env[k][i][j] = 255;
-        return env;
-
-    }
 
     public static int[][] blackWithWhiteBorderX(int height, int width) {
 
@@ -73,10 +61,23 @@ public class GenDebugFile {
         return uniform;
     }
 
+    public static int[][][] cylinder(int depth, int height, int width, int r) {
+        int[][][] env = new int[depth][height][width];
+        int centZ = depth / 2, centY = height / 2;
+
+        for (int i = 0; i < height; i++)
+            for (int j = 0; j < width; j++)
+                for (int k = 0; k < depth; k++)
+                    if ((i - centY) * (i - centY) + (k - centZ) * (k - centZ) <= r * r)
+                        env[k][i][j] = 255;
+        return env;
+
+    }
+    
     public static void main(String[] args) {
         // Define pixel values for each point in a grid
 
-        int depth = 20;
+        int depth = 50;
         
         int width = 50;
         int height = 50;

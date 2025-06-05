@@ -1,9 +1,6 @@
 package imageWork;
 
 import FijiInput.UserInput;
-import JCudaWrapper.array.Double.DArray2d;
-import JCudaWrapper.array.Float.FArray2d;
-import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;
@@ -11,14 +8,9 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.io.Opener;
-import ij.process.ImageProcessor;
-import java.awt.Dimension;
 import java.awt.image.BufferedImage;
-import java.awt.image.Raster;
 import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
-import javax.imageio.ImageIO;
 
 /**
  *
@@ -137,12 +129,14 @@ public class ProcessImage {
 
                     for (int col = 0; col < width; col++)
                         System.arraycopy(pixels[col], 0, columnMajorSlice, col * height, height);
-
+                    
                     processedImage.get(slice - 1, frame - 1).getVal(handle).set(handle, columnMajorSlice);
                 }
             }
         }
 
+        processedImage.scale(handle, 1f/255);
+        
         return processedImage;
     }
 

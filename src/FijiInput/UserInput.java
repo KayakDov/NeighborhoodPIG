@@ -134,7 +134,7 @@ public class UserInput {
      * @return 
      */
     public static UserInput defaultVals(NeighborhoodDim nd){
-        return new UserInput(nd, true, false, true, 0, 0, 0, 2);
+        return new UserInput(nd, true, false, true, 0, 0, 1e-6f, 1);
     }
     
     /**

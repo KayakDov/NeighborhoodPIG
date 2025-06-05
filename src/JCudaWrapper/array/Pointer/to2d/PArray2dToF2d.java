@@ -32,8 +32,10 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d {
 
     /**
      * Creates an empty array with the same dimensions as this array.
+     *
      * @param initializeTargets Leave null to not initialize targets. Otherwise,
-     * this context is used to initialize targets.*
+     * this context is used to initialize targets.
+     *
      * @return An empty array with the same dimensions as this array.
      */
     public PArray2dToF2d copyDim(Handle initializeTargets) {
@@ -98,13 +100,14 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d {
      * @param handle
      * @param scalar
      */
-    public void scale(Handle handle, double scalar) {
-        Kernel.run("multiplyScalar", handle, targetSize(),
-                new PArray2dTo2d[]{this},
-                new Dimensions(handle, targetDim().entriesPerLine, targetDim().numLines, entriesPerLine(), linesPerLayer()),
-                P.to(scalar)
-        );
-
+    public void scale(Handle handle, float scalar) {
+        try (Dimensions dims = new Dimensions(handle, targetDim().entriesPerLine, targetDim().numLines, entriesPerLine(), linesPerLayer())) {
+            Kernel.run("multiplyScalar", handle, deepSize(),
+                    new PArray2dTo2d[]{this},
+                    dims,
+                    P.to(scalar)
+            );
+        }
     }
 
 }

@@ -29,8 +29,7 @@ __device__ inline void swap(double& a, double& b) {
  */
 class Get{
 public:
-    const int idx;             ///< Linear index of the element being processed by the current thread.
-    const int downSampleFactorXY; ///< Downsampling factor in the x and y dimensions.
+    const int idx;             ///< Linear index of the element being processed by the current thread.    
     const int layerSize;       ///< Size of a single 2D slice (height * width).
     const int layer;           ///< Index of the current slice along the depth dimension (0 to depth - 1).
     const int frame;           ///< Index of the current frame.
@@ -46,10 +45,9 @@ public:
      */
     __device__ Get(const int idx, const int* dim, const int downSampleFactorXY)
     : idx(idx), 
-      downSampleFactorXY(downSampleFactorXY), 
       layerSize(dim[4]), 
       layer((idx / dim[4]) % dim[2]), 
-      frame(idx / (dim[4] * dim[2])),
+      frame(idx / dim[5]),
       row((idx % dim[0])*downSampleFactorXY),
       col(((idx % dim[4])/dim[0])*downSampleFactorXY) {}
 
@@ -108,8 +106,8 @@ public:
      * @brief Prints the internal state of the Get object.
      */
     __device__ void print(const int* ld, int ldld, int ldPtr) const {
-        printf("Get\n idx: %d, frame: %d, layer: %d, lyayerSize: %d, downSampleFactorXY: %d, \ncol: %d, row: %d, page: %d, word: %d, ld: %d, ldld: %d, ldPtr: %d\n\n",
-               idx, frame, layer, layerSize, downSampleFactorXY, col, row, page(ldPtr), word(ld, ldld), ld[page(ldld)], ldld, ldPtr);
+        printf("Get\n idx: %d, frame: %d, layer: %d, lyayerSize: %d, \ncol: %d, row: %d, page: %d, word: %d, ld: %d, ldld: %d, ldPtr: %d\n\n",
+               idx, frame, layer, layerSize, col, row, page(ldPtr), word(ld, ldld), ld[page(ldld)], ldld, ldPtr);
     }
 };
 
@@ -701,7 +699,7 @@ public:
  * @param azimuthal where the Azimuthal angles, between 0 and pi, will be stored.
  */
 extern "C" __global__ void eigenBatch3dKernel(
-    const int n, 
+    const int n,
     
     const double** xx, const int* ldxx, const int ldldxx, const int ldPtrxx, 
     const double** xy, const int* ldxy, const int ldldxy, const int ldPtrxy,
@@ -724,10 +722,10 @@ extern "C" __global__ void eigenBatch3dKernel(
 
     if (idx >= n) return;
   
-        
-    
     Get src(idx, dim, downSampleFactorXY);
     Get dst(idx, dim, 1);
+    
+    if(idx == dim[4] + dim[0]) dst.print(ldxx, ldldxx, ldPtrxx);
     
     Matrix3x3 mat(
     	src(xx, ldxx, ldldxx, ldPtrxx), src(xy, ldxy, ldldxy, ldPtrxy), src(xz, ldxz, ldldxz, ldPtrxz), 
@@ -735,6 +733,8 @@ extern "C" __global__ void eigenBatch3dKernel(
     					                                                src(zz, ldzz, ldldzz, ldPtrzz),
         tolerance
     );
+    
+    if(idx == dim[4] + dim[0]) mat.print();
     
     Vec eVals(tolerance);
     eVals.setEVal(mat);
@@ -747,6 +747,11 @@ extern "C" __global__ void eigenBatch3dKernel(
     Vec vec(1e-5);
     
     vec.setEigenVec(mat, mat.rowEchelon(), eigenInd);
+    
+    if(idx == dim[4] + dim[0]) {
+        vec.print();
+        printf("coherence = %f\n", eVals.coherence());
+    }
     
     vec.writeTo(eVecs[dst.page(ldPtrEVec)] + dst.col * ldEVec[dst.page(ldldEVec)] + dst.row * 3);
     dst.set(azimuthal, ldAzi, ldldAzi, ldPtrAzi, vec.azimuth());
