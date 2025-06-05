@@ -7,6 +7,7 @@ import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
 import ij.plugin.PlugIn;
 import ij.process.ImageConverter;
+import imageWork.ImgPlsToFiles;
 import imageWork.ProcessImage;
 
 /**
@@ -92,8 +93,8 @@ public class FijiPlugin implements PlugIn {
         
         
 //        String imagePath = "images/input/cyl/"; int depth = 50; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
-//        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
-        String imagePath = "images/input/debug/";int depth = 5;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
+        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
+//        String imagePath = "images/input/debug/";int depth = 5;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(30, 1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 
@@ -107,7 +108,7 @@ public class FijiPlugin implements PlugIn {
 
             if (depth > 1) np.getZenithAngles(false, .01).printToFile("images/output/test3/Zenith");
 
-//            np.getVectorImg(8, 6, false);
+            ImgPlsToFiles.saveSlices(np.getVectorImg(15, 20, false), "images/output/test3/vectors");
 
         }        
 

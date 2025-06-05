@@ -125,7 +125,7 @@ public class NeighborhoodPIG implements AutoCloseable {
 
         return new VectorImg(
                 handle,
-                stm.dim,
+                stm.downSampled,
                 vecMag,
                 stm.getVectors(),
                 stm.getCoherence(),

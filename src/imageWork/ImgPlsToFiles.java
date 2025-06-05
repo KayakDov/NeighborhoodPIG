@@ -89,7 +89,7 @@ public class ImgPlsToFiles {
      * @param saveTo The folder the file should be saved in.
      */
     public static void saveSlices(ImagePlus imp, String saveTo) {
-        printImageValues(imp);
+//        stdOutputImageValues(imp);
         
         
         // First, normalize the entire ImagePlus to 8-bit.
@@ -166,7 +166,7 @@ public class ImgPlsToFiles {
      *
      * @param imp The ImagePlus object to print.
      */
-    public static void printImageValues(ImagePlus imp) {
+    public static void stdOutputImageValues(ImagePlus imp) {
         if (imp == null) {
             System.out.println("Error: ImagePlus object is null.");
             return;

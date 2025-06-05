@@ -81,6 +81,9 @@ public class VectorImg {
         this.useNon0Intensities = useNon0Intensities;
         this.tolerance = tolerance;
 
+        
+        System.out.println("imageWork.VectorImg.<init>()\n" + vecs.toString());
+        
     }
 
     /**
@@ -91,8 +94,7 @@ public class VectorImg {
      */
     public ImagePlus get() {
 
-        IntStream str = IntStream.range(0, dim.batchSize);
-        if (dim.batchSize > 1) str = str.parallel();
+        IntStream str = IntStream.range(0, dim.batchSize).parallel();
         
         str.forEach(this::computeGrid);
 
@@ -177,7 +179,7 @@ public class VectorImg {
 
                     gridVecs.get(row, col, vec1, r);
 
-                    if (vec1.isFinite() && vec1.normSq() > 1) {
+                    if (vec1.isFinite()) {
                         if (dim.depth == 1) vec1.setZ(0);
 
                         line.getA().set(col, row, z).scale(spacing).translate(r + 1, r + 1, dim.depth == 1 ? 0 : r + 1);
@@ -203,15 +205,3 @@ public class VectorImg {
     }
 
 }
-
-//                
-//                for (int mag = -r; mag < r; mag++) {
-//                    
-//                    
-//                    
-//                    int x = r + spacing * col + Math.round(mag * vec[0]),
-//                            y = r + spacing * row + Math.round(mag * vec[1]),
-//                            z = vecs.layersPerGrid() == 1 ? 0 : r + spacing * layer + Math.round(mag * vec[2]);
-//
-//                    fp[z].setf(x, y, gridIntensity == null ? 1 : gridIntensity[layerInd + colIndex + row]);
-//                }

@@ -26,7 +26,7 @@ public class VecManager {
     }
 
     /**
-     * Sets the vector data from the given {@link FStrideArray3d} at the
+     * Sets the vector data from the given layer at the
      * specified grid index.
      *
      * @param gpuVecs The {@link FStrideArray3d} containing the

@@ -55,9 +55,7 @@ public class Line {
      */
     public void draw(Consumer<Point3d> pen, Point3d cursor, Point3d delta) {
         double dist = length();
-
-        
-        
+               
         pen.accept(cursor.set(a));
 
         delta.set(b).translate(-1, a).scale(1 / dist);
