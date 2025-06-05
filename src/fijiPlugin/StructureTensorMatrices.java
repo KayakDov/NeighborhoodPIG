@@ -39,6 +39,8 @@ public class StructureTensorMatrices implements AutoCloseable {
             }
         }
 
+//        System.out.println("fijiPlugin.StructureTensorMatrices.<init>()\n" + toString().substring(toString().indexOf("yy"), toString().indexOf("yz")));
+        
         downSampled = new Dimensions(handle, dim.height / ui.downSampleFactorXY, dim.width / ui.downSampleFactorXY, dim.depth, dim.batchSize);
 
         azimuth = downSampled.emptyP2dToF2d(handle);
@@ -46,7 +48,7 @@ public class StructureTensorMatrices implements AutoCloseable {
         coherence = downSampled.emptyP2dToF2d(handle);
         vectors = new PArray2dToF2d(downSampled.depth, downSampled.batchSize, downSampled.height * dim.num(), downSampled.width, handle);
 
-        eigen.set(dim.num() - 1, vectors, coherence, azimuth, zenith, downSampled).close();
+        eigen.set(dim.num() - 1, vectors, coherence, azimuth, zenith, downSampled).close();//TODO: restore eigen index
 
     }
 

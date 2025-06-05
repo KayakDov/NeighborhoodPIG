@@ -88,7 +88,7 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
      */
     public Eigen set(int eigenInd, PArray2dToF2d vectors, PArray2dToF2d coherence, PArray2dToF2d azimuth, PArray2dToF2d zenith, Dimensions downSampledDim) {
         
-        System.out.println("fijiPlugin.Eigen.set() dim = " + downSampledDim);
+//        System.out.println("fijiPlugin.Eigen.set() dim = " + downSampledDim);
         
         if (dim.hasDepth()) Kernel.run("eigenBatch3d", handle,
                     azimuth.deepSize(),
@@ -125,11 +125,12 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
                     P.to(tolerance)
             );
         
-        System.out.println("fijiPlugin.Eigen.set() Vectors\n" + vectors);
-        System.out.println("fijiPlugin.Eigen.set() azimuth\n" + azimuth);
-        System.out.println("fijiPlugin.Eigen.set() zenith\n" + zenith);
-        System.out.println("fijiPlugin.Eigen.set() coherence\n" + coherence);
-        
+//        System.out.println("fijiPlugin.Eigen.set() Vectors\n" + vectors);
+//        System.out.println("fijiPlugin.Eigen.set() azimuth\n" + azimuth);
+//        System.out.println("fijiPlugin.Eigen.set() zenith\n" + zenith);
+//        System.out.println("fijiPlugin.Eigen.set() coherence\n" + coherence);
+//
+//        if(true) throw new RuntimeException("TODO:delet me");
         return this;
     }
 

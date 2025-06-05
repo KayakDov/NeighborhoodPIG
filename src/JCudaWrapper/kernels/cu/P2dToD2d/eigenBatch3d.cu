@@ -617,7 +617,10 @@ public:
      * The azimuthal angle of this vector.
      */
     __device__ float azimuth(){
-        return (data[0]*data[0] + data[1]*data[1] <= tolerance) ? nan("") : atan2(data[1], data[0]);
+        if(data[0]*data[0] + data[1]*data[1] <= tolerance) return nan("");
+        double angle = atan2(data[1], data[0]);
+        if (angle < 0.0f) angle += M_PI;
+        return angle;
     }
     
     /**
@@ -721,12 +724,10 @@ extern "C" __global__ void eigenBatch3dKernel(
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= n) return;
-  
+      
     Get src(idx, dim, downSampleFactorXY);
     Get dst(idx, dim, 1);
-    
-    if(idx == dim[4] + dim[0]) dst.print(ldxx, ldldxx, ldPtrxx);
-    
+      
     Matrix3x3 mat(
     	src(xx, ldxx, ldldxx, ldPtrxx), src(xy, ldxy, ldldxy, ldPtrxy), src(xz, ldxz, ldldxz, ldPtrxz), 
                                         src(yy, ldyy, ldldyy, ldPtryy), src(yz, ldyz, ldldyz, ldPtryz), 
@@ -734,7 +735,7 @@ extern "C" __global__ void eigenBatch3dKernel(
         tolerance
     );
     
-    if(idx == dim[4] + dim[0]) mat.print();
+    //if(idx == dim[4] + dim[0] + 1) mat.print();
     
     Vec eVals(tolerance);
     eVals.setEVal(mat);
@@ -748,10 +749,10 @@ extern "C" __global__ void eigenBatch3dKernel(
     
     vec.setEigenVec(mat, mat.rowEchelon(), eigenInd);
     
-    if(idx == dim[4] + dim[0]) {
+    /*if(idx == dim[4] + dim[0] + 1) {
         vec.print();
         printf("coherence = %f\n", eVals.coherence());
-    }
+    }*/
     
     vec.writeTo(eVecs[dst.page(ldPtrEVec)] + dst.col * ldEVec[dst.page(ldldEVec)] + dst.row * 3);
     dst.set(azimuthal, ldAzi, ldldAzi, ldPtrAzi, vec.azimuth());

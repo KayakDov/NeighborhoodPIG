@@ -6,6 +6,7 @@ import fijiPlugin.Dimensions;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.FloatProcessor;
+import java.util.Arrays;
 
 /**
  * A class for creating grayscale images from tensor data.
@@ -37,7 +38,7 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
      */
     public GrayScaleHeatMapCreator(String[] sliceNames, String stackName, Handle handle, PArray2dToF2d image, PArray2dToF2d coherence, double tolerance, Dimensions dim) {
         super(sliceNames, stackName, dim, handle);
-
+        
         this.image = image;
 
         this.coherence = coherence;
@@ -69,6 +70,7 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
             for (int z = 0; z < dim.depth; z++) {
 
                 FloatProcessor fp = dim.getFloatProcessor();
+                fp.setMinAndMax(0, Math.PI);
 
                 image.get(z, t).getVal(handle).get(handle, layerImage);
                 coherence.get(z, t).getVal(handle).get(handle, layerCoherence);
@@ -76,8 +78,8 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
                 for (int col = 0; col < dim.width; col++)
                     for (int row = 0; row < dim.height; row++) {
                         int fromInd = col * dim.height + row;
-
-                        fp.setf(col, row, layerCoherence[fromInd] > tolerance ? layerImage[fromInd] : Float.NaN);
+                        float pixVal = layerCoherence[fromInd] > tolerance ? layerImage[fromInd] : Float.NaN;
+                        fp.setf(col, row, pixVal);
                     }
                 stack.addSlice(sliceNames[z], fp);
             }

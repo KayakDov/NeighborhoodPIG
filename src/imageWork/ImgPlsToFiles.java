@@ -42,6 +42,8 @@ public class ImgPlsToFiles {
             }
 
             FloatProcessor fp = (FloatProcessor) currentFloatProcessor;
+            
+            //fp.setMinAndMax(0, Math.PI);
 
             // Crucial: Set the min/max on the FloatProcessor itself based on the ImagePlus's display range.
             // This ensures consistent scaling across all slices.
@@ -87,6 +89,9 @@ public class ImgPlsToFiles {
      * @param saveTo The folder the file should be saved in.
      */
     public static void saveSlices(ImagePlus imp, String saveTo) {
+        printImageValues(imp);
+        
+        
         // First, normalize the entire ImagePlus to 8-bit.
         // This returns a *new* ImagePlus with ByteProcessors in its stack.
         ImagePlus imp8bit = normalizeFloatImageTo8Bit(imp);
@@ -151,4 +156,62 @@ public class ImgPlsToFiles {
             }
         }
     }
+    
+        /**
+     * Prints the pixel values of a given ImagePlus object to standard output.
+     * The values are printed as floats.
+     * For multi-slice images, it iterates through each slice (z-dimension).
+     * For multi-channel images, it iterates through each channel.
+     * For multi-frame images, it iterates through each frame (t-dimension).
+     *
+     * @param imp The ImagePlus object to print.
+     */
+    public static void printImageValues(ImagePlus imp) {
+        if (imp == null) {
+            System.out.println("Error: ImagePlus object is null.");
+            return;
+        }
+
+        int width = imp.getWidth();
+        int height = imp.getHeight();
+        int nChannels = imp.getNChannels();
+        int nSlices = imp.getNSlices();
+        int nFrames = imp.getNFrames();
+        int imageType = imp.getType();
+
+        System.out.println("--- Image Details ---");
+        System.out.println("Title: " + imp.getTitle());
+        System.out.println("Width: " + width);
+        System.out.println("Height: " + height);
+        System.out.println("Channels: " + nChannels);
+        System.out.println("Slices (Z): " + nSlices);
+        System.out.println("Frames (T): " + nFrames);        
+        System.out.println("---------------------");
+
+        // Loop through frames (t-dimension)
+        for (int t = 1; t <= nFrames; t++) {
+            // Loop through slices (z-dimension)
+            for (int z = 1; z <= nSlices; z++) {
+                // Loop through channels
+                for (int c = 1; c <= nChannels; c++) {
+
+                    // Set the current position in the stack
+                    imp.setPosition(c, z, t);
+                    ImageProcessor ip = imp.getProcessor();
+
+                    System.out.println("\n--- Values for Channel " + c + ", Slice " + z + ", Frame " + t + " ---");
+                    for (int y = 0; y < height; y++) {
+                        for (int x = 0; x < width; x++) {
+                            // Get the pixel value as a float
+                            float value = ip.getf(x, y);
+                            System.out.printf("%8.2f ", value); // Format to 2 decimal places for readability
+                        }
+                        System.out.println(); // New line after each row
+                    }
+                }
+            }
+        }
+        System.out.println("\n--- End of Image Values ---");
+    }
+    
 }

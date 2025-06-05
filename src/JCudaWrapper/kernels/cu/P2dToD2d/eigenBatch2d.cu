@@ -181,7 +181,10 @@ public:
     }
 
     __device__ float angle() const { 
-        return (lengthSquared() <= 1e-6) ? NAN : atan2(data[1], data[0]); 
+        if (lengthSquared() <= 1e-6) return NAN;
+        float angle = atan2(data[1], data[0]);
+        if (angle < 0.0f) angle += M_PI;
+        return angle;
     }
 
     __device__ void setEVal(const Matrix2x2& mat) {
