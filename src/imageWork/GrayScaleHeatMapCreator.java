@@ -73,12 +73,12 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
                 fp.setMinAndMax(0, Math.PI);
 
                 image.get(z, t).getVal(handle).get(handle, layerImage);
-                coherence.get(z, t).getVal(handle).get(handle, layerCoherence);
+                if(coherence != null) coherence.get(z, t).getVal(handle).get(handle, layerCoherence);
 
                 for (int col = 0; col < dim.width; col++)
                     for (int row = 0; row < dim.height; row++) {
                         int fromInd = col * dim.height + row;
-                        float pixVal = layerCoherence[fromInd] > tolerance ? layerImage[fromInd] : Float.NaN;
+                        float pixVal = coherence != null && layerCoherence[fromInd] <= tolerance ? Float.NaN : layerImage[fromInd];
                         fp.setf(col, row, pixVal);
                     }
                 stack.addSlice(sliceNames[z], fp);
@@ -97,9 +97,9 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
      * @param writeToFolder The folder where the image should be saved.
      */
     @Override
-    public void printToFile(String writeToFolder) {//TODO: This doesn't seem to work.
+    public void printToFile(String writeToFolder) {
 
-        ImgPlsToFiles.saveSlices(getIP(), writeToFolder);
+        new ImagePlusUtil(getIP()).saveSlices(writeToFolder);
     }
 
     // Helper method to print the pixels of a FloatProcessor

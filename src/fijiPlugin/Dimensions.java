@@ -50,6 +50,27 @@ public class Dimensions implements Closeable {
 
     /**
      * Constructs a new TensorOrd3dStrideDim with the specified dimensions,
+     * strides, and batch size.  
+     *
+     * @param height The height (number of rows) of the tensor.
+     * @param width The width (number of columns) of the tensor.
+     * @param depth The depth (number of layers) of the tensor.
+     * @param batchSize The number of tensors in a batch.
+     */
+    public Dimensions(int height, int width, int depth, int batchSize) {
+        this(null, height, width, depth, batchSize);
+    }
+    
+    /**
+     * Finds the dimensions from an ImagePlus.
+     * @param imp 
+     */
+    public Dimensions(ImagePlus imp){
+        this(imp.getHeight(), imp.getWidth(), imp.getNSlices(), imp.getNFrames());
+    }
+    
+    /**
+     * Constructs a new TensorOrd3dStrideDim with the specified dimensions,
      * strides, and batch size.
      *
      * @param handle The handle. Set this to null to block creation of a

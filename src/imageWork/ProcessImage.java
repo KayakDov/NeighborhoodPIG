@@ -39,19 +39,18 @@ public class ProcessImage {
         Opener opener = new Opener();
         ImagePlus imp = opener.openImage(files[0].getPath());
 
-        Dimensions dim = new Dimensions(null, imp.getHeight(), imp.getWidth(), depth, files.length/depth);
-        
+        Dimensions dim = new Dimensions(null, imp.getHeight(), imp.getWidth(), depth, files.length / depth);
+
         ImageStack frameSequence = dim.getImageStack();
 
         for (File file : files) {
             imp = opener.openImage(file.getAbsolutePath());
             frameSequence.addSlice(imp.getProcessor());
-        }        
+        }
 
         return dim.setToHyperStack(new ImagePlus(folderPath.substring(Math.max(folderPath.lastIndexOf(File.pathSeparator), 0)), frameSequence));
-        
-    }
 
+    }
 
     /**
      * Uses the suffix of the string to determine if it describes a picture
@@ -109,34 +108,28 @@ public class ProcessImage {
             System.out.println("fijiPlugin.NeighborhoodPIG.processImages(): Converting image to grayscale.");
             IJ.run(imp, "32-bit", "");
         }
-        int width = ui.downSample(imp.getWidth());
-        int height = ui.downSample(imp.getHeight());
-        int channels = imp.getNChannels();
-        int depth = imp.getNSlices();
-        int frames = imp.getNFrames();
-        int imgSize = width * height;
+        Dimensions dim = new Dimensions(imp);
 
-        PArray2dToF2d processedImage = new PArray2dToF2d(depth, frames, height, width, handle);
-        float[] columnMajorSlice = new float[imgSize];
+        PArray2dToF2d processedImage = new PArray2dToF2d(dim.depth, dim.batchSize, dim.height, dim.width, handle);
+        float[] columnMajorSlice = new float[dim.layerSize()];
 
-        for (int frame = 1; frame <= frames; frame++) {
-            for (int slice = 1; slice <= depth; slice++) {
-                for (int channel = 1; channel <= channels; channel++) {
+        for (int frame = 1; frame <= dim.batchSize; frame++) {
+            for (int slice = 1; slice <= dim.depth; slice++) {
 
-                    imp.setPosition(channel, slice, frame);
+                imp.setPosition(1, slice, frame);
 
-                    float[][] pixels = imp.getProcessor().getFloatArray();
+                float[][] pixels = imp.getProcessor().getFloatArray();
 
-                    for (int col = 0; col < width; col++)
-                        System.arraycopy(pixels[col], 0, columnMajorSlice, col * height, height);
-                    
-                    processedImage.get(slice - 1, frame - 1).getVal(handle).set(handle, columnMajorSlice);
-                }
+                for (int col = 0; col < dim.width; col++)
+                    System.arraycopy(pixels[col], 0, columnMajorSlice, col * dim.height, dim.height);
+
+                processedImage.get(slice - 1, frame - 1).getVal(handle).set(handle, columnMajorSlice);
+
             }
         }
 
-        processedImage.scale(handle, 1f/255);
-        
+        processedImage.scale(handle, 1f / 255);
+
         return processedImage;
     }
 

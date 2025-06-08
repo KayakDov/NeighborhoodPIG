@@ -26,7 +26,7 @@ public class UserInput {
     /**
      * A boolean indicating whether to generate a vector field.
      */
-    public final boolean vectorField;
+    public final boolean vectorField, overlay;
 
     /**
      * A boolean indicating whether to generate coherence information.
@@ -65,7 +65,7 @@ public class UserInput {
      * @param vfMag The magnitude of the vectors in the vector field.
      * @param tolerance The tolerance value.
      */
-    private UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, boolean useCoherence, int vfSpacing, int vfMag, float tolerance, int downSampleFactorXY) {
+    private UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, boolean useCoherence, int vfSpacing, int vfMag, boolean vfOverlay, float tolerance, int downSampleFactorXY) {
         this.neighborhoodSize = neighborhoodSize;
         this.heatMap = heatMap;
         this.vectorField = vectorField;
@@ -74,6 +74,7 @@ public class UserInput {
         this.vfMag = vfMag;
         this.tolerance = tolerance;
         this.downSampleFactorXY = downSampleFactorXY;
+        this.overlay = vfOverlay;
     }
 
     /**
@@ -88,55 +89,65 @@ public class UserInput {
         boolean hasZ = imp.getNSlices() > 1;
 
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
-        
-        
-        NumericField xyR = new NumericField("Neighborhood xy radius:", 30, gd);
+
+        NumericField xyR = new NumericField("Neighborhood xy radius:", 15, gd);
         NumericField zR = null;
         if (hasZ) zR = new NumericField("Neighborhood z radius:", 1, gd);
         BooleanField heatmap = new BooleanField("heatmap", true, gd);
         BooleanField vector = new BooleanField("vector field", false, gd);
         BooleanField coherence = new BooleanField("generate coherence", false, gd);
-        NumericField inverseRes = new NumericField("Downsample Factor XY:", 1, gd);
 
         NumericField layerDist = null;
-        if(hasZ) layerDist = new NumericField("Distance between layers as a multiple of the distance between pixels:", 1, gd);
-        
-        
+        if (hasZ) layerDist = new NumericField("Distance between layers as a multiple of the distance between pixels:", 1, gd);
+        NumericField downSample = new NumericField("Downsample Factor XY:", 1, gd);
+
         gd.showDialog();
 
         if (gd.wasCanceled())
             throw new UserCanceled();
 
         NumericField spacing = null, mag = null;
+        BooleanField overlay = null;
 
+        
         if (vector.is()) {
-            GenericDialog vfDialog = new GenericDialog("Vector Field Parameters");
-            spacing = new NumericField("Vector Field Spacing:", 5, vfDialog);
-            mag = new NumericField("Vector Magnitude:", 3, vfDialog);
+            GenericDialog vfDialog = new GenericDialog("Vector Field Parameters.  Be sure downSample > 1.");                        
+
+            overlay = new BooleanField("overlay?", false, vfDialog);
+            
+            spacing = new NumericField("spacing", downSample.val(), vfDialog);
+            
+            mag = new NumericField("Vector Magnitude:", downSample.val() - 2, vfDialog);
+            
             vfDialog.showDialog();
         }
+        
+        if(vector.is() && overlay.is() && spacing.val() != downSample.val()) throw new RuntimeException("If set to overlay, then spacing must equal downsample size.");
 
         return new UserInput(
-                new NeighborhoodDim((int) xyR.val(), hasZ ? (int) zR.val() : 1, hasZ? (int) layerDist.val(): 1),
+                new NeighborhoodDim((int) xyR.val(), hasZ ? (int) zR.val() : 1, hasZ ? (int) layerDist.val() : 1),
                 heatmap.is(),
                 vector.is(),
                 coherence.is(),
                 vector.is() ? (int) spacing.val() : 0,
                 vector.is() ? (int) mag.val() : 0,
+                vector.is() ? overlay.is() : false,
                 1e-6f,
-                (int) inverseRes.val()
+                (int) downSample.val()
         );
     }
 
     /**
      * Some default values for testing purposes.
+     *
      * @param nd The neighborhood dimensions.
-     * @return 
+     * @return
      */
-    public static UserInput defaultVals(NeighborhoodDim nd){
-        return new UserInput(nd, true, false, true, 0, 0, 1e-7f, 10);
+    public static UserInput defaultVals(NeighborhoodDim nd) {
+        int spacing = 8;
+        return new UserInput(nd, true, true, true, spacing, 6, true, 1e-7f, spacing);
     }
-    
+
     /**
      * Checks if the parameters are valid.
      *
@@ -145,31 +156,33 @@ public class UserInput {
     public boolean validParamaters() {
         return neighborhoodSize.valid() && vfSpacing >= 0 && vfMag >= 0 && tolerance > 0;
     }
-    
+
     /**
-     * The greatest multiple of downSample that is less than origSample. 
+     * The greatest multiple of downSample that is less than origSample.
+     *
      * @param origSample An integer.
-     * @return The greatest multiple of downSample that is less than origSample. 
+     * @return The greatest multiple of downSample that is less than origSample.
      */
-    public int downSample(int origSample){
-        return (origSample/downSampleFactorXY)*downSampleFactorXY;
+    public int downSample(int origSample) {
+        return (origSample / downSampleFactorXY) * downSampleFactorXY;
     }
-    
-        /**
+
+    /**
      * Returns a string representation of the UserInput object.
+     *
      * @return A string containing the values of the UserInput's fields.
      */
     @Override
     public String toString() {
-        return "UserInput{" +
-                "neighborhoodSize=" + neighborhoodSize +
-                ", heatMap=" + heatMap +
-                ", vectorField=" + vectorField +
-                ", useCoherence=" + useCoherence +
-                ", vfSpacing=" + vfSpacing +
-                ", vfMag=" + vfMag +
-                ", tolerance=" + tolerance +
-                ", downSampleFactorXY=" + downSampleFactorXY +
-                '}';
+        return "UserInput{"
+                + "neighborhoodSize=" + neighborhoodSize
+                + ", heatMap=" + heatMap
+                + ", vectorField=" + vectorField
+                + ", useCoherence=" + useCoherence
+                + ", vfSpacing=" + vfSpacing
+                + ", vfMag=" + vfMag
+                + ", tolerance=" + tolerance
+                + ", downSampleFactorXY=" + downSampleFactorXY
+                + '}';
     }
 }

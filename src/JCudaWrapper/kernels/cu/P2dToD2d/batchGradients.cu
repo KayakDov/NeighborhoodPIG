@@ -10,7 +10,6 @@ public:
     const int idx;       ///< The global thread index.
     const int tensorInd; ///< The tensorindex (frame), unadjusted for leading dimension.
     const int layerInd; //< The layer index, unadjusted for leading dimension.
-    const int* dim;     ///< Pointer to the tensor dimension array.
     const int row;
     const int col;
 
@@ -45,17 +44,16 @@ public:
 	idx(threadID % dim[6]),
     	tensorInd(idx / dim[5]),
     	layerInd((idx % dim[5]) / dim[4]),
-    	dim(dim),
-    	row((idx % dim[4]) / dim[0]),
-    	col(idx % dim[0]){}
+    	row(idx % dim[0]),
+    	col((idx % dim[4])/ dim[0]){}
 
-    __host__ __device__ void print() const {
-        printf("Thread [%d]: Indices - idx: %d, tensorInd: %d, layerInd: %d\n",
-            threadIdx.x + blockIdx.x * blockDim.x, // optional CUDA thread ID
-            idx, tensorInd, layerInd);
+     __host__ __device__ void print() const {
+     
+        int globalThreadId = threadIdx.x + blockIdx.x * blockDim.x;
+
+        printf("Thread %d (Global): Indices - idx: %d, tensorInd: %d, layerInd: %d, row: %d, col: %d\n",
+               globalThreadId, idx, tensorInd, layerInd, row, col);
     }
-
-
 
 };
 
@@ -132,11 +130,20 @@ __device__ void batchGradients(const int n,
     const Indices inds(idx, dim);
 
     const Grad grad(mat, inds, dim, ldMat, ldldMat, ldPtrMat);
-    
+    if(idx == dim[4] + dim[0] * 10 + 10) {
+        inds.print();
+        grad.print();
+        printf("inds.page(ldldMat) = %d\n", inds.page(ldldMat));
+        printf("inds.page(ldPtrMat) = %d\n", inds.page(ldPtrMat));
+        printf("inds.word(ldMat, ldldMat) = %d\n", inds.word(ldMat, ldldMat));
+        printf("\n\nldMat of page %d is %d\n", inds.tensorInd, ldMat[inds.page(ldldMat)]);
+        printf("dx = %f\n", dX[inds.page(ldPtrX)][inds.word(ldx, ldldX)] = grad.at(inds.col,      dim[1],          1, 0, ldMat[inds.page(ldPtrMat)]));
+    }
+        
     switch(idx / dim[6]){ 
-    	case 0: dX[inds.page(ldPtrX)][inds.word(ldx, ldldX)] = grad.at((idx % dim[4]) / dim[0],            dim[1],  1,          0, ldMat[inds.page(ldPtrMat)]); break;
-	case 1: dY[inds.page(ldPtrY)][inds.word(ldy, ldldY)] = grad.at(idx % dim[0],            dim[0],  1,          0, 1                         ); break;
-	case 2: dZ[inds.page(ldPtrZ)][inds.word(ldz, ldldZ)] = grad.at((idx % dim[5]) / dim[4], dim[2],  zLayerMult, 1, 0                         );
+    	case 0: dX[inds.page(ldPtrX)][inds.word(ldx, ldldX)] = grad.at(inds.col,      dim[1],          1, 0, ldMat[inds.page(ldldMat)]); break;
+	case 1: dY[inds.page(ldPtrY)][inds.word(ldy, ldldY)] = grad.at(inds.row,      dim[0],          1, 0, 1                         ); break;
+	case 2: dZ[inds.page(ldPtrZ)][inds.word(ldz, ldldZ)] = grad.at(inds.layerInd, dim[2], zLayerMult, 1, 0                         );
     }
 }
 /**

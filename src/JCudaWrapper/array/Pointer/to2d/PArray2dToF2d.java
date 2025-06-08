@@ -47,6 +47,8 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d {
      */
     @Override
     public PSingletonToF2d get(int indexInLine, int lineNumber) {
+        if(indexInLine >= entriesPerLine() || lineNumber >= linesPerLayer()) 
+            throw new IndexOutOfBoundsException();
         return get(lineNumber * entriesPerLine() + indexInLine);
     }
 
@@ -101,8 +103,10 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d {
      * @param scalar
      */
     public void scale(Handle handle, float scalar) {
+        
         try (Dimensions dims = new Dimensions(handle, targetDim().entriesPerLine, targetDim().numLines, entriesPerLine(), linesPerLayer())) {
-            Kernel.run("multiplyScalar", handle, deepSize(),
+            Kernel.run("multiplyScalar", handle, 
+                    deepSize(),
                     new PArray2dTo2d[]{this},
                     dims,
                     P.to(scalar)

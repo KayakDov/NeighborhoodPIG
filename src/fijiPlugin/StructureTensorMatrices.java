@@ -25,8 +25,8 @@ public class StructureTensorMatrices implements AutoCloseable {
      *
      */
     public StructureTensorMatrices(Handle handle, ImagePlus imp, UserInput ui) {
-        try (Gradient grad = new Gradient(handle, imp, ui)) {
-
+        try (Gradient grad = new Gradient(handle, imp, ui)) {            
+            
             dim = grad.dim;            
 
             eigen = new Eigen(handle, dim, ui.downSampleFactorXY, ui.tolerance);
@@ -38,8 +38,6 @@ public class StructureTensorMatrices implements AutoCloseable {
                         nps.set(grad.x[i], grad.x[j], eigen.getMatValsAt(i, j));
             }
         }
-
-//        System.out.println("fijiPlugin.StructureTensorMatrices.<init>()\n" + toString().substring(toString().indexOf("yy"), toString().indexOf("yz")));
         
         downSampled = new Dimensions(handle, dim.height / ui.downSampleFactorXY, dim.width / ui.downSampleFactorXY, dim.depth, dim.batchSize);
 

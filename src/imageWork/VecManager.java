@@ -37,7 +37,12 @@ public class VecManager {
      * @return this.
      */
     public VecManager setFrom(PArray2dToF2d gpuVecs, int gridIndex, int layerIndex, Handle handle) {
+        
+//        System.out.println("imageWork.VecManager.setFrom()\n" + gpuVecs);
+        
         gpuVecs.get(layerIndex, gridIndex).getVal(handle).get(handle, vecs);
+        
+//        System.out.println("imageWork.VecManager.setFrom()\n" + toString());
         return this;
     }
 
@@ -104,7 +109,7 @@ public class VecManager {
         for (int row = 0; row < dim.height; row++)
             for (int col = 0; col < dim.height; col++)
                 for (int layer = 0; layer < dim.depth; layer++) {
-                    get(row, col,p, 100);
+                    get(row, col,p, 1);
                     sb.append("\n").append(p);
                 }
         return sb.toString();

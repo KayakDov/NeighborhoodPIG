@@ -28,7 +28,7 @@ import java.util.stream.IntStream;
 public class VectorImg {
 
     private final FloatProcessor[] fp;
-    private final Cube space;
+    private final Dimensions space;
     private final VecManager gridVecs;
     private final int spacing, r;
     private final float[] gridIntensity;
@@ -60,15 +60,15 @@ public class VectorImg {
         this.handle = handle;
         this.dim = dim;
         
-        space = new Cube(
-                (dim.width - 1) * spacing + vecMag + 2,
-                (dim.height - 1) * spacing + vecMag + 2,
-                dim.hasDepth() ? (dim.depth - 1) * spacing + vecMag + 2 : 1
-        );
+        space = new Dimensions(null, 
+                (dim.height - 1) * spacing + vecMag + 2, 
+                (dim.width - 1) * spacing + vecMag + 2, 
+                dim.hasDepth() ? (dim.depth - 1) * spacing + vecMag + 2 : 1, 
+                dim.batchSize);
 
-        stack = new ImageStack(space.width(), space.height());
+        stack = new ImageStack(space.width, space.height);
 
-        fp = new FloatProcessor[space.depth() + (dim.hasDepth() ? 1 : 0)];
+        fp = new FloatProcessor[space.depth + (dim.hasDepth() ? 1 : 0)];
 
         gridIntensity = intensity == null ? null : new float[dim.tensorSize()];
 
@@ -79,11 +79,7 @@ public class VectorImg {
         this.intensity = intensity;
         this.spacing = spacing;
         this.useNon0Intensities = useNon0Intensities;
-        this.tolerance = tolerance;
-
-        
-        System.out.println("imageWork.VectorImg.<init>()\n" + vecs.toString());
-        
+        this.tolerance = tolerance;        
     }
 
     /**
@@ -94,13 +90,15 @@ public class VectorImg {
      */
     public ImagePlus get() {
 
-        IntStream str = IntStream.range(0, dim.batchSize).parallel();
+        IntStream str = IntStream.range(0, dim.batchSize);//.parallel();
         
         str.forEach(this::computeGrid);
 
         ImagePlus image = new ImagePlus("Nematics", stack);
-        image.setDimensions(1, dim.depth, dim.batchSize);
-        return image;
+        
+        image.setDisplayRange(0, 1);
+        
+        return space.setToHyperStack(image);
     }
 
     /**
@@ -110,15 +108,16 @@ public class VectorImg {
      */
     private void computeGrid(int t) {
 
-        Arrays.setAll(fp, i -> new FloatProcessor(space.width(), space.height()));
+        Arrays.setAll(fp, i -> new FloatProcessor(space.width, space.height));
 
         IntStream str = IntStream.range(0, dim.depth);
 
-        if (dim.batchSize == 1) str = str.parallel();
+//        if (dim.batchSize == 1) str = str.parallel();
 
         str.forEach(z -> computeLayer(t, z));
 
-        Arrays.stream(fp).forEach(stack::addSlice);
+        Arrays.stream(fp).forEach(stack::addSlice);        
+        
     }
 
     /**
@@ -144,9 +143,6 @@ public class VectorImg {
          */
         @Override
         public void accept(Point3d p) {
-
-            if (!p.firstQuadrant())
-                throw new RuntimeException(p.toString());//TODO: delete me
             fp[p.zI()].setf(p.xI(), p.yI(), (float)intensity);
         }
     }
@@ -161,7 +157,7 @@ public class VectorImg {
 
         gridVecs.setFrom(vecs, t, z, handle);
         intensity.get(z, t).getVal(handle).get(handle, gridIntensity);
-        
+                
         Line line = new Line();
         Point3d vec1 = new Point3d(), vec2 = new Point3d();
         Pencil drawer = new Pencil();
@@ -178,15 +174,15 @@ public class VectorImg {
                     if (useNon0Intensities) drawer.setIntensity(localIntensity);
 
                     gridVecs.get(row, col, vec1, r);
-
+                                        
                     if (vec1.isFinite()) {
                         if (dim.depth == 1) vec1.setZ(0);
-
+                        
                         line.getA().set(col, row, z).scale(spacing).translate(r + 1, r + 1, dim.depth == 1 ? 0 : r + 1);
                         line.getB().set(line.getA());
                         line.getA().translate(vec1);
                         line.getB().translate(vec1.scale(-1));
-
+        
                         //if(line.length() <= 2)System.out.println("imageWork.VectorImg.computeLayer() liune length = " + line.length() + " vec = " + vec1.toString());
                         line.draw(drawer, vec1, vec2);
                     }
@@ -201,7 +197,7 @@ public class VectorImg {
      * @param parentFolder 
      */
     public void saveToFile(String parentFolder){
-        ImgPlsToFiles.saveSlices(get(), parentFolder);
+        new ImagePlusUtil(get()).saveSlices(parentFolder);
     }
 
 }
