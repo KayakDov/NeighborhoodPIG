@@ -1,6 +1,7 @@
 package fijiPlugin;
 
 import JCudaWrapper.array.Int.IArray1d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
@@ -8,6 +9,7 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.plugin.HyperStackConverter;
 import ij.process.FloatProcessor;
+import imageWork.MyImageStack;
 import java.io.Closeable;
 
 /**
@@ -69,6 +71,23 @@ public class Dimensions implements Closeable {
         this(imp.getHeight(), imp.getWidth(), imp.getNSlices(), imp.getNFrames());
     }
     
+    
+    /**
+     * Finds the dimensions from an ImagePlus.
+     * @param imp 
+     */
+    public Dimensions(ImageStack imp, int depth){
+        this(imp.getHeight(), imp.getWidth(), depth, imp.size()/depth);
+    }
+    
+    /**
+     * Finds the dimensions from the array.
+     * @param pointerArray 
+     */
+    public Dimensions(PArray2dTo2d pointerArray){
+        this(pointerArray.targetDim().entriesPerLine, pointerArray.targetDim().numLines, pointerArray.entriesPerLine(), pointerArray.linesPerLayer());
+    }
+    
     /**
      * Constructs a new TensorOrd3dStrideDim with the specified dimensions,
      * strides, and batch size.
@@ -87,7 +106,7 @@ public class Dimensions implements Closeable {
         this.batchSize = batchSize;
 
         if ((long) width * height * depth * batchSize > Integer.MAX_VALUE)
-            throw new IllegalArgumentException("Image size exceeds array limit.");
+            throw new IllegalArgumentException("Image size exceeds array limit." + toString());
 
         gpuDim = handle == null
                 ? null
@@ -191,7 +210,17 @@ public class Dimensions implements Closeable {
         }
         return imp;
     }
-
+    
+    /**
+     * Turns the stack into a hyper stack with these dimensions.
+     *
+     * @param title The name of the hyperstack.
+     * @param imp
+     * @return
+     */
+    public ImagePlus setToHyperStack(String title, ImageStack imp) {
+        return setToHyperStack(new ImagePlus(title, imp));
+    }
     /**
      * {@inheritDoc }
      */
@@ -205,8 +234,8 @@ public class Dimensions implements Closeable {
      *
      * @return An image stack with this width and height.
      */
-    public ImageStack getImageStack() {
-        return new ImageStack(width, height);
+    public MyImageStack imageStack() {
+        return new MyImageStack(width, height);
     }
 
     /**

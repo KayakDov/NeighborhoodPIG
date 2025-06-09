@@ -46,21 +46,14 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
     }
 
     /**
-     * Displays the grayscale image stack in Fiji (ImageJ) as a hyperstack.
-     */
-    @Override
-    public void printToFiji() {
-        getIP().show();
-    }
-
-    /**
      * Gets the image plus for this image.
      *
      * @return The image plus for this image.
      */
-    private ImagePlus getIP() {//TODO: look into multi threading this.
+    @Override
+    public ImageStack getStack() {//TODO: look into multi threading this.
 
-        ImageStack stack = dim.getImageStack();
+        ImageStack stack = dim.imageStack();
 
         float[] layerImage = new float[dim.layerSize()];
         float[] layerCoherence = new float[dim.layerSize()];
@@ -85,10 +78,7 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
             }
         }
 
-        ImagePlus imp = new ImagePlus(stackName, stack);
-        imp.getProcessor().setMinAndMax(0, Math.PI);
-
-        return dim.setToHyperStack(new ImagePlus(stackName, stack));
+        return stack;
     }
 
     /**
@@ -99,7 +89,7 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
     @Override
     public void printToFile(String writeToFolder) {
 
-        new ImagePlusUtil(getIP()).saveSlices(writeToFolder);
+        new MyImagePlus(stackName, getStack(), dim.depth).saveSlices(writeToFolder);
     }
 
     // Helper method to print the pixels of a FloatProcessor
@@ -111,8 +101,7 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
         for (int row = 0; row < h; row++) {
             StringBuilder rowOutput = new StringBuilder();
             for (int col = 0; col < w; col++) {
-                // Pixels are stored in row-major order within the 1D array
-                // Index for (row, col) is row * width + col
+                
                 float pixelValue = pixels[row * w + col];
                 rowOutput.append(String.format("%.2f ", pixelValue)); // Format to 2 decimal places for brevity
             }

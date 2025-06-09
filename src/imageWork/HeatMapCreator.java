@@ -4,6 +4,8 @@ package imageWork;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;
+import ij.ImagePlus;
+import ij.ImageStack;
 
 /**
  *
@@ -36,7 +38,9 @@ public abstract class HeatMapCreator {
      * Displays the tensor data as a heat map in Fiji, supporting multiple
      * frames and depths.
      */
-    public abstract void printToFiji();
+    public void printToFiji(){
+        getIP().show();
+    }
 
     /**
      * Saves orientation heatmaps as images in the specified folder.
@@ -45,5 +49,18 @@ public abstract class HeatMapCreator {
      */
     public abstract void printToFile(String writeToFolder);
 
+    /**
+     * An imagePlus of the image.
+     * @return An imagePlus of the image.
+     */
+    public ImagePlus getIP(){
+        return dim.setToHyperStack(new ImagePlus(stackName, getStack()));
+    }
+    
+    /**
+     * Gets the image stack;
+     * @return The image stack;
+     */
+    public abstract ImageStack getStack();
     
 }

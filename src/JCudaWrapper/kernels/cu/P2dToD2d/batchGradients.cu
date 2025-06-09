@@ -130,15 +130,6 @@ __device__ void batchGradients(const int n,
     const Indices inds(idx, dim);
 
     const Grad grad(mat, inds, dim, ldMat, ldldMat, ldPtrMat);
-    if(idx == dim[4] + dim[0] * 10 + 10) {
-        inds.print();
-        grad.print();
-        printf("inds.page(ldldMat) = %d\n", inds.page(ldldMat));
-        printf("inds.page(ldPtrMat) = %d\n", inds.page(ldPtrMat));
-        printf("inds.word(ldMat, ldldMat) = %d\n", inds.word(ldMat, ldldMat));
-        printf("\n\nldMat of page %d is %d\n", inds.tensorInd, ldMat[inds.page(ldldMat)]);
-        printf("dx = %f\n", dX[inds.page(ldPtrX)][inds.word(ldx, ldldX)] = grad.at(inds.col,      dim[1],          1, 0, ldMat[inds.page(ldPtrMat)]));
-    }
         
     switch(idx / dim[6]){ 
     	case 0: dX[inds.page(ldPtrX)][inds.word(ldx, ldldX)] = grad.at(inds.col,      dim[1],          1, 0, ldMat[inds.page(ldldMat)]); break;

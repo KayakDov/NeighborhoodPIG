@@ -5,10 +5,13 @@ import FijiInput.UserInput;
 import JCudaWrapper.array.Array;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
+import ij.ImageStack;
 import ij.plugin.PlugIn;
 import ij.process.ImageConverter;
-import imageWork.ImagePlusUtil;
+import imageWork.MyImagePlus;
+import imageWork.MyImageStack;
 import imageWork.ProcessImage;
+import imageWork.VectorImg;
 import java.awt.Color;
 
 /**
@@ -39,19 +42,19 @@ public class FijiPlugin implements PlugIn {
             ImageConverter converter = new ImageConverter(imp);
             converter.convertToGray32(); // Convert to 32-bit grayscale for consistency
         }
-        
+
         return true;
     }
 
     @Override
     public void run(String string) {
-        
+
         ImagePlus imp = ij.WindowManager.getCurrentImage();
-        
+
         imp.setOpenAsHyperStack(true);
-        
+
         if (!validImage(imp)) return;
-        
+
         UserInput ui;
         try {
             ui = UserInput.fromDiolog(imp);
@@ -59,31 +62,56 @@ public class FijiPlugin implements PlugIn {
             System.out.println("fijiPlugin.FijiPlugin.run() User canceled diolog.");
             return;
         }
-        
+
         if (!ui.validParamaters()) {
             System.out.println("fijiPlugin.FijiPlugin.run() Invalid Parameters!");
             return;
         }
-        
-        try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, imp, ui)) {            
-            
+
+        Dimensions dims = new Dimensions(imp);
+
+        MyImageStack vf = dims.imageStack(),
+                coh = dims.imageStack(),
+                az = dims.imageStack(),
+                zen = dims.imageStack();
+
+        int vecImgDepth = 0;
+
+        try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, imp, ui)) {
+
             if (ui.heatMap) {
-                np.getAzimuthalAngles(false, 0.01).printToFiji();
-                
-                if (imp.getNSlices() > 1) np.getZenithAngles(false, 0.01).printToFiji();
+                az.concat(np.getAzimuthalAngles(false, 0.01).getStack());
+                if (dims.hasDepth()) zen.concat(np.getZenithAngles(false, 0.01).getStack());
             }
-            
-            if (ui.vectorField){
-                ImagePlus vfImp = np.getVectorImg(ui.vfSpacing, ui.vfMag, false);
-                if(ui.overlay) vfImp = new ImagePlusUtil(imp).superimposeMask(vfImp, Color.GREEN);
-                vfImp.show();
+
+            if (ui.vectorField) {
+                VectorImg vecImg = np.getVectorImg(ui.vfSpacing, ui.vfMag, false);
+                vf.concat(vecImg.imgStack());
+                vecImgDepth = vecImg.getOutputDimensions().depth;
             }
-            
-            if (ui.useCoherence) np.getCoherence().printToFiji();
-            
+
+            if (ui.useCoherence) coh.concat(np.getCoherence().getStack());
+
         }
+
+        if (ui.heatMap) {
+            az.imp("Azimuthal Angles", dims.depth).show();
+            if (dims.hasDepth()) zen.imp("Zenith Angles", dims.depth).show();
+        }
+        if (ui.vectorField) {
+            ImagePlus impVF;
+            if (ui.overlay)
+                impVF = new MyImagePlus("Overlaid Nematic Vectors", imp.getImageStack(), dims.depth)
+                        .overlayBinaryMask(vf, Color.GREEN);
+            else impVF = vf.imp("Nematic Vectors", vecImgDepth);
+            impVF.show();
+        }
+
+        if (ui.useCoherence) coh.imp("Coherence", dims.depth).show();
+
         if (!Array.allocatedArrays.isEmpty())
             throw new RuntimeException("Neighborhood PIG has a GPU memory leak.");
+
     }
 
     /**
@@ -100,31 +128,34 @@ public class FijiPlugin implements PlugIn {
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 
         UserInput ui = UserInput.defaultVals(neighborhoodSize);
-        
+
         ImagePlus imp = ProcessImage.imagePlus(imagePath, depth);
-        
+
         try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, imp, ui)) {
 
             np.getAzimuthalAngles(false, .01).printToFile("images/output/test3/Azimuthal");
             if (depth > 1) np.getZenithAngles(false, .01).printToFile("images/output/test3/Zenith");
             np.getCoherence().printToFile("images/output/test3/Coherence");
-            
-            ImagePlusUtil impUtil = new ImagePlusUtil(imp);
-            new ImagePlusUtil(impUtil.superimposeMask(np.getVectorImg(ui.vfSpacing, ui.vfMag, false), Color.GREEN)).saveSlices("images/output/test3/vectors");
 
-            
-        }        
-        
+            VectorImg vm = np.getVectorImg(ui.vfSpacing, ui.vfMag, false);
+            int vfDepth = vm.getOutputDimensions().depth;
+
+            new MyImagePlus("vector field overlaid", imp.getImageStack(), vfDepth)
+                    .overlayBinaryMask(vm.imgStack(), Color.GREEN)
+                    .saveSlices("images/output/test3/vectors");
+
+        }
+
         if (!Array.allocatedArrays.isEmpty())
             throw new RuntimeException("Neighborhood PIG has a GPU memory leak. " + Array.allocatedArrays.size() + " arrays remain allocated.  They are " + Array.allocatedArrays.toString());
     }
-    
+
     public static void main(String[] args) {
         if (args.length == 0) {
             defaultRun();
             return;
         }
-        
+
     }
-    
+
 }

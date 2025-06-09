@@ -93,13 +93,13 @@ public class UserInput {
         NumericField xyR = new NumericField("Neighborhood xy radius:", 15, gd);
         NumericField zR = null;
         if (hasZ) zR = new NumericField("Neighborhood z radius:", 1, gd);
-        BooleanField heatmap = new BooleanField("heatmap", true, gd);
-        BooleanField vector = new BooleanField("vector field", false, gd);
+        BooleanField heatmap = new BooleanField("heatmap", false, gd);
+        BooleanField vector = new BooleanField("vector field", true, gd);
         BooleanField coherence = new BooleanField("generate coherence", false, gd);
 
         NumericField layerDist = null;
         if (hasZ) layerDist = new NumericField("Distance between layers as a multiple of the distance between pixels:", 1, gd);
-        NumericField downSample = new NumericField("Downsample Factor XY:", 1, gd);
+        NumericField downSample = new NumericField("Downsample Factor XY:", 30, gd);
 
         gd.showDialog();
 
@@ -113,7 +113,7 @@ public class UserInput {
         if (vector.is()) {
             GenericDialog vfDialog = new GenericDialog("Vector Field Parameters.  Be sure downSample > 1.");                        
 
-            overlay = new BooleanField("overlay?", false, vfDialog);
+            if(!hasZ)overlay = new BooleanField("overlay?", true, vfDialog);
             
             spacing = new NumericField("spacing", downSample.val(), vfDialog);
             
@@ -131,7 +131,7 @@ public class UserInput {
                 coherence.is(),
                 vector.is() ? (int) spacing.val() : 0,
                 vector.is() ? (int) mag.val() : 0,
-                vector.is() ? overlay.is() : false,
+                vector.is() && !hasZ ? overlay.is() : false,
                 1e-6f,
                 (int) downSample.val()
         );

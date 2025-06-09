@@ -9,7 +9,6 @@ import imageWork.GrayScaleHeatMapCreator;
 import imageWork.HeatMapCreator;
 import imageWork.VectorImg;
 import java.util.Arrays;
-import main.Test;
 
 /**
  * Each neighborhood pig has it's own handle.
@@ -121,16 +120,15 @@ public class NeighborhoodPIG implements AutoCloseable {
      * intensities to 1.
      * @return An image of all the nematic vectors
      */
-    public ImagePlus getVectorImg(int spacing, int vecMag, boolean useCoherence) {
+    public VectorImg getVectorImg(int spacing, int vecMag, boolean useCoherence) {
 
         return new VectorImg(
                 handle,
-                stm.downSampled,
                 vecMag,
                 stm.getVectors(),
                 stm.getCoherence(),
-                spacing, useCoherence, 0.01
-        ).get();
+                spacing, 0.01
+        );
     }
 
     /**

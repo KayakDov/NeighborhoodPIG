@@ -41,7 +41,7 @@ public class ProcessImage {
 
         Dimensions dim = new Dimensions(null, imp.getHeight(), imp.getWidth(), depth, files.length / depth);
 
-        ImageStack frameSequence = dim.getImageStack();
+        ImageStack frameSequence = dim.imageStack();
 
         for (File file : files) {
             imp = opener.openImage(file.getAbsolutePath());

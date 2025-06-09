@@ -11,6 +11,8 @@ import MathSupport.Point3d;
 import fijiPlugin.Dimensions;
 import ij.ImagePlus;
 import ij.ImageStack;
+import ij.process.BinaryProcessor;
+import ij.process.ByteProcessor;
 import ij.process.FloatProcessor;
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -27,14 +29,13 @@ import java.util.stream.IntStream;
  */
 public class VectorImg {
 
-    private final FloatProcessor[] fp;
+    private final BinaryProcessor[] processor;
     private final Dimensions space;
     private final VecManager gridVecs;
     private final int spacing, r;
     private final float[] gridIntensity;
     private final PArray2dToF2d vecs, intensity;
-    private final ImageStack stack;    
-    private final boolean useNon0Intensities;
+    private final ImageStack stack;
     private final double tolerance;
     private final Dimensions dim;
     private final Handle handle;
@@ -43,8 +44,7 @@ public class VectorImg {
      * Constructs a new VectorImg with the specified parameters to generate an
      * ImagePlus displaying the vector field from vector and intensity data.
      *
-     * @param handle The context
-     * @param dim The dimensions of the image.
+     * @param handle The context     
      * @param vecMag The magnitude of the vectors.
      * @param vecs The {@link FStrideArray3d} containing vector data.
      * @param intensity The {@link FStrideArray3d} containing intensity data.
@@ -56,9 +56,9 @@ public class VectorImg {
      * @param tolerance If useNon0Intensities is false then this determines the
      * threshold for what is close to 0.
      */
-    public VectorImg(Handle handle, Dimensions dim, int vecMag, PArray2dToF2d vecs, PArray2dToF2d intensity, int spacing, boolean useNon0Intensities, double tolerance) {
+    public VectorImg(Handle handle, int vecMag, PArray2dToF2d vecs, PArray2dToF2d intensity, int spacing, double tolerance) {
         this.handle = handle;
-        this.dim = dim;
+        this.dim = new Dimensions(intensity);
         
         space = new Dimensions(null, 
                 (dim.height - 1) * spacing + vecMag + 2, 
@@ -68,7 +68,7 @@ public class VectorImg {
 
         stack = new ImageStack(space.width, space.height);
 
-        fp = new FloatProcessor[space.depth + (dim.hasDepth() ? 1 : 0)];
+        processor = new BinaryProcessor[space.depth + (dim.hasDepth() ? 1 : 0)];
 
         gridIntensity = intensity == null ? null : new float[dim.tensorSize()];
 
@@ -78,27 +78,32 @@ public class VectorImg {
         this.vecs = vecs;
         this.intensity = intensity;
         this.spacing = spacing;
-        this.useNon0Intensities = useNon0Intensities;
         this.tolerance = tolerance;        
     }
 
+    /**
+     * The dimensions of the output vector space.
+     * @return The dimensions of the output vector space.
+     */
+    public Dimensions getOutputDimensions() {
+        return space;
+    }
+
+    
+    
     /**
      * Creates an {@link ImagePlus} from the vector and intensity data provided
      * during construction.
      *
      * @return The generated {@link ImagePlus}.
      */
-    public ImagePlus get() {
+    public ImageStack imgStack() {
 
         IntStream str = IntStream.range(0, dim.batchSize);//.parallel();
         
         str.forEach(this::computeGrid);
 
-        ImagePlus image = new ImagePlus("Nematics", stack);
-        
-        image.setDisplayRange(0, 1);
-        
-        return space.setToHyperStack(image);
+        return stack;
     }
 
     /**
@@ -108,7 +113,7 @@ public class VectorImg {
      */
     private void computeGrid(int t) {
 
-        Arrays.setAll(fp, i -> new FloatProcessor(space.width, space.height));
+        Arrays.setAll(processor, i -> new BinaryProcessor(new ByteProcessor(space.width, space.height)));
 
         IntStream str = IntStream.range(0, dim.depth);
 
@@ -116,7 +121,7 @@ public class VectorImg {
 
         str.forEach(z -> computeLayer(t, z));
 
-        Arrays.stream(fp).forEach(stack::addSlice);        
+        Arrays.stream(processor).forEach(stack::addSlice);        
         
     }
 
@@ -125,25 +130,12 @@ public class VectorImg {
      */
     public class Pencil implements Consumer<Point3d> {
 
-        private double intensity = 1;
-
-        /**
-         * Sets the intensity to be applied by this pencil.
-         *
-         * @param intensity The shade to be drawn.
-         * @return this.
-         */
-        public Pencil setIntensity(double intensity) {
-            this.intensity = intensity;
-            return this;
-        }
-
         /**
          * {@inheritDoc }
          */
         @Override
         public void accept(Point3d p) {
-            fp[p.zI()].setf(p.xI(), p.yI(), (float)intensity);
+            processor[p.zI()].putPixel(p.xI(), p.yI(), 255);
         }
     }
 
@@ -170,8 +162,7 @@ public class VectorImg {
 
                 double localIntensity = gridIntensity[colIndex + row];
 
-                if (localIntensity > tolerance) {
-                    if (useNon0Intensities) drawer.setIntensity(localIntensity);
+                if (localIntensity > tolerance) {                    
 
                     gridVecs.get(row, col, vec1, r);
                                         
@@ -197,7 +188,8 @@ public class VectorImg {
      * @param parentFolder 
      */
     public void saveToFile(String parentFolder){
-        new ImagePlusUtil(get()).saveSlices(parentFolder);
+        new MyImagePlus("Nematic Field", imgStack(), space.depth)
+                .saveSlices(parentFolder);
     }
 
 }

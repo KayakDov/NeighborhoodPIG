@@ -84,16 +84,11 @@ public class ColorHeatMapCreator extends HeatMapCreator implements AutoCloseable
         return pixelRGBHere;
     }
 
-    /**
-     * Displays the tensor data as a heat map in Fiji, supporting multiple
-     * frames and depths.
-     */
     @Override
-    public final void printToFiji() {
-
+    public ImageStack getStack() {
         int[] layer = new int[dim.layerSize()];
         
-        ImageStack stack = dim.getImageStack();
+        ImageStack stack = dim.imageStack();
 
         for (int frameIndex = 0; frameIndex < dim.batchSize; frameIndex++) {
             for (int layerIndex = 0; layerIndex < dim.depth; layerIndex++) {
@@ -110,10 +105,10 @@ public class ColorHeatMapCreator extends HeatMapCreator implements AutoCloseable
             }
         }
 
-        ImagePlus imp = new ImagePlus(stackName, stack);
-
-        dim.setToHyperStack(imp).show();
+        return stack;
     }
+    
+    
 
     /**
      * Loads the proffered array from the gpu.

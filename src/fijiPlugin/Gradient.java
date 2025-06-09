@@ -39,8 +39,6 @@ public class Gradient implements AutoCloseable {
 
         try (PArray2dToF2d pic = ProcessImage.processImages(handle, imp, ui)) {
             
-            System.out.println("fijiPlugin.Gradient.<init>() " + pic.targetLD().toString());
-            
             dim = new Dimensions(handle, pic.targetDim().entriesPerLine, pic.targetDim().numLines, pic.entriesPerLine(), pic.linesPerLayer());
             
             x = new PArray2dToF2d[dim.depth > 1 ? 3 : 2];
