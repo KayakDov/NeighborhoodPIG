@@ -88,7 +88,7 @@ public class ColorHeatMapCreator extends HeatMapCreator implements AutoCloseable
     public ImageStack getStack() {
         int[] layer = new int[dim.layerSize()];
         
-        ImageStack stack = dim.imageStack();
+        ImageStack stack = dim.emptyStack();
 
         for (int frameIndex = 0; frameIndex < dim.batchSize; frameIndex++) {
             for (int layerIndex = 0; layerIndex < dim.depth; layerIndex++) {

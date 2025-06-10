@@ -1,14 +1,17 @@
 package fijiPlugin;
 
 import FijiInput.UserInput;
+import JCudaWrapper.resourceManagement.GPU;
 
 import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
 import imageWork.ColorHeatMapCreator;
 import imageWork.GrayScaleHeatMapCreator;
 import imageWork.HeatMapCreator;
+import imageWork.MyImagePlus;
 import imageWork.VectorImg;
 import java.util.Arrays;
+import jcuda.Sizeof;
 
 /**
  * Each neighborhood pig has it's own handle.
@@ -22,16 +25,16 @@ public class NeighborhoodPIG implements AutoCloseable {
     public final static boolean D3 = true, D2 = false;
 
     private final String[] sourceFileNames;
-    
+
     private Handle handle;
-    
+
     /**
      *
      * @param handle The context.
      * @param image An image.
      * @param ui The input from the user.
      */
-    public NeighborhoodPIG(Handle handle, ImagePlus image, UserInput ui) {
+    public NeighborhoodPIG(Handle handle, MyImagePlus image, UserInput ui) {
         this.handle = handle;
 
         this.sourceFileNames = image.getImageStack().getSliceLabels();
@@ -39,7 +42,6 @@ public class NeighborhoodPIG implements AutoCloseable {
         stm = new StructureTensorMatrices(handle, image, ui);
 
     }
-
 
     /**
      * A heat map of the orientation in the xy plane.
@@ -156,4 +158,5 @@ public class NeighborhoodPIG implements AutoCloseable {
     public void close() {
         stm.close();
     }
+
 }

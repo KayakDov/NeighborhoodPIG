@@ -88,7 +88,7 @@
 	mul.wide.s32 	%rd17, %r33, 4;
 	add.s64 	%rd18, %rd16, %rd17;
 	ld.global.u32 	%r7, [%rd18];
-	mad.lo.s32 	%r8, %r7, %r5, %r6;
+	mad.lo.s32 	%r8, %r7, %r6, %r5;
 	cvta.to.global.u64 	%rd19, %rd7;
 	mul.wide.s32 	%rd20, %r32, 8;
 	add.s64 	%rd2, %rd19, %rd20;
@@ -320,7 +320,7 @@ $L__BB0_32:
 	mul.wide.s32 	%rd113, %r58, 4;
 	add.s64 	%rd114, %rd112, %rd113;
 	ld.global.u32 	%r59, [%rd114];
-	mad.lo.s32 	%r60, %r59, %r5, %r6;
+	mad.lo.s32 	%r60, %r59, %r6, %r5;
 	mul.wide.s32 	%rd115, %r60, 4;
 	add.s64 	%rd116, %rd111, %rd115;
 	cvt.rn.f32.f64 	%f42, %fd52;
@@ -357,7 +357,7 @@ $L__BB0_23:
 	mul.wide.s32 	%rd84, %r44, 4;
 	add.s64 	%rd85, %rd83, %rd84;
 	ld.global.u32 	%r45, [%rd85];
-	mad.lo.s32 	%r46, %r45, %r5, %r6;
+	mad.lo.s32 	%r46, %r45, %r6, %r5;
 	mul.wide.s32 	%rd86, %r46, 4;
 	add.s64 	%rd87, %rd82, %rd86;
 	cvt.rn.f32.f64 	%f28, %fd51;
@@ -410,7 +410,7 @@ $L__BB0_14:
 	mul.wide.s32 	%rd61, %r37, 4;
 	add.s64 	%rd62, %rd60, %rd61;
 	ld.global.u32 	%r38, [%rd62];
-	mad.lo.s32 	%r39, %r38, %r5, %r6;
+	mad.lo.s32 	%r39, %r38, %r6, %r5;
 	mul.wide.s32 	%rd63, %r39, 4;
 	add.s64 	%rd64, %rd59, %rd63;
 	cvt.rn.f32.f64 	%f14, %fd49;
@@ -488,7 +488,7 @@ $L__BB0_33:
 	mul.wide.s32 	%rd15, %r30, 4;
 	add.s64 	%rd16, %rd14, %rd15;
 	ld.global.u32 	%r7, [%rd16];
-	mad.lo.s32 	%r8, %r7, %r5, %r6;
+	mad.lo.s32 	%r8, %r7, %r6, %r5;
 	cvta.to.global.u64 	%rd17, %rd7;
 	mul.wide.s32 	%rd18, %r29, 8;
 	add.s64 	%rd2, %rd17, %rd18;
@@ -654,7 +654,7 @@ $L__BB1_13:
 	mul.wide.s32 	%rd38, %r35, 4;
 	add.s64 	%rd39, %rd37, %rd38;
 	ld.global.u32 	%r36, [%rd39];
-	mad.lo.s32 	%r37, %r36, %r5, %r6;
+	mad.lo.s32 	%r37, %r36, %r6, %r5;
 	mul.wide.s32 	%rd40, %r37, 4;
 	add.s64 	%rd41, %rd36, %rd40;
 	cvt.rn.f32.f64 	%f14, %fd31;
@@ -695,7 +695,7 @@ $L__BB1_22:
 	mul.wide.s32 	%rd67, %r53, 4;
 	add.s64 	%rd68, %rd66, %rd67;
 	ld.global.u32 	%r54, [%rd68];
-	mad.lo.s32 	%r55, %r54, %r5, %r6;
+	mad.lo.s32 	%r55, %r54, %r6, %r5;
 	mul.wide.s32 	%rd69, %r55, 4;
 	add.s64 	%rd70, %rd65, %rd69;
 	cvt.rn.f32.f64 	%f28, %fd32;

@@ -66,4 +66,30 @@ public class GPU {
     public static boolean IsAvailable() {
         return useGPU;
     }
+    
+    
+    /**
+     * Gets the gpu memory.
+     *
+     * @return The gpu memory.
+     */
+    public static String memory() {
+        long[] free = new long[1];
+        long[] total = new long[1];
+        JCuda.cudaMemGetInfo(free, total);
+        return "Free: " + free[0] * 8e-9 + " GB, Total: " + total[0] * 8e-9 + " GB";
+    }
+    
+    /**
+     * The number of free bytes on the GPU.
+     * @return The number of free bytes on the GPU.
+     */
+    public static long freeMemory(){
+     long[] free = new long[1];
+        long[] total = new long[1];
+        JCuda.cudaMemGetInfo(free, total);
+        return free[0];   
+    }
+    
+    
 }

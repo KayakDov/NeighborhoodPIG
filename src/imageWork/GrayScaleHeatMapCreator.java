@@ -53,7 +53,7 @@ public class GrayScaleHeatMapCreator extends HeatMapCreator {
     @Override
     public ImageStack getStack() {//TODO: look into multi threading this.
 
-        ImageStack stack = dim.imageStack();
+        ImageStack stack = dim.emptyStack();
 
         float[] layerImage = new float[dim.layerSize()];
         float[] layerCoherence = new float[dim.layerSize()];

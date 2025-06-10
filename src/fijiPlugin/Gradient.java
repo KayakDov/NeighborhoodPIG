@@ -8,6 +8,7 @@ import JCudaWrapper.resourceManagement.Handle;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import ij.ImagePlus;
+import imageWork.MyImagePlus;
 import imageWork.ProcessImage;
 import java.util.Arrays;
 
@@ -35,17 +36,17 @@ public class Gradient implements AutoCloseable {
      *
      *
      */
-    public Gradient(Handle handle, ImagePlus imp, UserInput ui) {
+    public Gradient(Handle handle, MyImagePlus imp, UserInput ui) {
 
         try (PArray2dToF2d pic = ProcessImage.processImages(handle, imp, ui)) {
-            
-            dim = new Dimensions(handle, pic.targetDim().entriesPerLine, pic.targetDim().numLines, pic.entriesPerLine(), pic.linesPerLayer());
+                        
+            dim = imp.dim().setGpuDim(handle);
             
             x = new PArray2dToF2d[dim.depth > 1 ? 3 : 2];
 
             PArray2dTo2d[] dataParams = new PArray2dTo2d[x.length + 1];
             dataParams[0] = pic;
-            for (int i = 0; i < x.length; i++) dataParams[i + 1] = x[i] = dim.emptyP2dToF2d(handle);
+            for (int i = 0; i < x.length; i++) dataParams[i + 1] = x[i] = dim.emptyP2dToF2d(handle);            
             
             try (Kernel batchGrad = new Kernel("batchGradients", "batchGradients" + x.length + "d")) {
 

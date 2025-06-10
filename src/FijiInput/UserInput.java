@@ -144,8 +144,8 @@ public class UserInput {
      * @return
      */
     public static UserInput defaultVals(NeighborhoodDim nd) {
-        int spacing = 8;
-        return new UserInput(nd, true, true, true, spacing, 6, true, 1e-7f, spacing);
+        int spacing = 15;
+        return new UserInput(nd, true, true, true, spacing, spacing - 2, true, 1e-7f, spacing);
     }
 
     /**

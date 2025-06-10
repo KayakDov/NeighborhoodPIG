@@ -1,21 +1,19 @@
 package imageWork;
 
 import fijiPlugin.Dimensions;
-import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.ImageRoi;
 import ij.gui.Overlay;
 import ij.gui.Roi;
 import ij.io.FileSaver;
+import ij.plugin.HyperStackConverter;
 import ij.process.ByteProcessor;
 import ij.process.ColorProcessor;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
-import ij.process.LUT;
 import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
+import java.awt.Rectangle;
 import java.io.File;
 
 /**
@@ -35,6 +33,38 @@ public class MyImagePlus extends ImagePlus {
     public MyImagePlus(String title, ImageStack imp, int depth) {
         super(title, imp);
         dim = new Dimensions(imp, depth);
+        HyperStackConverter.toHyperStack(
+                this,
+                1,
+                depth,
+                imp.size() / depth
+        );
+    }
+
+    /**
+     * Constructs a MyImagePlus by taking an existing ImagePlus. This
+     * constructor copies references to the ImageStack and its ImageProcessors
+     * to avoid memory duplication, and copies all relevant metadata. This
+     * effectively "upgrades" an existing ImagePlus to a MyImagePlus without
+     * creating new pixel data.
+     *
+     * @param imp The ImagePlus to copy from.
+     */
+    public MyImagePlus(ImagePlus imp) {
+        // Call the superclass constructor using the original ImagePlus's stack reference.
+        // This is efficient as it doesn't duplicate the pixel data.
+        super(imp.getTitle(), imp.getImageStack());
+
+        // Copy all relevant metadata from the original ImagePlus
+        this.setCalibration(imp.getCalibration()); // Copies spatial calibration
+        this.setLut(imp.getProcessor().getLut()); // Copies the LUT (if applicable to the first slice's processor)
+        this.setOverlay(imp.getOverlay()); // Copies the overlay (if any)
+        this.setRoi(imp.getRoi()); // Copies the ROI (if any)
+        this.setDimensions(1, imp.getNSlices(), imp.getNFrames()); // Copies C, Z, T dimensions
+        this.setDisplayRange(imp.getDisplayRangeMin(), imp.getDisplayRangeMax()); // Copies display range
+        this.setActivated(); // Makes it behave like an active image
+
+        this.dim = new Dimensions(imp.getImageStack(), imp.getNSlices());
     }
 
     /**
@@ -106,40 +136,73 @@ public class MyImagePlus extends ImagePlus {
      *
      * @param saveTo The base folder where the files should be saved.
      */
-    public void saveSlices(String saveTo) {
-        // **FIX:** Get the original title, strip the path to get just the filename,
-        // and remove any leading underscore.
+        public void saveSlices(String saveTo) {
         String fileNameOnly = new File(getTitle()).getName();
         String baseFileName = fileNameOnly.startsWith("_") ? fileNameOnly.substring(1) : fileNameOnly;
 
-        ImagePlus impToSave = prepareImageForSaving();
+        ImagePlus baseImpForSaving = prepareImageForSaving();
 
-        int numSlicesZ = impToSave.getNSlices();
-        int numFrames = impToSave.getNFrames();
-        int numChannels = impToSave.getNChannels();
+        ImageStack flattenedStack = new ImageStack(baseImpForSaving.getWidth(), baseImpForSaving.getHeight());
+
+        Overlay originalOverlay = this.getOverlay();
+
+        int numSlicesTotal = baseImpForSaving.getStackSize(); // Total linear slices (C*Z*T)
+        int numChannels = baseImpForSaving.getNChannels();
+        int numSlicesZ = baseImpForSaving.getNSlices();
+        int numFrames = baseImpForSaving.getNFrames();
 
         for (int frame = 1; frame <= numFrames; frame++) {
             for (int sliceZ = 1; sliceZ <= numSlicesZ; sliceZ++) {
                 for (int channel = 1; channel <= numChannels; channel++) {
-                    int linearStackIndex = impToSave.getStackIndex(channel, sliceZ, frame);
-                    impToSave.setSlice(linearStackIndex);
+                    int linearStackIndex = baseImpForSaving.getStackIndex(channel, sliceZ, frame);
+                    baseImpForSaving.setSlice(linearStackIndex);
 
-                    ImageProcessor currentProcessor = impToSave.getProcessor();
+                    ImageProcessor currentProcessor = baseImpForSaving.getProcessor();
+                    ImagePlus sliceToProcess = new ImagePlus("", currentProcessor.duplicate()); // Create a temporary ImagePlus for the current slice
+
+                    if (originalOverlay != null) {
+                        Overlay sliceOverlay = new Overlay();
+                        for (int i = 0; i < originalOverlay.size(); i++) {
+                            Roi roi = originalOverlay.get(i);
+                            if (roi.getPosition() == 0 || roi.getPosition() == linearStackIndex) { // Position 0 means all slices, otherwise specific slice
+                                sliceOverlay.add(roi);
+                            }
+                        }
+                        sliceToProcess.setOverlay(sliceOverlay);
+                        sliceToProcess = sliceToProcess.flatten(); 
+                    }
+                    
+                    flattenedStack.addSlice(baseImpForSaving.getStack().getSliceLabel(linearStackIndex), sliceToProcess.getProcessor());
+                }
+            }
+        }
+
+        ImagePlus finalImpToSave = new ImagePlus(baseImpForSaving.getTitle() + "_flattened", flattenedStack);
+        finalImpToSave.setDimensions(numChannels, numSlicesZ, numFrames);
+        finalImpToSave.setCalibration(baseImpForSaving.getCalibration());
+
+        for (int frame = 1; frame <= numFrames; frame++) {
+            for (int sliceZ = 1; sliceZ <= numSlicesZ; sliceZ++) {
+                for (int channel = 1; channel <= numChannels; channel++) {
+                    int linearStackIndex = finalImpToSave.getStackIndex(channel, sliceZ, frame);
+                    finalImpToSave.setSlice(linearStackIndex);
+
+                    ImageProcessor currentFlattenedProcessor = finalImpToSave.getProcessor();
+                    
                     ImagePlus sliceToSave = new ImagePlus(
                             baseFileName + "_C" + channel + "_F" + frame + "_Z" + sliceZ,
-                            currentProcessor
+                            currentFlattenedProcessor
                     );
 
                     FileSaver fs = new FileSaver(sliceToSave);
                     String specificFileName = sliceToSave.getTitle() + ".png";
                     File outputFile = new File(saveTo, specificFileName);
 
-                    // Ensure the full directory path exists before saving.
                     File parentDir = outputFile.getParentFile();
                     if (parentDir != null && !parentDir.exists()) {
                         if (!parentDir.mkdirs()) {
                             System.err.println("Failed to create directory: " + parentDir.getAbsolutePath());
-                            continue; // Skip to the next slice if directory creation fails
+                            continue;
                         }
                     }
 
@@ -203,7 +266,7 @@ public class MyImagePlus extends ImagePlus {
      * @param color The color to render the opaque (255) regions in.
      * @return this
      */
-    public MyImagePlus overlayBinaryMask(ImageStack overlayStack, Color color) {
+    public MyImagePlus overlay(ImageStack overlayStack, Color color) {
         Overlay overlay = new Overlay();
 
         for (int z = 1; z <= overlayStack.getSize(); z++) {
@@ -225,4 +288,59 @@ public class MyImagePlus extends ImagePlus {
         setOverlay(overlay);
         return this;
     }
+
+    /**
+     * Returns a new ImagePlus that uses the same processors as a subset of
+     * frames from this ImagePlus.
+     *
+     * @param start The 0-based index of the first frame to include (inclusive).
+     * @param numFrames The number of frames to include in the subset.
+     * @return A new ImagePlus containing the specified subset of frames,
+     * sharing the underlying ImageProcessor objects, or null if input is
+     * invalid.
+     */
+    public MyImagePlus subset(int start, int numFrames) {
+
+        numFrames = Math.min(numFrames, getNFrames() - start);
+
+        int end = start + numFrames;
+
+        ImageStack subsetStack = new ImageStack(dim.width, dim.height);
+
+        for (int i = start; i < end; i++)
+            subsetStack.addSlice(getStack().getSliceLabel(i + 1), getStack().getProcessor(i + 1));
+
+        MyImagePlus newImp = new MyImagePlus(
+                getTitle() + "_subset_F" + (start + 1) + "_to_F" + end,
+                subsetStack,
+                dim.depth
+        );
+
+        return newImp;
+    }
+
+    /**
+     * Crops this image down to the new height and width.
+     *
+     * @param width The new width of this image.
+     * @param height The new height of this image.
+     * @return this image.
+     */
+    public MyImagePlus crop(int height, int width) {
+        dim = new Dimensions(height, width, dim.depth, dim.batchSize);
+        setRoi(new Roi(new Rectangle(0, 0, width, height)));
+        setStack(crop("stack").getImageStack());
+        deleteRoi();
+        return this;
+    }
+
+    /**
+     * The dimensions.
+     *
+     * @return The dimensions.
+     */
+    public Dimensions dim() {
+        return dim;
+    }
+
 }

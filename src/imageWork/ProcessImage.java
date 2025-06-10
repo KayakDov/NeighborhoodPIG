@@ -41,7 +41,7 @@ public class ProcessImage {
 
         Dimensions dim = new Dimensions(null, imp.getHeight(), imp.getWidth(), depth, files.length / depth);
 
-        ImageStack frameSequence = dim.imageStack();
+        ImageStack frameSequence = dim.emptyStack();
 
         for (File file : files) {
             imp = opener.openImage(file.getAbsolutePath());
@@ -101,14 +101,14 @@ public class ProcessImage {
      * @return A FArray containing the image data in column-major order for all
      * frames, slices, and channels.
      */
-    public static final PArray2dToF2d processImages(Handle handle, ImagePlus imp, UserInput ui) {
+    public static final PArray2dToF2d processImages(Handle handle, MyImagePlus imp, UserInput ui) {
 
         // Convert the image to grayscale if necessary
         if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32) {
             System.out.println("fijiPlugin.NeighborhoodPIG.processImages(): Converting image to grayscale.");
             IJ.run(imp, "32-bit", "");
         }
-        Dimensions dim = new Dimensions(imp);
+        Dimensions dim = new Dimensions(imp);        
 
         PArray2dToF2d processedImage = new PArray2dToF2d(dim.depth, dim.batchSize, dim.height, dim.width, handle);
         float[] columnMajorSlice = new float[dim.layerSize()];

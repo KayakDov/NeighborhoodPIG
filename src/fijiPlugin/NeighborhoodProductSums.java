@@ -87,7 +87,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
          * @param ldTo The increment of the the destination matrices.
          */
         public void neighborhoodSum(PArray2dToD2d src, PArray2dToD2d dst) {
-
+                        
             nSum.run(handle,
                     numThreads,
                     new PArray2dTo2d[]{src, dst},
@@ -96,6 +96,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
                     P.to(nRad),
                     P.to(dirOrd)
             );
+
         }
 
     }
@@ -113,14 +114,15 @@ public class NeighborhoodProductSums implements AutoCloseable {
      */
     public void set(PArray2dToF2d a, PArray2dToF2d b, PArray2dToD2d dst) {
 
+        
         Kernel.run("setEBEProduct", handle,
                 dim.size(),
                 new PArray2dTo2d[]{workSpace1, a, b},
                 dim
         );
-
+        
         X.neighborhoodSum(workSpace1, workSpace2);
-
+        
         if (dim.depth > 1) {
             Y.neighborhoodSum(workSpace2, workSpace1);
             Z.neighborhoodSum(workSpace1, dst);

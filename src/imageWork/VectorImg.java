@@ -41,6 +41,21 @@ public class VectorImg {
     private final Handle handle;
 
     /**
+     * The dimensions for the output vector space.
+     * @param src The input vector space.
+     * @param spacing How much space will there be between vectors.
+     * @param vecMag The length of the vectors.
+     * @return The output vector space.
+     */
+    public static Dimensions space(Dimensions src, int spacing, int vecMag){
+        return new Dimensions(null, 
+                (src.height - 1) * spacing + vecMag + 2, 
+                (src.width - 1) * spacing + vecMag + 2, 
+                src.hasDepth() ? (src.depth - 1) * spacing + vecMag + 2 : 1, 
+                src.batchSize);
+    }
+    
+    /**
      * Constructs a new VectorImg with the specified parameters to generate an
      * ImagePlus displaying the vector field from vector and intensity data.
      *
@@ -50,9 +65,6 @@ public class VectorImg {
      * @param intensity The {@link FStrideArray3d} containing intensity data.
      * Pass null to set all intensities to one.
      * @param spacing The spacing between pixels.
-     * @param useNon0Intensities Set to true to shade ever vector acroding to
-     * it's intensity. Set to false to show all vectors at white except those
-     * with below tolerance intensity.
      * @param tolerance If useNon0Intensities is false then this determines the
      * threshold for what is close to 0.
      */
@@ -60,11 +72,7 @@ public class VectorImg {
         this.handle = handle;
         this.dim = new Dimensions(intensity);
         
-        space = new Dimensions(null, 
-                (dim.height - 1) * spacing + vecMag + 2, 
-                (dim.width - 1) * spacing + vecMag + 2, 
-                dim.hasDepth() ? (dim.depth - 1) * spacing + vecMag + 2 : 1, 
-                dim.batchSize);
+        space = space(dim, spacing, vecMag);
 
         stack = new ImageStack(space.width, space.height);
 

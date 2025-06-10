@@ -63,15 +63,4 @@ public class Test {
 
     }
 
-    /**
-     * Gets the gpu memory.
-     *
-     * @return The gpu memory.
-     */
-    public static String memory() {
-        long[] free = new long[1];
-        long[] total = new long[1];
-        JCuda.cudaMemGetInfo(free, total);
-        return "Free: " + free[0] * 8e-9 + " GB, Total: " + total[0] * 8e-9 + " GB";
-    }
 }
