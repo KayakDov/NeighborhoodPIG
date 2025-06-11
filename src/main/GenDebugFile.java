@@ -68,7 +68,7 @@ public class GenDebugFile {
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
                 for (int z = 0; z < depth; z++)
-                    if ((x - centX) * (x - centX) + (y - centY) * (y - centY) <= r * r)
+                    if ((x - centX) * (x - centX) + (z - centZ) * (z - centZ) <= r * r)
                         env[z][x][y] = 255;
         return env;
 

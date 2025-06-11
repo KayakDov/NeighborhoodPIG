@@ -6,7 +6,7 @@ import JCudaWrapper.resourceManagement.GPU;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
 import imageWork.ColorHeatMapCreator;
-import imageWork.GrayScaleHeatMapCreator;
+import imageWork.GrayScaleHeatMapCreatorFloat;
 import imageWork.HeatMapCreator;
 import imageWork.MyImagePlus;
 import imageWork.VectorImg;
@@ -58,7 +58,7 @@ public class NeighborhoodPIG implements AutoCloseable {
                 stm.azimuthAngle(),
                 stm.getCoherence(),
                 stm.downSampled
-        ) : new GrayScaleHeatMapCreator(
+        ) : new GrayScaleHeatMapCreatorFloat(
                 concat(sourceFileNames, " Azimuth"),
                 "Azimuth Angle Heatmap",
                 handle,
@@ -85,7 +85,7 @@ public class NeighborhoodPIG implements AutoCloseable {
                 stm.getCoherence(),
                 stm.downSampled
         )
-                : new GrayScaleHeatMapCreator(
+                : new GrayScaleHeatMapCreatorFloat(
                         concat(sourceFileNames, " Zenith Angle"),
                         "Zenith Angle Heatmap",
                         handle,
@@ -102,7 +102,7 @@ public class NeighborhoodPIG implements AutoCloseable {
      * @return The coherence heatmap.
      */
     public HeatMapCreator getCoherence() {
-        return new GrayScaleHeatMapCreator(
+        return new GrayScaleHeatMapCreatorFloat(
                 concat(sourceFileNames, " coherence"),
                 "Coherence",
                 handle,

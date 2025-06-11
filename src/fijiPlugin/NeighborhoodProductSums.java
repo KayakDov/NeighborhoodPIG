@@ -7,6 +7,7 @@ import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
+import main.Test;
 
 /**
  * This class implements element-by-element multiplication (EBEM) for
@@ -22,7 +23,7 @@ import JCudaWrapper.resourceManagement.Handle;
 public class NeighborhoodProductSums implements AutoCloseable {
 
     private final PArray2dToD2d workSpace1, workSpace2;
-    private final Kernel nSum;
+   private final Kernel nSum;
     private final Mapper X, Y, Z;
     private final Handle handle;
     private final Dimensions dim;
@@ -41,7 +42,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
 
         this.handle = handle; this.dim = dim;
         
-        Z = new Mapper(dim.height * dim.width * dim.batchSize, dim.depth, 2, nRad.zR);
+        Z = new Mapper(dim.layerSize() * dim.batchSize, dim.depth, 2, nRad.zR);
 
         Y = new Mapper(dim.depth * dim.width * dim.batchSize, dim.height, 1, nRad.xyR);
 
@@ -114,7 +115,6 @@ public class NeighborhoodProductSums implements AutoCloseable {
      */
     public void set(PArray2dToF2d a, PArray2dToF2d b, PArray2dToD2d dst) {
 
-        
         Kernel.run("setEBEProduct", handle,
                 dim.size(),
                 new PArray2dTo2d[]{workSpace1, a, b},
@@ -122,10 +122,12 @@ public class NeighborhoodProductSums implements AutoCloseable {
         );
         
         X.neighborhoodSum(workSpace1, workSpace2);
-        
+                
         if (dim.depth > 1) {
             Y.neighborhoodSum(workSpace2, workSpace1);
+            
             Z.neighborhoodSum(workSpace1, dst);
+            
         } else
             Y.neighborhoodSum(workSpace2, dst);
     }

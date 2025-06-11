@@ -146,7 +146,7 @@ extern "C" __global__ void neighborhoodSum3dKernel(
 	    
         break; }// Column-wise
         case Z: {
-            int row = idx % dim[0], col = (idx/dim[0]) % dim[1], tensor = (idx / dim[5]) / dim[2];
+            int idxInLayer = idx % dim[4], row = idxInLayer % dim[0], col = idxInLayer/dim[0], tensor = idx / dim[4];
             
             src.setAll(srcData, col * xySrcLd(0, tensor) + row, tensor * ztLdSrc, 0, 1);
             dst.setAll(dstData, col * xyDstLd(0, tensor) + row, tensor * ztLdDst, 0, 1);            

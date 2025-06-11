@@ -1,7 +1,6 @@
 
 package imageWork;
 
-import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;
 import ij.ImagePlus;
@@ -26,6 +25,7 @@ public abstract class HeatMapCreator {
      * @param sliceNames The names of the slices.
      * @param stackName The name of the stack.
      * @param dim The dimensions of this heat map.
+     * @param handle THe context.
      */
     protected HeatMapCreator(String[] sliceNames, String stackName, Dimensions dim, Handle handle) {
         this.sliceNames = sliceNames;

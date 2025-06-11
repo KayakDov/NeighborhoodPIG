@@ -58,7 +58,7 @@ public class Gradient implements AutoCloseable {
                         P.to(ui.neighborhoodSize.layerRes)
                 );
             }
-        }
+       }
 
     }
 

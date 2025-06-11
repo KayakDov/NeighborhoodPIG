@@ -5,6 +5,7 @@ import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
 import imageWork.MyImagePlus;
+import main.Test;
 
 /**
  *
@@ -31,7 +32,7 @@ public class StructureTensorMatrices implements AutoCloseable {
             dim = grad.dim;            
 
             eigen = new Eigen(handle, dim, ui.downSampleFactorXY, ui.tolerance);
-
+            
             try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, ui.neighborhoodSize, dim)) {
 
                 for (int i = 0; i < dim.num(); i++)

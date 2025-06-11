@@ -6,6 +6,11 @@ import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;
+import ij.ImagePlus;
+import ij.gui.ImageCanvas;
+import ij.gui.ImageWindow;
+import imageWork.GrayScaleHeatMapCreatorDouble;
+import imageWork.MyImagePlus;
 import jcuda.Sizeof;
 
 /**
@@ -93,5 +98,14 @@ public class PArray2dToD2d extends PArray2dTo2d implements PointToD2d {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
+    /**
+     * Use for debugging only.
+     * @param handle
+     * @return 
+     */
+    public void show(Handle handle){
+         new MyImagePlus(new GrayScaleHeatMapCreatorDouble(null, null, handle, this, null, 1e-6, new Dimensions(this)).getIP()).saveSlices("images/output/debug");
+        
+    }
     
 }

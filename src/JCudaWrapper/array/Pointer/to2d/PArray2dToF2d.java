@@ -6,6 +6,12 @@ import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to1d.PArray1dToD1d;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;
+import ij.ImagePlus;
+import ij.gui.ImageCanvas;
+import ij.gui.ImageWindow;
+import imageWork.GrayScaleHeatMapCreatorDouble;
+import imageWork.GrayScaleHeatMapCreatorFloat;
+import imageWork.MyImagePlus;
 import jcuda.Sizeof;
 
 /**
@@ -47,7 +53,7 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d {
      */
     @Override
     public PSingletonToF2d get(int indexInLine, int lineNumber) {
-        if(indexInLine >= entriesPerLine() || lineNumber >= linesPerLayer()) 
+        if (indexInLine >= entriesPerLine() || lineNumber >= linesPerLayer())
             throw new IndexOutOfBoundsException();
         return get(lineNumber * entriesPerLine() + indexInLine);
     }
@@ -103,9 +109,9 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d {
      * @param scalar
      */
     public void scale(Handle handle, float scalar) {
-        
+
         try (Dimensions dims = new Dimensions(handle, targetDim().entriesPerLine, targetDim().numLines, entriesPerLine(), linesPerLayer())) {
-            Kernel.run("multiplyScalar", handle, 
+            Kernel.run("multiplyScalar", handle,
                     deepSize(),
                     new PArray2dTo2d[]{this},
                     dims,
@@ -114,4 +120,13 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d {
         }
     }
 
+    /**
+     * Use for debugging only.
+     *
+     * @param handle
+     * @return
+     */
+    public void show(Handle handle) {
+        new MyImagePlus(new GrayScaleHeatMapCreatorFloat(null, null, handle, this, null, 1e-6, new Dimensions(this)).getIP()).saveSlices("images/output/debug");
+    }
 }

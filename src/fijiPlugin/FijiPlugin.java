@@ -5,8 +5,11 @@ import FijiInput.UserInput;
 import JCudaWrapper.array.Array;
 import JCudaWrapper.resourceManagement.GPU;
 import JCudaWrapper.resourceManagement.Handle;
+import ij.IJ;
+import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
+import ij.gui.Toolbar;
 import ij.plugin.PlugIn;
 import ij.process.ImageConverter;
 import imageWork.HeatMapCreator;
@@ -16,6 +19,7 @@ import imageWork.ProcessImage;
 import imageWork.VectorImg;
 import java.awt.Color;
 import java.io.File;
+import javax.swing.SwingUtilities;
 import jcuda.Sizeof;
 
 /**
@@ -59,16 +63,15 @@ public class FijiPlugin implements PlugIn {
      * @return The maximum number of frames that can be processed at once.
      */
     public static int framesPerRun(int height, int width, int depth) {
-        
+
         long freeMemory = GPU.freeMemory();
-        
+
         if (freeMemory == 0) throw new RuntimeException("There is no free GPU memory.");
-        
+
         long voxlesPerFrame = height * width * depth;
-        
-        return (int)((freeMemory / voxlesPerFrame) / (Sizeof.DOUBLE * (depth > 1 ? 9 : 4) + (depth > 1 ? 3 : 2) * Sizeof.FLOAT));
-        
-        
+
+        return (int) ((freeMemory / voxlesPerFrame) / (Sizeof.DOUBLE * (depth > 1 ? 9 : 4) + (depth > 1 ? 3 : 2) * Sizeof.FLOAT));
+
     }
 
     @Override
@@ -90,9 +93,36 @@ public class FijiPlugin implements PlugIn {
         run(ui, originalImage, false);
     }
 
+    public static void loadImageJ() {
+        // Ensure ImageJ is running. This is crucial if you're running this
+        // as a standalone Java application. If it's a plugin running within Fiji,
+        // ImageJ will already be initialized.
+        ImageJ ij = IJ.getInstance();
+        if (ij == null) {
+            ij = new ImageJ(ImageJ.NO_SHOW); // Start ImageJ without showing the main window initially
+        }
+
+        // Schedule the UI update to run on the Event Dispatch Thread
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                // Get the singleton instance of the Toolbar
+                Toolbar toolbar = Toolbar.getInstance();
+
+                if (toolbar != null) {
+                    toolbar.setVisible(true);
+                }
+            }
+        });
+    }
+
     public static void main(String[] args) {//TODO: test somethign with depth!
 
-        String imagePath = "images/input/cyl/"; int depth = 50; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
+        loadImageJ();
+
+        String imagePath = "images/input/cyl/";
+        int depth = 36;
+        NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 4, 1);
 //        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(30, 1, 1);
@@ -119,9 +149,8 @@ public class FijiPlugin implements PlugIn {
      * they're to be displayed in fiji.
      */
     public static void run(UserInput ui, ImagePlus userImg, boolean toFile) {
-        if (!ui.validParamaters()) 
+        if (!ui.validParamaters())
             throw new RuntimeException("fijiPlugin.FijiPlugin.run() Invalid Parameters!");
-        
 
         MyImagePlus img = new MyImagePlus(userImg).crop(
                 ui.downSample(userImg.getHeight()),
