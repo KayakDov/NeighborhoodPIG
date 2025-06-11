@@ -32,13 +32,9 @@ public class MyImagePlus extends ImagePlus {
      */
     public MyImagePlus(String title, ImageStack imp, int depth) {
         super(title, imp);
+        setDimensions(1, depth, imp.size()/depth);        
         dim = new Dimensions(imp, depth);
-        HyperStackConverter.toHyperStack(
-                this,
-                1,
-                depth,
-                imp.size() / depth
-        );
+
     }
 
     /**
@@ -307,8 +303,12 @@ public class MyImagePlus extends ImagePlus {
 
         ImageStack subsetStack = new ImageStack(dim.width, dim.height);
 
-        for (int i = start; i < end; i++)
-            subsetStack.addSlice(getStack().getSliceLabel(i + 1), getStack().getProcessor(i + 1));
+        for (int frame = start; frame < end; frame++)
+            for(int slice = 0; slice < dim.depth; slice++)
+                subsetStack.addSlice(
+                        getStack().getSliceLabel(frame*dim.depth + slice + 1), 
+                        getStack().getProcessor(frame*dim.depth + slice + 1)
+                );
 
         MyImagePlus newImp = new MyImagePlus(
                 getTitle() + "_subset_F" + (start + 1) + "_to_F" + end,

@@ -93,13 +93,13 @@ public class UserInput {
         NumericField xyR = new NumericField("Neighborhood xy radius:", 15, gd);
         NumericField zR = null;
         if (hasZ) zR = new NumericField("Neighborhood z radius:", 1, gd);
-        BooleanField heatmap = new BooleanField("heatmap", false, gd);
-        BooleanField vector = new BooleanField("vector field", true, gd);
+        BooleanField heatmap = new BooleanField("heatmap", true, gd);
+        BooleanField vector = new BooleanField("vector field", false, gd);
         BooleanField coherence = new BooleanField("generate coherence", false, gd);
 
         NumericField layerDist = null;
         if (hasZ) layerDist = new NumericField("Distance between layers as a multiple of the distance between pixels:", 1, gd);
-        NumericField downSample = new NumericField("Downsample Factor XY:", 30, gd);
+        NumericField downSample = new NumericField("Downsample Factor XY:", 2, gd);
 
         gd.showDialog();
 
@@ -120,9 +120,11 @@ public class UserInput {
             mag = new NumericField("Vector Magnitude:", downSample.val() - 2, vfDialog);
             
             vfDialog.showDialog();
+            
+            if(!hasZ && overlay.is() && spacing.val() != downSample.val()) throw new RuntimeException("If set to overlay, then spacing must equal downsample size.");
         }
         
-        if(vector.is() && overlay.is() && spacing.val() != downSample.val()) throw new RuntimeException("If set to overlay, then spacing must equal downsample size.");
+        
 
         return new UserInput(
                 new NeighborhoodDim((int) xyR.val(), hasZ ? (int) zR.val() : 1, hasZ ? (int) layerDist.val() : 1),
@@ -144,8 +146,8 @@ public class UserInput {
      * @return
      */
     public static UserInput defaultVals(NeighborhoodDim nd) {
-        int spacing = 15;
-        return new UserInput(nd, true, true, true, spacing, spacing - 2, true, 1e-7f, spacing);
+        int spacing = 1;
+        return new UserInput(nd, true, false, true, spacing, Math.max(spacing - 2, 0), true, 1e-7f, spacing);
     }
 
     /**

@@ -59,11 +59,16 @@ public class FijiPlugin implements PlugIn {
      * @return The maximum number of frames that can be processed at once.
      */
     public static int framesPerRun(int height, int width, int depth) {
-        int frameSize = height * width * depth;
-        int memoryPerFrame = frameSize * (Sizeof.DOUBLE * (depth > 1 ? 9 : 4) + (depth > 1 ? 3 : 2) * Sizeof.FLOAT);
+        
         long freeMemory = GPU.freeMemory();
-        if(freeMemory == 0) throw new RuntimeException("There is no free GPU memory.");
-        return (int)(freeMemory/ memoryPerFrame);
+        
+        if (freeMemory == 0) throw new RuntimeException("There is no free GPU memory.");
+        
+        long voxlesPerFrame = height * width * depth;
+        
+        return (int)((freeMemory / voxlesPerFrame) / (Sizeof.DOUBLE * (depth > 1 ? 9 : 4) + (depth > 1 ? 3 : 2) * Sizeof.FLOAT));
+        
+        
     }
 
     @Override
@@ -87,8 +92,8 @@ public class FijiPlugin implements PlugIn {
 
     public static void main(String[] args) {//TODO: test somethign with depth!
 
-//        String imagePath = "images/input/cyl/"; int depth = 50; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
-        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
+        String imagePath = "images/input/cyl/"; int depth = 50; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 1, 1);
+//        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(30, 1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
@@ -96,10 +101,10 @@ public class FijiPlugin implements PlugIn {
         UserInput ui = UserInput.defaultVals(neighborhoodSize);
 
         ImagePlus imp = ProcessImage.imagePlus(imagePath, depth);
-        
+
         imp = new Dimensions(imp.getStack(), depth).setToHyperStack(imp);
-        
-        imp.setDimensions(1, depth, new File(imagePath).list().length/depth);
+
+        imp.setDimensions(1, depth, new File(imagePath).list().length / depth);
 
         run(ui, imp, true);
 
@@ -114,28 +119,29 @@ public class FijiPlugin implements PlugIn {
      * they're to be displayed in fiji.
      */
     public static void run(UserInput ui, ImagePlus userImg, boolean toFile) {
-        if (!ui.validParamaters()) {
-            System.out.println("fijiPlugin.FijiPlugin.run() Invalid Parameters!");
-            return;
-        }
+        if (!ui.validParamaters()) 
+            throw new RuntimeException("fijiPlugin.FijiPlugin.run() Invalid Parameters!");
+        
 
         MyImagePlus img = new MyImagePlus(userImg).crop(
-                ui.downSample(userImg.getHeight()), 
+                ui.downSample(userImg.getHeight()),
                 ui.downSample(userImg.getWidth())
         );
-        
+
         Dimensions downSampled = img.dim().downSampleXY(null, ui.downSampleFactorXY);
-        
-        MyImageStack vf = VectorImg.space(downSampled, ui.vfSpacing, ui.vfMag).emptyStack(), 
+
+        MyImageStack vf = VectorImg.space(downSampled, ui.vfSpacing, ui.vfMag).emptyStack(),
                 coh = downSampled.emptyStack(),
-                az = downSampled.emptyStack(), 
+                az = downSampled.emptyStack(),
                 zen = downSampled.emptyStack();
 
         int vecImgDepth = 0;
 
         int framesPerRun = framesPerRun(img.dim().height, img.dim().width, img.dim().depth); //TODO: double check this!
 
-        for (int i = 0; i < img.getStackSize(); i += framesPerRun)
+        long startTime = System.currentTimeMillis();
+
+        for (int i = 0; i < img.getNFrames(); i += framesPerRun)
             try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, img.subset(i, framesPerRun), ui)) {
 
             if (ui.heatMap) {
@@ -150,6 +156,10 @@ public class FijiPlugin implements PlugIn {
 
         }
 
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
+        System.out.println("Execution time: " + duration + " milliseconds");
+
         results(vf, coh, az, zen, toFile, ui, img.dim(), vecImgDepth, img);
 
         if (!Array.allocatedArrays.isEmpty())
@@ -158,12 +168,13 @@ public class FijiPlugin implements PlugIn {
 
     /**
      * Appends to the stack from the vector field.
+     *
      * @param ui The user input.
      * @param vecImg The vector image to be added to the stack.
      * @param vf The stack to be appended to.
      * @return The depth of the vector image.
      */
-    public static int appendVF(UserInput ui, VectorImg vecImg, MyImageStack vf) {        
+    public static int appendVF(UserInput ui, VectorImg vecImg, MyImageStack vf) {
         vf.concat(vecImg.imgStack());
         return vecImg.getOutputDimensions().depth;
     }

@@ -62,14 +62,14 @@ public class GenDebugFile {
     }
 
     public static int[][][] cylinder(int depth, int height, int width, int r) {
-        int[][][] env = new int[depth][height][width];
-        int centZ = depth / 2, centY = height / 2;
+        int[][][] env = new int[depth][width][height];
+        int centZ = depth / 2, centX = width / 2, centY = height / 2;
 
-        for (int i = 0; i < height; i++)
-            for (int j = 0; j < width; j++)
-                for (int k = 0; k < depth; k++)
-                    if ((i - centY) * (i - centY) + (k - centZ) * (k - centZ) <= r * r)
-                        env[k][i][j] = 255;
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+                for (int z = 0; z < depth; z++)
+                    if ((x - centX) * (x - centX) + (y - centY) * (y - centY) <= r * r)
+                        env[z][x][y] = 255;
         return env;
 
     }
@@ -77,7 +77,7 @@ public class GenDebugFile {
     public static void main(String[] args) {
         // Define pixel values for each point in a grid
 
-        int depth = 50;
+        int depth = 36;
         
         int width = 50;
         int height = 50;
