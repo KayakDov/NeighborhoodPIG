@@ -338,7 +338,7 @@ public class MyImagePlus extends ImagePlus {
     public MyImagePlus subset(int start, int numFrames) {
 
         numFrames = Math.min(numFrames, getNFrames() - start);
-
+        
         int end = start + numFrames;
 
         ImageStack subsetStack = new ImageStack(dim.width, dim.height);

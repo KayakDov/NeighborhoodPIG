@@ -128,7 +128,7 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
 //        System.out.println("fijiPlugin.Eigen.set() Vectors\n" + vectors);
 //        System.out.println("fijiPlugin.Eigen.set() azimuth\n" + azimuth);
 //        System.out.println("fijiPlugin.Eigen.set() zenith\n" + zenith);
-//        System.out.println("fijiPlugin.Eigen.set() coherence\n" + coherence);
+//        System.out.println("fijiPlugin.Eigen.set() coherence\n" + Test.format(coherence.toString()));
 //
 //        if(true) throw new RuntimeException("TODO:delet me");
         return this;

@@ -120,13 +120,12 @@ public class FijiPlugin implements PlugIn {
 
         loadImageJ();
 
-        String imagePath = "images/input/cyl/";
-        int depth = 39;
-        NeighborhoodDim neighborhoodSize = new NeighborhoodDim(2, 2, 1);
-//        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
+//        String imagePath = "images/input/cyl/"; int depth = 39; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(2, 2, 1);
+        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
-//            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(30, 1, 1);
+//        String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
+//        String imagePath = "images/input/3dVictorDataRepeated";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 
         UserInput ui = UserInput.defaultVals(neighborhoodSize);
 
@@ -171,18 +170,18 @@ public class FijiPlugin implements PlugIn {
 
         long startTime = System.currentTimeMillis();
 
-        for (int i = 0; i <= img.getNFrames(); i += framesPerIteration)
+        for (int i = 0; i < img.getNFrames(); i += framesPerIteration)
             try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, img.subset(i, framesPerIteration), ui)) {
 
             if (ui.heatMap) {
-                appendHM(az, np.getAzimuthalAngles(false, 0.01));
-                if (img.dim().hasDepth()) appendHM(zen, np.getZenithAngles(false, 0.01));
+                appendHM(az, np.getAzimuthalAngles(0.01), 0, (float)Math.PI);
+                if (img.dim().hasDepth()) appendHM(zen, np.getZenithAngles(false, 0.01), 0, (float)Math.PI);
             }
 
             if (ui.vectorField)
                 vecImgDepth = appendVF(ui, np.getVectorImg(ui.vfSpacing, ui.vfMag, false), vf);
 
-            if (ui.useCoherence) appendHM(coh, np.getCoherence());
+            if (ui.useCoherence) appendHM(coh, np.getCoherence(), 0, 1);
 
         }
 
@@ -214,8 +213,8 @@ public class FijiPlugin implements PlugIn {
      * @param addTo The stack to have the heatmap's stack added onto it.
      * @param add The heatmap whose stack is to be appended.
      */
-    public static void appendHM(MyImageStack addTo, HeatMapCreator add) {
-        addTo.concat(add.getStack());
+    public static void appendHM(MyImageStack addTo, HeatMapCreator add, float min, float max) {
+        addTo.concat(add.getStack(min, max));
     }
 
     /**

@@ -144,9 +144,6 @@ public class Dimensions implements Closeable {
         this.depth = depth;
         this.batchSize = batchSize;
 
-        if ((long) width * height * depth * batchSize > Integer.MAX_VALUE)
-            throw new IllegalArgumentException("Image size exceeds array limit." + toString());
-
         if (handle != null) setGpuDim(handle);
 
     }

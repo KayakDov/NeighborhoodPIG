@@ -1,17 +1,12 @@
 package fijiPlugin;
 
 import FijiInput.UserInput;
-import JCudaWrapper.resourceManagement.GPU;
 
 import JCudaWrapper.resourceManagement.Handle;
-import ij.ImagePlus;
-import imageWork.ColorHeatMapCreator;
-import imageWork.GrayScaleHeatMapCreatorFloat;
 import imageWork.HeatMapCreator;
 import imageWork.MyImagePlus;
 import imageWork.VectorImg;
 import java.util.Arrays;
-import jcuda.Sizeof;
 
 /**
  * Each neighborhood pig has it's own handle.
@@ -50,22 +45,15 @@ public class NeighborhoodPIG implements AutoCloseable {
      * @param tolerance When is a value considered 0.
      * @return A heat map of the orientation in the xy plane.
      */
-    public HeatMapCreator getAzimuthalAngles(boolean color, double tolerance) {
+    public HeatMapCreator getAzimuthalAngles(double tolerance) {
 
-        return color ? new ColorHeatMapCreator(handle,
-                concat(sourceFileNames, " Azimuth"),
-                "Azimuth Angle Heatmap",
-                stm.azimuthAngle(),
-                stm.getCoherence(),
-                stm.downSampled
-        ) : new GrayScaleHeatMapCreatorFloat(
+        return new HeatMapCreator(
                 concat(sourceFileNames, " Azimuth"),
                 "Azimuth Angle Heatmap",
                 handle,
                 stm.azimuthAngle(),
                 stm.getCoherence(),
-                tolerance,
-                stm.downSampled
+                tolerance
         );
     }
 
@@ -77,22 +65,13 @@ public class NeighborhoodPIG implements AutoCloseable {
      * @return A heat map of the zenith angles.
      */
     public HeatMapCreator getZenithAngles(boolean color, double tolerance) {
-        return color ? new ColorHeatMapCreator(
-                handle,
-                concat(sourceFileNames, " Zenith Angle"),
-                "Zenith Angle Heatmap",
-                stm.zenithAngle(),
-                stm.getCoherence(),
-                stm.downSampled
-        )
-                : new GrayScaleHeatMapCreatorFloat(
+        return new HeatMapCreator(
                         concat(sourceFileNames, " Zenith Angle"),
                         "Zenith Angle Heatmap",
                         handle,
                         stm.zenithAngle(),
                         stm.getCoherence(),
-                        tolerance,
-                        stm.downSampled
+                        tolerance
                 );
     }
 
@@ -102,14 +81,13 @@ public class NeighborhoodPIG implements AutoCloseable {
      * @return The coherence heatmap.
      */
     public HeatMapCreator getCoherence() {
-        return new GrayScaleHeatMapCreatorFloat(
+        return new HeatMapCreator(
                 concat(sourceFileNames, " coherence"),
                 "Coherence",
                 handle,
                 stm.getCoherence(),
                 null,
-                0,
-                stm.dim
+                0
         );
     }
 

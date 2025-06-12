@@ -6,13 +6,6 @@ import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to1d.PArray1dToD1d;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;
-import ij.ImagePlus;
-import ij.gui.ImageCanvas;
-import ij.gui.ImageWindow;
-import imageWork.GrayScaleHeatMapCreatorDouble;
-import imageWork.GrayScaleHeatMapCreatorFloat;
-import imageWork.MyImagePlus;
-import jcuda.Sizeof;
 
 /**
  *
@@ -120,13 +113,4 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d {
         }
     }
 
-    /**
-     * Use for debugging only.
-     *
-     * @param handle
-     * @return
-     */
-    public void show(Handle handle) {
-        new MyImagePlus(new GrayScaleHeatMapCreatorFloat(null, null, handle, this, null, 1e-6, new Dimensions(this)).getIP()).saveSlices("images/output/debug");
-    }
 }

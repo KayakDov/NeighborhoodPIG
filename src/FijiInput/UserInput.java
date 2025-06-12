@@ -90,16 +90,16 @@ public class UserInput {
 
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
 
-        NumericField xyR = new NumericField("Neighborhood xy radius:", 3, gd);
+        NumericField xyR = new NumericField("Neighborhood xy radius:", 15, gd);
         NumericField zR = null;
-        if (hasZ) zR = new NumericField("Neighborhood z radius:", 3, gd);
-        BooleanField heatmap = new BooleanField("heatmap", false, gd);
-        BooleanField vector = new BooleanField("vector field", true, gd);
-        BooleanField coherence = new BooleanField("generate coherence", false, gd);
+        if (hasZ) zR = new NumericField("Neighborhood z radius:", 1, gd);
+        BooleanField heatmap = new BooleanField("heatmap", true, gd);
+        BooleanField vector = new BooleanField("vector field", false, gd);
+        BooleanField coherence = new BooleanField("generate coherence", true, gd);
 
         NumericField layerDist = null;
         if (hasZ) layerDist = new NumericField("Distance between layers as a multiple of the distance between pixels:", 1, gd);
-        NumericField downSample = new NumericField("Downsample Factor XY:", 2, gd);
+        NumericField downSample = new NumericField("Downsample Factor XY:", 1, gd);
 
         gd.showDialog();
 
@@ -115,9 +115,9 @@ public class UserInput {
 
             if(!hasZ)overlay = new BooleanField("overlay?", false, vfDialog);
             
-            spacing = new NumericField("spacing", 8/*downSample.val()*/, vfDialog);
+            spacing = new NumericField("spacing", downSample.val(), vfDialog);
             
-            mag = new NumericField("Vector Magnitude:", 6/*downSample.val() - 2*/, vfDialog);
+            mag = new NumericField("Vector Magnitude:", downSample.val() - 2, vfDialog);
             
             vfDialog.showDialog();
             
@@ -147,7 +147,7 @@ public class UserInput {
      */
     public static UserInput defaultVals(NeighborhoodDim nd) {
         int spacing = 6;
-        return new UserInput(nd, true, true, true, spacing, Math.max(spacing - 2, 0), false, 1e-7f, 1);
+        return new UserInput(nd, true, false, true, spacing, Math.max(spacing - 2, 0), false, 1e-7f, 2);
     }
 
     /**

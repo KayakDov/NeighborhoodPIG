@@ -37,15 +37,15 @@ public class ProcessImage {
         File[] files = getImageFiles(folderPath);
 
         Opener opener = new Opener();
-        ImagePlus imp = opener.openImage(files[0].getPath());
+        
 
-        Dimensions dim = new Dimensions(null, imp.getHeight(), imp.getWidth(), depth, files.length / depth);
+        Dimensions dim = new Dimensions(null, opener.openImage(files[0].getPath()));
 
         ImageStack frameSequence = dim.emptyStack();
 
         for (File file : files) {
-            imp = opener.openImage(file.getAbsolutePath());
-            frameSequence.addSlice(imp.getProcessor());
+            ImagePlus currentImp = opener.openImage(file.getAbsolutePath());
+            frameSequence.addSlice(currentImp.getProcessor());
         }
 
         return dim.setToHyperStack(new ImagePlus(folderPath.substring(Math.max(folderPath.lastIndexOf(File.pathSeparator), 0)), frameSequence));
