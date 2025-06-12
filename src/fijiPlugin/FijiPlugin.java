@@ -121,8 +121,8 @@ public class FijiPlugin implements PlugIn {
         loadImageJ();
 
         String imagePath = "images/input/cyl/";
-        int depth = 36;
-        NeighborhoodDim neighborhoodSize = new NeighborhoodDim(4, 4, 1);
+        int depth = 39;
+        NeighborhoodDim neighborhoodSize = new NeighborhoodDim(2, 2, 1);
 //        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //            String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(30, 1, 1);
@@ -166,12 +166,13 @@ public class FijiPlugin implements PlugIn {
 
         int vecImgDepth = 0;
 
-        int framesPerRun = framesPerRun(img.dim().height, img.dim().width, img.dim().depth); //TODO: double check this!
+        int framesPerIteration = framesPerRun(img.dim().height, img.dim().width, img.dim().depth); 
+        System.out.println("fijiPlugin.FijiPlugin.run() frames per iteration: " + framesPerIteration);
 
         long startTime = System.currentTimeMillis();
 
-        for (int i = 0; i < img.getNFrames(); i += framesPerRun)
-            try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, img.subset(i, framesPerRun), ui)) {
+        for (int i = 0; i <= img.getNFrames(); i += framesPerIteration)
+            try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, img.subset(i, framesPerIteration), ui)) {
 
             if (ui.heatMap) {
                 appendHM(az, np.getAzimuthalAngles(false, 0.01));
@@ -186,8 +187,7 @@ public class FijiPlugin implements PlugIn {
         }
 
         long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
-        System.out.println("Execution time: " + duration + " milliseconds");
+        System.out.println("Execution time: " + (endTime - startTime) + " milliseconds");
 
         results(vf, coh, az, zen, toFile, ui, img.dim(), vecImgDepth, img);
 

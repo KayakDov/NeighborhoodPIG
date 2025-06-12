@@ -35,6 +35,7 @@ public class MyImageStack extends ImageStack {
      * @return this.
      */
     public MyImageStack concat(ImageStack is) {
+                
         for (int i = 1; i <= is.getSize(); i++)
             addSlice(is.getSliceLabel(i), is.getProcessor(i));
         return this;

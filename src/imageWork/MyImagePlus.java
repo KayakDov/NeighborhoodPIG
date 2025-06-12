@@ -32,8 +32,9 @@ public class MyImagePlus extends ImagePlus {
      */
     public MyImagePlus(String title, ImageStack imp, int depth) {
         super(title, imp);
-        setDimensions(1, depth, imp.size()/depth);        
+        setDimensions(1, depth, imp.size() / depth);
         dim = new Dimensions(imp, depth);
+        dim.setToHyperStack(this);
 
     }
 
@@ -60,20 +61,37 @@ public class MyImagePlus extends ImagePlus {
         this.setDisplayRange(imp.getDisplayRangeMin(), imp.getDisplayRangeMax()); // Copies display range
         this.setActivated(); // Makes it behave like an active image
 
-        this.dim = new Dimensions(imp.getImageStack(), imp.getNSlices());
+        dim = new Dimensions(imp.getImageStack(), imp.getNSlices());
+        dim.setToHyperStack(this);
     }
 
     /**
      * Converts a float32 grayscale ImagePlus to a normalized 8-bit grayscale
-     * ImagePlus. This is useful for saving or viewing scientific float images
-     * in standard image viewers. This method correctly handles
-     * multi-slice/multi-frame ImagePlus objects by processing each slice's
-     * processor individually.
+     * ImagePlus.This method correctly handles multi -slice /multi -frame
+     * ImagePlus objects by processing each slice's processor individually.
      *
-     * @return A new ImagePlus with pixel values scaled to the 8-bit range [0,
+     * @return A new ImagePlus with pixel values scaled to the 8-bit range[0,
      * 255].
      */
-    public ImagePlus normalizeFloatImageTo8Bit() {
+    public MyImagePlus normalizeFloatImageTo8Bit() {
+
+        System.out.println("imageWork.MyImagePlus.normalizeFloatImageTo8Bit() normalizing image");
+
+        // Use the display range from the original MyImagePlus for normalization.
+        // This is what ImageJ is already using to display the image correctly.
+        double displayMin = this.getDisplayRangeMin();
+        double displayMax = this.getDisplayRangeMax();
+
+        // Handle cases where the display range might be degenerate (e.g., solid color)
+        // or if min == max, adjust to prevent division by zero in scaling.
+        if (displayMax == displayMin) {
+            if (displayMin == 0.0) {
+                 displayMax = 1.0; // Ensure a valid range for conversion, 0 will map to 0
+            } else {
+                 displayMin = 0.0; // Set min to 0 to ensure the constant non-zero value maps to max (255)
+            }
+        }
+
 
         ImageStack byteStack = new ImageStack(getWidth(), getHeight());
         int totalSlices = getStackSize();
@@ -85,27 +103,21 @@ public class MyImagePlus extends ImagePlus {
             if (!(currentFloatProcessor instanceof FloatProcessor))
                 throw new IllegalArgumentException("Slice " + i + " is not a FloatProcessor.");
 
-            FloatProcessor fp = (FloatProcessor) currentFloatProcessor;
+            FloatProcessor fp = (FloatProcessor) currentFloatProcessor.duplicate(); // Duplicate to avoid modifying original or impacting other references
+            
+            // Apply the image's current display min/max for conversion
+            fp.setMinAndMax(displayMin, displayMax);
 
-            double min = getDisplayRangeMin();
-            double max = getDisplayRangeMax();
-
-            fp.setMinAndMax(min, max);
-            ByteProcessor bp = fp.convertToByteProcessor();
+            ByteProcessor bp = fp.convertToByteProcessor(); // This now uses the specified min/max for scaling
 
             byteStack.addSlice(getStack().getSliceLabel(i), bp);
         }
 
-        ImagePlus normalizedImp = new ImagePlus(getTitle() + "_8bit", byteStack);
+        // Create the new ImagePlus with the 8-bit stack
+        MyImagePlus normalizedImp = new MyImagePlus(getTitle() + "_8bit", byteStack, dim.depth);
 
-        if (isHyperStack()) {
-            normalizedImp.setDimensions(
-                    getNChannels(),
-                    dim.depth,
-                    dim.batchSize
-            );
-        }
-
+        // Explicitly set display range for the new 8-bit image to ensure correct visualization and saving
+        normalizedImp.setDisplayRange(0, 255);
         return normalizedImp;
     }
 
@@ -116,105 +128,133 @@ public class MyImagePlus extends ImagePlus {
      *
      * @return An ImagePlus ready for saving.
      */
-    private ImagePlus prepareImageForSaving() {
-        if (getType() == ImagePlus.GRAY32) {
-            return normalizeFloatImageTo8Bit();
-        } else {
-            // For non-float images, we can work with a copy directly.
-            return duplicate();
+    private MyImagePlus prepareImageForSaving() {
+        
+        return getType() == ImagePlus.GRAY32 ? normalizeFloatImageTo8Bit() : this;
+    }
+
+    /**
+     * Saves each slice of this image to individual PNG files. Normalizes float
+     * images, applies overlays, flattens, and names output files based on Z and
+     * T.
+     *
+     * @param saveTo Directory to save the PNGs to.
+     */
+    public void saveSlices(String saveTo) {
+
+        ImagePlus prepared = prepareImageForSaving();        
+
+        ImagePlus flattened = buildFlattenedImage(prepared);
+        writeSlicesToDisk(flattened, saveTo);
+    }
+
+    /**
+     * Flattens the image with overlays and returns a new ImagePlus.
+     *
+     * @param imp The image to flatten.
+     * @return A new flattened ImagePlus with same dimensions.
+     */
+    private ImagePlus buildFlattenedImage(ImagePlus imp) {
+        int width = imp.getWidth();
+        int height = imp.getHeight();
+        int slices = imp.getNSlices();
+        int frames = imp.getNFrames();
+
+        ImageStack stack = new ImageStack(width, height);
+        Overlay overlay = getOverlay(); // Get overlay from *this* MyImagePlus
+
+        for (int t = 1; t <= frames; t++) {
+            for (int z = 1; z <= slices; z++) {
+                int index = imp.getStackIndex(1, z, t);
+                imp.setSlice(index);
+
+                // Create a temporary ImagePlus for the current slice's processor
+                ImagePlus slice = new ImagePlus("", imp.getProcessor().duplicate());
+
+                if (overlay != null) {
+                    Overlay sliceOverlay = extractOverlayForSlice(overlay, index);
+                    if (sliceOverlay != null) {
+                        slice.setOverlay(sliceOverlay);
+                        slice = slice.flatten(); // Flatten this slice with its overlay
+                    }
+                }
+                // Add the (potentially flattened) processor to the new stack
+                stack.addSlice(imp.getStack().getSliceLabel(index), slice.getProcessor());
+            }
+        }
+
+        ImagePlus result = new ImagePlus(imp.getTitle() + "_flattened", stack);
+        result.setDimensions(1, slices, frames);
+        result.setCalibration(imp.getCalibration());
+        return result;
+    }
+
+    /**
+     * Extracts the overlay relevant for a specific slice index.
+     *
+     * @param original The original overlay.
+     * @param targetIndex The index in the stack.
+     * @return A new Overlay or null if nothing applies.
+     */
+    private Overlay extractOverlayForSlice(Overlay original, int targetIndex) {
+        Overlay result = new Overlay();
+        for (int i = 0; i < original.size(); i++) {
+            Roi roi = original.get(i);
+            int pos = roi.getPosition();
+            if (pos == 0 || pos == targetIndex)
+                result.add(roi);
+        }
+        return result.size() > 0 ? result : null;
+    }
+
+    /**
+     * Writes all slices of the given ImagePlus to disk as PNG files.
+     *
+     * @param imp Image with flattened slices.
+     * @param saveTo Directory to save images.
+     */
+    private void writeSlicesToDisk(ImagePlus imp, String saveTo) {
+        int slices = imp.getNSlices();
+        int frames = imp.getNFrames();
+        String baseFileName = new File(getTitle()).getName().replaceFirst("^_", "");
+
+        for (int t = 1; t <= frames; t++) {
+            for (int z = 1; z <= slices; z++) {
+                int index = imp.getStackIndex(1, z, t);
+                imp.setSlice(index); // Set the active slice of the flattened ImagePlus
+
+                // Create a new ImagePlus for saving this single slice, duplicating its processor
+                ImagePlus sliceToSave = new ImagePlus(
+                        baseFileName + "_F" + t + "_Z" + z,
+                        imp.getProcessor().duplicate() // Duplicate the processor to ensure isolated saving
+                );
+
+                // If it's an 8-bit image, ensure its display range is set for proper saving
+                if (sliceToSave.getProcessor() instanceof ByteProcessor || sliceToSave.getProcessor() instanceof ColorProcessor) {
+                    sliceToSave.setDisplayRange(0, 255);
+                }
+
+                File outFile = new File(saveTo, sliceToSave.getTitle() + ".png");
+                ensureDir(outFile.getParentFile());
+
+                FileSaver fs = new FileSaver(sliceToSave);
+                if (!fs.saveAsPng(outFile.getAbsolutePath())) {
+                    System.err.println("Failed to save: " + outFile.getAbsolutePath());
+                } else {
+                    System.out.println("Saved: " + outFile.getAbsolutePath());
+                }
+            }
         }
     }
 
     /**
-     * Saves each slice (channel, Z-slice, and T-frame) of an ImagePlus to a
-     * separate PNG file. This method handles file paths that contain
-     * subdirectories within the image title by creating them as needed.
+     * Ensures the directory exists, creating it if necessary.
      *
-     * @param saveTo The base folder where the files should be saved.
+     * @param dir The directory to check/create.
      */
-        public void saveSlices(String saveTo) {
-        String fileNameOnly = new File(getTitle()).getName();
-        String baseFileName = fileNameOnly.startsWith("_") ? fileNameOnly.substring(1) : fileNameOnly;
-
-        ImagePlus baseImpForSaving = prepareImageForSaving();
-
-        ImageStack flattenedStack = new ImageStack(baseImpForSaving.getWidth(), baseImpForSaving.getHeight());
-
-        Overlay originalOverlay = this.getOverlay();
-
-        int numSlicesTotal = baseImpForSaving.getStackSize(); // Total linear slices (C*Z*T)
-        int numChannels = baseImpForSaving.getNChannels();
-        int numSlicesZ = baseImpForSaving.getNSlices();
-        int numFrames = baseImpForSaving.getNFrames();
-
-        for (int frame = 1; frame <= numFrames; frame++) {
-            for (int sliceZ = 1; sliceZ <= numSlicesZ; sliceZ++) {
-                for (int channel = 1; channel <= numChannels; channel++) {
-                    int linearStackIndex = baseImpForSaving.getStackIndex(channel, sliceZ, frame);
-                    baseImpForSaving.setSlice(linearStackIndex);
-
-                    ImageProcessor currentProcessor = baseImpForSaving.getProcessor();
-                    ImagePlus sliceToProcess = new ImagePlus("", currentProcessor.duplicate()); // Create a temporary ImagePlus for the current slice
-
-                    if (originalOverlay != null) {
-                        Overlay sliceOverlay = new Overlay();
-                        for (int i = 0; i < originalOverlay.size(); i++) {
-                            Roi roi = originalOverlay.get(i);
-                            if (roi.getPosition() == 0 || roi.getPosition() == linearStackIndex) { // Position 0 means all slices, otherwise specific slice
-                                sliceOverlay.add(roi);
-                            }
-                        }
-                        sliceToProcess.setOverlay(sliceOverlay);
-                        sliceToProcess = sliceToProcess.flatten(); 
-                    }
-                    
-                    flattenedStack.addSlice(baseImpForSaving.getStack().getSliceLabel(linearStackIndex), sliceToProcess.getProcessor());
-                }
-            }
-        }
-
-        ImagePlus finalImpToSave = new ImagePlus(baseImpForSaving.getTitle() + "_flattened", flattenedStack);
-        finalImpToSave.setDimensions(numChannels, numSlicesZ, numFrames);
-        finalImpToSave.setCalibration(baseImpForSaving.getCalibration());
-
-        for (int frame = 1; frame <= numFrames; frame++) {
-            for (int sliceZ = 1; sliceZ <= numSlicesZ; sliceZ++) {
-                for (int channel = 1; channel <= numChannels; channel++) {
-                    int linearStackIndex = finalImpToSave.getStackIndex(channel, sliceZ, frame);
-                    finalImpToSave.setSlice(linearStackIndex);
-
-                    ImageProcessor currentFlattenedProcessor = finalImpToSave.getProcessor();
-                    
-                    ImagePlus sliceToSave = new ImagePlus(
-                            baseFileName + "_C" + channel + "_F" + frame + "_Z" + sliceZ,
-                            currentFlattenedProcessor
-                    );
-
-                    FileSaver fs = new FileSaver(sliceToSave);
-                    String specificFileName = sliceToSave.getTitle() + ".png";
-                    File outputFile = new File(saveTo, specificFileName);
-
-                    File parentDir = outputFile.getParentFile();
-                    if (parentDir != null && !parentDir.exists()) {
-                        if (!parentDir.mkdirs()) {
-                            System.err.println("Failed to create directory: " + parentDir.getAbsolutePath());
-                            continue;
-                        }
-                    }
-
-                    String fullPath = outputFile.getAbsolutePath();
-                    try {
-                        if (!fs.saveAsPng(fullPath)) {
-                            System.err.println("Failed to save png image: " + fullPath);
-                        } else {
-                            System.out.println("imageWork.ImgPlsToFiles.saveSlices - Saved: " + fullPath);
-                        }
-                    } catch (Exception e) {
-                        System.err.println("Exception while saving " + fullPath + ": " + e.getMessage());
-                        e.printStackTrace();
-                    }
-                }
-            }
+    private void ensureDir(File dir) {
+        if (dir != null && !dir.exists() && !dir.mkdirs()) {
+            System.err.println("Could not create directory: " + dir.getAbsolutePath());
         }
     }
 
@@ -304,11 +344,13 @@ public class MyImagePlus extends ImagePlus {
         ImageStack subsetStack = new ImageStack(dim.width, dim.height);
 
         for (int frame = start; frame < end; frame++)
-            for(int slice = 0; slice < dim.depth; slice++)
+            for (int slice = 0; slice < dim.depth; slice++) {
+                int index = getStackIndex(1, slice + 1, frame + 1);
                 subsetStack.addSlice(
-                        getStack().getSliceLabel(frame*dim.depth + slice + 1), 
-                        getStack().getProcessor(frame*dim.depth + slice + 1)
+                        getStack().getSliceLabel(index),
+                        getStack().getProcessor(index)
                 );
+            }
 
         MyImagePlus newImp = new MyImagePlus(
                 getTitle() + "_subset_F" + (start + 1) + "_to_F" + end,

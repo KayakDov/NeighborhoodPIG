@@ -98,6 +98,7 @@ public class Test {
         
         result = result.replace("-0,", "0,");
         result = result.replace("-0]", "0]");
+        result = result.replace("NaN", "N");
 
 
         return result;
