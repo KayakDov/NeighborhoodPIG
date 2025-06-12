@@ -90,11 +90,11 @@ public class UserInput {
 
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
 
-        NumericField xyR = new NumericField("Neighborhood xy radius:", 15, gd);
+        NumericField xyR = new NumericField("Neighborhood xy radius:", 3, gd);
         NumericField zR = null;
-        if (hasZ) zR = new NumericField("Neighborhood z radius:", 1, gd);
-        BooleanField heatmap = new BooleanField("heatmap", true, gd);
-        BooleanField vector = new BooleanField("vector field", false, gd);
+        if (hasZ) zR = new NumericField("Neighborhood z radius:", 3, gd);
+        BooleanField heatmap = new BooleanField("heatmap", false, gd);
+        BooleanField vector = new BooleanField("vector field", true, gd);
         BooleanField coherence = new BooleanField("generate coherence", false, gd);
 
         NumericField layerDist = null;
@@ -113,11 +113,11 @@ public class UserInput {
         if (vector.is()) {
             GenericDialog vfDialog = new GenericDialog("Vector Field Parameters.  Be sure downSample > 1.");                        
 
-            if(!hasZ)overlay = new BooleanField("overlay?", true, vfDialog);
+            if(!hasZ)overlay = new BooleanField("overlay?", false, vfDialog);
             
-            spacing = new NumericField("spacing", downSample.val(), vfDialog);
+            spacing = new NumericField("spacing", 8/*downSample.val()*/, vfDialog);
             
-            mag = new NumericField("Vector Magnitude:", downSample.val() - 2, vfDialog);
+            mag = new NumericField("Vector Magnitude:", 6/*downSample.val() - 2*/, vfDialog);
             
             vfDialog.showDialog();
             
@@ -146,8 +146,8 @@ public class UserInput {
      * @return
      */
     public static UserInput defaultVals(NeighborhoodDim nd) {
-        int spacing = 1;
-        return new UserInput(nd, true, false, true, spacing, Math.max(spacing - 2, 0), true, 1e-7f, spacing);
+        int spacing = 6;
+        return new UserInput(nd, true, true, true, spacing, Math.max(spacing - 2, 0), false, 1e-7f, 1);
     }
 
     /**

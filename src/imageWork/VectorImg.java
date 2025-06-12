@@ -15,8 +15,10 @@ import ij.process.BinaryProcessor;
 import ij.process.ByteProcessor;
 import ij.process.FloatProcessor;
 import java.util.Arrays;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
+import main.Test;
 
 /**
  * This class extends {@link Dimensions} and provides functionality to create an
@@ -29,37 +31,37 @@ import java.util.stream.IntStream;
  */
 public class VectorImg {
 
-    private final BinaryProcessor[] processor;
-    private final Dimensions space;
+    private final BinaryProcessor[][] processor;
+    private final Dimensions targetSpace;
     private final VecManager gridVecs;
     private final int spacing, r;
-    private final float[] gridIntensity;
+    private final float[] currentIntensitySlice;
     private final PArray2dToF2d vecs, intensity;
-    private final ImageStack stack;
     private final double tolerance;
     private final Dimensions dim;
     private final Handle handle;
 
     /**
      * The dimensions for the output vector space.
+     *
      * @param src The input vector space.
      * @param spacing How much space will there be between vectors.
      * @param vecMag The length of the vectors.
      * @return The output vector space.
      */
-    public static Dimensions space(Dimensions src, int spacing, int vecMag){
-        return new Dimensions(null, 
-                (src.height - 1) * spacing + vecMag + 2, 
-                (src.width - 1) * spacing + vecMag + 2, 
-                src.hasDepth() ? (src.depth - 1) * spacing + vecMag + 2 : 1, 
+    public static Dimensions space(Dimensions src, int spacing, int vecMag) {
+        return new Dimensions(null,
+                (src.height - 1) * spacing + vecMag + 2,
+                (src.width - 1) * spacing + vecMag + 2,
+                src.hasDepth() ? (src.depth - 1) * spacing + vecMag + 2 : 1,
                 src.batchSize);
     }
-    
+
     /**
      * Constructs a new VectorImg with the specified parameters to generate an
      * ImagePlus displaying the vector field from vector and intensity data.
      *
-     * @param handle The context     
+     * @param handle The context
      * @param vecMag The magnitude of the vectors.
      * @param vecs The {@link FStrideArray3d} containing vector data.
      * @param intensity The {@link FStrideArray3d} containing intensity data.
@@ -71,14 +73,14 @@ public class VectorImg {
     public VectorImg(Handle handle, int vecMag, PArray2dToF2d vecs, PArray2dToF2d intensity, int spacing, double tolerance) {
         this.handle = handle;
         this.dim = new Dimensions(intensity);
-        
-        space = space(dim, spacing, vecMag);
 
-        stack = new ImageStack(space.width, space.height);
+        targetSpace = space(dim, spacing, vecMag);
 
-        processor = new BinaryProcessor[space.depth + (dim.hasDepth() ? 1 : 0)];
+        processor = new BinaryProcessor[targetSpace.batchSize][targetSpace.depth];
+        for (int t = 0; t < dim.batchSize; t++)
+            Arrays.setAll(processor[t], z -> new BinaryProcessor(new ByteProcessor(targetSpace.width, targetSpace.height)));
 
-        gridIntensity = intensity == null ? null : new float[dim.tensorSize()];
+        currentIntensitySlice = new float[dim.layerSize()];
 
         gridVecs = new VecManager(dim);
 
@@ -86,19 +88,18 @@ public class VectorImg {
         this.vecs = vecs;
         this.intensity = intensity;
         this.spacing = spacing;
-        this.tolerance = tolerance;        
+        this.tolerance = tolerance;
     }
 
     /**
      * The dimensions of the output vector space.
+     *
      * @return The dimensions of the output vector space.
      */
     public Dimensions getOutputDimensions() {
-        return space;
+        return targetSpace;
     }
 
-    
-    
     /**
      * Creates an {@link ImagePlus} from the vector and intensity data provided
      * during construction.
@@ -107,10 +108,22 @@ public class VectorImg {
      */
     public ImageStack imgStack() {
 
-        IntStream str = IntStream.range(0, dim.batchSize);//.parallel();
-        
-        str.forEach(this::computeGrid);
+        IntStream.range(0, dim.batchSize)
+                //                .parallel()  //TODO:reinstate
+                .forEach(this::computeGrid);
 
+        return getStack();
+    }
+
+    /**
+     * Creates the image stack from the processors.
+     * @return The image stack.
+     */
+    private MyImageStack getStack() {
+        MyImageStack stack = new MyImageStack(targetSpace.width, targetSpace.height);
+        for (int t = 0; t < processor.length; t++)
+            for (int z = 0; z < processor[t].length; z++)
+                stack.addSlice(processor[t][z]);
         return stack;
     }
 
@@ -121,29 +134,26 @@ public class VectorImg {
      */
     private void computeGrid(int t) {
 
-        Arrays.setAll(processor, i -> new BinaryProcessor(new ByteProcessor(space.width, space.height)));
-
         IntStream str = IntStream.range(0, dim.depth);
 
-//        if (dim.batchSize == 1) str = str.parallel();
-
+//        if (dim.batchSize < Runtime.getRuntime().availableProcessors()) str = str.parallel();  //TODO:Reinstate
         str.forEach(z -> computeLayer(t, z));
 
-        Arrays.stream(processor).forEach(stack::addSlice);        
-        
     }
 
     /**
      * An object to facilitate drawing with IJ at the proffered point.
      */
-    public class Pencil implements Consumer<Point3d> {
+    public class Pencil {
 
         /**
-         * {@inheritDoc }
+         * Draws 255 in the desired time and place.
+         *
+         * @param p The location to draw.
+         * @param t The frame to draw on.
          */
-        @Override
-        public void accept(Point3d p) {
-            processor[p.zI()].putPixel(p.xI(), p.yI(), 255);
+        public void accept(Point3d p, int t) {
+            processor[t][p.zI()].putPixel(p.xI(), p.yI(), 255);
         }
     }
 
@@ -156,47 +166,44 @@ public class VectorImg {
     private void computeLayer(int t, int z) {
 
         gridVecs.setFrom(vecs, t, z, handle);
-        intensity.get(z, t).getVal(handle).get(handle, gridIntensity);
-                
+        intensity.get(z, t).getVal(handle).get(handle, currentIntensitySlice);
+
         Line line = new Line();
-        Point3d vec1 = new Point3d(), vec2 = new Point3d();
+        Point3d vec = new Point3d(), walker = new Point3d();
         Pencil drawer = new Pencil();
-        
-        for (int col = 0; col < dim.width; col++) {
 
-            int colIndex = col * dim.height;
+        for (int x = 0; x < dim.width; x++) {
 
-            for (int row = 0; row < dim.height; row++) {
+            int colIndex = x * dim.height;
 
-                double localIntensity = gridIntensity[colIndex + row];
+            for (int y = 0; y < dim.height; y++) {
 
-                if (localIntensity > tolerance) {                    
+                if (currentIntensitySlice[colIndex + y] > tolerance) {
 
-                    gridVecs.get(row, col, vec1, r);
-                                        
-                    if (vec1.isFinite()) {
-                        if (dim.depth == 1) vec1.setZ(0);
-                        
-                        line.getA().set(col, row, z).scale(spacing).translate(r + 1, r + 1, dim.depth == 1 ? 0 : r + 1);
-                        line.getB().set(line.getA());
-                        line.getA().translate(vec1);
-                        line.getB().translate(vec1.scale(-1));
-        
-                        //if(line.length() <= 2)System.out.println("imageWork.VectorImg.computeLayer() liune length = " + line.length() + " vec = " + vec1.toString());
-                        line.draw(drawer, vec1, vec2);
-                    }
+                    gridVecs.get(y, x, vec);
+
+//                    if (vec.isFinite()) {//TODO:I don't think I need this.                    
+                    line.getA().set(x, y, z).scale(spacing).translate(r + 1, r + 1, dim.depth == 1 ? 0 : r + 1);
+                    line.getB().set(line.getA());
+                    line.getA().translate(vec.scale(r));
+                    line.getB().translate(vec.scale(-1));
+
+                    //if(line.length() <= 2)System.out.println("imageWork.VectorImg.computeLayer() liune length = " + line.length() + " vec = " + vec1.toString());
+                    line.draw(drawer, vec, walker, t);
+//                    }
                 }
             }
 
         }
     }
-    
+
     /**
      * Saves the vectors as a bunch of images.
-     * @param parentFolder 
+     *
+     * @param parentFolder
      */
-    public void saveToFile(String parentFolder){
-        new MyImagePlus("Nematic Field", imgStack(), space.depth)
+    public void saveToFile(String parentFolder) {
+        new MyImagePlus("Nematic Field", imgStack(), targetSpace.depth)
                 .saveSlices(parentFolder);
     }
 

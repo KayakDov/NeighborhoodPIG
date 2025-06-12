@@ -45,7 +45,8 @@ public class MyImageStack extends ImageStack {
      * An image plus from this.
      *
      * @param title The title of the image plus.
-     * @return
+     * @param depth The depth of the new ImagePlus.
+     * @return An ImagePlus object generated from this stack.
      */
     public MyImagePlus imp(String title, int depth) {
         return new MyImagePlus(title, this, depth);

@@ -1,5 +1,6 @@
 package MathSupport;
 
+import imageWork.VectorImg;
 import java.util.function.Consumer;
 
 /**
@@ -48,22 +49,21 @@ public class Line {
      * Draws points along the line.
      *
      * @param pen A method that can draw a point.
-     * @param cursor Pre allocated memory so this method can run faster if
+     * @param vector Pre allocated memory so this method can run faster if
      * called many times in a row.
      * @param delta Pre allocated memory so this method can run faster if called
      * many times in a row.
+     * @param t The time (frame) to draw at.
      */
-    public void draw(Consumer<Point3d> pen, Point3d cursor, Point3d delta) {
+    public void draw(VectorImg.Pencil pen, Point3d vector, Point3d delta, int t) {
         double dist = length();
                
-        pen.accept(cursor.set(a));
+        pen.accept(vector.set(a), t);
 
         delta.set(b).translate(-1, a).scale(1 / dist);
-
-//        System.out.println("MathSupport.Line.draw() length = " + dist + " delta = " + delta);
         
-        for (int i = 0; i < dist; i++)
-            pen.accept(cursor.translate(delta));
+        for (int x = 0; x < dist; x++)
+            pen.accept(vector.translate(delta), t);
     }
 
     public Point3d getA() {

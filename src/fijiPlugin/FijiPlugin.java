@@ -241,7 +241,7 @@ public class FijiPlugin implements PlugIn {
         }
         if (ui.vectorField) {
             MyImagePlus impVF;
-            if (ui.overlay)
+            if (!dims.hasDepth() && ui.overlay)
                 impVF = new MyImagePlus("Overlaid Nematic Vectors", myImg.getImageStack(), dims.depth)
                         .overlay(vf, Color.GREEN);
             else impVF = vf.imp("Nematic Vectors", vecImgDepth);
