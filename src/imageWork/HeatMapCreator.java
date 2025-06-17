@@ -64,11 +64,11 @@ public class HeatMapCreator {
      */
     public ImageStack getStack(float min, float max) {//TODO: look into multi threading this.
 
-        ImageStack stack = dim.emptyStack();
+        MyImageStack stack = dim.emptyStack();
 
         float[] layerImage = new float[dim.layerSize()];
         float[] layerCoherence = new float[dim.layerSize()];
-
+        
         for (int t = 0; t < dim.batchSize; t++) {
 
             for (int z = 0; z < dim.depth; z++) {
@@ -88,6 +88,7 @@ public class HeatMapCreator {
                         float pixVal = coherence == null || layerCoherence[fromInd] > tolerance ? layerImage[fromInd] : Float.NaN;
                         fp.setf(x, y, pixVal);
                     }
+                
                 stack.addSlice(sliceNames == null ? "" : sliceNames[z], fp);
             }
         }

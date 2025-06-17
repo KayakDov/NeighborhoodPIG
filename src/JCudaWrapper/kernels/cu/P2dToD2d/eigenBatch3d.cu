@@ -567,16 +567,20 @@ public:
     __device__ void setEigenVec(const Matrix3x3& mat, int freeVariables, int eigenInd) {
         double smTol = 1e-6;
 
-        switch (freeVariables) {
-            case 1:
-                if (fabs(mat(0, 0)) <= smTol) set(1, 0, 0);
-                else if (fabs(mat(1, 1)) <= smTol) set(-mat(0, 1) / mat(0, 0), 1, 0);
-                else {
-                    data[2] = 1;
-                    data[1] = -mat(1, 2) / mat(1, 1);
-                    data[0] = (-mat(0, 2) - mat(0, 1) * data[1]) / mat(0, 0);
-                }
-                break;
+//        switch (freeVariables) {
+//            case 1:
+        if(freeVariables == 1){
+            if (fabs(mat(0, 0)) <= smTol) set(1, 0, 0);
+            else if (fabs(mat(1, 1)) <= smTol) set(-mat(0, 1) / mat(0, 0), 1, 0);
+            else {
+                data[2] = 1;
+                data[1] = -mat(1, 2) / mat(1, 1);
+                data[0] = (-mat(0, 2) - mat(0, 1) * data[1]) / mat(0, 0);
+            }
+            normalize();
+        } else set(NAN, NAN, NAN);
+                
+/*                break;
 
             case 2:
                 if (fabs(mat(0, 0)) <= smTol) {
@@ -608,16 +612,16 @@ public:
                     case 2: set(0, 0, 1); break;
                 }
                 break;
-        }
+        }*/
 
-        normalize();
+
     }
         
     /**
      * The azimuthal angle of this vector.
      */
     __device__ float azimuth(){
-        if(data[0]*data[0] + data[1]*data[1] <= tolerance) return nan("");
+        if(isnan(data[0]) || data[0]*data[0] + data[1]*data[1] <= tolerance) return nan("");
         double angle = atan2(data[1], data[0]);
         if (angle < 0.0f) angle += M_PI;
         return angle;
@@ -627,9 +631,9 @@ public:
      * The zenith angle of this vector.
      */
     __device__ float zenith(){
-        if(data[2] >= 1 - tolerance) return 0;
-        else if(data[2] <= tolerance - 1) return M_PI;
-        else if(lengthSquared() <= tolerance) return nan("");
+        if(isnan(data[0]) || lengthSquared() <= tolerance) return nan("");
+        else if(data[2] >= 1 - tolerance) return 0;
+        else if(data[2] <= tolerance - 1) return M_PI;        
         else return acos(data[2]);
     }
 
@@ -638,7 +642,6 @@ public:
      *@param mat The matrix for whom the eigenvalues are desired.
      */
     __device__ void setEVal(const Matrix3x3& mat){
-    
         cubicRoot(-mat.trace(), mat.diagMinorSum(), -mat.determinant());
         sortDescending();
     }
@@ -659,6 +662,7 @@ public:
     }
     
     __device__ double coherence(){
+        if(isnan(data[0])) return 0;
         return data[0] <=  tolerance ? 0 : (data[0] - data[1]) / (data[0] + data[1] + data[2]);
     }
     
@@ -731,14 +735,17 @@ extern "C" __global__ void eigenBatch3dKernel(
     Matrix3x3 mat(
     	src(xx, ldxx, ldldxx, ldPtrxx), src(xy, ldxy, ldldxy, ldPtrxy), src(xz, ldxz, ldldxz, ldPtrxz), 
                                         src(yy, ldyy, ldldyy, ldPtryy), src(yz, ldyz, ldldyz, ldPtryz), 
-    					                                                src(zz, ldzz, ldldzz, ldPtrzz),
+    					                                src(zz, ldzz, ldldzz, ldPtrzz),
         tolerance
     );
     
-    //if(idx == dim[4] + dim[0] + 1) mat.print();
-    
     Vec eVals(tolerance);
     eVals.setEVal(mat);
+    
+  //  if(idx == dim[5] + 38*dim[4] + 32*dim[0] + 19){
+//       mat.print();
+  //     eVals.print();
+   // }
         
     dst.set(coherence, ldCoh, ldldCoh, ldPtrCoh, (float)eVals.coherence());
     
@@ -748,11 +755,6 @@ extern "C" __global__ void eigenBatch3dKernel(
     Vec vec(1e-5);
     
     vec.setEigenVec(mat, mat.rowEchelon(), eigenInd);
-    
-    /*if(idx == dim[4] + dim[0] + 1) {
-        vec.print();
-        printf("coherence = %f\n", eVals.coherence());
-    }*/
     
     vec.writeTo(eVecs[dst.page(ldPtrEVec)] + dst.col * ldEVec[dst.page(ldldEVec)] + dst.row * 3);
     dst.set(azimuthal, ldAzi, ldldAzi, ldPtrAzi, vec.azimuth());

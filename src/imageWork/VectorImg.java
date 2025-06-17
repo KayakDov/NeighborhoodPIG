@@ -117,6 +117,7 @@ public class VectorImg {
 
     /**
      * Creates the image stack from the processors.
+     *
      * @return The image stack.
      */
     private MyImageStack getStack() {
@@ -182,15 +183,15 @@ public class VectorImg {
 
                     gridVecs.get(y, x, vec);
 
-//                    if (vec.isFinite()) {//TODO:I don't think I need this.                    
-                    line.getA().set(x, y, z).scale(spacing).translate(r + 1, r + 1, dim.depth == 1 ? 0 : r + 1);
-                    line.getB().set(line.getA());
-                    line.getA().translate(vec.scale(r));
-                    line.getB().translate(vec.scale(-1));
+                    if (vec.isFinite()) {//TODO:I don't think I need this.                    
+                        line.getA().set(x, y, z).scale(spacing).translate(r + 1, r + 1, dim.depth == 1 ? 0 : r + 1);
+                        line.getB().set(line.getA());
+                        line.getA().translate(vec.scale(r));
+                        line.getB().translate(vec.scale(-1));
 
-                    //if(line.length() <= 2)System.out.println("imageWork.VectorImg.computeLayer() liune length = " + line.length() + " vec = " + vec1.toString());
-                    line.draw(drawer, vec, walker, t);
-//                    }
+                        //if(line.length() <= 2)System.out.println("imageWork.VectorImg.computeLayer() liune length = " + line.length() + " vec = " + vec1.toString());
+                        line.draw(drawer, vec, walker, t);
+                    }
                 }
             }
 

@@ -70,7 +70,7 @@ public class FijiPlugin implements PlugIn {
 
         long voxlesPerFrame = height * width * depth;
 
-        return (int) ((freeMemory / voxlesPerFrame) / (Sizeof.DOUBLE * (depth > 1 ? 9 : 4) + (depth > 1 ? 3 : 2) * Sizeof.FLOAT));
+        return (int) ((freeMemory / voxlesPerFrame) / (Sizeof.DOUBLE * (depth > 1 ? 6 : 3) + Sizeof.FLOAT * (depth > 1 ? 3 : 2)));
 
     }
 
@@ -84,12 +84,14 @@ public class FijiPlugin implements PlugIn {
         if (!validImage(originalImage)) return;
 
         UserInput ui;
-        try {
+
+        if (string.length() == 0)try {
             ui = UserInput.fromDiolog(originalImage);
         } catch (UserCanceled ex) {
             System.out.println("fijiPlugin.FijiPlugin.run() User canceled diolog.");
             return;
         }
+        else ui = UserInput.fromStrings(string, originalImage);
         run(ui, originalImage, false);
     }
 
@@ -120,8 +122,8 @@ public class FijiPlugin implements PlugIn {
 
         loadImageJ();
 
-//        String imagePath = "images/input/cyl/"; int depth = 39; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(2, 2, 1);
-        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
+        String imagePath = "images/input/cyl/"; int depth = 250; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(8, 8, 1);
+//        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //        String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
@@ -165,7 +167,9 @@ public class FijiPlugin implements PlugIn {
 
         int vecImgDepth = 0;
 
-        int framesPerIteration = framesPerRun(img.dim().height, img.dim().width, img.dim().depth); 
+        int framesPerIteration = framesPerRun(img.dim().height, img.dim().width, img.dim().depth);
+        if (framesPerIteration > 1) framesPerIteration = framesPerIteration / 2;
+
         System.out.println("fijiPlugin.FijiPlugin.run() frames per iteration: " + framesPerIteration);
 
         long startTime = System.currentTimeMillis();
@@ -174,14 +178,14 @@ public class FijiPlugin implements PlugIn {
             try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, img.subset(i, framesPerIteration), ui)) {
 
             if (ui.heatMap) {
-                appendHM(az, np.getAzimuthalAngles(0.01), 0, (float)Math.PI);
-                if (img.dim().hasDepth()) appendHM(zen, np.getZenithAngles(false, 0.01), 0, (float)Math.PI);
+                appendHM(az, np.getAzimuthalAngles(0.01), 0, (float) Math.PI);
+                if (img.dim().hasDepth()) appendHM(zen, np.getZenithAngles(false, 0.01), 0, (float) Math.PI);
             }
 
             if (ui.vectorField)
                 vecImgDepth = appendVF(ui, np.getVectorImg(ui.vfSpacing, ui.vfMag, false), vf);
 
-            if (ui.useCoherence) appendHM(coh, np.getCoherence(), 0, 1);
+            if (ui.useCoherence) appendHM(coh, np.getCoherence(ui.tolerance), 0, 1);
 
         }
 

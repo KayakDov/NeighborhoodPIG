@@ -80,14 +80,14 @@ public class NeighborhoodPIG implements AutoCloseable {
      *
      * @return The coherence heatmap.
      */
-    public HeatMapCreator getCoherence() {
+    public HeatMapCreator getCoherence(double tolerance) {
         return new HeatMapCreator(
                 concat(sourceFileNames, " coherence"),
                 "Coherence",
                 handle,
                 stm.getCoherence(),
                 null,
-                0
+                tolerance
         );
     }
 

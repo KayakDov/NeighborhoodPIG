@@ -13,6 +13,8 @@ import ij.gui.GenericDialog;
  */
 public class UserInput {
 
+    public final static float defaultTolerance = 1e-5f;
+
     /**
      * The dimensions of the neighborhood used for processing.
      */
@@ -109,22 +111,19 @@ public class UserInput {
         NumericField spacing = null, mag = null;
         BooleanField overlay = null;
 
-        
         if (vector.is()) {
-            GenericDialog vfDialog = new GenericDialog("Vector Field Parameters.  Be sure downSample > 1.");                        
+            GenericDialog vfDialog = new GenericDialog("Vector Field Parameters.  Be sure downSample > 1.");
 
-            if(!hasZ)overlay = new BooleanField("overlay?", false, vfDialog);
-            
+            if (!hasZ) overlay = new BooleanField("overlay?", false, vfDialog);
+
             spacing = new NumericField("spacing", downSample.val(), vfDialog);
-            
+
             mag = new NumericField("Vector Magnitude:", downSample.val() - 2, vfDialog);
-            
+
             vfDialog.showDialog();
-            
-            if(!hasZ && overlay.is() && spacing.val() != downSample.val()) throw new RuntimeException("If set to overlay, then spacing must equal downsample size.");
+
+            if (!hasZ && overlay.is() && spacing.val() != downSample.val()) throw new RuntimeException("If set to overlay, then spacing must equal downsample size.");
         }
-        
-        
 
         return new UserInput(
                 new NeighborhoodDim((int) xyR.val(), hasZ ? (int) zR.val() : 1, hasZ ? (int) layerDist.val() : 1),
@@ -134,7 +133,7 @@ public class UserInput {
                 vector.is() ? (int) spacing.val() : 0,
                 vector.is() ? (int) mag.val() : 0,
                 vector.is() && !hasZ ? overlay.is() : false,
-                1e-6f,
+                defaultTolerance,
                 (int) downSample.val()
         );
     }
@@ -147,7 +146,73 @@ public class UserInput {
      */
     public static UserInput defaultVals(NeighborhoodDim nd) {
         int spacing = 6;
-        return new UserInput(nd, true, false, true, spacing, Math.max(spacing - 2, 0), false, 1e-7f, 2);
+        return new UserInput(nd, true, false, true, spacing, Math.max(spacing - 2, 0), false, defaultTolerance, 1);
+    }
+
+    /**
+     * Constructs a {@code UserInput} object by parsing an array of strings.
+     * This method is useful for loading parameters from a saved configuration
+     * or command-line arguments, where each parameter is provided as a string.
+     * The order of elements in the input {@code string} array is crucial and
+     * must match the expected parsing sequence.
+     *
+     * @param string An array of strings containing the user input parameters in
+     * the following order.
+     * <ol>
+     * <li>XY radius of the neighborhood (int)</li>
+     * <li>Z radius of the neighborhood. (int) Omit if the image has no
+     * depth.</li>
+     * <li>Distance between adjacent layers (int) Omit if the image has no
+     * depth.</li>
+     * <li>Whether to generate a heatmap (boolean)</li>
+     * <li>Whether to generate a vector field (boolean)</li>
+     * <li>Whether to generate coherence information (boolean)</li>
+     * <li>Vector field spacing (int) Omit if the image has no depth.</li>
+     * <li>Vector field magnitude (int) Omit if the image has no depth.</li>
+     * <li>Whether to overlay the vector field (boolean) - Omit if vector field
+     * is false or the image has more than 1 slice</li>
+     * <li>Downsample factor XY (int) - Only include if vector field is true and
+     * overlay is true, this value is taken from vector field spacing;
+     * otherwise, it's parsed directly.</li>
+     * </ol>
+     * @param imp The {@code ImagePlus} object, used to determine if the image
+     * has multiple slices (Z-dimension) which affects the parsing of the
+     * overlay parameter.
+     * @return A new {@code UserInput} object populated with the parsed values.
+     * @throws NumberFormatException if any string cannot be parsed into its
+     * corresponding numeric or boolean type.
+     * @throws ArrayIndexOutOfBoundsException if the {@code string} array does
+     * not contain enough elements for the required parameters.
+     */
+    public static UserInput fromStrings(String string, ImagePlus imp) {
+        
+        int i = 0;
+
+        String[] strings = string.split(" ");
+        
+        boolean hasZ = imp.getNSlices() > 1;
+
+        int xy = Integer.parseInt(strings[i++]);
+        int z = hasZ ? Integer.parseInt(strings[i++]) : 0;
+        int distBetweenAdjacentLayer = hasZ ? Integer.parseInt(strings[i++]) : 0;
+        boolean heatMap = Boolean.parseBoolean(strings[i++]);
+        boolean vectorField = Boolean.parseBoolean(strings[i++]);
+        boolean coherence = Boolean.parseBoolean(strings[i++]);
+        int vectorFieldSpacing = vectorField ? Integer.parseInt(strings[i++]) : 0;
+        int vectorFieldMagnitude = vectorField ? Integer.parseInt(strings[i++]) : 0;
+        boolean overlay = vectorField && imp.getNSlices() == 1 ? Boolean.parseBoolean(strings[i++]) : false;
+        int downSample = vectorField && overlay ? vectorFieldSpacing : Integer.parseInt(strings[i++]);
+
+        return new UserInput(
+                new NeighborhoodDim(xy, z, distBetweenAdjacentLayer),
+                heatMap,
+                vectorField,
+                coherence,
+                vectorFieldSpacing,
+                vectorFieldMagnitude,
+                overlay,
+                defaultTolerance,
+                downSample);
     }
 
     /**

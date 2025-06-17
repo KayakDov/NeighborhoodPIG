@@ -30,7 +30,6 @@ public class GenDebugFile {
         return black;
     }
 
-
     public static int[][] blackWithWhiteBorderX(int height, int width) {
 
         int[][] black = new int[height][width];
@@ -61,7 +60,7 @@ public class GenDebugFile {
         return uniform;
     }
 
-    public static int[][][] cylinder(int depth, int height, int width, int r) {
+    public static int[][][] cylinder(int depth, int width, int height, int r) {
         int[][][] env = new int[depth][width][height];
         int centZ = depth / 2, centX = width / 2, centY = height / 2;
 
@@ -73,12 +72,12 @@ public class GenDebugFile {
         return env;
 
     }
-    
+
     public static void main(String[] args) {
         // Define pixel values for each point in a grid
 
-        int depth = 36;
-        
+        int depth = 50;
+
         int width = 50;
         int height = 50;
 
@@ -90,16 +89,16 @@ public class GenDebugFile {
         for (int z = 0; z < depth; z++) {
             processor[z] = new ByteProcessor(width, height);
             for (int y = 0; y < height; y++)
-                for (int x = 0; x < width; x++)
-                    processor[z].putPixel(x, y, pixelValues[z][x][y]);
-            
+                for (int x = 0; x < width; x++) {                    
+                    int val = pixelValues[z][x][y];
+                    processor[z].putPixel(x, y, val);
+                }
 
             try {
-                String saveTo = "images/input/cyl/" + z + "cylinder.png";
-                
+                String saveTo = "images/input/cyl/" + String.format("%03d", z) + "cylinder.png";
+
                 new FileSaver(new ImagePlus("img " + z, processor[z])).saveAsPng(saveTo);
                 System.out.println("Image saved as: " + saveTo + ": " + height + "x" + width);
-
 
             } catch (Exception e) {
                 e.printStackTrace();

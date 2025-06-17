@@ -7,7 +7,6 @@ import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
-import main.Test;
 
 /**
  * This class implements element-by-element multiplication (EBEM) for
