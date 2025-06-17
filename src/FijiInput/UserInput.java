@@ -76,7 +76,7 @@ public class UserInput {
         this.tolerance = tolerance;
         this.downSampleFactorXY = downSampleFactorXY;
         this.overlay = vfOverlay;
-        this.vfSpacing = overlay ? -1 : vfSpacing;
+        this.vfSpacing = overlay ? downSampleFactorXY: vfSpacing;
     }
 
     /**

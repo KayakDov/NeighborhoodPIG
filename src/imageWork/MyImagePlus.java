@@ -7,6 +7,7 @@ import ij.gui.ImageRoi;
 import ij.gui.Overlay;
 import ij.gui.Roi;
 import ij.io.FileSaver;
+import ij.plugin.AVI_Reader;
 import ij.plugin.HyperStackConverter;
 import ij.process.ByteProcessor;
 import ij.process.ColorProcessor;
@@ -302,11 +303,12 @@ public class MyImagePlus extends ImagePlus {
      * @return this
      */
     public MyImagePlus overlay(ImageStack overlayStack, Color color) {
+        
         Overlay overlay = new Overlay();
 
         for (int z = 1; z <= overlayStack.getSize(); z++) {
-            ByteProcessor binaryProcessor = (ByteProcessor) overlayStack.getProcessor(z);            
-
+            ByteProcessor binaryProcessor = (ByteProcessor) overlayStack.getProcessor(z);
+            
             // Create a color image from binary mask
             ColorProcessor colorProcessor = new ColorProcessor(width, height);
             for (int y = 0; y < height; y++)

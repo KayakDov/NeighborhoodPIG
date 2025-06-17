@@ -122,11 +122,9 @@ public class FijiPlugin implements PlugIn {
         loadImageJ();
 
 //        String imagePath = "images/input/cyl/"; int depth = 250; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(8, 8, 1);
-//        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
+        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
-        String imagePath = "images/input/3dVictorData";
-        int depth = 1/*20*/;
-        NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
+//        String imagePath = "images/input/3dVictorData"; int depth = 1/*20*/; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 //        String imagePath = "images/input/3dVictorDataRepeated";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 
@@ -188,9 +186,7 @@ public class FijiPlugin implements PlugIn {
                 if (ui.vectorField)
                     vecImgDepth = appendVF(
                             ui,
-                            np.getVectorImg(
-                                    ui.vfSpacing, ui.vfMag, false, ui.overlay ? img.dim() : null
-                            ), 
+                            np.getVectorImg(ui.vfSpacing, ui.vfMag, false, ui.overlay ? img.dim() : null), 
                             vf
                     );
 
