@@ -1,13 +1,12 @@
 package MathSupport;
 
 import imageWork.VectorImg;
-import java.util.function.Consumer;
 
 /**
  *
  * @author E. Dov Neimand
  */
-public class Line {
+public class Interval {
 
     private Point3d a, b;
 
@@ -17,12 +16,12 @@ public class Line {
      * @param a One end point.
      * @param b The other end point.
      */
-    public Line(Point3d a, Point3d b) {
+    public Interval(Point3d a, Point3d b) {
         this.a = a;
         this.b = b;
     }
 
-    public Line() {
+    public Interval() {
         a = new Point3d();
         b = new Point3d();
     }
@@ -58,12 +57,12 @@ public class Line {
     public void draw(VectorImg.Pencil pen, Point3d vector, Point3d delta, int t) {
         double dist = length();
                
-        pen.accept(vector.set(a), t);
+        pen.mark(vector.set(a), t);
 
         delta.set(b).translate(-1, a).scale(1 / dist);
         
         for (int x = 0; x < dist; x++)
-            pen.accept(vector.translate(delta), t);
+            pen.mark(vector.translate(delta), t);
     }
 
     public Point3d getA() {

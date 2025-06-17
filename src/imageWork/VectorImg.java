@@ -6,7 +6,7 @@ import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import MathSupport.Cube;
-import MathSupport.Line;
+import MathSupport.Interval;
 import MathSupport.Point3d;
 import fijiPlugin.Dimensions;
 import ij.ImagePlus;
@@ -53,7 +53,7 @@ public class VectorImg {
         return new Dimensions(null,
                 (src.height - 1) * spacing + vecMag + 2,
                 (src.width - 1) * spacing + vecMag + 2,
-                src.hasDepth() ? (src.depth - 1) * spacing + vecMag + 2 : 1,
+                src.hasDepth() ? (src.depth - 1) * spacing + vecMag + 3 : 1,
                 src.batchSize);
     }
 
@@ -153,7 +153,8 @@ public class VectorImg {
          * @param p The location to draw.
          * @param t The frame to draw on.
          */
-        public void accept(Point3d p, int t) {
+        public void mark(Point3d p, int t) {
+//            if(p.zI() > 158) System.out.println("imageWork.VectorImg.Pencil.mark() t, (x,y,z) = " + t + ", " + p);
             processor[t][p.zI()].putPixel(p.xI(), p.yI(), 255);
         }
     }
@@ -169,8 +170,8 @@ public class VectorImg {
         gridVecs.setFrom(vecs, t, z, handle);
         intensity.get(z, t).getVal(handle).get(handle, currentIntensitySlice);
 
-        Line line = new Line();
-        Point3d vec = new Point3d(), walker = new Point3d();
+        Interval line = new Interval();
+        Point3d vec = new Point3d(), delta = new Point3d();
         Pencil drawer = new Pencil();
 
         for (int x = 0; x < dim.width; x++) {
@@ -183,14 +184,13 @@ public class VectorImg {
 
                     gridVecs.get(y, x, vec);
 
-                    if (vec.isFinite()) {//TODO:I don't think I need this.                    
+                    if (vec.isFinite()) {
                         line.getA().set(x, y, z).scale(spacing).translate(r + 1, r + 1, dim.depth == 1 ? 0 : r + 1);
                         line.getB().set(line.getA());
                         line.getA().translate(vec.scale(r));
                         line.getB().translate(vec.scale(-1));
-
-                        //if(line.length() <= 2)System.out.println("imageWork.VectorImg.computeLayer() liune length = " + line.length() + " vec = " + vec1.toString());
-                        line.draw(drawer, vec, walker, t);
+                        
+                        line.draw(drawer, vec, delta, t);
                     }
                 }
             }

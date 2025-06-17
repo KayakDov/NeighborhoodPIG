@@ -91,6 +91,24 @@ public class Cube {
                y >= min.yI()&& y < max.yI()&&
                z >= min.zI()&& z < max.zI();
     }
+    
+    /**
+     * Checks if the rectangle contains the point.
+     * @param x The point whose integer approximation is to be checked for inclusion.
+     * @return True if the points integer approximation is in this cube, false otherwise.
+     */
+    public boolean contains(Point3d x){
+        return contains(x.xI(), x.yI(), x.zI());
+    }
+    
+    /**
+     * Checks to see if the integer approximation of this line is contained in this cube.
+     * @param interval The Interval to be checked for inclusion.
+     * @return True if the interval is in this cube and false otherwise.
+     */
+    public boolean contains(Interval interval){
+        return contains(interval.getA()) && contains(interval.getB());
+    }
 
     /**
      * Returns a string representation of the cube.

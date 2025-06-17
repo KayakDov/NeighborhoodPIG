@@ -5,6 +5,7 @@ import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
+import MathSupport.Cube;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.plugin.HyperStackConverter;
@@ -306,5 +307,13 @@ public class Dimensions implements Closeable {
      */
     public int num() {
         return hasDepth() ? 3 : 2;
+    }
+    
+    /**
+     * A cube that matches the height, depth, and width of these dimensions.
+     * @return A cube that matches the height, depth, and width of these dimensions.
+     */
+    public Cube getCube(){
+        return new Cube(width, height, depth);
     }
 }
