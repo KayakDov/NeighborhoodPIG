@@ -86,12 +86,11 @@ public class MyImagePlus extends ImagePlus {
         // or if min == max, adjust to prevent division by zero in scaling.
         if (displayMax == displayMin) {
             if (displayMin == 0.0) {
-                 displayMax = 1.0; // Ensure a valid range for conversion, 0 will map to 0
+                displayMax = 1.0; // Ensure a valid range for conversion, 0 will map to 0
             } else {
-                 displayMin = 0.0; // Set min to 0 to ensure the constant non-zero value maps to max (255)
+                displayMin = 0.0; // Set min to 0 to ensure the constant non-zero value maps to max (255)
             }
         }
-
 
         ImageStack byteStack = new ImageStack(getWidth(), getHeight());
         int totalSlices = getStackSize();
@@ -104,7 +103,7 @@ public class MyImagePlus extends ImagePlus {
                 throw new IllegalArgumentException("Slice " + i + " is not a FloatProcessor.");
 
             FloatProcessor fp = (FloatProcessor) currentFloatProcessor.duplicate(); // Duplicate to avoid modifying original or impacting other references
-            
+
             // Apply the image's current display min/max for conversion
             fp.setMinAndMax(displayMin, displayMax);
 
@@ -129,7 +128,7 @@ public class MyImagePlus extends ImagePlus {
      * @return An ImagePlus ready for saving.
      */
     private MyImagePlus prepareImageForSaving() {
-        
+
         return getType() == ImagePlus.GRAY32 ? normalizeFloatImageTo8Bit() : this;
     }
 
@@ -142,7 +141,7 @@ public class MyImagePlus extends ImagePlus {
      */
     public void saveSlices(String saveTo) {
 
-        ImagePlus prepared = prepareImageForSaving();        
+        ImagePlus prepared = prepareImageForSaving();
 
         ImagePlus flattened = buildFlattenedImage(prepared);
         writeSlicesToDisk(flattened, saveTo);
@@ -306,18 +305,21 @@ public class MyImagePlus extends ImagePlus {
         Overlay overlay = new Overlay();
 
         for (int z = 1; z <= overlayStack.getSize(); z++) {
-            ByteProcessor binaryProcessor = (ByteProcessor) overlayStack.getProcessor(z);
+            ByteProcessor binaryProcessor = (ByteProcessor) overlayStack.getProcessor(z);            
 
             // Create a color image from binary mask
             ColorProcessor colorProcessor = new ColorProcessor(width, height);
             for (int y = 0; y < height; y++)
-                for (int x = 0; x < width; x++)
-                    if (binaryProcessor.get(x, y) == 255) colorProcessor.set(x, y, color.getRGB());
-                    else colorProcessor.set(x, y, 0); // transparent black
+                for (int x = 0; x < width; x++){
+                                       
+                    if (binaryProcessor.get(x, y) == 255) 
+                        colorProcessor.set(x, y, color.getRGB());
+                    else colorProcessor.set(x, y, 0);
+                }
 
             ImageRoi roi = new ImageRoi(0, 0, colorProcessor);
-            roi.setZeroTransparent(true); // make zero pixels transparent
-            roi.setPosition(z); // position in the stack
+            roi.setZeroTransparent(true); 
+            roi.setPosition(z); 
 
             overlay.add(roi);
         }
@@ -338,7 +340,7 @@ public class MyImagePlus extends ImagePlus {
     public MyImagePlus subset(int start, int numFrames) {
 
         numFrames = Math.min(numFrames, getNFrames() - start);
-        
+
         int end = start + numFrames;
 
         ImageStack subsetStack = new ImageStack(dim.width, dim.height);

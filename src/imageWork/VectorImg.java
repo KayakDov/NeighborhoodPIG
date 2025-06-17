@@ -47,12 +47,13 @@ public class VectorImg {
      * @param src The input vector space.
      * @param spacing How much space will there be between vectors.
      * @param vecMag The length of the vectors.
+     * @param matchHW Leave this null, unless you want the output space to match the height and width in these dimensions.
      * @return The output vector space.
      */
-    public static Dimensions space(Dimensions src, int spacing, int vecMag) {
+    public static Dimensions space(Dimensions src, int spacing, int vecMag, Dimensions matchHW) {
         return new Dimensions(null,
-                (src.height - 1) * spacing + vecMag + 2,
-                (src.width - 1) * spacing + vecMag + 2,
+                matchHW == null? (src.height - 1) * spacing + vecMag + 2 : matchHW.height,
+                matchHW == null ? (src.width - 1) * spacing + vecMag + 2: matchHW.width,
                 src.hasDepth() ? (src.depth - 1) * spacing + vecMag + 3 : 1,
                 src.batchSize);
     }
@@ -61,6 +62,7 @@ public class VectorImg {
      * Constructs a new VectorImg with the specified parameters to generate an
      * ImagePlus displaying the vector field from vector and intensity data.
      *
+     * @param overlay The full dimensions without down sampling.  Leave this null if overlay is false.
      * @param handle The context
      * @param vecMag The magnitude of the vectors.
      * @param vecs The {@link FStrideArray3d} containing vector data.
@@ -70,11 +72,11 @@ public class VectorImg {
      * @param tolerance If useNon0Intensities is false then this determines the
      * threshold for what is close to 0.
      */
-    public VectorImg(Handle handle, int vecMag, PArray2dToF2d vecs, PArray2dToF2d intensity, int spacing, double tolerance) {
+    public VectorImg(Dimensions overlay, Handle handle, int vecMag, PArray2dToF2d vecs, PArray2dToF2d intensity, int spacing, double tolerance) {
         this.handle = handle;
         this.dim = new Dimensions(intensity);
 
-        targetSpace = space(dim, spacing, vecMag);
+        targetSpace = space(dim, spacing, vecMag, overlay);
 
         processor = new BinaryProcessor[targetSpace.batchSize][targetSpace.depth];
         for (int t = 0; t < dim.batchSize; t++)

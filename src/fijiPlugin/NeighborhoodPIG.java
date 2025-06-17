@@ -33,7 +33,7 @@ public class NeighborhoodPIG implements AutoCloseable {
         this.handle = handle;
 
         this.sourceFileNames = image.getImageStack().getSliceLabels();
-        
+
         stm = new StructureTensorMatrices(handle, image, ui);
 
     }
@@ -66,13 +66,13 @@ public class NeighborhoodPIG implements AutoCloseable {
      */
     public HeatMapCreator getZenithAngles(boolean color, double tolerance) {
         return new HeatMapCreator(
-                        concat(sourceFileNames, " Zenith Angle"),
-                        "Zenith Angle Heatmap",
-                        handle,
-                        stm.zenithAngle(),
-                        stm.getCoherence(),
-                        tolerance
-                );
+                concat(sourceFileNames, " Zenith Angle"),
+                "Zenith Angle Heatmap",
+                handle,
+                stm.zenithAngle(),
+                stm.getCoherence(),
+                tolerance
+        );
     }
 
     /**
@@ -98,11 +98,14 @@ public class NeighborhoodPIG implements AutoCloseable {
      * @param vecMag The magnitude of the vectors to be drawn.
      * @param useCoherence True to use coherence, false to set all vector
      * intensities to 1.
+     * @param overlay The dimensions of the base image to be overlaid. Leave
+     * this null if overlay is false;
      * @return An image of all the nematic vectors
      */
-    public VectorImg getVectorImg(int spacing, int vecMag, boolean useCoherence) {
+    public VectorImg getVectorImg(int spacing, int vecMag, boolean useCoherence, Dimensions overlay) {
 
         return new VectorImg(
+                overlay,
                 handle,
                 vecMag,
                 stm.getVectors(),

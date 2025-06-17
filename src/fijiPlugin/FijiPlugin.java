@@ -90,8 +90,7 @@ public class FijiPlugin implements PlugIn {
         } catch (UserCanceled ex) {
             System.out.println("fijiPlugin.FijiPlugin.run() User canceled diolog.");
             return;
-        }
-        else ui = UserInput.fromStrings(string, originalImage);
+        } else ui = UserInput.fromStrings(string, originalImage);
         run(ui, originalImage, false);
     }
 
@@ -125,7 +124,9 @@ public class FijiPlugin implements PlugIn {
 //        String imagePath = "images/input/cyl/"; int depth = 250; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(8, 8, 1);
 //        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
-        String imagePath = "images/input/3dVictorData";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
+        String imagePath = "images/input/3dVictorData";
+        int depth = 1/*20*/;
+        NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 //        String imagePath = "images/input/3dVictorDataRepeated";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 
@@ -153,47 +154,59 @@ public class FijiPlugin implements PlugIn {
         if (!ui.validParamaters())
             throw new RuntimeException("fijiPlugin.FijiPlugin.run() Invalid Parameters!");
 
-        MyImagePlus img = new MyImagePlus(userImg).crop(
-                ui.downSample(userImg.getHeight()),
-                ui.downSample(userImg.getWidth())
-        );
+        try {
 
-        Dimensions downSampled = img.dim().downSampleXY(null, ui.downSampleFactorXY);
+            MyImagePlus img = new MyImagePlus(userImg).crop(
+                    ui.downSample(userImg.getHeight()),
+                    ui.downSample(userImg.getWidth())
+            );
 
-        MyImageStack vf = VectorImg.space(downSampled, ui.vfSpacing, ui.vfMag).emptyStack(),
-                coh = downSampled.emptyStack(),
-                az = downSampled.emptyStack(),
-                zen = downSampled.emptyStack();
+            Dimensions downSampled = img.dim().downSampleXY(null, ui.downSampleFactorXY);
 
-        int vecImgDepth = 0;
+            MyImageStack vf = VectorImg.space(downSampled, ui.vfSpacing, ui.vfMag, ui.overlay ? img.dim() : null).emptyStack(),
+                    coh = downSampled.emptyStack(),
+                    az = downSampled.emptyStack(),
+                    zen = downSampled.emptyStack();
 
-        int framesPerIteration = framesPerRun(img.dim().height, img.dim().width, img.dim().depth);
-        if (framesPerIteration > 1) framesPerIteration = framesPerIteration / 2;
+            int vecImgDepth = 0;
 
-        System.out.println("fijiPlugin.FijiPlugin.run() frames per iteration: " + framesPerIteration);
+            int framesPerIteration = framesPerRun(img.dim().height, img.dim().width, img.dim().depth);
+            if (framesPerIteration > 1) framesPerIteration = framesPerIteration / 2;
 
-        long startTime = System.currentTimeMillis();
+            System.out.println("fijiPlugin.FijiPlugin.run() frames per iteration: " + framesPerIteration);
 
-        for (int i = 0; i < img.getNFrames(); i += framesPerIteration)
+            long startTime = System.currentTimeMillis();
+
+            for (int i = 0; i < img.getNFrames(); i += framesPerIteration)
             try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, img.subset(i, framesPerIteration), ui)) {
 
-            if (ui.heatMap) {
-                appendHM(az, np.getAzimuthalAngles(0.01), 0, (float) Math.PI);
-                if (img.dim().hasDepth()) appendHM(zen, np.getZenithAngles(false, 0.01), 0, (float) Math.PI);
+                if (ui.heatMap) {
+                    appendHM(az, np.getAzimuthalAngles(0.01), 0, (float) Math.PI);
+                    if (img.dim().hasDepth()) appendHM(zen, np.getZenithAngles(false, 0.01), 0, (float) Math.PI);
+                }
+
+                if (ui.vectorField)
+                    vecImgDepth = appendVF(
+                            ui,
+                            np.getVectorImg(
+                                    ui.vfSpacing, ui.vfMag, false, ui.overlay ? img.dim() : null
+                            ), 
+                            vf
+                    );
+
+                if (ui.useCoherence) appendHM(coh, np.getCoherence(ui.tolerance), 0, 1);
+
             }
 
-            if (ui.vectorField)
-                vecImgDepth = appendVF(ui, np.getVectorImg(ui.vfSpacing, ui.vfMag, false), vf);
+            long endTime = System.currentTimeMillis();
 
-            if (ui.useCoherence) appendHM(coh, np.getCoherence(ui.tolerance), 0, 1);
+            System.out.println("Execution time: " + (endTime - startTime) + " milliseconds");
 
+            results(vf, coh, az, zen, toFile, ui, img.dim(), vecImgDepth, img);
+        } catch (Exception ex) {
+            System.out.println("fijiPlugin.FijiPlugin.run() " + ui.toString());
+            throw ex;
         }
-
-        long endTime = System.currentTimeMillis();
-        System.out.println("Execution time: " + (endTime - startTime) + " milliseconds");
-
-        results(vf, coh, az, zen, toFile, ui, img.dim(), vecImgDepth, img);
-
         if (!Array.allocatedArrays.isEmpty())
             throw new RuntimeException("Neighborhood PIG has a GPU memory leak.");
     }

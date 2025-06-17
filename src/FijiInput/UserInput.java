@@ -72,11 +72,11 @@ public class UserInput {
         this.heatMap = heatMap;
         this.vectorField = vectorField;
         this.useCoherence = useCoherence;
-        this.vfSpacing = vfSpacing;
         this.vfMag = vfMag;
         this.tolerance = tolerance;
         this.downSampleFactorXY = downSampleFactorXY;
         this.overlay = vfOverlay;
+        this.vfSpacing = overlay ? -1 : vfSpacing;
     }
 
     /**
@@ -145,8 +145,8 @@ public class UserInput {
      * @return
      */
     public static UserInput defaultVals(NeighborhoodDim nd) {
-        int spacing = 8;
-        return new UserInput(nd, true, true, true, spacing, Math.max(spacing - 2, 0), false, defaultTolerance, 2);
+        int spacing = 28;
+        return new UserInput(nd, false, true, false, spacing, 10/*Math.max(spacing - 2, 0)*/, true, defaultTolerance, 28);
     }
 
     /**
@@ -185,11 +185,11 @@ public class UserInput {
      * not contain enough elements for the required parameters.
      */
     public static UserInput fromStrings(String string, ImagePlus imp) {
-        
+
         int i = 0;
 
         String[] strings = string.split(" ");
-        
+
         boolean hasZ = imp.getNSlices() > 1;
 
         int xy = Integer.parseInt(strings[i++]);
@@ -221,7 +221,7 @@ public class UserInput {
      * @return true if the parameters are valid, false otherwise.
      */
     public boolean validParamaters() {
-        return neighborhoodSize.valid() && vfSpacing >= 0 && vfMag >= 0 && tolerance > 0;
+        return neighborhoodSize.valid() && vfSpacing >= -1 && vfMag >= 0 && tolerance > 0;
     }
 
     /**
