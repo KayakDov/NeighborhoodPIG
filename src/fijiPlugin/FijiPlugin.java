@@ -77,7 +77,14 @@ public class FijiPlugin implements PlugIn {
     @Override
     public void run(String string) {
 
-        MyImagePlus originalImage = new MyImagePlus(ij.WindowManager.getCurrentImage());
+        MyImagePlus originalImage = null;
+        
+        try{
+            originalImage = new MyImagePlus(ij.WindowManager.getCurrentImage());
+        } catch(NullPointerException npe){
+            IJ.error("Missing Image", "No image found. Please open one.");
+            return;
+        }
 
         originalImage.setOpenAsHyperStack(true);
 

@@ -50,6 +50,7 @@ Once your image or stack is ready:
 * Navigate to `Plugins > Neighborhood PIG`.
 
 ![Screenshot of Donut's image open in Fiji](images/examples/window1.png)
+
 *Figure 1: For this tutorial, we'll start with a picture of Donut's derriere.*
 
 ---
