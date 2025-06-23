@@ -17,7 +17,7 @@ To get started with Neighborhood PIG, follow these two simple steps:
 
 ### Step 2: Install JCuda (Version 12 or Later)
 
-Neighborhood PIG utilizes JCuda for GPU-accelerated computations.
+Neighborhood PIG utilizes JCuda for GPU-accelerated computations.  The plugin does not currently work without a gpu, though future versions will.
 
 1. Download the JCuda library (version 12 or later), including its native libraries. These `*.jar` files are available in the `JCuda 12/` folder within this repository.
 2. Place all the downloaded JCuda `*.jar` files into the `jars/` folder within your Fiji installation directory.
@@ -222,3 +222,16 @@ The string would be:
 // Open your 2D image first
 open("path/to/your/donut_image.tif");
 run("Neighborhood PIG", "10 false true false 15 10 true 15");
+
+---
+
+## Comparison: Neighborhood PIG vs. OrientationJ
+
+Neighborhood PIG offers significant advantages over the traditional OrientationJ plugin, particularly in terms of performance and dimensionality support.
+
+As illustrated in Figure 10, Neighborhood PIG demonstrates considerably faster processing times when analyzing 2D images. This performance gain is largely due to its utilization of GPU acceleration, a key differentiator from OrientationJ, which relies solely on CPU processing.
+
+Beyond speed, Neighborhood PIG extends its capabilities to the third dimension. While OrientationJ is limited to 2D image analysis, Neighborhood PIG can effectively compute orientation and generate vector fields for 3D image stacks, providing a more comprehensive tool for complex volumetric data.
+
+![Runtime Comparison: OrientationJ vs Neighborhood PIG](images/examples/benchmark.jpeg)
+*Figure 10: A plot comparing the runtime of OrientationJ and Neighborhood PIG for 2D images as a function of the number of images, demonstrating Neighborhood PIG's performance advantage.*
