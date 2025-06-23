@@ -112,10 +112,13 @@ After the numeric fields, you'll find three checkboxes:
 
 2.  **Downsample Factor XY:**
 
-    * **What this is:** This field accepts integer values. If you set this value to$3$, the results will be computed for every third pixel in both the X and Y dimensions. If you set it to $10$, it will be for every tenth pixel, and so on.
+    * **What this is:** This field accepts integer values. If you set this value to $3$, the results will be computed for every third pixel in both the X and Y dimensions. If you set it to $10$, it will be for every tenth pixel, and so on.
     * **Recommendations:**
+    
         * **For a Heatmap:** You'll likely want to set this to $1$ for full resolution, unless you are dealing with severe memory limitations.
+        
         * **For a Vector Field (Overlay):** If you intend to superimpose the vector field onto your original image, a value greater than $1$ is recommended to provide visual spacing between the vectors, making them easier to interpret.
+        
         * **For a Vector Field (Standalone):** Even if not superimposed, downsampling can reduce the resulting image size, which can be very large otherwise.
 
 ![A Slice from a 3D Bacteria Image](images/examples/3dPosDefect.png)
@@ -132,11 +135,13 @@ If you have selected the "VectorField" checkbox and clicked "OK," a new window w
 
     * This checkbox will only appear if your image has a depth of `1` (i.e., a single 2D image).
     * If checked, the generated vector field will be directly overlaid on top of your original stack.
+
     * **Important:** If using this option, ensure that your "spacing" value (described next) is equal to your "Downsample Factor XY" for proper alignment.
 
 2.  **Spacing:**
 
     * **What this is:** This integer value determines the amount of space between the centers of adjacent vectors. This spacing applies to both the Z-axis and the XY plane.
+    
     * **Recommendations:** This value should be greater than `1`. If vectors are too close, they can be difficult to read. If they are too far apart, the image may use up too much memory.
 
 3.  **Vector Magnitude:**
@@ -152,6 +157,7 @@ If your original image has depth and you've generated a 3D vector field, you'll 
 * After the Neighborhood PIG process completes, you can typically find the output image/stack in the main Fiji window.
 * Go to `Plugins > 3D Viewer`.
 * In the 3D Viewer window, you can rotate, zoom, and adjust rendering options to visualize your 3D data, including the vector field.
+
     * **Sample 3D Vector Field (in 3D Viewer):**
         ![3D Vector Field of Bacteria Culture in Fiji's 3D Viewer](images/examples/posDefect3dVF.jpeg "Example of a 3D Vector Field viewed in Fiji's 3D Viewer")
         *Figure 9: A 3D vector field, best viewed using Fiji's 3D Viewer plugin. The original images were of a 3D bacteria culture; see figure 6.*
