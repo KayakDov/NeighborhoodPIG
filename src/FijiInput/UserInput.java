@@ -92,16 +92,16 @@ public class UserInput {
 
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
 
-        NumericField xyR = new NumericField("Neighborhood xy radius:", 15, gd);
+        NumericField xyR = new NumericField("Neighborhood xy radius", 20, gd);
         NumericField zR = null;
-        if (hasZ) zR = new NumericField("Neighborhood z radius:", 1, gd);
-        BooleanField heatmap = new BooleanField("heatmap", true, gd);
-        BooleanField vector = new BooleanField("vector field", false, gd);
-        BooleanField coherence = new BooleanField("generate coherence", true, gd);
+        if (hasZ) zR = new NumericField("Neighborhood z radius:", 5, gd);
+        BooleanField heatmap = new BooleanField("Heatmap", true, gd);
+        BooleanField vector = new BooleanField("Vector field", true, gd);
+        BooleanField coherence = new BooleanField("Generate coherence", true, gd);
 
         NumericField layerDist = null;
-        if (hasZ) layerDist = new NumericField("Distance between layers as a multiple of the distance between pixels:", 1, gd);
-        NumericField downSample = new NumericField("Downsample Factor XY:", 1, gd);
+        if (hasZ) layerDist = new NumericField("Z axis pixel spacing multiplier", 2, gd);
+        NumericField downSample = new NumericField("Downsample factor XY:", 20, gd);
 
         gd.showDialog();
 
@@ -114,11 +114,11 @@ public class UserInput {
         if (vector.is()) {
             GenericDialog vfDialog = new GenericDialog("Vector Field Parameters.  Be sure downSample > 1.");
 
-            if (!hasZ) overlay = new BooleanField("overlay?", false, vfDialog);
+            if (!hasZ) overlay = new BooleanField("Overlay", false, vfDialog);
 
-            spacing = new NumericField("spacing", downSample.val(), vfDialog);
+            spacing = new NumericField("Spacing", downSample.val(), vfDialog);
 
-            mag = new NumericField("Vector Magnitude:", downSample.val() - 2, vfDialog);
+            mag = new NumericField("Vector magnitude:", downSample.val(), vfDialog);
 
             vfDialog.showDialog();
 
@@ -145,8 +145,8 @@ public class UserInput {
      * @return
      */
     public static UserInput defaultVals(NeighborhoodDim nd) {
-        int spacing = 28;
-        return new UserInput(nd, false, true, false, spacing, 10/*Math.max(spacing - 2, 0)*/, true, defaultTolerance, 28);
+        int spacing = 6;
+        return new UserInput(nd, false, true, false, spacing, Math.max(spacing - 2, 0), false, defaultTolerance, 1);
     }
 
     /**

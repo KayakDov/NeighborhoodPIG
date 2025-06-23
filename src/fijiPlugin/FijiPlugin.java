@@ -94,20 +94,18 @@ public class FijiPlugin implements PlugIn {
         run(ui, originalImage, false);
     }
 
+    /**
+     * Loads image J.  This should be called if this is not being run from Fiji.
+     */
     public static void loadImageJ() {
-        // Ensure ImageJ is running. This is crucial if you're running this
-        // as a standalone Java application. If it's a plugin running within Fiji,
-        // ImageJ will already be initialized.
         ImageJ ij = IJ.getInstance();
         if (ij == null) {
             ij = new ImageJ(ImageJ.NO_SHOW); // Start ImageJ without showing the main window initially
         }
 
-        // Schedule the UI update to run on the Event Dispatch Thread
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                // Get the singleton instance of the Toolbar
                 Toolbar toolbar = Toolbar.getInstance();
 
                 if (toolbar != null) {
@@ -117,14 +115,18 @@ public class FijiPlugin implements PlugIn {
         });
     }
 
-    public static void main(String[] args) {//TODO: test somethign with depth!
+    /**
+     * The main method is currently for testing.
+     * TODO: set up main to work with passed parameters.
+     * @param args Not currently used.
+     */
+    public static void main(String[] args){
 
         loadImageJ();
 
-//        String imagePath = "images/input/cyl/"; int depth = 250; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(8, 8, 1);
-        String imagePath = "images/input/5Tests/"; int depth = 1; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
+        String imagePath = "images/input/cyl/"; int depth = 50; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(8, 8, 1);        
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
-//        String imagePath = "images/input/3dVictorData"; int depth = 1/*20*/; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
+//        String imagePath = "images/input/3dVictorData"; int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 //        String imagePath = "images/input/3dVictorDataRepeated";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 

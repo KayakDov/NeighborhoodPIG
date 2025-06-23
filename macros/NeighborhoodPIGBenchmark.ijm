@@ -22,12 +22,8 @@ for (size = start; size <= total; size += increment) {
 
     // ── RUN ORIENTATIONJ AND TIME IT ──
     startTime = getTime();
-
-    run("OrientationJ Analysis",
-        "tensor=" + tensor +
-        " gradient=0 hsb=on hue=Orientation sat=Coherency " +
-        "bri=Original-Image orientation=on radian=on");
-
+    
+    run("Neighborhood PIG", tensor +" true false false 1");
     elapsed = getTime() - startTime;
 
     // ── CLEAN‑UP ──
