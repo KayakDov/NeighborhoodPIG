@@ -67,10 +67,12 @@ Upon opening the Neighborhood PIG plugin, a dialog box will appear with several 
 ### Numerical Input Fields (Integer Values)
 
 1.  **Neighborhood xy radius:**
+
     * **What this is:** When computing the orientation at a pixel, the structure tensor algorithm considers a square neighborhood surrounding that pixel. This value represents the shortest distance from the center of this neighborhood to the nearest edge in the XY plane.
     * **Example:** If you set this to `5`, the algorithm will analyze an $11 \times 11$ pixel neighborhood (center pixel + 5 pixels on each side) to compute the orientation of each pixel.
 
 2.  **Neighborhood z radius:**
+
     * **What this is:** Similar to the XY radius, but for the Z (depth) dimension. This option is only visible if your image stack has a depth dimension (multiple Z-slices).
     * These two values together define the "neighborhood cube." Its volume is calculated as $( \text{neighborhood xy} \times 2 + 1 )^2 \times ( \text{neighborhood z} \times 2 + 1 )$.
 
@@ -99,10 +101,12 @@ After the numeric fields, you'll find three checkboxes:
 ### More Numerical Input Fields
 
 1.  **Z axis multiplier:**
+
     * **What this is:** This field accepts any floating-point value. It allows you to account for differences in pixel spacing between your XY plane and your Z-axis layers. If azimuth angles are coming out too close to $0$ or $\pi$, then try modulating this.
     * **Example:** If the distance between pixels on different Z-layers is twice the distance between pixels on the same XY plane, enter $2$. If the Z-distance is half, enter $0.5$. This option is only visible if your image has a depth dimension.
 
 2.  **Downsample Factor XY:**
+
     * **What this is:** This field accepts integer values. If you set this value to$3$, the results will be computed for every third pixel in both the X and Y dimensions. If you set it to $10$, it will be for every tenth pixel, and so on.
     * **Recommendations:**
         * **For a Heatmap:** You'll likely want to set this to $1$ for full resolution, unless you are dealing with severe memory limitations.
@@ -125,10 +129,12 @@ If you have selected the "VectorField" checkbox and clicked "OK," a new window w
     * **Important:** If using this option, ensure that your "spacing" value (described next) is equal to your "Downsample Factor XY" for proper alignment.
 
 2.  **Spacing:**
+
     * **What this is:** This integer value determines the amount of space between the centers of adjacent vectors. This spacing applies to both the Z-axis and the XY plane.
     * **Recommendations:** This value should be greater than `1`. If vectors are too close, they can be difficult to read. If they are too far apart, the image may use up too much memory.
 
 3.  **Vector Magnitude:**
+
     * **What this is:** This integer value controls the visual length of the vectors in the generated field. Adjust this to make the vectors clearly visible without overwhelming the image.
 ![Overlay of Donut's Image](images/examples/overlay.png)
 *Figure 8: A zoomed-in overlay of Donut.*
