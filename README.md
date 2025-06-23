@@ -43,8 +43,6 @@ If you have opened a stack that represents multiple frames (e.g., time-lapse dat
 * Go to `Image > Properties > Hyperstack...` (or `Image > Stacks > Make Hyperstack...` in older Fiji versions).
 * In the "Make Hyperstack" dialog, ensure your dimensions (channels, slices, frames) are correctly assigned. Click "OK".
 
-![Donut](images/examples/Donut.jpg)
-*Figure 0: A sample image.*
 
 ### 3. Select the Neighborhood PIG Plugin
 
@@ -52,7 +50,7 @@ Once your image or stack is ready:
 
 * Navigate to `Plugins > Neighborhood PIG`.
 
-![Screenshot of Donut's image open in Fiji](images/examples/window1.png)
+![Donut](images/examples/Donut.jpg)
 
 *Figure 1: For this tutorial, we'll start with a picture of Donut's derriere.*
 
@@ -62,7 +60,7 @@ Once your image or stack is ready:
 
 Upon opening the Neighborhood PIG plugin, a dialog box will appear with several configuration options.
 
-![Neighborhood PIG Plugin Dialog Screenshot](images/examples/window2.png)
+![Neighborhood PIG Plugin Dialog Screenshot](images/examples/window1.png)
 
 *Figure 2: The main dialog window for the Neighborhood PIG plugin.*
 
@@ -118,7 +116,7 @@ After the numeric fields, you'll find three checkboxes:
 
 If you have selected the "VectorField" checkbox and clicked "OK," a new window will appear with additional options for fine-tuning the vector field visualization.
 
-![Vector Field Options Dialog](https://photos.app.goo.gl/65e6z4gwmwRzJYZH8 "Vector Field Specific Options Dialog")
+![Vector Field Options Dialog](images/examples/window2.png "Vector Field Specific Options Dialog")
 *Figure 7: The dialog window for configuring vector field display options.*
 
 1.  **Overlay:**
