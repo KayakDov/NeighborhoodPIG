@@ -81,18 +81,21 @@ Upon opening the Neighborhood PIG plugin, a dialog box will appear with several 
 After the numeric fields, you'll find three checkboxes:
 
 1.  **Heatmap:**
+
     * When checked, this option generates a grayscale heatmap representing the orientation in the picture. White pixels indicate an orientation of $\pi$ radians, and black, $0$ radians.
     * **Sample Output:**
         ![Donut's Orientation Heatmap](images/examples/DonutHeatMap.png)
         *Figure 3: Donut's Orientation Heatmap*
 
 2.  **VectorField:**
+
     * When checked, this option creates a nematic vector field, visually representing the orientation of the stack. This is particularly useful for visualizing directional information.
     * **Sample Output:**
         ![Donut's Nematic Vector Field](images/examples/DonutVF.png)
         *Figure 4: Donut's nematic vector field, illustrating the directional orientation.*
 
 3.  **Generate Coherence:**
+
     * When checked, this option produces a heat map specifically showing the coherence of the orientation. Coherence measures the degree to which the orientation is elliptical versus circular. A coherence of $0$ indicates there is no measurable orientation. A coherence of $1$ indicates there is a strong orientation, much like an ellipse with a high major axis length to minor axis length ratio.
     * **Sample Output:**
         ![Donut's Coherence Heatmap](images/examples/DonutCoherence.png "Sample Coherence Heatmap")
@@ -124,6 +127,7 @@ If you have selected the "VectorField" checkbox and clicked "OK," a new window w
 *Figure 7: The dialog window for configuring vector field display options.*
 
 1.  **Overlay:**
+
     * This checkbox will only appear if your image has a depth of `1` (i.e., a single 2D image).
     * If checked, the generated vector field will be directly overlaid on top of your original stack.
     * **Important:** If using this option, ensure that your "spacing" value (described next) is equal to your "Downsample Factor XY" for proper alignment.
