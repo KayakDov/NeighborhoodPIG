@@ -19,7 +19,7 @@ To get started with Neighborhood PIG, follow these two simple steps:
 
 Neighborhood PIG utilizes JCuda for GPU-accelerated computations.  The plugin does not currently work without a gpu, though future versions will.
 
-1. Download the JCuda library (version 12 or later), including its native libraries. These `*.jar` files are available in the `JCuda 12/` folder within this repository.
+1. Download the JCuda library (version 12 or later), including its native libraries. These `*.jar` files are available in the `JCuda12/` folder within this repository.
 2. Place all the downloaded JCuda `*.jar` files into the `jars/` folder within your Fiji installation directory.
 
 **Prerequisite for JCuda:** For JCuda to function, you must have a **compatible NVIDIA GPU** and the **NVIDIA CUDA Toolkit (version 12.x or later)** installed on your system. You can download the CUDA Toolkit from the official NVIDIA Developer website: [https://developer.nvidia.com/cuda-downloads](https://developer.nvidia.com/cuda-downloads) Please ensure the CUDA Toolkit version you install is compatible with JCuda 12.
