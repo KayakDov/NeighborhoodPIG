@@ -121,14 +121,14 @@ After the numeric fields, you'll find three checkboxes:
 
         * **For a Vector Field (Standalone):** Even if not superimposed, downsampling can reduce the resulting image size, which can be very large otherwise.
 
-![A Slice from a 3D Bacteria Image](images/examples/posDefectZenith.png)
+![A Slice from a 3D Bacteria Image](images/examples/posDefectZenith.jpeg)
 *Figure 5: A slice of a 3D bacteria image (left) and the heat maps it may generate.*
 
 ## Vector Field Specific Options (New Window)
 
 If you have selected the "VectorField" checkbox and clicked "OK," a new window will appear with additional options for fine-tuning the vector field visualization.
 
-![Vector Field Options Dialog](https://photos.app.goo.gl/65e6z4gwmwRzJYZH8 "Vector Field Specific Options Dialog")
+![Vector Field Options Dialog](images/examples/window2.png "Vector Field Specific Options Dialog")
 *Figure 6: The dialog window for configuring vector field display options.*
 
 1.  **Overlay:**
