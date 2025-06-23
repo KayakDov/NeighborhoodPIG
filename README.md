@@ -83,6 +83,7 @@ After the numeric fields, you'll find three checkboxes:
 1.  **Heatmap:**
 
     * When checked, this option generates a grayscale heatmap representing the orientation in the picture. White pixels indicate an orientation of $\pi$ radians, and black, $0$ radians.
+    
     * **Sample Output:**
         ![Donut's Orientation Heatmap](images/examples/DonutHeatMap.png)
         *Figure 3: Donut's Orientation Heatmap*
@@ -90,6 +91,7 @@ After the numeric fields, you'll find three checkboxes:
 2.  **VectorField:**
 
     * When checked, this option creates a nematic vector field, visually representing the orientation of the stack. This is particularly useful for visualizing directional information.
+    
     * **Sample Output:**
         ![Donut's Nematic Vector Field](images/examples/DonutVF.png)
         *Figure 4: Donut's nematic vector field, illustrating the directional orientation.*
@@ -97,6 +99,7 @@ After the numeric fields, you'll find three checkboxes:
 3.  **Generate Coherence:**
 
     * When checked, this option produces a heat map specifically showing the coherence of the orientation. Coherence measures the degree to which the orientation is elliptical versus circular. A coherence of $0$ indicates there is no measurable orientation. A coherence of $1$ indicates there is a strong orientation, much like an ellipse with a high major axis length to minor axis length ratio.
+    
     * **Sample Output:**
         ![Donut's Coherence Heatmap](images/examples/DonutCoherence.png "Sample Coherence Heatmap")
         *Figure 5: Donut's coherence heat map.*
