@@ -129,6 +129,7 @@ After the numeric fields, you'll find three checkboxes:
 If you have selected the "VectorField" checkbox and clicked "OK," a new window will appear with additional options for fine-tuning the vector field visualization.
 
 ![Vector Field Options Dialog](images/examples/window2.png "Vector Field Specific Options Dialog")
+
 *Figure 6: The dialog window for configuring vector field display options.*
 
 1.  **Overlay:**
