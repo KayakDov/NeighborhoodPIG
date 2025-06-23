@@ -43,8 +43,8 @@ If you have opened a stack that represents multiple frames (e.g., time-lapse dat
 * Go to `Image > Properties > Hyperstack...` (or `Image > Stacks > Make Hyperstack...` in older Fiji versions).
 * In the "Make Hyperstack" dialog, ensure your dimensions (channels, slices, frames) are correctly assigned. Click "OK".
 
-        ![Donut](images/examples/Donut.png)
-        *Figure 0: A sample image of Donut's rump.*
+![Donut](images/examples/Donut.png)
+*Figure 0: A sample image.*
 
 ### 3. Select the Neighborhood PIG Plugin
 
