@@ -60,7 +60,7 @@ Upon opening the Neighborhood PIG plugin, a dialog box will appear with several 
 
 ![Neighborhood PIG Plugin Dialog Screenshot](images/examples/window1.png)
 
-*Figure 1: For this tutorial, we'll start with a picture of Donut's derriere.*
+*Figure 1: The first options window.*
 
 ### Numerical Input Fields (Integer Values)
 
