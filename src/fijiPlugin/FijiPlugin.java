@@ -8,7 +8,6 @@ import JCudaWrapper.resourceManagement.Handle;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
-import ij.ImageStack;
 import ij.gui.Toolbar;
 import ij.plugin.PlugIn;
 import ij.process.ImageConverter;
@@ -19,6 +18,11 @@ import imageWork.ProcessImage;
 import imageWork.VectorImg;
 import java.awt.Color;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import javax.swing.SwingUtilities;
 import jcuda.Sizeof;
 
@@ -28,6 +32,8 @@ import jcuda.Sizeof;
  */
 public class FijiPlugin implements PlugIn {
 
+    public enum Save{tiff, png, fiji}
+    
     /**
      * Checks that the image is selected and gray scale.
      *
@@ -78,10 +84,10 @@ public class FijiPlugin implements PlugIn {
     public void run(String string) {
 
         MyImagePlus originalImage = null;
-        
-        try{
+
+        try {
             originalImage = new MyImagePlus(ij.WindowManager.getCurrentImage());
-        } catch(NullPointerException npe){
+        } catch (NullPointerException npe) {
             IJ.error("Missing Image", "No image found. Please open one.");
             return;
         }
@@ -97,12 +103,12 @@ public class FijiPlugin implements PlugIn {
         } catch (UserCanceled ex) {
             System.out.println("fijiPlugin.FijiPlugin.run() User canceled diolog.");
             return;
-        } else ui = UserInput.fromStrings(string, originalImage);
-        run(ui, originalImage, false);
+        } else ui = UserInput.fromStrings(string.split(" "), originalImage.getNSlices());
+        run(ui, originalImage, Save.fiji);
     }
 
     /**
-     * Loads image J.  This should be called if this is not being run from Fiji.
+     * Loads image J. This should be called if this is not being run from Fiji.
      */
     public static void loadImageJ() {
         ImageJ ij = IJ.getInstance();
@@ -123,29 +129,95 @@ public class FijiPlugin implements PlugIn {
     }
 
     /**
-     * The main method is currently for testing.
-     * TODO: set up main to work with passed parameters.
-     * @param args Not currently used.
+     * Main entry point for running the Neighborhood PIG plugin as a standalone
+     * application from the command line. This method processes images based on
+     * provided arguments, allowing for headless execution without the
+     * Fiji/ImageJ graphical user interface.
+     *
+     * <p>
+     * The expected command-line arguments are structured as follows:</p>
+     * <ol>
+     * <li>`args[0]` (String): The path to the image file or a directory
+     * containing image files to be processed as a stack. If a directory, all
+     * image files within it are assumed to form a single stack (sorted
+     * alphabetically).</li>
+     * <li>`args[1]` (int): The nominal depth (number of Z-slices) of the image
+     * or image stack. For 2D images, this should be `1`. This value determines
+     * which subsequent parameters related to Z-dimensions are expected.</li>
+     * <li>`args[2]` (int): "tiff" to save as a .tiff, or "png" to save as a ".png".</li>
+     * <li>`args[3]` onwards (String...): A variable-length series of
+     * space-separated strings representing the `UserInput` parameters. The
+     * number and order of these parameters depend on the `depth` (from
+     * `args[1]`) and other boolean flags (like `generate_vector_field`). Refer
+     * to the
+     * {@link FijiInput.UserInput#fromStrings(String[], int) UserInput.fromStrings}
+     * method's Javadoc for the precise conditional order and meaning of these
+     * parameters.
+     * </li>
+     * </ol>
+     *
+     * <p>
+     * Example command-line usage (assuming the JAR is executable and named
+     * `NeighborhoodPIG.jar`):
+     * </p>
+     * <pre>
+     * // For a 2D image (e.g., "my_image.tif") generating a heatmap and coherence:
+     * // Args: image_path, depth=1, xy_rad=10, heatmap=true, vector_field=false, coherence=true, downsample=1
+     * java -jar NeighborhoodPIG.jar "path/to/my_image.tif" 1 10 true false true 1
+     *
+     * // For a 3D image stack (e.g., from "my_image_directory/") generating a vector field:
+     * // Args: image_path, depth=5, xy_rad=15, z_rad=3, z_mult=2, heatmap=false, vector_field=true, coherence=false, vf_spacing=10, vf_mag=8, downsample=2
+     * java -jar NeighborhoodPIG.jar "path/to/my_image_directory" 5 15 3 2 false true false 10 8 2
+     *
+     * // For a 2D image "another_2d_image.tif" with vector field overlaid (downsample and vf_spacing match):
+     * // Args: image_path, depth=1, xy_rad=10, heatmap=false, vector_field=true, coherence=false, vf_spacing=15, vf_mag=10, overlay=true (omits downsample factor)
+     * java -jar NeighborhoodPIG.jar "path/to/another_2d_image.tif" 1 10 false true false 15 10 true
+     * </pre>
+     *
+     * @param args Command-line arguments as described above.
+     * @throws NumberFormatException if any argument cannot be parsed into its
+     * corresponding numeric or boolean type.
+     * @throws ArrayIndexOutOfBoundsException if the number of command-line
+     * arguments is fewer than expected based on the `depth` and other boolean
+     * flags.
+     * @throws NullPointerException if `args[0]` points to a non-existent
+     * directory or if `File.list()` returns `null` for other reasons during
+     * stack dimensioning.
+     * @throws RuntimeException for other issues during image processing or if
+     * internal parameters are inconsistent (e.g., spacing/downsample mismatch
+     * if `overlay` is true).
      */
-    public static void main(String[] args){
+    public static void main(String[] args) {
 
-        loadImageJ();
+        if (args.length == 0) args = defaultArgs();
 
-        String imagePath = "images/input/cyl/"; int depth = 50; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(8, 8, 1);        
+//        loadImageJ();
+        int depth = Integer.parseInt(args[1]);               
+
+        UserInput ui = UserInput.fromStrings(Arrays.copyOfRange(args, 3, args.length), depth);
+
+        ImagePlus imp = ProcessImage.imagePlus(args[0], depth);
+
+        imp = new Dimensions(imp.getStack(), depth).setToHyperStack(imp);
+
+        imp.setDimensions(1, depth, new File(args[0]).list().length / depth);
+
+        run(ui, imp, Save.valueOf(args[2]));
+
+    }
+
+    private static String[] defaultArgs() {
+        String imagePath = "images/input/cyl/";
+        int depth = 50;
+        NeighborhoodDim neighborhoodSize = new NeighborhoodDim(8, 8, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //        String imagePath = "images/input/3dVictorData"; int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
 //        String imagePath = "images/input/3dVictorDataRepeated";int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
+//
+//        UserInput ui = UserInput.defaultVals(neighborhoodSize);
 
-        UserInput ui = UserInput.defaultVals(neighborhoodSize);
-
-        ImagePlus imp = ProcessImage.imagePlus(imagePath, depth);
-
-        imp = new Dimensions(imp.getStack(), depth).setToHyperStack(imp);
-
-        imp.setDimensions(1, depth, new File(imagePath).list().length / depth);
-
-        run(ui, imp, true);
+        return new String[]{imagePath, "" + depth, "png", "" + neighborhoodSize.xyR, "" + neighborhoodSize.zR, "" + 1, "" + true, "" + true, "" + true, "" + 6, "" + 4, "" + 2};
 
     }
 
@@ -154,10 +226,9 @@ public class FijiPlugin implements PlugIn {
      *
      * @param ui The user input.
      * @param userImg The image to be run.
-     * @param toFile True if the results should be saved to a file, false if
-     * they're to be displayed in fiji.
+     * @param save Where to save the file to.
      */
-    public static void run(UserInput ui, ImagePlus userImg, boolean toFile) {
+    public static void run(UserInput ui, ImagePlus userImg, Save save) {
         if (!ui.validParamaters())
             throw new RuntimeException("fijiPlugin.FijiPlugin.run() Invalid Parameters!");
 
@@ -178,7 +249,12 @@ public class FijiPlugin implements PlugIn {
             int vecImgDepth = 0;
 
             int framesPerIteration = framesPerRun(img.dim().height, img.dim().width, img.dim().depth);
+
             if (framesPerIteration > 1) framesPerIteration = framesPerIteration / 2;
+            else if (framesPerIteration <= 0) {
+                IJ.error("Your stack has a high depth relative to GPU size. This may cause a crash.");
+                framesPerIteration = 1;
+            }
 
             System.out.println("fijiPlugin.FijiPlugin.run() frames per iteration: " + framesPerIteration);
 
@@ -195,7 +271,7 @@ public class FijiPlugin implements PlugIn {
                 if (ui.vectorField)
                     vecImgDepth = appendVF(
                             ui,
-                            np.getVectorImg(ui.vfSpacing, ui.vfMag, false, ui.overlay ? img.dim() : null), 
+                            np.getVectorImg(ui.vfSpacing, ui.vfMag, false, ui.overlay ? img.dim() : null),
                             vf
                     );
 
@@ -207,7 +283,7 @@ public class FijiPlugin implements PlugIn {
 
             System.out.println("Execution time: " + (endTime - startTime) + " milliseconds");
 
-            results(vf, coh, az, zen, toFile, ui, img.dim(), vecImgDepth, img);
+            results(vf, coh, az, zen, save, ui, img.dim(), vecImgDepth, img);
         } catch (Exception ex) {
             System.out.println("fijiPlugin.FijiPlugin.run() " + ui.toString());
             throw ex;
@@ -246,19 +322,19 @@ public class FijiPlugin implements PlugIn {
      * @param coh The coherence.
      * @param az The azimuthal angles.
      * @param zen The zenith angles.
-     * @param toFile True if images should be saved to a file, false if they
+     * @param save True if images should be saved to a file, false if they
      * should be shown in Fiji.
      * @param ui The user input.
      * @param dims The dimensions.
      * @param vecImgDepth The depth of the vector image.
      * @param myImg The image worked on.
      */
-    private static void results(MyImageStack vf, MyImageStack coh, MyImageStack az, MyImageStack zen, boolean toFile, UserInput ui, Dimensions dims, int vecImgDepth, MyImagePlus myImg) {
+    private static void results(MyImageStack vf, MyImageStack coh, MyImageStack az, MyImageStack zen, Save save, UserInput ui, Dimensions dims, int vecImgDepth, MyImagePlus myImg) {
 
         if (ui.heatMap) {
-            present(az.imp("Azimuthal Angles", dims.depth), toFile, "images/output/test3/Azimuthal");
+            present(az.imp("Azimuthal Angles", dims.depth), save, "N_PIG_images" + File.separatorChar + "Azimuthal");
             if (dims.hasDepth())
-                present(zen.imp("Zenith Angles", dims.depth), toFile, "images/output/test3/Zenith");
+                present(zen.imp("Zenith Angles", dims.depth), save, "N_PIG_images" + File.separatorChar + "Zenith");
         }
         if (ui.vectorField) {
             MyImagePlus impVF;
@@ -266,10 +342,10 @@ public class FijiPlugin implements PlugIn {
                 impVF = new MyImagePlus("Overlaid Nematic Vectors", myImg.getImageStack(), dims.depth)
                         .overlay(vf, Color.GREEN);
             else impVF = vf.imp("Nematic Vectors", vecImgDepth);
-            present(impVF, toFile, "images/output/test3/vectors");
+            present(impVF, save, "N_PIG_images" + File.separatorChar + "vectors");
         }
 
-        if (ui.useCoherence) present(coh.imp("Coherence", dims.depth), toFile, "images/output/test3/Coherence");
+        if (ui.useCoherence) present(coh.imp("Coherence", dims.depth), save, "N_PIG_images" + File.separatorChar + "Coherence");
     }
 
     /**
@@ -279,9 +355,16 @@ public class FijiPlugin implements PlugIn {
      * @param saveTo The location to save the image. This will not be used if
      * show is set to true.
      */
-    private static void present(MyImagePlus image, boolean toFile, String saveTo) {
-        if (toFile) image.saveSlices(saveTo);
-        else image.show();
+    private static void present(MyImagePlus image, Save save, String saveTo) {
+        if (save == Save.fiji) image.show(); 
+        else {
+            try {                
+                Files.createDirectories(Paths.get(saveTo));
+            } catch (IOException e) {
+                System.err.println("Failed to create directory: " + saveTo + " - " + e.getMessage());
+            }
+            image.saveSlices(saveTo, save == Save.tiff);
+        }
     }
 
 }

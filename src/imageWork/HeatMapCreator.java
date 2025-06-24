@@ -96,16 +96,6 @@ public class HeatMapCreator {
         return stack;
     }
 
-    /**
-     * Saves the grayscale image stack as a hyperstack in a file.
-     *
-     * @param writeToFolder The folder where the image should be saved.
-     */
-    public void printToFile(String writeToFolder, float min, float max) {
-
-        new MyImagePlus(stackName, getStack(min, max), dim.depth).saveSlices(writeToFolder);
-    }
-
     // Helper method to print the pixels of a FloatProcessor
     private static void printFloatProcessorPixels(FloatProcessor fp) {
         float[] pixels = (float[]) fp.getPixels(); // Get the 1D pixel array

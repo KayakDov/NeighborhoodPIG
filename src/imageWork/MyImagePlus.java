@@ -125,12 +125,12 @@ public class MyImagePlus extends ImagePlus {
      * Prepares the image for saving. If the image is a 32-bit float, it is
      * normalized to 8-bit. Otherwise, a copy of the original image is created.
      * This makes the saveSlices method more robust for different image types.
-     *
+     *@param toTiff true if the image will be saved as a tiff, false otherwise.
      * @return An ImagePlus ready for saving.
      */
-    private MyImagePlus prepareImageForSaving() {
+    private MyImagePlus prepareImageForSaving(boolean toTiff) {
 
-        return getType() == ImagePlus.GRAY32 ? normalizeFloatImageTo8Bit() : this;
+        return getType() == ImagePlus.GRAY32 && !toTiff? normalizeFloatImageTo8Bit() : this;
     }
 
     /**
@@ -139,13 +139,15 @@ public class MyImagePlus extends ImagePlus {
      * T.
      *
      * @param saveTo Directory to save the PNGs to.
+     * @param toTiff True if the image should be saved to a tiff, false
+     * otherwise.
      */
-    public void saveSlices(String saveTo) {
+    public void saveSlices(String saveTo, boolean toTiff) {
 
-        ImagePlus prepared = prepareImageForSaving();
+        ImagePlus prepared = prepareImageForSaving(toTiff);
 
         ImagePlus flattened = buildFlattenedImage(prepared);
-        writeSlicesToDisk(flattened, saveTo);
+        writeSlicesToDisk(flattened, saveTo, toTiff);
     }
 
     /**
@@ -168,7 +170,6 @@ public class MyImagePlus extends ImagePlus {
                 int index = imp.getStackIndex(1, z, t);
                 imp.setSlice(index);
 
-                // Create a temporary ImagePlus for the current slice's processor
                 ImagePlus slice = new ImagePlus("", imp.getProcessor().duplicate());
 
                 if (overlay != null) {
@@ -178,7 +179,6 @@ public class MyImagePlus extends ImagePlus {
                         slice = slice.flatten(); // Flatten this slice with its overlay
                     }
                 }
-                // Add the (potentially flattened) processor to the new stack
                 stack.addSlice(imp.getStack().getSliceLabel(index), slice.getProcessor());
             }
         }
@@ -212,8 +212,9 @@ public class MyImagePlus extends ImagePlus {
      *
      * @param imp Image with flattened slices.
      * @param saveTo Directory to save images.
+     * @param toTiff True to save to a tiff file, false for png.
      */
-    private void writeSlicesToDisk(ImagePlus imp, String saveTo) {
+    private void writeSlicesToDisk(ImagePlus imp, String saveTo, boolean toTiff) {
         int slices = imp.getNSlices();
         int frames = imp.getNFrames();
         String baseFileName = new File(getTitle()).getName().replaceFirst("^_", "");
@@ -221,28 +222,26 @@ public class MyImagePlus extends ImagePlus {
         for (int t = 1; t <= frames; t++) {
             for (int z = 1; z <= slices; z++) {
                 int index = imp.getStackIndex(1, z, t);
-                imp.setSlice(index); // Set the active slice of the flattened ImagePlus
-
-                // Create a new ImagePlus for saving this single slice, duplicating its processor
+                imp.setSlice(index);
+                
                 ImagePlus sliceToSave = new ImagePlus(
                         baseFileName + "_F" + t + "_Z" + z,
                         imp.getProcessor().duplicate() // Duplicate the processor to ensure isolated saving
                 );
 
                 // If it's an 8-bit image, ensure its display range is set for proper saving
-                if (sliceToSave.getProcessor() instanceof ByteProcessor || sliceToSave.getProcessor() instanceof ColorProcessor) {
-                    sliceToSave.setDisplayRange(0, 255);
-                }
+                if (sliceToSave.getProcessor() instanceof ByteProcessor || sliceToSave.getProcessor() instanceof ColorProcessor)
+                    sliceToSave.setDisplayRange(0, 255);                
 
-                File outFile = new File(saveTo, sliceToSave.getTitle() + ".png");
+                File outFile = new File(saveTo, sliceToSave.getTitle() + (toTiff?".tiff":".png"));
                 ensureDir(outFile.getParentFile());
 
                 FileSaver fs = new FileSaver(sliceToSave);
-                if (!fs.saveAsPng(outFile.getAbsolutePath())) {
-                    System.err.println("Failed to save: " + outFile.getAbsolutePath());
-                } else {
-                    System.out.println("Saved: " + outFile.getAbsolutePath());
-                }
+                
+                if (!toTiff && fs.saveAsPng(outFile.getAbsolutePath()) ||
+                        toTiff && fs.saveAsTiff(outFile.getAbsolutePath())) 
+                    System.out.println("Saved: " + outFile.getAbsolutePath());                
+                else System.err.println("Failed to save: " + outFile.getAbsolutePath());
             }
         }
     }
@@ -303,25 +302,25 @@ public class MyImagePlus extends ImagePlus {
      * @return this
      */
     public MyImagePlus overlay(ImageStack overlayStack, Color color) {
-        
+
         Overlay overlay = new Overlay();
 
         for (int z = 1; z <= overlayStack.getSize(); z++) {
             ByteProcessor binaryProcessor = (ByteProcessor) overlayStack.getProcessor(z);
-            
+
             // Create a color image from binary mask
             ColorProcessor colorProcessor = new ColorProcessor(width, height);
             for (int y = 0; y < height; y++)
-                for (int x = 0; x < width; x++){
-                                       
-                    if (binaryProcessor.get(x, y) == 255) 
+                for (int x = 0; x < width; x++) {
+
+                    if (binaryProcessor.get(x, y) == 255)
                         colorProcessor.set(x, y, color.getRGB());
                     else colorProcessor.set(x, y, 0);
                 }
 
             ImageRoi roi = new ImageRoi(0, 0, colorProcessor);
-            roi.setZeroTransparent(true); 
-            roi.setPosition(z); 
+            roi.setZeroTransparent(true);
+            roi.setPosition(z);
 
             overlay.add(roi);
         }

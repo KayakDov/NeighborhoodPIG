@@ -200,14 +200,4 @@ public class VectorImg {
         }
     }
 
-    /**
-     * Saves the vectors as a bunch of images.
-     *
-     * @param parentFolder
-     */
-    public void saveToFile(String parentFolder) {
-        new MyImagePlus("Nematic Field", imgStack(), targetSpace.depth)
-                .saveSlices(parentFolder);
-    }
-
 }

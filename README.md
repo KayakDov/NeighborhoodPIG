@@ -17,7 +17,7 @@ To get started with Neighborhood PIG, follow these two simple steps:
 
 ### Step 2: Install JCuda (Version 12 or Later)
 
-Neighborhood PIG utilizes JCuda for GPU-accelerated computations.  The plugin does not currently work without a gpu, though future versions will.
+Neighborhood PIG utilizes JCuda for GPU-accelerated computations.  The plugin does not currently work without a GPU, though future versions will.
 
 1. Download the JCuda library (version 12 or later), including its native libraries. These `*.jar` files are available in the `JCuda12/` folder within this repository.
 2. Place all the downloaded JCuda `*.jar` files into the `jars/` folder within your Fiji installation directory.
@@ -97,11 +97,11 @@ After the numeric fields, you'll find three checkboxes:
 
 3.  **Generate Coherence:**
 
-    * When checked, this option produces a heat map specifically showing the coherence of the orientation. Coherence measures the degree to which the orientation is elliptical versus circular. A coherence of $0$ indicates there is no measurable orientation. A coherence of $1$ indicates there is a strong orientation, much like an ellipse with a high major axis length to minor axis length ratio.
+    * When checked, this option produces a heatmap specifically showing the coherence of the orientation. Coherence measures the degree to which the orientation is elliptical versus circular. A coherence of $0$ indicates there is no measurable orientation. A coherence of $1$ indicates there is a strong orientation, much like an ellipse with a high major axis length to minor axis length ratio.
 
     * **Sample Output:**
         ![Donut's Coherence Heatmap](images/examples/DonutCoherence.png "Sample Coherence Heatmap")
-        *Figure 4: Donut's coherence heat map.*
+        *Figure 4: Donut's coherence heatmap.*
 
 ### More Numerical Input Fields
 
@@ -122,7 +122,7 @@ After the numeric fields, you'll find three checkboxes:
         * **For a Vector Field (Standalone):** Even if not superimposed, downsampling can reduce the resulting image size, which can be very large otherwise.
 
 ![A Slice from a 3D Bacteria Image](images/examples/posDefectZenith.jpeg)
-*Figure 5: A slice of a 3D bacteria image (left) and the heat maps it may generate.*
+*Figure 5: A slice of a 3D bacteria image (left) and the heatmaps it may generate.*
 
 ## Vector Field Specific Options (New Window)
 
@@ -191,32 +191,29 @@ The `run()` method uses the `UserInput.fromStrings()` method, which expects a sp
 
 Parameters are ordered sequentially. If a parameter is "omitted," it means it is not included in the string at all, and the subsequent parameters shift their position.
 
-1.  **`[int] neighborhood_xy_radius`**: (e.g., `20`)
-    * The XY radius of the neighborhood for structure tensor computation.
-2.  **`[int] neighborhood_z_radius`**: (e.g., `5`)
-    * **Conditional:** Only include if the image has a depth (Z-slices > 1). Omit if the image is 2D.
-3.  **`[int] z_axis_pixel_spacing_multiplier`**: (e.g., `2`)
-    * **Conditional:** Only include if the image has a depth (Z-slices > 1). Omit if the image is 2D.
-4.  **`[boolean] generate_heatmap`**: (`true` or `false`)
-    * Whether to generate a heatmap output.
-5.  **`[boolean] generate_vector_field`**: (`true` or `false`)
-    * Whether to generate a vector field output.
-6.  **`[boolean] generate_coherence`**: (`true` or `false`)
-    * Whether to generate coherence information.
-7.  **`[int] vector_field_spacing`**: (e.g., `20`)
-    * **Conditional:** Only include if `generate_vector_field` is `true`. Omit if `generate_vector_field` is `false`.
-8.  **`[int] vector_field_magnitude`**: (e.g., `20`)
-    * **Conditional:** Only include if `generate_vector_field` is `true`. Omit if `generate_vector_field` is `false`.
-9.  **`[boolean] overlay_vector_field`**: (`true` or `false`)
-    * **Conditional:** Only include if `generate_vector_field` is `true` AND the image is 2D (single slice). Omit if `generate_vector_field` is `false` or the image has multiple slices.
-10. **`[int] downsample_factor_xy`**: (e.g., `1`)
-    * **Conditional:** This parameter's value is taken from `vector_field_spacing` if `generate_vector_field` is `true` AND `overlay_vector_field` is `true`. Otherwise, it's parsed directly from the string. **You should always include this in the string as the last parameter.**
+### 📦 Full List of UserInput Parameters
 
+Neighborhood PIG expects the following command-line arguments after the image path and depth. Their inclusion depends on the image dimensionality and selected features.
+
+| Position | Parameter Name            | Type      | Description                                                                                      | Use  When                                       |
+|----------|---------------------------|-----------|--------------------------------------------------------------------------------------------------|-----------------------------------------------------|
+| 1        | `xy_radius`               | `int`     | Radius of the XY neighborhood (e.g., 10).                                                        | Always                                              |
+| 2        | `z_radius`                | `int`     | Radius in the Z-direction (e.g., 3).                                                             | Only if `depth > 1`                                 |
+| 3        | `z_axis_multiplier`       | `float`   | Relative spacing between Z-slices (e.g., 2.0 = Z spacing is twice XY spacing).                   | Only if `depth > 1`                                 |
+| 4        | `generate_heatmap`        | `boolean` | Whether to generate a heatmap showing orientation.                                               | Always                                              |
+| 5        | `generate_vector_field`   | `boolean` | Whether to generate a nematic vector field.                                                      | Always                                              |
+| 6        | `generate_coherence`      | `boolean` | Whether to generate a coherence heatmap.                                                         | Always                                              |
+| 7        | `vector_field_spacing`    | `int`     | Space between vectors in the output.                                                             | If `generate_vector_field == true`                  |
+| 8        | `vector_field_magnitude`  | `int`     | Length of the vectors.                                                                           | If `generate_vector_field == true`                  |
+| 9        | `overlay_vector_field`    | `boolean` | Whether to overlay vectors on the original image (2D only).                                      | If 2D and `generate_vector_field == true`           |
+| 10       | `downsample_factor_xy`    | `int`     | Downsample factor for all outputs. If overlay = true, must equal `vector_field_spacing`.         | Always                                              |
+
+---
 ### Examples:
 
 #### Example 1: 2D Image (Single Slice) - Generate Heatmap and Vector Field with Overlay
 
-Let's say you have a 2D image (e.g., Figure 1: Donut's derriere). You want:
+Let's say you have a 2D image (e.g., Figure 1: Donut). You want:
 * `neighborhood_xy_radius`: 10
 * `generate_heatmap`: true
 * `generate_vector_field`: true
@@ -235,6 +232,108 @@ The string would be:
 // Open your 2D image first
 open("path/to/your/donut_image.tif");
 run("Neighborhood PIG", "10 false true false 15 10 true 15");
+```
+---
+
+## Running Neighborhood PIG from the Command Line (Headless Mode)
+
+Neighborhood PIG can also be executed as a **standalone Java program**, without opening Fiji or using the GUI. This is useful for headless environments, batch processing, and automation.
 
 ---
+
+### 🛠 Step 1: Installing Java
+
+To run NeighborhoodPIG.jar, you must have Java installed (JDK 8 or later recommended).
+You can find installation instructions for your operating system at the official Java help page:
+
+👉 https://www.java.com/en/download/help/download_options.html
+
+To verify Java is installed correctly, open a terminal or command prompt and run:
+
+```bash
+java -version
+```
+You should see output like java version "1.8.0" or higher.
+
+
+---
+
+### 🚀 Step 2: Basic Usage
+
+```bash
+java -jar NeighborhoodPIG.jar <image_path> <depth> <tiff/png> <user_input_parameters...>
+```
+
+- `<image_path_directory>`: Path to a directory of images.
+- `<depth>`: Number of Z-slices. Use `1` for 2D images.
+- `<tiff/png>`: Either "tiff" or "png" dpending on how you'd like to save the results.
+- `<user_input_parameters...>`: A sequence of parameters described above in the Macros section.
+
+---
+
+
+### 💡 Examples
+
+#### ✅ Example 1: 2D Image – Heatmap + Coherence
+
+```bash
+java -jar NeighborhoodPIG.jar "images/picturesParentDirectory/" 1 "png" 10 true false true 1
+```
+
+Explanation:
+- `depth = 1` → 2D image
+- XY radius = 10
+- Generate heatmap: true
+- Generate vector field: false
+- Generate coherence: true
+- Downsample factor = 1
+
+#### ✅ Example 2: 3D Stack – Vector Field Only
+
+```bash
+java -jar NeighborhoodPIG.jar "images/cells/" 5 "tiff" 15 3 2 false true false 10 8 2
+```
+
+Explanation:
+- `depth = 5` → 3D stack
+- XY radius = 15, Z radius = 3
+- Z multiplier = 2
+- No heatmap
+- Vector field = true
+- Coherence = false
+- Spacing = 10, Magnitude = 8
+- Downsample = 2
+
+#### ✅ Example 3: 2D with Vector Field Overlay
+
+```bash
+java -jar NeighborhoodPIG.jar "images/circle.tif" 1 10 false true false 15 10 true 15
+```
+
+Explanation:
+- 2D image (depth = 1)
+- Generate only vector field with overlay
+- `vector_field_spacing = 15`, `downsample = 15`
+
+---
+
+### 🧪 Troubleshooting
+
+| Error                               | Cause                                                             | Suggested Fix                                       |
+|------------------------------------|-------------------------------------------------------------------|-----------------------------------------------------|
+| `NumberFormatException`            | A numeric value was malformed (e.g., "ten" instead of `10`)      | Use proper numeric values                           |
+| `ArrayIndexOutOfBoundsException`   | Not enough arguments passed                                       | Make sure you include all required parameters       |
+| `NullPointerException`             | Input file or directory not found or unreadable                   | Double-check the path to the image                  |
+| `RuntimeException`                 | Logical mismatch (e.g., spacing ≠ downsample when overlay = true) | Ensure consistency between spacing and downsample   |
+
+---
+
+### 🧠 Notes
+
+- Directories are treated as stacks (files sorted alphabetically).
+- All output files are saved in working directory.
+- The last parameter (`downsample_factor_xy`) is still required even when overlaying the vector field.
+
+---
+
 

@@ -11,7 +11,7 @@ import ij.gui.GenericDialog;
  *
  * @author E. Dov Neimand
  */
-public class UserInput {
+public class UserInput {//TODO: instead of multiple windows, have one window with active and inactive fields.
 
     public final static float defaultTolerance = 1e-5f;
 
@@ -76,7 +76,7 @@ public class UserInput {
         this.tolerance = tolerance;
         this.downSampleFactorXY = downSampleFactorXY;
         this.overlay = vfOverlay;
-        this.vfSpacing = overlay ? downSampleFactorXY: vfSpacing;
+        this.vfSpacing = overlay ? downSampleFactorXY : vfSpacing;
     }
 
     /**
@@ -149,48 +149,59 @@ public class UserInput {
         return new UserInput(nd, false, true, false, spacing, Math.max(spacing - 2, 0), false, defaultTolerance, 1);
     }
 
+    
+    
     /**
      * Constructs a {@code UserInput} object by parsing an array of strings.
      * This method is useful for loading parameters from a saved configuration
      * or command-line arguments, where each parameter is provided as a string.
-     * The order of elements in the input {@code string} array is crucial and
-     * must match the expected parsing sequence.
+     * The number of elements in the input {@code strings} array is variable
+     * and depends on the `depth` of the image and the `vectorField` and `overlay`
+     * settings. Parameters related to Z-dimensions or vector field options
+     * are omitted from the string array if not applicable.
      *
-     * @param string An array of strings containing the user input parameters in
-     * the following order.
+     * @param strings An array of strings containing the user input parameters
+     * in a specific order. The presence of parameters depends on the `depth`
+     * and other boolean flags. The order is:
      * <ol>
-     * <li>XY radius of the neighborhood (int)</li>
-     * <li>Z radius of the neighborhood. (int) Omit if the image has no
-     * depth.</li>
-     * <li>Distance between adjacent layers (int) Omit if the image has no
-     * depth.</li>
-     * <li>Whether to generate a heatmap (boolean)</li>
-     * <li>Whether to generate a vector field (boolean)</li>
-     * <li>Whether to generate coherence information (boolean)</li>
-     * <li>Vector field spacing (int) Omit if the image has no depth.</li>
-     * <li>Vector field magnitude (int) Omit if the image has no depth.</li>
-     * <li>Whether to overlay the vector field (boolean) - Omit if vector field
-     * is false or the image has more than 1 slice</li>
-     * <li>Downsample factor XY (int) - Only include if vector field is true and
-     * overlay is true, this value is taken from vector field spacing;
-     * otherwise, it's parsed directly.</li>
+     * <li>`neighborhood_xy_radius` (int)</li>
+     * <li>If image has Z-depth (`depth > 1`):
+     * <ul>
+     * <li>`neighborhood_z_radius` (int)</li>
+     * <li>`z_axis_pixel_spacing_multiplier` (int)</li>
+     * </ul>
+     * </li>
+     * <li>`generate_heatmap` (boolean)</li>
+     * <li>`generate_vector_field` (boolean)</li>
+     * <li>`generate_coherence` (boolean)</li>
+     * <li>If `generate_vector_field` is `true`:
+     * <ul>
+     * <li>`vector_field_spacing` (int)</li>
+     * <li>`vector_field_magnitude` (int)</li>
+     * <li>If image has no Z-depth (`depth == 1`):
+     * <ul>
+     * <li>`overlay_vector_field` (boolean)</li>
+     * </ul>
+     * </li>
+     * </ul>
+     * </li>
+     * <li>`downsample_factor_xy` (int) - This parameter is present *unless*
+     * `generate_vector_field` is `true` AND `overlay_vector_field` is `true`
+     * (in which case its value is derived from `vector_field_spacing` and
+     * it is omitted from the command-line string).</li>
      * </ol>
-     * @param imp The {@code ImagePlus} object, used to determine if the image
-     * has multiple slices (Z-dimension) which affects the parsing of the
-     * overlay parameter.
+     * @param depth The depth (number of Z-slices) of the image stack.
      * @return A new {@code UserInput} object populated with the parsed values.
      * @throws NumberFormatException if any string cannot be parsed into its
      * corresponding numeric or boolean type.
-     * @throws ArrayIndexOutOfBoundsException if the {@code string} array does
-     * not contain enough elements for the required parameters.
+     * @throws ArrayIndexOutOfBoundsException if the {@code strings} array does
+     * not contain enough elements for the required parameters based on the logic.
      */
-    public static UserInput fromStrings(String string, ImagePlus imp) {
+    public static UserInput fromStrings(String[] strings, int depth) {
 
         int i = 0;
 
-        String[] strings = string.split(" ");
-
-        boolean hasZ = imp.getNSlices() > 1;
+        boolean hasZ = depth > 1;
 
         int xy = Integer.parseInt(strings[i++]);
         int z = hasZ ? Integer.parseInt(strings[i++]) : 0;
@@ -200,7 +211,7 @@ public class UserInput {
         boolean coherence = Boolean.parseBoolean(strings[i++]);
         int vectorFieldSpacing = vectorField ? Integer.parseInt(strings[i++]) : 0;
         int vectorFieldMagnitude = vectorField ? Integer.parseInt(strings[i++]) : 0;
-        boolean overlay = vectorField && imp.getNSlices() == 1 ? Boolean.parseBoolean(strings[i++]) : false;
+        boolean overlay = vectorField && !hasZ ? Boolean.parseBoolean(strings[i++]) : false;
         int downSample = vectorField && overlay ? vectorFieldSpacing : Integer.parseInt(strings[i++]);
 
         return new UserInput(
