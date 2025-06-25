@@ -3,6 +3,17 @@ package FijiInput;
 import fijiPlugin.NeighborhoodDim;
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
+import ij.gui.DialogListener; // Import DialogListener
+import ij.gui.MultiLineLabel;
+import java.awt.AWTEvent;
+import java.awt.Button;
+import java.awt.Label;
+import java.awt.Panel;
+import java.awt.TextArea;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 /**
  * This class encapsulates user input parameters obtained from a dialog box. It
@@ -11,7 +22,7 @@ import ij.gui.GenericDialog;
  *
  * @author E. Dov Neimand
  */
-public class UserInput {//TODO: instead of multiple windows, have one window with active and inactive fields.
+public class UserInput {
 
     public final static float defaultTolerance = 1e-5f;
 
@@ -87,56 +98,127 @@ public class UserInput {//TODO: instead of multiple windows, have one window wit
      * @throws UserCanceled If the user cancels the dialog box.
      */
     public static UserInput fromDiolog(ImagePlus imp) throws UserCanceled {
-
         boolean hasZ = imp.getNSlices() > 1;
 
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
+        HelpFrame hf = addHelpButton(gd);
 
-        NumericField xyR = new NumericField("Neighborhood xy radius", 20, gd);
-        NumericField zR = null;
-        if (hasZ) zR = new NumericField("Neighborhood z radius:", 5, gd);
-        BooleanField heatmap = new BooleanField("Heatmap", true, gd);
-        BooleanField vector = new BooleanField("Vector field", true, gd);
-        BooleanField coherence = new BooleanField("Generate coherence", true, gd);
+        NumericField downSample = new NumericField("Downsample factor XY:", 20, gd, 0,
+                "Determines how many pixels are skipped (1 = every pixel, 2 = every other). Increased values improve memory & time performance.",
+                hf);
 
-        NumericField layerDist = null;
-        if (hasZ) layerDist = new NumericField("Z axis pixel spacing multiplier", 2, gd);
-        NumericField downSample = new NumericField("Downsample factor XY:", 20, gd);
+        BooleanField heatmap = new BooleanField("Heatmap", true, gd,
+                "Generates a heatmap visualizing image orientations.",
+                hf);
 
+        NumericField xyR = new NumericField("Neighborhood xy radius", 20, gd, 0,
+                "Radius (pixels) of the square neighborhood in the XY plane for structure tensor calculation.",
+                hf);
+        NumericField zR = hasZ ? new NumericField("Neighborhood z radius:", 5, gd, 0,
+                "Radius (pixels) of the cube neighborhood in the Z-direction for 3D stacks.",
+                hf) : null;
+        NumericField layerDist = hasZ ? new NumericField("Z axis pixel spacing multiplier", 2, gd, 1,
+                "Factor for anisotropic Z-spacing (e.g., 1.5 if Z-distance is 1.5 x XY pixel size).",
+                hf) : null;
+
+        BooleanField coherence = new BooleanField("Generate coherence", true, gd,
+                "Computes and displays a heatmap representing pixel coherence.",
+                hf);
+
+        BooleanField vectorField = new BooleanField("Vector field", true, gd,
+                "Displays vectors representing orientations.",
+                hf);
+        BooleanField overlay = hasZ ? null : new BooleanField("Overlay Vector Field", false, gd,
+                "Overlays the vector field directly on the original image.",
+                hf);
+
+        NumericField spacing = new NumericField("Vector Field Spacing:", (float) downSample.val(), gd, 0,
+                "Distance (pixels) between vectors. Adjust to prevent crowding or sparse display.",
+                hf);
+        NumericField mag = new NumericField("Vector Field Magnitude:", (float) downSample.val(), gd, 0,
+                "Visual length (pixels) of the displayed vectors.",
+                hf);
+
+        gd.addDialogListener(new DialogListener() {
+            @Override
+            public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
+
+                spacing.setEnabled(vectorField.is());
+                mag.setEnabled(vectorField.is());
+
+                if (!hasZ) {
+
+                    overlay.setEnabled(vectorField.is());
+
+                    if (vectorField.is() && overlay.is())
+                        spacing.val(downSample.val()).setEnabled(false);
+
+                }
+
+                if (!vectorField.is()) {
+                    spacing.val(Float.NaN);
+                    mag.val(Float.NaN);
+                    overlay.is(false);
+                }
+
+                return true; // Return true to keep the dialog open
+            }
+        });
+
+        // Initialize the state of the fields based on initial checkbox values
+        // This simulates an initial change event, setting up the GUI correctly at start
+        gd.setAlwaysOnTop(true); // Keep the dialog on top
         gd.showDialog();
 
-        if (gd.wasCanceled())
+        if (gd.wasCanceled()) {
             throw new UserCanceled();
-
-        NumericField spacing = null, mag = null;
-        BooleanField overlay = null;
-
-        if (vector.is()) {
-            GenericDialog vfDialog = new GenericDialog("Vector Field Parameters.  Be sure downSample > 1.");
-
-            if (!hasZ) overlay = new BooleanField("Overlay", false, vfDialog);
-
-            spacing = new NumericField("Spacing", downSample.val(), vfDialog);
-
-            mag = new NumericField("Vector magnitude:", downSample.val(), vfDialog);
-
-            vfDialog.showDialog();
-
-            if (!hasZ && overlay.is() && spacing.val() != downSample.val()) throw new RuntimeException("If set to overlay, then spacing must equal downsample size.");
         }
 
         return new UserInput(
                 new NeighborhoodDim((int) xyR.val(), hasZ ? (int) zR.val() : 1, hasZ ? (int) layerDist.val() : 1),
                 heatmap.is(),
-                vector.is(),
+                vectorField.is(),
                 coherence.is(),
-                vector.is() ? (int) spacing.val() : 0,
-                vector.is() ? (int) mag.val() : 0,
-                vector.is() && !hasZ ? overlay.is() : false,
+                vectorField.is() ? (int) spacing.val() : 0,
+                vectorField.is() ? (int) mag.val() : 0,
+                vectorField.is() && !hasZ ? overlay.is() : false,
                 defaultTolerance,
                 (int) downSample.val()
         );
     }
+        
+    
+    /**
+     * Adds the help button and ties it to the generic dialog.
+     * @param gd The generic dialog the help frame should be added to.
+     * @return The help frame.
+     */
+    private static HelpFrame addHelpButton(GenericDialog gd){
+        Panel buttonPanel = new Panel();        
+        HelpFrame helpFrame = new HelpFrame("Help for Neighborhood PIG");
+        Button helpButton = new Button("Help");
+        buttonPanel.add(helpButton);
+        
+        helpButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                helpFrame.setVisible(!helpFrame.isVisible());
+                if(helpFrame.isVisible()) helpFrame.toFront();
+            }
+        });
+        gd.add(buttonPanel);
+        
+        gd.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                helpFrame.dispose(); 
+            }
+
+        });
+        gd.addMessage("");
+        return helpFrame;
+    }
+    
 
     /**
      * Some default values for testing purposes.
@@ -149,16 +231,14 @@ public class UserInput {//TODO: instead of multiple windows, have one window wit
         return new UserInput(nd, false, true, false, spacing, Math.max(spacing - 2, 0), false, defaultTolerance, 1);
     }
 
-    
-    
     /**
      * Constructs a {@code UserInput} object by parsing an array of strings.
      * This method is useful for loading parameters from a saved configuration
      * or command-line arguments, where each parameter is provided as a string.
-     * The number of elements in the input {@code strings} array is variable
-     * and depends on the `depth` of the image and the `vectorField` and `overlay`
-     * settings. Parameters related to Z-dimensions or vector field options
-     * are omitted from the string array if not applicable.
+     * The number of elements in the input {@code strings} array is variable and
+     * depends on the `depth` of the image and the `vectorField` and `overlay`
+     * settings. Parameters related to Z-dimensions or vector field options are
+     * omitted from the string array if not applicable.
      *
      * @param strings An array of strings containing the user input parameters
      * in a specific order. The presence of parameters depends on the `depth`
@@ -187,15 +267,16 @@ public class UserInput {//TODO: instead of multiple windows, have one window wit
      * </li>
      * <li>`downsample_factor_xy` (int) - This parameter is present *unless*
      * `generate_vector_field` is `true` AND `overlay_vector_field` is `true`
-     * (in which case its value is derived from `vector_field_spacing` and
-     * it is omitted from the command-line string).</li>
+     * (in which case its value is derived from `vector_field_spacing` and it is
+     * omitted from the command-line string).</li>
      * </ol>
      * @param depth The depth (number of Z-slices) of the image stack.
      * @return A new {@code UserInput} object populated with the parsed values.
      * @throws NumberFormatException if any string cannot be parsed into its
      * corresponding numeric or boolean type.
      * @throws ArrayIndexOutOfBoundsException if the {@code strings} array does
-     * not contain enough elements for the required parameters based on the logic.
+     * not contain enough elements for the required parameters based on the
+     * logic.
      */
     public static UserInput fromStrings(String[] strings, int depth) {
 

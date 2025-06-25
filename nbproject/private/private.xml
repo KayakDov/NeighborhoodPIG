@@ -3,15 +3,11 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/FijiPlugin.java</file>
-            <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/NeighborhoodPIG.java</file>
-            <file>file:/home/dov/projects/NieghborhoodPIG/src/imageWork/MyImagePlus.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/FijiInput/NumericField.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/FijiInput/BooleanField.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/FijiInput/Field.java</file>
+            <file>file:/home/dov/projects/NieghborhoodPIG/src/FijiInput/HelpFrame.java</file>
             <file>file:/home/dov/projects/NieghborhoodPIG/src/FijiInput/UserInput.java</file>
-            <file>file:/home/dov/projects/NieghborhoodPIG/src/main/GenDebugFile.java</file>
-            <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/NeighborhoodProductSums.java</file>
-            <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/StructureTensorMatrices.java</file>
-            <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/Gradient.java</file>
-            <file>file:/home/dov/projects/NieghborhoodPIG/src/fijiPlugin/NeighborhoodDim.java</file>
         </group>
     </open-files>
 </project-private>
