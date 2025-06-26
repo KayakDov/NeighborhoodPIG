@@ -24,7 +24,7 @@ public class BooleanField extends Field {
      * @param helpText Instructions to the user on how to use this field.
      * @param helpLabel
      */
-    public BooleanField(String name, boolean defaultValue, GenericDialog gd, String helpText, HelpFrame helpLabel) {
+    public BooleanField(String name, boolean defaultValue, GenericDialog gd, String helpText, HelpDialog helpLabel) {
         super(name, gd, helpText, helpLabel);
         gd.addCheckbox(name, defaultValue);
         this.awtComponent = (Checkbox) gd.getCheckboxes().get(gd.getCheckboxes().size() - 1);

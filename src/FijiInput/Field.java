@@ -20,7 +20,7 @@ public abstract class Field {
     public final String name, helpText;
     protected final GenericDialog gd;
     protected Component awtComponent;
-    protected final HelpFrame helpMessageFrame;
+    protected final HelpDialog helpMessageFrame;
 
     /**
      * Constructs the field.
@@ -31,7 +31,7 @@ public abstract class Field {
      * @param helpLabel The help message will be posted here when focus is on
      * this.
      */
-    public Field(String name, GenericDialog gd, String helpText, HelpFrame helpLabel) {
+    public Field(String name, GenericDialog gd, String helpText, HelpDialog helpLabel) {
         this.name = name;
         this.gd = gd;
         this.helpText = helpText;

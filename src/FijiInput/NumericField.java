@@ -28,7 +28,7 @@ public class NumericField extends Field {
      * @param helpText Instructions on how the user should use this field.
      * @param helpLabel Where the help text is stored.
      */
-    public NumericField(String name, float defaultValue, GenericDialog gd, int mantissa, String helpText, HelpFrame helpLabel) {
+    public NumericField(String name, float defaultValue, GenericDialog gd, int mantissa, String helpText, HelpDialog helpLabel) {
         super(name, gd, helpText, helpLabel);
         gd.addNumericField(name, defaultValue, mantissa);
         awtComponent = (TextField) gd.getNumericFields().get(gd.getNumericFields().size() - 1);

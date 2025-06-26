@@ -104,11 +104,11 @@ public class UserInput {
      * @return A UserInput object containing the user's input.
      * @throws UserCanceled If the user cancels the dialog box.
      */
-    public static UserInput fromDiolog(ImagePlus imp) throws UserCanceled {
+    public static UserInput fromDialog(ImagePlus imp) throws UserCanceled {
         boolean hasZ = imp.getNSlices() > 1;
 
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
-        HelpFrame hf = addHelpButton(gd);
+        HelpDialog hf = addHelpButton(gd);
 
         NumericField downSample = new NumericField("Downsample factor XY:", 20, gd, 0,
                 "Determines how many pixels are skipped (1 = every pixel, 2 = every other). \nIncreased values improve memory & time performance.",
@@ -179,9 +179,6 @@ public class UserInput {
             }
         });
 
-        // Initialize the state of the fields based on initial checkbox values
-        // This simulates an initial change event, setting up the GUI correctly at start
-        gd.setAlwaysOnTop(true); // Keep the dialog on top
         gd.showDialog();
 
         if (gd.wasCanceled()) {
@@ -208,27 +205,27 @@ public class UserInput {
      * @param gd The generic dialog the help frame should be added to.
      * @return The help frame.
      */
-    private static HelpFrame addHelpButton(GenericDialog gd) {
-        
-        HelpFrame helpFrame = new HelpFrame("Help for Neighborhood PIG");        
-        
+    private static HelpDialog addHelpButton(GenericDialog gd) {
+
+        HelpDialog help = new HelpDialog(gd, "Help for Neighborhood PIG");
+
         gd.addButton("Help", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                helpFrame.setVisible(!helpFrame.isVisible());
-                if (helpFrame.isVisible()) helpFrame.toFront();
+                help.setVisible(!help.isVisible());
+                if (help.isVisible()) help.toFront();
             }
-        });        
+        });
 
         gd.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
-                helpFrame.dispose();
+                help.dispose();
             }
 
-        });        
-        
-        return helpFrame;
+        });
+
+        return help;
     }
 
     /**
