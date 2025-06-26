@@ -47,9 +47,15 @@ public class UserInput {
     public final boolean useCoherence;
 
     /**
-     * The spacing between vectors in the generated vector field.
+     * The spacing between vectors in the generated vector field in the xy
+     * plane.
      */
-    public final int vfSpacing;
+    public final int vfSpacingXY;
+
+    /**
+     * The spacing between vectors in the generated vector field in the z plane.
+     */
+    public final int vfSpacingZ;
 
     /**
      * The magnitude of the vectors in the generated vector field.
@@ -78,7 +84,7 @@ public class UserInput {
      * @param vfMag The magnitude of the vectors in the vector field.
      * @param tolerance The tolerance value.
      */
-    private UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, boolean useCoherence, int vfSpacing, int vfMag, boolean vfOverlay, float tolerance, int downSampleFactorXY) {
+    private UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, boolean useCoherence, int vfSpacing, int vfMag, boolean vfOverlay, float tolerance, int downSampleFactorXY, int vfSpacingZ) {
         this.neighborhoodSize = neighborhoodSize;
         this.heatMap = heatMap;
         this.vectorField = vectorField;
@@ -87,7 +93,8 @@ public class UserInput {
         this.tolerance = tolerance;
         this.downSampleFactorXY = downSampleFactorXY;
         this.overlay = vfOverlay;
-        this.vfSpacing = overlay ? downSampleFactorXY : vfSpacing;
+        this.vfSpacingXY = overlay ? downSampleFactorXY : vfSpacing;
+        this.vfSpacingZ = vfSpacingZ;
     }
 
     /**
@@ -104,7 +111,7 @@ public class UserInput {
         HelpFrame hf = addHelpButton(gd);
 
         NumericField downSample = new NumericField("Downsample factor XY:", 20, gd, 0,
-                "Determines how many pixels are skipped (1 = every pixel, 2 = every other). Increased values improve memory & time performance.",
+                "Determines how many pixels are skipped (1 = every pixel, 2 = every other). \nIncreased values improve memory & time performance.",
                 hf);
 
         BooleanField heatmap = new BooleanField("Heatmap", true, gd,
@@ -132,9 +139,14 @@ public class UserInput {
                 "Overlays the vector field directly on the original image.",
                 hf);
 
-        NumericField spacing = new NumericField("Vector Field Spacing:", (float) downSample.val(), gd, 0,
-                "Distance (pixels) between vectors. Adjust to prevent crowding or sparse display.",
+        NumericField spacingXY = new NumericField("Vector Field Spacing XY:", (float) downSample.val(), gd, 0,
+                "Distance (pixels) between vectors in the xy plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
                 hf);
+
+        NumericField spacingZ = hasZ ? new NumericField("Vector Field Spacing Z:", (float) downSample.val(), gd, 0,
+                "Distance (pixels) between vectors in the xy plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
+                hf) : null;
+
         NumericField mag = new NumericField("Vector Field Magnitude:", (float) downSample.val(), gd, 0,
                 "Visual length (pixels) of the displayed vectors.",
                 hf);
@@ -143,20 +155,22 @@ public class UserInput {
             @Override
             public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
 
-                spacing.setEnabled(vectorField.is());
+                spacingXY.setEnabled(vectorField.is());
+
                 mag.setEnabled(vectorField.is());
 
-                if (!hasZ) {
-
+                if (hasZ) spacingZ.setEnabled(vectorField.is());
+                else {
                     overlay.setEnabled(vectorField.is());
 
-                    if (vectorField.is() && overlay.is())
-                        spacing.val(downSample.val()).setEnabled(false);
+                    if (vectorField.is() && overlay.is()) {
+                        spacingXY.val(downSample.val()).setEnabled(false);
+                    }
 
                 }
 
                 if (!vectorField.is()) {
-                    spacing.val(Float.NaN);
+                    spacingXY.val(Float.NaN);
                     mag.val(Float.NaN);
                     overlay.is(false);
                 }
@@ -179,46 +193,46 @@ public class UserInput {
                 heatmap.is(),
                 vectorField.is(),
                 coherence.is(),
-                vectorField.is() ? (int) spacing.val() : 0,
+                vectorField.is() ? (int) spacingXY.val() : 0,
                 vectorField.is() ? (int) mag.val() : 0,
                 vectorField.is() && !hasZ ? overlay.is() : false,
                 defaultTolerance,
-                (int) downSample.val()
+                (int) downSample.val(),
+                hasZ && vectorField.is() ? (int) spacingZ.val() : 0
         );
     }
-        
-    
+
     /**
      * Adds the help button and ties it to the generic dialog.
+     *
      * @param gd The generic dialog the help frame should be added to.
      * @return The help frame.
      */
-    private static HelpFrame addHelpButton(GenericDialog gd){
-        Panel buttonPanel = new Panel();        
+    private static HelpFrame addHelpButton(GenericDialog gd) {
+        Panel buttonPanel = new Panel();
         HelpFrame helpFrame = new HelpFrame("Help for Neighborhood PIG");
         Button helpButton = new Button("Help");
         buttonPanel.add(helpButton);
-        
+
         helpButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 helpFrame.setVisible(!helpFrame.isVisible());
-                if(helpFrame.isVisible()) helpFrame.toFront();
+                if (helpFrame.isVisible()) helpFrame.toFront();
             }
         });
         gd.add(buttonPanel);
-        
+
         gd.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
-                helpFrame.dispose(); 
+                helpFrame.dispose();
             }
 
         });
         gd.addMessage("");
         return helpFrame;
     }
-    
 
     /**
      * Some default values for testing purposes.
@@ -228,7 +242,7 @@ public class UserInput {
      */
     public static UserInput defaultVals(NeighborhoodDim nd) {
         int spacing = 6;
-        return new UserInput(nd, false, true, false, spacing, Math.max(spacing - 2, 0), false, defaultTolerance, 1);
+        return new UserInput(nd, false, true, false, spacing, Math.max(spacing - 2, 0), false, defaultTolerance, 1, spacing);
     }
 
     /**
@@ -256,7 +270,12 @@ public class UserInput {
      * <li>`generate_coherence` (boolean)</li>
      * <li>If `generate_vector_field` is `true`:
      * <ul>
-     * <li>`vector_field_spacing` (int)</li>
+     * <li>`vector_field_spacing_xy` (int)</li>
+     * <li>If image has Z-depth (`depth > 1`):
+     * <ul>
+     * <li>`vector_field_spacing_z` (int)</li>
+     * </ul>
+     * </li>
      * <li>`vector_field_magnitude` (int)</li>
      * <li>If image has no Z-depth (`depth == 1`):
      * <ul>
@@ -290,21 +309,24 @@ public class UserInput {
         boolean heatMap = Boolean.parseBoolean(strings[i++]);
         boolean vectorField = Boolean.parseBoolean(strings[i++]);
         boolean coherence = Boolean.parseBoolean(strings[i++]);
-        int vectorFieldSpacing = vectorField ? Integer.parseInt(strings[i++]) : 0;
+        int vectorFieldSpacingXY = vectorField ? Integer.parseInt(strings[i++]) : 0;
+        int vectorFieldSpacingZ = hasZ && vectorField ? Integer.parseInt(strings[i++]) : 0;
         int vectorFieldMagnitude = vectorField ? Integer.parseInt(strings[i++]) : 0;
         boolean overlay = vectorField && !hasZ ? Boolean.parseBoolean(strings[i++]) : false;
-        int downSample = vectorField && overlay ? vectorFieldSpacing : Integer.parseInt(strings[i++]);
+        int downSample = vectorField && overlay ? vectorFieldSpacingXY : Integer.parseInt(strings[i++]);
 
         return new UserInput(
                 new NeighborhoodDim(xy, z, distBetweenAdjacentLayer),
                 heatMap,
                 vectorField,
                 coherence,
-                vectorFieldSpacing,
+                vectorFieldSpacingXY,
                 vectorFieldMagnitude,
                 overlay,
                 defaultTolerance,
-                downSample);
+                downSample,
+                vectorFieldSpacingZ
+        );
     }
 
     /**
@@ -313,7 +335,7 @@ public class UserInput {
      * @return true if the parameters are valid, false otherwise.
      */
     public boolean validParamaters() {
-        return neighborhoodSize.valid() && vfSpacing >= -1 && vfMag >= 0 && tolerance > 0;
+        return neighborhoodSize.valid() && vfSpacingXY >= -1 && vfMag >= 0 && tolerance > 0;
     }
 
     /**
@@ -338,7 +360,7 @@ public class UserInput {
                 + ", heatMap=" + heatMap
                 + ", vectorField=" + vectorField
                 + ", useCoherence=" + useCoherence
-                + ", vfSpacing=" + vfSpacing
+                + ", vfSpacing=" + vfSpacingXY
                 + ", vfMag=" + vfMag
                 + ", tolerance=" + tolerance
                 + ", downSampleFactorXY=" + downSampleFactorXY

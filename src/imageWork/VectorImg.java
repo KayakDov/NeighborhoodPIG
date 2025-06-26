@@ -1,11 +1,8 @@
 package imageWork;
 
 import JCudaWrapper.array.Float.FStrideArray3d;
-import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
-import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
-import MathSupport.Cube;
 import MathSupport.Interval;
 import MathSupport.Point3d;
 import fijiPlugin.Dimensions;
@@ -13,12 +10,8 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.BinaryProcessor;
 import ij.process.ByteProcessor;
-import ij.process.FloatProcessor;
 import java.util.Arrays;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.stream.IntStream;
-import main.Test;
 
 /**
  * This class extends {@link Dimensions} and provides functionality to create an
@@ -34,7 +27,7 @@ public class VectorImg {
     private final BinaryProcessor[][] processor;
     private final Dimensions targetSpace;
     private final VecManager gridVecs;
-    private final int spacing, r;
+    private final int spacingXY, spacingZ, r;
     private final float[] currentIntensitySlice;
     private final PArray2dToF2d vecs, intensity;
     private final double tolerance;
@@ -45,16 +38,17 @@ public class VectorImg {
      * The dimensions for the output vector space.
      *
      * @param src The input vector space.
-     * @param spacing How much space will there be between vectors.
+     * @param spacingXY How much space will there be between vectors in the xy plane.
+     * @param spacingZ How much space will there be between vectors in the z dimension.
      * @param vecMag The length of the vectors.
      * @param matchHW Leave this null, unless you want the output space to match the height and width in these dimensions.
      * @return The output vector space.
      */
-    public static Dimensions space(Dimensions src, int spacing, int vecMag, Dimensions matchHW) {
+    public static Dimensions space(Dimensions src, int spacingXY, int spacingZ, int vecMag, Dimensions matchHW) {
         return new Dimensions(null,
-                matchHW == null? (src.height - 1) * spacing + vecMag + 2 : matchHW.height,
-                matchHW == null ? (src.width - 1) * spacing + vecMag + 2: matchHW.width,
-                src.hasDepth() ? (src.depth - 1) * spacing + vecMag + 3 : 1,
+                matchHW == null? (src.height - 1) * spacingXY + vecMag + 2 : matchHW.height,
+                matchHW == null ? (src.width - 1) * spacingXY + vecMag + 2: matchHW.width,
+                src.hasDepth() ? (src.depth - 1) * spacingZ + vecMag + 3 : 1,
                 src.batchSize);
     }
 
@@ -68,15 +62,16 @@ public class VectorImg {
      * @param vecs The {@link FStrideArray3d} containing vector data.
      * @param intensity The {@link FStrideArray3d} containing intensity data.
      * Pass null to set all intensities to one.
-     * @param spacing The spacing between pixels.
+     * @param spacingXY The spacing between pixels in the xy plane.
+     * @param spacingZ The spacing between vectors in the z dimension.
      * @param tolerance If useNon0Intensities is false then this determines the
      * threshold for what is close to 0.
      */
-    public VectorImg(Dimensions overlay, Handle handle, int vecMag, PArray2dToF2d vecs, PArray2dToF2d intensity, int spacing, double tolerance) {
+    public VectorImg(Dimensions overlay, Handle handle, int vecMag, PArray2dToF2d vecs, PArray2dToF2d intensity, int spacingXY, int spacingZ, double tolerance) {
         this.handle = handle;
         this.dim = new Dimensions(intensity);
 
-        targetSpace = space(dim, spacing, vecMag, overlay);
+        targetSpace = space(dim, spacingXY, spacingZ, vecMag, overlay);
 
         processor = new BinaryProcessor[targetSpace.batchSize][targetSpace.depth];
         for (int t = 0; t < dim.batchSize; t++)
@@ -89,7 +84,8 @@ public class VectorImg {
         r = vecMag / 2;
         this.vecs = vecs;
         this.intensity = intensity;
-        this.spacing = spacing;
+        this.spacingXY = spacingXY;
+        this.spacingZ = spacingZ;
         this.tolerance = tolerance;
     }
 
@@ -187,7 +183,7 @@ public class VectorImg {
                     gridVecs.get(y, x, vec);
 
                     if (vec.isFinite()) {
-                        line.getA().set(x, y, z).scale(spacing).translate(r + 1, r + 1, dim.depth == 1 ? 0 : r + 1);
+                        line.getA().set(x * spacingXY, y * spacingXY, z * spacingZ).translate(r + 1, r + 1, dim.depth == 1 ? 0 : r + 1);
                         line.getB().set(line.getA());
                         line.getA().translate(vec.scale(r));
                         line.getB().translate(vec.scale(-1));

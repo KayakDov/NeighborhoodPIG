@@ -94,7 +94,7 @@ public class NeighborhoodPIG implements AutoCloseable {
     /**
      * An image of all the nematic vectors
      *
-     * @param spacing The space between the vectors.
+     * @param spacingXY The space between the vectors.
      * @param vecMag The magnitude of the vectors to be drawn.
      * @param useCoherence True to use coherence, false to set all vector
      * intensities to 1.
@@ -102,7 +102,7 @@ public class NeighborhoodPIG implements AutoCloseable {
      * this null if overlay is false;
      * @return An image of all the nematic vectors
      */
-    public VectorImg getVectorImg(int spacing, int vecMag, boolean useCoherence, Dimensions overlay) {
+    public VectorImg getVectorImg(int spacingXY, int spacingZ, int vecMag, boolean useCoherence, Dimensions overlay) {
 
         return new VectorImg(
                 overlay,
@@ -110,7 +110,7 @@ public class NeighborhoodPIG implements AutoCloseable {
                 vecMag,
                 stm.getVectors(),
                 stm.getCoherence(),
-                spacing, 0.01
+                spacingXY, spacingZ, 0.01
         );
     }
 

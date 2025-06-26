@@ -32,8 +32,10 @@ import jcuda.Sizeof;
  */
 public class FijiPlugin implements PlugIn {
 
-    public enum Save{tiff, png, fiji}
-    
+    public enum Save {
+        tiff, png, fiji
+    }
+
     /**
      * Checks that the image is selected and gray scale.
      *
@@ -80,6 +82,45 @@ public class FijiPlugin implements PlugIn {
 
     }
 
+    /**
+     * Executes the Neighborhood PIG plugin. This method is the entry point when
+     * the plugin is invoked from the Fiji/ImageJ user interface or via a macro.
+     * It can operate in two modes: by displaying a dialog for user input, or by
+     * parsing parameters directly from a provided string.
+     *
+     * <p>
+     * If the {@code string} argument is empty, a graphical user interface
+     * (dialog box) will be presented to the user to gather all necessary input
+     * parameters.
+     * </p>
+     * <p>
+     * If the {@code string} argument is not empty, it is expected to contain
+     * space-separated parameters that will be parsed directly. The structure
+     * and order of these parameters are critical and depend on the active
+     * image's dimensionality (2D or 3D) and the chosen output options (e.g.,
+     * generating a vector field).
+     * </p>
+     * <p>
+     * For the precise format and conditional inclusion of parameters when
+     * providing them as a string, please refer to the Javadoc of the
+     * {@link UserInput#fromStrings(String[], int) UserInput.fromStrings}
+     * method.
+     * </p>
+     *
+     * @param string A string containing space-separated user input parameters,
+     * or an empty string to prompt the user with a dialog.
+     * @throws NullPointerException if no image is currently open in ImageJ when
+     * the plugin is launched.
+     * @throws NumberFormatException if any string parameter cannot be parsed
+     * into its corresponding numeric or boolean type when using string-based
+     * input.
+     * @throws ArrayIndexOutOfBoundsException if the {@code string} array does
+     * not contain enough elements for the required parameters based on the
+     * image properties and boolean flags.
+     * @throws RuntimeException for other issues during image processing or if
+     * internal parameters are inconsistent (e.g., spacing/downsample mismatch
+     * if vector field overlay is true).
+     */
     @Override
     public void run(String string) {
 
@@ -144,7 +185,8 @@ public class FijiPlugin implements PlugIn {
      * <li>`args[1]` (int): The nominal depth (number of Z-slices) of the image
      * or image stack. For 2D images, this should be `1`. This value determines
      * which subsequent parameters related to Z-dimensions are expected.</li>
-     * <li>`args[2]` (int): "tiff" to save as a .tiff, or "png" to save as a ".png".</li>
+     * <li>`args[2]` (String): "tiff" to save as a .tiff, or "png" to save as a
+     * ".png".</li>
      * <li>`args[3]` onwards (String...): A variable-length series of
      * space-separated strings representing the `UserInput` parameters. The
      * number and order of these parameters depend on the `depth` (from
@@ -162,16 +204,16 @@ public class FijiPlugin implements PlugIn {
      * </p>
      * <pre>
      * // For a 2D image (e.g., "my_image.tif") generating a heatmap and coherence:
-     * // Args: image_path, depth=1, xy_rad=10, heatmap=true, vector_field=false, coherence=true, downsample=1
-     * java -jar NeighborhoodPIG.jar "path/to/my_image.tif" 1 10 true false true 1
+     * // Args: image_path, depth=1, save_format="png", xy_rad=10, heatmap=true, vector_field=false, coherence=true, downsample_xy=1
+     * java -jar NeighborhoodPIG.jar "path/to/my_image.tif" 1 "png" 10 true false true 1
      *
      * // For a 3D image stack (e.g., from "my_image_directory/") generating a vector field:
-     * // Args: image_path, depth=5, xy_rad=15, z_rad=3, z_mult=2, heatmap=false, vector_field=true, coherence=false, vf_spacing=10, vf_mag=8, downsample=2
-     * java -jar NeighborhoodPIG.jar "path/to/my_image_directory" 5 15 3 2 false true false 10 8 2
+     * // Args: image_path, depth=5, save_format="tiff", xy_rad=15, z_rad=3, z_mult=2, heatmap=false, vector_field=true, coherence=false, vf_spacing_xy=10, vf_spacing_z=8, vf_mag=2, downsample_xy=2
+     * java -jar NeighborhoodPIG.jar "path/to/my_image_directory" 5 "tiff" 15 3 2 false true false 10 8 2
      *
-     * // For a 2D image "another_2d_image.tif" with vector field overlaid (downsample and vf_spacing match):
-     * // Args: image_path, depth=1, xy_rad=10, heatmap=false, vector_field=true, coherence=false, vf_spacing=15, vf_mag=10, overlay=true (omits downsample factor)
-     * java -jar NeighborhoodPIG.jar "path/to/another_2d_image.tif" 1 10 false true false 15 10 true
+     * // For a 2D image "another_2d_image.tif" with vector field overlaid (downsample_xy and vf_spacing_xy match):
+     * // Args: image_path, depth=1, save_format="tiff", xy_rad=10, heatmap=false, vector_field=true, coherence=false, vf_spacing_xy=15, vf_mag=10, overlay=true, downsample_xy=15
+     * java -jar NeighborhoodPIG.jar "path/to/another_2d_image.tif" 1 "tiff" 10 false true false 15 10 true 15
      * </pre>
      *
      * @param args Command-line arguments as described above.
@@ -192,7 +234,7 @@ public class FijiPlugin implements PlugIn {
         if (args.length == 0) args = defaultArgs();
 
 //        loadImageJ();
-        int depth = Integer.parseInt(args[1]);               
+        int depth = Integer.parseInt(args[1]);
 
         UserInput ui = UserInput.fromStrings(Arrays.copyOfRange(args, 3, args.length), depth);
 
@@ -241,7 +283,7 @@ public class FijiPlugin implements PlugIn {
 
             Dimensions downSampled = img.dim().downSampleXY(null, ui.downSampleFactorXY);
 
-            MyImageStack vf = VectorImg.space(downSampled, ui.vfSpacing, ui.vfMag, ui.overlay ? img.dim() : null).emptyStack(),
+            MyImageStack vf = VectorImg.space(downSampled, ui.vfSpacingXY, ui.vfSpacingZ, ui.vfMag, ui.overlay ? img.dim() : null).emptyStack(),
                     coh = downSampled.emptyStack(),
                     az = downSampled.emptyStack(),
                     zen = downSampled.emptyStack();
@@ -271,7 +313,7 @@ public class FijiPlugin implements PlugIn {
                 if (ui.vectorField)
                     vecImgDepth = appendVF(
                             ui,
-                            np.getVectorImg(ui.vfSpacing, ui.vfMag, false, ui.overlay ? img.dim() : null),
+                            np.getVectorImg(ui.vfSpacingXY, ui.vfSpacingZ, ui.vfMag, false, ui.overlay ? img.dim() : null),
                             vf
                     );
 
@@ -356,9 +398,9 @@ public class FijiPlugin implements PlugIn {
      * show is set to true.
      */
     private static void present(MyImagePlus image, Save save, String saveTo) {
-        if (save == Save.fiji) image.show(); 
+        if (save == Save.fiji) image.show();
         else {
-            try {                
+            try {
                 Files.createDirectories(Paths.get(saveTo));
             } catch (IOException e) {
                 System.err.println("Failed to create directory: " + saveTo + " - " + e.getMessage());
