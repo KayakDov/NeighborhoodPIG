@@ -209,19 +209,16 @@ public class UserInput {
      * @return The help frame.
      */
     private static HelpFrame addHelpButton(GenericDialog gd) {
-        Panel buttonPanel = new Panel();
-        HelpFrame helpFrame = new HelpFrame("Help for Neighborhood PIG");
-        Button helpButton = new Button("Help");
-        buttonPanel.add(helpButton);
-
-        helpButton.addActionListener(new ActionListener() {
+        
+        HelpFrame helpFrame = new HelpFrame("Help for Neighborhood PIG");        
+        
+        gd.addButton("Help", new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 helpFrame.setVisible(!helpFrame.isVisible());
                 if (helpFrame.isVisible()) helpFrame.toFront();
             }
-        });
-        gd.add(buttonPanel);
+        });        
 
         gd.addWindowListener(new WindowAdapter() {
             @Override
@@ -229,8 +226,8 @@ public class UserInput {
                 helpFrame.dispose();
             }
 
-        });
-        gd.addMessage("");
+        });        
+        
         return helpFrame;
     }
 
