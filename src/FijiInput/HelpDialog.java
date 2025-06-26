@@ -1,42 +1,55 @@
 package FijiInput;
 
-import ij.gui.GenericDialog;
-import ij.gui.MultiLineLabel;
-import java.awt.AWTEvent;
-import java.awt.Frame;
-import java.awt.Panel;
 import java.awt.BorderLayout;
 import java.awt.Dialog;
-import java.awt.Dimension;
+import java.awt.TextArea;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JScrollPane;
 
 /**
- * A dedicated window for displaying multi-line help text. This Frame will
- * contain a MultiLineLabel whose text can be updated dynamically.
+ * A dedicated AWT Dialog for multi-line help text.
+ * <p>
+ * This dialog displays contextual guidance in a read-only text area
+ * and can be toggled visible or hidden by client code.  It is
+ * non-modal and does not block the main application.
+ * </p>
  */
 public class HelpDialog extends Dialog {
 
-    private final MultiLineLabel helpText;
-
-    private static final String DEFAULT_MESSAGE = "Focus on a field in the main dialog for help information.";
+    /**
+     * The text area used to show help messages.  Always non-editable.
+     */
+    private final TextArea helpTextArea;
 
     /**
-     * Constructs the help frame.
-     *
-     * @param title The title of the frame.
+     * The default help message to display when no specific context is set.
+     */
+    private static final String DEFAULT_MESSAGE =
+        "Focus on a field in the main dialog for help information.";
+
+    /**
+     * Constructs a new HelpDialog with the given owner and title.
+     * The dialog is modeless and uses an AWT TextArea to display help text.
+     * 
+     * @param owner the parent dialog over which this help dialog is centered
+     * @param title the window title of the help dialog
      */
     public HelpDialog(Dialog owner, String title) {
         super(owner, title, /*modal=*/ false);
         setLayout(new BorderLayout());
-        helpText = new MultiLineLabel(DEFAULT_MESSAGE);
-        add(helpText, BorderLayout.CENTER);
-        setSize(300, 150);
+
+        // Initialize the help text area
+        helpTextArea = new TextArea(DEFAULT_MESSAGE, 8, 40,
+                                    TextArea.SCROLLBARS_VERTICAL_ONLY);
+        helpTextArea.setEditable(false);
+        add(helpTextArea, BorderLayout.CENTER);
+
+        // Use a fixed size so the dialog does not shrink unexpectedly
+        setSize(400, 200);
         setResizable(true);
         setLocationRelativeTo(owner);
+
+        // Hide the dialog when the user clicks the close button (X)
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -46,19 +59,19 @@ public class HelpDialog extends Dialog {
     }
 
     /**
-     * Sets the help text displayed in the MultiLineLabel.
-     *
-     * @param text The text to display.
+     * Updates the help text displayed in the dialog.  This call
+     * immediately updates the read-only text area and brings the
+     * dialog to the front of the window stack.
+     * 
+     * @param text the new help message to display
      */
     public void setHelpText(String text) {
-        if (helpText != null) {
-            helpText.setText(text);
-            pack();
-        }
+        helpTextArea.setText(text);
+        toFront();  // ensure the dialog remains visible
     }
 
     /**
-     * Resets the help text to the default message.
+     * Resets the help text to the default instructional message.
      */
     public void resetHelpText() {
         setHelpText(DEFAULT_MESSAGE);

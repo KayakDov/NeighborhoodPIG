@@ -32,8 +32,7 @@ public class NumericField extends Field {
         super(name, gd, helpText, helpLabel);
         gd.addNumericField(name, defaultValue, mantissa);
         awtComponent = (TextField) gd.getNumericFields().get(gd.getNumericFields().size() - 1);
-        
-         
+
         ((TextField) this.awtComponent).addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -41,10 +40,12 @@ public class NumericField extends Field {
             }
         });
 
-        
         ((TextField) this.awtComponent).addFocusListener(new FocusListener() {
             @Override
             public void focusGained(FocusEvent e) {
+                if (helpMessageFrame != null) {
+                    helpMessageFrame.setHelpText(helpText); // Update with this field's help text
+                }
             }
 
             @Override
@@ -56,14 +57,14 @@ public class NumericField extends Field {
     }
 
     /**
-     * Internal method to enforce non-negative values.
-     * If the current value is negative or non-numeric, it sets it to 0.
+     * Internal method to enforce non-negative values. If the current value is
+     * negative or non-numeric, it sets it to 0.
      */
     private void enforceNonNegative() {
-        try {          
-            if (val() < 0) val(0.0f); 
-            
-        } catch (NumberFormatException ex) {            
+        try {
+            if (val() < 0) val(0.0f);
+
+        } catch (NumberFormatException ex) {
             val(0.0f); // Use the val(double) setter
         }
     }

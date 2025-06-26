@@ -84,7 +84,6 @@ public abstract class Field {
 
                 @Override
                 public void focusLost(FocusEvent e) {
-                    helpMessageFrame.resetHelpText();
                 }
             });
         }

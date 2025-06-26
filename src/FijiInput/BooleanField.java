@@ -28,7 +28,8 @@ public class BooleanField extends Field {
         super(name, gd, helpText, helpLabel);
         gd.addCheckbox(name, defaultValue);
         this.awtComponent = (Checkbox) gd.getCheckboxes().get(gd.getCheckboxes().size() - 1);
-        attachHelpMessageFocusListener();
+        
+        ((Checkbox)awtComponent).addItemListener(e -> {helpMessageFrame.setHelpText(helpText);});
     }
 
     /**
