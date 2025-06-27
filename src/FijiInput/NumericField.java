@@ -60,12 +60,9 @@ public class NumericField extends Field {
      * negative or non-numeric, it sets it to 0.
      */
     private void enforceNonNegative() {
-        try {
-            if (val() < 0) val(0.0f);
 
-        } catch (NumberFormatException ex) {
-            val(0.0f); // Use the val(double) setter
-        }
+        if (val() < 0) val(0.0f);
+
     }
 
     /**

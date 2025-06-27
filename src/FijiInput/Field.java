@@ -1,7 +1,6 @@
 package FijiInput;
 
 import ij.gui.GenericDialog;
-import ij.gui.MultiLineLabel;
 import java.awt.Component; // Import AWT Component for setEnabled
 import java.awt.Label;
 import java.awt.event.FocusEvent;

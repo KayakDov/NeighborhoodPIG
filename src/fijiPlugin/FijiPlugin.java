@@ -1,6 +1,7 @@
 package fijiPlugin;
 
 import FijiInput.UserCanceled;
+import FijiInput.UserDialog;
 import FijiInput.UserInput;
 import JCudaWrapper.array.Array;
 import JCudaWrapper.resourceManagement.GPU;
@@ -140,7 +141,7 @@ public class FijiPlugin implements PlugIn {
         UserInput ui;
 
         if (string.length() == 0)try {
-            ui = UserInput.fromDialog(originalImage);
+            ui = new UserDialog(originalImage).getUserInput();
         } catch (UserCanceled ex) {
             System.out.println("fijiPlugin.FijiPlugin.run() User canceled diolog.");
             return;
