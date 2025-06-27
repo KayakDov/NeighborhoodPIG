@@ -1,19 +1,6 @@
 package FijiInput;
 
 import fijiPlugin.NeighborhoodDim;
-import ij.ImagePlus;
-import ij.gui.GenericDialog;
-import ij.gui.DialogListener; // Import DialogListener
-import ij.gui.MultiLineLabel;
-import java.awt.AWTEvent;
-import java.awt.Button;
-import java.awt.Label;
-import java.awt.Panel;
-import java.awt.TextArea;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 /**
  * This class encapsulates user input parameters obtained from a dialog box. It
@@ -223,7 +210,7 @@ public class UserInput {
         }
 
         // Default tolerance value for UserInput constructor, not parsed from strings
-        double defaultTolerance = 0.0;
+        double defaultTolerance = 1e-5;
 
         int downSample;
         if (overlay) {
@@ -243,7 +230,7 @@ public class UserInput {
                 vectorFieldSpacingXY,
                 vectorFieldMagnitude,
                 overlay,
-                (float)defaultTolerance, // This is a default value and not parsed from the string array
+                (float) defaultTolerance, // This is a default value and not parsed from the string array
                 downSample,
                 vectorFieldSpacingZ
         );
@@ -268,22 +255,20 @@ public class UserInput {
         return (origSample / downSampleFactorXY) * downSampleFactorXY;
     }
 
-    /**
-     * Returns a string representation of the UserInput object.
-     *
-     * @return A string containing the values of the UserInput's fields.
-     */
     @Override
     public String toString() {
-        return "UserInput{"
-                + "neighborhoodSize=" + neighborhoodSize
-                + ", heatMap=" + heatMap
-                + ", vectorField=" + vectorField
-                + ", useCoherence=" + useCoherence
-                + ", vfSpacing=" + vfSpacingXY
-                + ", vfMag=" + vfMag
-                + ", tolerance=" + tolerance
-                + ", downSampleFactorXY=" + downSampleFactorXY
+        return "UserInput {\n"
+                + "  neighborhoodSize         = " + neighborhoodSize + ",\n"
+                + "  heatMap                  = " + heatMap + ",\n"
+                + "  vectorField              = " + vectorField + ",\n"
+                + "  overlay                 = " + overlay + ",\n"
+                + "  useCoherence             = " + useCoherence + ",\n"
+                + "  vfSpacingXY              = " + vfSpacingXY + ",\n"
+                + "  vfSpacingZ               = " + vfSpacingZ + ",\n"
+                + "  vfMag                    = " + vfMag + ",\n"
+                + "  tolerance                = " + tolerance + ",\n"
+                + "  downSampleFactorXY       = " + downSampleFactorXY + "\n"
                 + '}';
     }
+
 }

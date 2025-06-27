@@ -262,7 +262,7 @@ public class FijiPlugin implements PlugIn {
 
         double zDist = 1;
         boolean hasHeatMap = true;
-        boolean hasVF = true;
+        boolean hasVF = false;
         boolean hasCoherence = true;
         int vfSpacingXY = 6;
         int vfSpacingZ = 6;
@@ -280,9 +280,9 @@ public class FijiPlugin implements PlugIn {
             "" + hasHeatMap, 
             "" + hasVF, 
             "" + hasCoherence, 
-            "" + vfSpacingXY, 
-            "" + vfSpacingZ, 
-            "" + mag,
+//            "" + vfSpacingXY, 
+//            "" + vfSpacingZ, 
+//            "" + mag,
             "" + downSample
         };
 
@@ -299,6 +299,8 @@ public class FijiPlugin implements PlugIn {
         if (!ui.validParamaters())
             throw new RuntimeException("fijiPlugin.FijiPlugin.run() Invalid Parameters!");
 
+        System.out.println("fijiPlugin.FijiPlugin.run() " + ui.toString());
+        
         try {
 
             MyImagePlus img = new MyImagePlus(userImg).crop(
@@ -322,8 +324,6 @@ public class FijiPlugin implements PlugIn {
                 IJ.error("Your stack has a high depth relative to GPU size. This may cause a crash.");
                 framesPerIteration = 1;
             }
-
-            System.out.println("fijiPlugin.FijiPlugin.run() frames per iteration: " + framesPerIteration);
 
             long startTime = System.currentTimeMillis();
 
