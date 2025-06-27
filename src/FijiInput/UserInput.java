@@ -161,22 +161,22 @@ public class UserInput {
 
                 if (hasZ) {
                     spacingZ.setEnabled(vectorField.is());
-                    if(!vectorField.is()) spacingZ.val(0);
+//                    if(!vectorField.is()) spacingZ.val(0);
                 }
                 else {
                     overlay.setEnabled(vectorField.is());
 
                     if (vectorField.is() && overlay.is()) 
-                        spacingXY.val(downSample.val()).setEnabled(false);                    
+                        spacingXY.val(downSample.val()).setEnabled(false);
 
                     if (!vectorField.is()) overlay.is(false);
                         
                     
                 }
-                if (!vectorField.is()){
-                    spacingXY.val(0);
-                    mag.val(0);
-                }
+//                if (!vectorField.is()){
+//                    spacingXY.val(0);
+//                    mag.val(0);
+//                }
 
                 return true; // Return true to keep the dialog open
             }
