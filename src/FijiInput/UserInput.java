@@ -210,7 +210,7 @@ public class UserInput {
         }
 
         // Default tolerance value for UserInput constructor, not parsed from strings
-        double defaultTolerance = 1e-5;
+        double defaultTolerance = UserInput.defaultTolerance;
 
         int downSample;
         if (overlay) {

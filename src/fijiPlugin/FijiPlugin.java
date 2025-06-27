@@ -251,7 +251,7 @@ public class FijiPlugin implements PlugIn {
 
     private static String[] defaultArgs() {
         String imagePath = "images/input/cyl/";
-        int depth = 50;
+        int depth = 25;
         NeighborhoodDim neighborhoodSize = new NeighborhoodDim(8, 8, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //        String imagePath = "images/input/3dVictorData"; int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
