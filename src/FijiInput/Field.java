@@ -67,25 +67,4 @@ public abstract class Field {
         return helpText;
     }
 
-    /**
-     * Attaches a FocusListener to the AWT component to update the help message.
-     * This method should be called by concrete subclasses after awtComponent is
-     * assigned.
-     */
-    protected void attachHelpMessageFocusListener() {
-        if (awtComponent != null) {
-            awtComponent.addFocusListener(new FocusListener() {
-                @Override
-                public void focusGained(FocusEvent e) {
-                    if (helpMessageFrame != null) {
-                        helpMessageFrame.setHelpText(helpText); // Update with this field's help text
-                    }
-                }
-
-                @Override
-                public void focusLost(FocusEvent e) {
-                }
-            });
-        }
-    }
 }

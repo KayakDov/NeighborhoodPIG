@@ -159,20 +159,23 @@ public class UserInput {
 
                 mag.setEnabled(vectorField.is());
 
-                if (hasZ) spacingZ.setEnabled(vectorField.is());
+                if (hasZ) {
+                    spacingZ.setEnabled(vectorField.is());
+                    if(!vectorField.is()) spacingZ.val(0);
+                }
                 else {
                     overlay.setEnabled(vectorField.is());
 
-                    if (vectorField.is() && overlay.is()) {
-                        spacingXY.val(downSample.val()).setEnabled(false);
-                    }
+                    if (vectorField.is() && overlay.is()) 
+                        spacingXY.val(downSample.val()).setEnabled(false);                    
 
+                    if (!vectorField.is()) overlay.is(false);
+                        
+                    
                 }
-
-                if (!vectorField.is()) {
-                    spacingXY.val(Float.NaN);
-                    mag.val(Float.NaN);
-                    overlay.is(false);
+                if (!vectorField.is()){
+                    spacingXY.val(0);
+                    mag.val(0);
                 }
 
                 return true; // Return true to keep the dialog open
@@ -294,20 +297,77 @@ public class UserInput {
     public static UserInput fromStrings(String[] strings, int depth) {
 
         int i = 0;
+        System.out.println("--- Parsing User Input from Strings ---");
 
         boolean hasZ = depth > 1;
+        System.out.println("Determined hasZ: " + hasZ);
 
         int xy = Integer.parseInt(strings[i++]);
+        System.out.println("Assigned neighborhood_xy_radius: " + xy + " (from strings[" + (i - 1) + "])");
+
         int z = hasZ ? Integer.parseInt(strings[i++]) : 0;
-        int distBetweenAdjacentLayer = hasZ ? Integer.parseInt(strings[i++]) : 0;
+        if (hasZ) {
+            System.out.println("Assigned neighborhood_z_radius: " + z + " (from strings[" + (i - 1) + "])");
+        } else {
+            System.out.println("neighborhood_z_radius not applicable (depth <= 1), set to: " + z);
+        }
+
+        double distBetweenAdjacentLayer = hasZ ? Double.parseDouble(strings[i++]) : 0;
+        if (hasZ) {
+            System.out.println("Assigned z_axis_pixel_spacing_multiplier: " + distBetweenAdjacentLayer + " (from strings[" + (i - 1) + "])");
+        } else {
+            System.out.println("z_axis_pixel_spacing_multiplier not applicable (depth <= 1), set to: " + distBetweenAdjacentLayer);
+        }
+
         boolean heatMap = Boolean.parseBoolean(strings[i++]);
+        System.out.println("Assigned generate_heatmap: " + heatMap + " (from strings[" + (i - 1) + "])");
+
         boolean vectorField = Boolean.parseBoolean(strings[i++]);
+        System.out.println("Assigned generate_vector_field: " + vectorField + " (from strings[" + (i - 1) + "])");
+
         boolean coherence = Boolean.parseBoolean(strings[i++]);
+        System.out.println("Assigned generate_coherence: " + coherence + " (from strings[" + (i - 1) + "])");
+
         int vectorFieldSpacingXY = vectorField ? Integer.parseInt(strings[i++]) : 0;
+        if (vectorField) {
+            System.out.println("Assigned vector_field_spacing_xy: " + vectorFieldSpacingXY + " (from strings[" + (i - 1) + "])");
+        } else {
+            System.out.println("vector_field_spacing_xy not applicable (generate_vector_field is false), set to: " + vectorFieldSpacingXY);
+        }
+
         int vectorFieldSpacingZ = hasZ && vectorField ? Integer.parseInt(strings[i++]) : 0;
+        if (hasZ && vectorField) {
+            System.out.println("Assigned vector_field_spacing_z: " + vectorFieldSpacingZ + " (from strings[" + (i - 1) + "])");
+        } else {
+            System.out.println("vector_field_spacing_z not applicable (depth <= 1 or generate_vector_field is false), set to: " + vectorFieldSpacingZ);
+        }
+
         int vectorFieldMagnitude = vectorField ? Integer.parseInt(strings[i++]) : 0;
+        if (vectorField) {
+            System.out.println("Assigned vector_field_magnitude: " + vectorFieldMagnitude + " (from strings[" + (i - 1) + "])");
+        } else {
+            System.out.println("vector_field_magnitude not applicable (generate_vector_field is false), set to: " + vectorFieldMagnitude);
+        }
+
         boolean overlay = vectorField && !hasZ ? Boolean.parseBoolean(strings[i++]) : false;
-        int downSample = vectorField && overlay ? vectorFieldSpacingXY : Integer.parseInt(strings[i++]);
+        if (vectorField && !hasZ) {
+            System.out.println("Assigned overlay_vector_field: " + overlay + " (from strings[" + (i - 1) + "])");
+        } else {
+            System.out.println("overlay_vector_field not applicable (generate_vector_field is false or depth > 1), set to: " + overlay);
+        }
+
+        // Default tolerance value for UserInput constructor, not parsed from strings
+        double defaultTolerance = 0.0;
+
+        int downSample;
+        if (overlay) {
+            downSample = vectorFieldSpacingXY;
+            System.out.println("Assigned downsample_factor_xy: " + downSample + " (derived from vector_field_spacing_xy due to overlay being true)");
+        } else {
+            downSample = Integer.parseInt(strings[i++]);
+            System.out.println("Assigned downsample_factor_xy: " + downSample + " (from strings[" + (i - 1) + "])");
+        }
+        System.out.println("--- Finished Parsing User Input ---");
 
         return new UserInput(
                 new NeighborhoodDim(xy, z, distBetweenAdjacentLayer),
@@ -317,7 +377,7 @@ public class UserInput {
                 vectorFieldSpacingXY,
                 vectorFieldMagnitude,
                 overlay,
-                defaultTolerance,
+                (float)defaultTolerance, // This is a default value and not parsed from the string array
                 downSample,
                 vectorFieldSpacingZ
         );
@@ -329,7 +389,7 @@ public class UserInput {
      * @return true if the parameters are valid, false otherwise.
      */
     public boolean validParamaters() {
-        return neighborhoodSize.valid() && vfSpacingXY >= -1 && vfMag >= 0 && tolerance > 0;
+        return neighborhoodSize.valid() && vfSpacingXY >= 0 && vfSpacingZ >= 0 && vfMag >= 0 && tolerance >= 0;
     }
 
     /**

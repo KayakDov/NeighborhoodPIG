@@ -89,7 +89,7 @@ public class HeatMapCreator {
                         fp.setf(x, y, pixVal);
                     }
                 
-                stack.addSlice(sliceNames == null ? "" : sliceNames[z], fp);
+                stack.addSlice(sliceNames == null ? "" : sliceNames[z], fp/*, t* dim.depth + z*/);
             }
         }
 

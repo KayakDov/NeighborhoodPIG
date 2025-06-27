@@ -259,7 +259,31 @@ public class FijiPlugin implements PlugIn {
 //
 //        UserInput ui = UserInput.defaultVals(neighborhoodSize);
 
-        return new String[]{imagePath, "" + depth, "png", "" + neighborhoodSize.xyR, "" + neighborhoodSize.zR, "" + 1, "" + true, "" + true, "" + true, "" + 6, "" + 4, "" + 2};
+        double zDist = 1;
+        boolean hasHeatMap = true;
+        boolean hasVF = true;
+        boolean hasCoherence = true;
+        int vfSpacingXY = 6;
+        int vfSpacingZ = 6;
+        int mag = 4;
+        int downSample = 1;
+                
+
+        return new String[]{
+            imagePath, 
+            "" + depth, 
+            "png",
+            "" + neighborhoodSize.xyR, 
+            "" + neighborhoodSize.zR, 
+            "" + zDist, 
+            "" + hasHeatMap, 
+            "" + hasVF, 
+            "" + hasCoherence, 
+            "" + vfSpacingXY, 
+            "" + vfSpacingZ, 
+            "" + mag,
+            "" + downSample
+        };
 
     }
 

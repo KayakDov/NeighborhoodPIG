@@ -53,7 +53,6 @@ public class NumericField extends Field {
                 enforceNonNegative();
             }
         });
-        attachHelpMessageFocusListener();
     }
 
     /**
