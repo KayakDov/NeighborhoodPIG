@@ -110,7 +110,7 @@ public class UserInput {
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
         HelpDialog hf = addHelpButton(gd);
 
-        NumericField downSample = new NumericField("Downsample factor XY:", 20, gd, 0,
+        NumericField downSample = new NumericField("Downsample factor XY:", 1, gd, 0,
                 "Determines how many pixels are skipped (1 = every pixel, 2 = every other). \nIncreased values improve memory & time performance.",
                 hf);
 
@@ -128,11 +128,11 @@ public class UserInput {
                 "Factor for anisotropic Z-spacing (e.g., 1.5 if Z-distance is 1.5 x XY pixel size).",
                 hf) : null;
 
-        BooleanField coherence = new BooleanField("Generate coherence", true, gd,
+        BooleanField coherence = new BooleanField("Generate coherence", false, gd,
                 "Computes and displays a heatmap representing pixel coherence.",
                 hf);
 
-        BooleanField vectorField = new BooleanField("Vector field", true, gd,
+        BooleanField vectorField = new BooleanField("Vector field", false, gd,
                 "Displays vectors representing orientations.",
                 hf);
         BooleanField overlay = hasZ ? null : new BooleanField("Overlay Vector Field", false, gd,
@@ -161,7 +161,7 @@ public class UserInput {
 
                 if (hasZ) {
                     spacingZ.setEnabled(vectorField.is());
-//                    if(!vectorField.is()) spacingZ.val(0);
+                    if(!vectorField.is() && spacingZ.val() != 0) spacingZ.val(0);
                 }
                 else {
                     overlay.setEnabled(vectorField.is());
@@ -173,10 +173,12 @@ public class UserInput {
                         
                     
                 }
-//                if (!vectorField.is()){
-//                    spacingXY.val(0);
-//                    mag.val(0);
-//                }
+                if (vectorField.is())
+                    if(downSample.val() == 1) downSample.val(xyR.val());
+                else {
+                    if(spacingXY.val() != 0) spacingXY.val(0);
+                    if(mag.val() != 0) mag.val(0);
+                }
 
                 return true; // Return true to keep the dialog open
             }
