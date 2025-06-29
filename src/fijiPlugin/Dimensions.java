@@ -285,10 +285,14 @@ public class Dimensions implements Closeable {
     /**
      * A float processor with these dimensions.
      *
+     * @param min The minimum value that will be in the processor.
+     * @param max The maximum.
      * @return A float processor with these dimensions.
      */
-    public FloatProcessor getFloatProcessor() {
-        return new FloatProcessor(width, height);
+    public FloatProcessor getFloatProcessor(float min, float max) {
+        FloatProcessor fp = new FloatProcessor(width, height);
+        fp.setMinAndMax(min, max);
+        return fp;
     }
 
     /**
@@ -315,5 +319,13 @@ public class Dimensions implements Closeable {
      */
     public Cube getCube(){
         return new Cube(width, height, depth);
+    }
+    
+    /**
+     * Number of layers per frame times number of frames.
+     * @return Number of layers per frame times number of frames.
+     */
+    public int totLayers(){
+        return depth * batchSize;
     }
 }

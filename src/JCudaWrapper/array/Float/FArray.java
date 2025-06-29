@@ -19,13 +19,12 @@ public interface FArray extends Array {
      * Exports the entire GPU array to a CPU array.
      *
      * @param handle handle to the cuBLAS library context.
-     * @param dst Where the array is to be copied to.
+     * @param dst Where the array is to be copied to.     
      */
     public default void get(Handle handle, float[] dst) {
         if (hasPadding()) {
             try (FArray1d gpuArray = new FArray1d(dst.length)) {
-                get(handle, (FArray1d)gpuArray);
-                handle.synch();
+                get(handle, (FArray1d)gpuArray);                
                 gpuArray.get(handle, Pointer.to(dst));
             }
         } else

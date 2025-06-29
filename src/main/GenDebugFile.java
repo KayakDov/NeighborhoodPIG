@@ -67,7 +67,7 @@ public class GenDebugFile {
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
                 for (int z = 0; z < depth; z++)
-                    if ((x - centX) * (x - centX) + (z - centZ) * (z - centZ) <= r * r)
+                    if ((z - centZ) * (z - centZ) + (y - centY) * (y - centY) <= r * r)
                         env[z][x][y] = 255;
         return env;
 
@@ -95,7 +95,7 @@ public class GenDebugFile {
                 }
 
             try {
-                String saveTo = "images/input/cyl/" + String.format("%03d", z) + "cylinder.png";
+                String saveTo = "images/input/cyl/c" + String.format("%03d", z) + "cylinder.png";
 
                 new FileSaver(new ImagePlus("img " + z, processor[z])).saveAsPng(saveTo);
                 System.out.println("Image saved as: " + saveTo + ": " + height + "x" + width);

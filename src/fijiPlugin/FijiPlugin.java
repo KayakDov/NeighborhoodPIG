@@ -299,8 +299,6 @@ public class FijiPlugin implements PlugIn {
         if (!ui.validParamaters())
             throw new RuntimeException("fijiPlugin.FijiPlugin.run() Invalid Parameters!");
 
-        System.out.println("fijiPlugin.FijiPlugin.run() " + ui.toString());
-        
         try {
 
             MyImagePlus img = new MyImagePlus(userImg).crop(

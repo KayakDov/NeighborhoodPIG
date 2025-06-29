@@ -7,6 +7,8 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.FloatProcessor;
 import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import main.Test;
 
 /**
@@ -66,33 +68,38 @@ public class HeatMapCreator {
 
         MyImageStack stack = dim.emptyStack();
 
-        float[] layerImage = new float[dim.layerSize()];
-        float[] layerCoherence = new float[dim.layerSize()];
-        
+        FloatProcessor[] slices = new FloatProcessor[dim.totLayers()];
+        Arrays.parallelSetAll(slices, i -> dim.getFloatProcessor(min, max));
+
+        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
         for (int t = 0; t < dim.batchSize; t++) {
 
             for (int z = 0; z < dim.depth; z++) {
 
-                FloatProcessor fp = dim.getFloatProcessor();
-
-                fp.setMinAndMax(min, max);
+                float[] layerImage = new float[dim.layerSize()];
+                float[] layerCoherence = new float[dim.layerSize()];
+                FloatProcessor fp = slices[t * dim.depth + z];
 
                 image.get(z, t).getVal(handle).get(handle, layerImage);
 
                 if (coherence != null) coherence.get(z, t).getVal(handle).get(handle, layerCoherence);
 
-                for (int x = 0; x < dim.width; x++)
-                    for (int y = 0; y < dim.height; y++) {
-                        int fromInd = x * dim.height + y;
+                executor.submit(() -> {
+                    for (int x = 0; x < dim.width; x++)
+                        for (int y = 0; y < dim.height; y++) {
+                            int fromInd = x * dim.height + y;
 
-                        float pixVal = coherence == null || layerCoherence[fromInd] > tolerance ? layerImage[fromInd] : Float.NaN;
-                        fp.setf(x, y, pixVal);
-                    }
-                
-                stack.addSlice(sliceNames == null ? "" : sliceNames[z], fp/*, t* dim.depth + z*/);
+                            float pixVal = coherence == null || layerCoherence[fromInd] > tolerance ? layerImage[fromInd] : Float.NaN;
+                            fp.setf(x, y, pixVal);
+                        }
+                    
+                });
             }
         }
-
+        for(int i = 0; i < slices.length; i++)
+            stack.addSlice(sliceNames == null ? "" : sliceNames[i], slices[i]);
+        
         return stack;
     }
 
