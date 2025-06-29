@@ -61,7 +61,11 @@ public class NumericField extends Field {
      */
     private void enforceNonNegative() {
 
+        try{
         if (val() < 0) val(0.0f);
+        } catch(NumberFormatException nfe){
+            
+        }
 
     }
 

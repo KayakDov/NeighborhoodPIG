@@ -43,13 +43,13 @@ public class UserDialog {
                 "Generates a heatmap visualizing image orientations.",
                 hf);
 
-        NumericField xyR = new NumericField("Neighborhood xy radius", 20, gd, 0,
+        NumericField xyR = new NumericField("Neighborhood xy radius", 5, gd, 0,
                 "Radius (pixels) of the square neighborhood in the XY plane for structure tensor calculation.",
                 hf);
         NumericField zR = hasZ ? new NumericField("Neighborhood z radius:", 5, gd, 0,
                 "Radius (pixels) of the cube neighborhood in the Z-direction for 3D stacks.",
                 hf) : null;
-        NumericField layerDist = hasZ ? new NumericField("Z axis pixel spacing multiplier", 2, gd, 1,
+        NumericField layerDist = hasZ ? new NumericField("Z axis pixel spacing multiplier", 1, gd, 1,
                 "Factor for anisotropic Z-spacing (e.g., 1.5 if Z-distance is 1.5 x XY pixel size).",
                 hf) : null;
 
@@ -96,8 +96,10 @@ public class UserDialog {
 
                 }
                 if (vectorField.is()) {
-                    if (downSample.val() == 1)
-                        downSample.val(downSampleSetTo = (int) xyR.val());
+                    if (downSample.val() == 1 && downSampelOrig){
+                        downSample.val((int) xyR.val());
+                        downSampelOrig = false;
+                    }
                     if(spacingXY.val() == 0) spacingXY.val(xyR.val());
                     if(hasZ && spacingZ.val() == 0) spacingZ.val(xyR.val());
                     if(mag.val() == 0) mag.val(xyR.val());
@@ -105,9 +107,9 @@ public class UserDialog {
                     if (spacingXY.val() != 0) spacingXY.val(0);
                     if (mag.val() != 0) mag.val(0);
                     if (hasZ && spacingZ.val() != 0) spacingZ.val(0);
-                    if (downSampleSetTo == downSample.val()) {
+                    if (!downSampelOrig) {
                         downSample.val(1);
-                        downSampleSetTo = -1;
+                        downSampelOrig = true;
                     }
                 }
 
@@ -138,7 +140,7 @@ public class UserDialog {
         );
     }
 
-    private int downSampleSetTo = -1;
+    private boolean downSampelOrig = true;
 
     /**
      * Adds the help button and ties it to the generic dialog.

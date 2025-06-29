@@ -97,6 +97,7 @@ public class HeatMapCreator {
                 });
             }
         }
+        executor.shutdown();
         for(int i = 0; i < slices.length; i++)
             stack.addSlice(sliceNames == null ? "" : sliceNames[i], slices[i]);
         

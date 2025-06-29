@@ -11,7 +11,8 @@ import ij.ImageStack;
 import ij.process.BinaryProcessor;
 import ij.process.ByteProcessor;
 import java.util.Arrays;
-import java.util.stream.IntStream;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * This class extends {@link Dimensions} and provides functionality to create an
@@ -26,9 +27,7 @@ public class VectorImg {
 
     private final BinaryProcessor[][] processor;
     private final Dimensions targetSpace;
-    private final VecManager gridVecs;
     private final int spacingXY, spacingZ, r;
-    private final float[] currentIntensitySlice;
     private final PArray2dToF2d vecs, intensity;
     private final double tolerance;
     private final Dimensions dim;
@@ -38,16 +37,19 @@ public class VectorImg {
      * The dimensions for the output vector space.
      *
      * @param src The input vector space.
-     * @param spacingXY How much space will there be between vectors in the xy plane.
-     * @param spacingZ How much space will there be between vectors in the z dimension.
+     * @param spacingXY How much space will there be between vectors in the xy
+     * plane.
+     * @param spacingZ How much space will there be between vectors in the z
+     * dimension.
      * @param vecMag The length of the vectors.
-     * @param matchHW Leave this null, unless you want the output space to match the height and width in these dimensions.
+     * @param matchHW Leave this null, unless you want the output space to match
+     * the height and width in these dimensions.
      * @return The output vector space.
      */
     public static Dimensions space(Dimensions src, int spacingXY, int spacingZ, int vecMag, Dimensions matchHW) {
         return new Dimensions(null,
-                matchHW == null? (src.height - 1) * spacingXY + vecMag + 2 : matchHW.height,
-                matchHW == null ? (src.width - 1) * spacingXY + vecMag + 2: matchHW.width,
+                matchHW == null ? (src.height - 1) * spacingXY + vecMag + 2 : matchHW.height,
+                matchHW == null ? (src.width - 1) * spacingXY + vecMag + 2 : matchHW.width,
                 src.hasDepth() ? (src.depth - 1) * spacingZ + vecMag + 3 : 1,
                 src.batchSize);
     }
@@ -56,7 +58,8 @@ public class VectorImg {
      * Constructs a new VectorImg with the specified parameters to generate an
      * ImagePlus displaying the vector field from vector and intensity data.
      *
-     * @param overlay The full dimensions without down sampling.  Leave this null if overlay is false.
+     * @param overlay The full dimensions without down sampling. Leave this null
+     * if overlay is false.
      * @param handle The context
      * @param vecMag The magnitude of the vectors.
      * @param vecs The {@link FStrideArray3d} containing vector data.
@@ -76,10 +79,6 @@ public class VectorImg {
         processor = new BinaryProcessor[targetSpace.batchSize][targetSpace.depth];
         for (int t = 0; t < dim.batchSize; t++)
             Arrays.setAll(processor[t], z -> new BinaryProcessor(new ByteProcessor(targetSpace.width, targetSpace.height)));
-
-        currentIntensitySlice = new float[dim.layerSize()];
-
-        gridVecs = new VecManager(dim);
 
         r = vecMag / 2;
         this.vecs = vecs;
@@ -106,9 +105,47 @@ public class VectorImg {
      */
     public ImageStack imgStack() {
 
-        IntStream.range(0, dim.batchSize)
-                //                .parallel()  //TODO:reinstate
-                .forEach(this::computeGrid);
+        ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+        for (int t = 0; t < dim.batchSize; t++)
+            for (int z = 0; z < dim.depth; z++) {
+                final int frame = t, layer = z;
+                
+                float[] currentIntensitySlice = new float[dim.layerSize()];
+                
+                VecManager gridVecs = new VecManager(dim).setFrom(vecs, t, z, handle);
+                intensity.get(z, t).getVal(handle).get(handle, currentIntensitySlice);
+
+                exec.submit(() -> {
+                    Interval line = new Interval();
+                    Point3d vec = new Point3d(), delta = new Point3d();
+                    Pencil drawer = new Pencil();
+
+                    for (int x = 0; x < dim.width; x++) {
+
+                        int colIndex = x * dim.height;
+
+                        for (int y = 0; y < dim.height; y++) {
+
+                            if (currentIntensitySlice[colIndex + y] > tolerance) {
+
+                                gridVecs.get(y, x, vec);
+
+                                if (vec.isFinite()) {
+                                    line.getA().set(x * spacingXY, y * spacingXY, layer * spacingZ).translate(r + 1, r + 1, dim.depth == 1 ? 0 : r + 1);
+                                    line.getB().set(line.getA());
+                                    line.getA().translate(vec.scale(r));
+                                    line.getB().translate(vec.scale(-1));
+
+                                    line.draw(drawer, vec, delta, frame);
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+        exec.shutdown();
 
         return getStack();
     }
@@ -127,20 +164,6 @@ public class VectorImg {
     }
 
     /**
-     * Computes the image of the vector field for a specific grid/frame.
-     *
-     * @param t The index of the desired grid.
-     */
-    private void computeGrid(int t) {
-
-        IntStream str = IntStream.range(0, dim.depth);
-
-//        if (dim.batchSize < Runtime.getRuntime().availableProcessors()) str = str.parallel();  //TODO:Reinstate
-        str.forEach(z -> computeLayer(t, z));
-
-    }
-
-    /**
      * An object to facilitate drawing with IJ at the proffered point.
      */
     public class Pencil {
@@ -152,47 +175,7 @@ public class VectorImg {
          * @param t The frame to draw on.
          */
         public void mark(Point3d p, int t) {
-//            if(p.zI() > 158) System.out.println("imageWork.VectorImg.Pencil.mark() t, (x,y,z) = " + t + ", " + p);
             processor[t][p.zI()].putPixel(p.xI(), p.yI(), 255);
-        }
-    }
-
-    /**
-     * Computes a layer of the image stack for a given layer index, processing
-     * the vector and intensity data to set pixel values.
-     *
-     * @param z The layer index.
-     */
-    private void computeLayer(int t, int z) {
-
-        gridVecs.setFrom(vecs, t, z, handle);
-        intensity.get(z, t).getVal(handle).get(handle, currentIntensitySlice);
-
-        Interval line = new Interval();
-        Point3d vec = new Point3d(), delta = new Point3d();
-        Pencil drawer = new Pencil();
-
-        for (int x = 0; x < dim.width; x++) {
-
-            int colIndex = x * dim.height;
-
-            for (int y = 0; y < dim.height; y++) {
-
-                if (currentIntensitySlice[colIndex + y] > tolerance) {
-
-                    gridVecs.get(y, x, vec);
-
-                    if (vec.isFinite()) {
-                        line.getA().set(x * spacingXY, y * spacingXY, z * spacingZ).translate(r + 1, r + 1, dim.depth == 1 ? 0 : r + 1);
-                        line.getB().set(line.getA());
-                        line.getA().translate(vec.scale(r));
-                        line.getB().translate(vec.scale(-1));
-                        
-                        line.draw(drawer, vec, delta, t);
-                    }
-                }
-            }
-
         }
     }
 
