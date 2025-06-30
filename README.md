@@ -42,7 +42,7 @@ If you have opened a stack that represents multiple frames (e.g., time-lapse dat
 * Go to `Image > Properties > Hyperstack...` (or `Image > Stacks > Make Hyperstack...` in older Fiji versions).
 * In the "Make Hyperstack" dialog, ensure your dimensions (channels, slices, frames) are correctly assigned. Click "OK".
 
-![Donut](images/examples/Donut.jpg)
+![Donut](images/examples/Donut_Small.jpg)
 
 *Figure 0: A sample image.*
 
