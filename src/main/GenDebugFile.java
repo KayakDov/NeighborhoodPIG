@@ -73,15 +73,58 @@ public class GenDebugFile {
 
     }
 
+    /**
+     * Generates a 3D array representing a solid torus. Voxels inside or on the
+     * torus surface are valued 255, outside are 0. The torus is centered within
+     * the given dimensions.
+     *
+     * @param depth The depth (z-dimension) of the 3D array.
+     * @param width The width (x-dimension) of the 3D array.
+     * @param height The height (y-dimension) of the 3D array.
+     * @param majorRadius The major radius (R1) of the torus.
+     * @param minorRadius The minor radius (r2) of the torus.
+     * @return A 3D array of integers [depth][width][height] representing the
+     * torus.
+     */
+    public static int[][][] generateTorus(int depth, int width, int height, double majorRadius, double minorRadius) {
+        int[][][] torusVoxels = new int[depth][width][height];
+
+        double centX = width / 2.0;
+        double centY = height / 2.0;
+        double centZ = depth / 2.0;
+
+        for (int z = 0; z < depth; z++) {
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    double dx = x - centX;
+                    double dy = y - centY;
+                    double dz = z - centZ;
+
+                    double xy_dist_sq = dx * dx + dy * dy;
+
+                    double left_side_inner_term = xy_dist_sq + dz * dz + majorRadius * majorRadius - minorRadius * minorRadius;
+
+                    double left_side = left_side_inner_term * left_side_inner_term;
+
+                    double right_side = 4.0 * majorRadius * majorRadius * xy_dist_sq;
+
+                    torusVoxels[z][x][y] = left_side <= right_side ? 255 : 0;
+                }
+            }
+        }
+
+        return torusVoxels;
+    }
+
     public static void main(String[] args) {
         // Define pixel values for each point in a grid
 
-        int depth = 50;
+        int depth = 15;
 
-        int width = 50;
-        int height = 50;
+        int width = 60;
+        int height = 60;
 
-        int[][][] pixelValues = cylinder(depth, width, height, 15);
+        int[][][] pixelValues = generateTorus(depth, width, height, 20, 3);
 
         ByteProcessor[] processor = new ByteProcessor[depth];
         ImagePlus[] image = new ImagePlus[depth];
@@ -89,13 +132,13 @@ public class GenDebugFile {
         for (int z = 0; z < depth; z++) {
             processor[z] = new ByteProcessor(width, height);
             for (int y = 0; y < height; y++)
-                for (int x = 0; x < width; x++) {                    
+                for (int x = 0; x < width; x++) {
                     int val = pixelValues[z][x][y];
                     processor[z].putPixel(x, y, val);
                 }
 
             try {
-                String saveTo = "images/input/cyl/c" + String.format("%03d", z) + "cylinder.png";
+                String saveTo = "images/input/torus/" + String.format("%03d", z) + ".png";
 
                 new FileSaver(new ImagePlus("img " + z, processor[z])).saveAsPng(saveTo);
                 System.out.println("Image saved as: " + saveTo + ": " + height + "x" + width);

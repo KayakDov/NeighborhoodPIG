@@ -4,7 +4,6 @@ import static FijiInput.UserInput.defaultTolerance;
 import fijiPlugin.NeighborhoodDim; // Assuming NeighborhoodDim is in fijiPlugin package
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
-import ij.gui.DialogListener;
 import java.awt.AWTEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -76,16 +75,14 @@ public class UserDialog {
                 "Visual length (pixels) of the displayed vectors.",
                 hf);
 
-        gd.addDialogListener(new DialogListener() {
-            @Override
-            public boolean dialogItemChanged(GenericDialog gd, AWTEvent e) {
-
+        gd.addDialogListener((GenericDialog gd1, AWTEvent e) -> {
+            try {
                 spacingXY.setEnabled(vectorField.is());
 
                 mag.setEnabled(vectorField.is());
 
-                if (hasZ) 
-                    spacingZ.setEnabled(vectorField.is());                    
+                if (hasZ)
+                    spacingZ.setEnabled(vectorField.is());
                 else {
                     overlay.setEnabled(vectorField.is());
 
@@ -96,13 +93,13 @@ public class UserDialog {
 
                 }
                 if (vectorField.is()) {
-                    if (downSample.val() == 1 && downSampelOrig){
+                    if (downSample.val() == 1 && downSampelOrig) {
                         downSample.val((int) xyR.val());
                         downSampelOrig = false;
                     }
-                    if(spacingXY.val() == 0) spacingXY.val(xyR.val());
-                    if(hasZ && spacingZ.val() == 0) spacingZ.val(xyR.val());
-                    if(mag.val() == 0) mag.val(xyR.val());
+                    if (spacingXY.val() == 0) spacingXY.val(xyR.val());
+                    if (hasZ && spacingZ.val() == 0) spacingZ.val(xyR.val());
+                    if (mag.val() == 0) mag.val(xyR.val());
                 } else {
                     if (spacingXY.val() != 0) spacingXY.val(0);
                     if (mag.val() != 0) mag.val(0);
@@ -113,8 +110,10 @@ public class UserDialog {
                     }
                 }
 
-                return true;
+            } catch (NumberFormatException nfe) {
+
             }
+            return true;
         });
 
         spacingXY.setEnabled(vectorField.is());
