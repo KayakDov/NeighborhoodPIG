@@ -9,6 +9,7 @@ import MathSupport.Cube;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.plugin.HyperStackConverter;
+import ij.process.ColorProcessor;
 import ij.process.FloatProcessor;
 import imageWork.MyImageStack;
 import java.io.Closeable;
@@ -274,12 +275,12 @@ public class Dimensions implements Closeable {
      *
      * @param handle Used to generate the new down sample gpu dimensional array.
      * Set to null for no array to be generated.
-     * @param scale How much to down sample.
+     * @param scaleXY How much to down sample the xy dimension.
+     * @param scaleZ How much to down sample the z dimension.
      * @return The new dimensions. This remains unchanged.
      */
-    public Dimensions downSampleXY(Handle handle, int scale) {
-        Dimensions down = new Dimensions(handle, height / scale, width / scale, depth, batchSize);
-        return down;
+    public Dimensions downSample(Handle handle, int scaleXY, int scaleZ) {
+        return new Dimensions(handle, height / scaleXY, width / scaleXY, depth / scaleZ, batchSize);
     }
 
     /**
@@ -293,6 +294,28 @@ public class Dimensions implements Closeable {
         FloatProcessor fp = new FloatProcessor(width, height);
         fp.setMinAndMax(min, max);
         return fp;
+    }
+    
+    
+    /**
+     * A color processor with these dimensions.
+     *
+     * @param min The minimum value that will be in the processor.
+     * @param max The maximum.
+     * @return A float processor with these dimensions.
+     */
+    public ColorProcessor getColorProcessor(float min, float max) {
+        ColorProcessor cp = new ColorProcessor(width, height);
+        cp.setMinAndMax(min, max);
+        return cp;
+    }
+    
+    /**
+     * An empty image stack with this's width and height.
+     * @return An empty image stack with this's width and height.
+     */
+    public MyImageStack getImageStack(){
+        return new MyImageStack(width, height);
     }
 
     /**

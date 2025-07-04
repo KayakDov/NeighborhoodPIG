@@ -71,13 +71,13 @@ public class FijiPlugin implements PlugIn {
      * @param depth The depth of each frame.
      * @return The maximum number of frames that can be processed at once.
      */
-    public static int framesPerRun(int height, int width, int depth) {
+    public static int framesPerRun(int height, int intwidth, int depth) {
 
         long freeMemory = GPU.freeMemory();
 
         if (freeMemory == 0) throw new RuntimeException("There is no free GPU memory.");
 
-        long voxlesPerFrame = height * width * depth;
+        long voxlesPerFrame = height * intwidth * depth;
 
         return (int) ((freeMemory / voxlesPerFrame) / (Sizeof.DOUBLE * (depth > 1 ? 6 : 3) + Sizeof.FLOAT * (depth > 1 ? 3 : 2)));
 
@@ -140,12 +140,16 @@ public class FijiPlugin implements PlugIn {
 
         UserInput ui;
 
-        if (string.length() == 0)try {
-            ui = new UserDialog(originalImage).getUserInput();
-        } catch (UserCanceled ex) {
-            System.out.println("fijiPlugin.FijiPlugin.run() User canceled diolog.");
-            return;
-        } else ui = UserInput.fromStrings(string.split(" "), originalImage.getNSlices());
+        if (string.length() == 0) {
+            try {
+                ui = new UserDialog(originalImage).getUserInput();
+            } catch (UserCanceled ex) {
+                System.out.println("fijiPlugin.FijiPlugin.run() User canceled dialog.");
+                return;
+            }
+        } else {
+            ui = UserInput.fromStrings(string.split(" "), originalImage.getNSlices());
+        }
         run(ui, originalImage, Save.fiji);
     }
 
@@ -209,8 +213,8 @@ public class FijiPlugin implements PlugIn {
      * java -jar NeighborhoodPIG.jar "path/to/my_image.tif" 1 "png" 10 true false true 1
      *
      * // For a 3D image stack (e.g., from "my_image_directory/") generating a vector field:
-     * // Args: image_path, depth=5, save_format="tiff", xy_rad=15, z_rad=3, z_mult=2, heatmap=false, vector_field=true, coherence=false, vf_spacing_xy=10, vf_spacing_z=8, vf_mag=2, downsample_xy=2
-     * java -jar NeighborhoodPIG.jar "path/to/my_image_directory" 5 "tiff" 15 3 2 false true false 10 8 2
+     * // Args: image_path, depth=5, save_format="tiff", xy_rad=15, z_rad=3, z_mult=2, heatmap=false, vector_field=true, coherence=false, vf_spacing_xy=10, vf_spacing_z=8, vf_mag=2, downsample_xy=2, downsample_z=1
+     * java -jar NeighborhoodPIG.jar "path/to/my_image_directory" 5 "tiff" 15 3 2 false true false 10 8 2 1
      *
      * // For a 2D image "another_2d_image.tif" with vector field overlaid (downsample_xy and vf_spacing_xy match):
      * // Args: image_path, depth=1, save_format="tiff", xy_rad=10, heatmap=false, vector_field=true, coherence=false, vf_spacing_xy=15, vf_mag=10, overlay=true, downsample_xy=15
@@ -251,8 +255,8 @@ public class FijiPlugin implements PlugIn {
 
     private static String[] defaultArgs() {
         String imagePath = "images/input/cyl/";
-        int depth = 25;
-        NeighborhoodDim neighborhoodSize = new NeighborhoodDim(8, 8, 1);
+        int depth = 50;
+        NeighborhoodDim neighborhoodSize = new NeighborhoodDim(3, 3, 1);
 //        String imagePath = "images/input/debug/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1, 1);
 //        String imagePath = "images/input/3dVictorData"; int depth = 20; NeighborhoodDim neighborhoodSize = new NeighborhoodDim(15, 1, 1);
 //        String imagePath = "images/input/upDown/";int depth = 1;NeighborhoodDim neighborhoodSize = new NeighborhoodDim(1, 1);
@@ -267,23 +271,24 @@ public class FijiPlugin implements PlugIn {
         int vfSpacingXY = 6;
         int vfSpacingZ = 6;
         int mag = 4;
-        int downSample = 1;
-                
+        int downSampleXY = 1;
+        int downSampleZ = 1;
 
         return new String[]{
-            imagePath, 
-            "" + depth, 
+            imagePath,
+            "" + depth,
             "png",
-            "" + neighborhoodSize.xyR, 
-            "" + neighborhoodSize.zR, 
-            "" + zDist, 
-            "" + hasHeatMap, 
-            "" + hasVF, 
-            "" + hasCoherence, 
-//            "" + vfSpacingXY, 
-//            "" + vfSpacingZ, 
-//            "" + mag,
-            "" + downSample
+            "" + neighborhoodSize.xyR,
+            "" + neighborhoodSize.zR,
+            "" + zDist,
+            "" + hasHeatMap,
+            "" + hasVF,
+            "" + hasCoherence,
+            //            "" + vfSpacingXY, 
+            //            "" + vfSpacingZ, 
+            //            "" + mag,
+            "" + downSampleXY,
+            "" + downSampleZ
         };
 
     }
@@ -303,10 +308,11 @@ public class FijiPlugin implements PlugIn {
 
             MyImagePlus img = new MyImagePlus(userImg).crop(
                     ui.downSample(userImg.getHeight()),
-                    ui.downSample(userImg.getWidth())
+                    ui.downSample(userImg.getWidth()),
+                    ui.downSampleZ(userImg.getNSlices())
             );
 
-            Dimensions downSampled = img.dim().downSampleXY(null, ui.downSampleFactorXY);
+            Dimensions downSampled = img.dim().downSample(null, ui.downSampleFactorXY, ui.downSampleFactorZ);
 
             MyImageStack vf = VectorImg.space(downSampled, ui.vfSpacingXY, ui.vfSpacingZ, ui.vfMag, ui.overlay ? img.dim() : null).emptyStack(),
                     coh = downSampled.emptyStack(),
@@ -319,14 +325,14 @@ public class FijiPlugin implements PlugIn {
 
             if (framesPerIteration > 1) framesPerIteration = framesPerIteration / 2;
             else if (framesPerIteration <= 0) {
-                IJ.error("Your stack has a high depth relative to GPU size. This may cause a crash.");
+                IJ.error("Your stack has a high depth relative to GPU size. This may cause a crash due to insufficiant GPU memory to process a complete frame.");
                 framesPerIteration = 1;
             }
 
             long startTime = System.currentTimeMillis();
 
             for (int i = 0; i < img.getNFrames(); i += framesPerIteration)
-            try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, img.subset(i, framesPerIteration), ui)) {
+                try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, img.subset(i, framesPerIteration), ui)) {
 
                 if (ui.heatMap) {
                     appendHM(az, np.getAzimuthalAngles(0.01), 0, (float) Math.PI);

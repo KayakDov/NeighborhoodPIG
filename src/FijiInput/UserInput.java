@@ -52,13 +52,19 @@ public class UserInput {
     /**
      * The tolerance value used in processing.
      */
-    public final float tolerance;
+    public final double tolerance;
 
     /**
      * 1 in every how many pixels has its structure tensor eiganvector computed
      * computed in the X any Y dimensions.
      */
     public final int downSampleFactorXY;
+
+    /**
+     * 1 in every how many pixels has its structure tensor eiganvector computed
+     * computed in the Z dimension.
+     */
+    public final int downSampleFactorZ;
 
     /**
      * Constructs a UserInput object with the specified parameters.
@@ -71,7 +77,7 @@ public class UserInput {
      * @param vfMag The magnitude of the vectors in the vector field.
      * @param tolerance The tolerance value.
      */
-    UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, boolean useCoherence, int vfSpacing, int vfMag, boolean vfOverlay, float tolerance, int downSampleFactorXY, int vfSpacingZ) {
+    UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, boolean useCoherence, int vfSpacing, int vfMag, boolean vfOverlay, float tolerance, int downSampleFactorXY, int vfSpacingZ, int downSampleFactorZ) {
         this.neighborhoodSize = neighborhoodSize;
         this.heatMap = heatMap;
         this.vectorField = vectorField;
@@ -82,6 +88,7 @@ public class UserInput {
         this.overlay = vfOverlay;
         this.vfSpacingXY = overlay ? downSampleFactorXY : vfSpacing;
         this.vfSpacingZ = vfSpacingZ;
+        this.downSampleFactorZ = downSampleFactorZ;
     }
 
     /**
@@ -92,7 +99,7 @@ public class UserInput {
      */
     public static UserInput defaultVals(NeighborhoodDim nd) {
         int spacing = 6;
-        return new UserInput(nd, false, true, false, spacing, Math.max(spacing - 2, 0), false, defaultTolerance, 1, spacing);
+        return new UserInput(nd, false, true, false, spacing, Math.max(spacing - 2, 0), false, defaultTolerance, 1, spacing, 1);
     }
 
     /**
@@ -138,6 +145,11 @@ public class UserInput {
      * `generate_vector_field` is `true` AND `overlay_vector_field` is `true`
      * (in which case its value is derived from `vector_field_spacing` and it is
      * omitted from the command-line string).</li>
+     * <li>If image has Z-depth (`depth > 1`):
+     * <ul>
+     * <li>`downsample_factor_z` (int)</li>
+     * </ul>
+     * </li>
      * </ol>
      * @param depth The depth (number of Z-slices) of the image stack.
      * @return A new {@code UserInput} object populated with the parsed values.
@@ -212,13 +224,20 @@ public class UserInput {
         // Default tolerance value for UserInput constructor, not parsed from strings
         double defaultTolerance = UserInput.defaultTolerance;
 
-        int downSample;
+        int downSampleXY;
         if (overlay) {
-            downSample = vectorFieldSpacingXY;
-            System.out.println("Assigned downsample_factor_xy: " + downSample + " (derived from vector_field_spacing_xy due to overlay being true)");
+            downSampleXY = vectorFieldSpacingXY;
+            System.out.println("Assigned downsample_factor_xy: " + downSampleXY + " (derived from vector_field_spacing_xy due to overlay being true)");
         } else {
-            downSample = Integer.parseInt(strings[i++]);
-            System.out.println("Assigned downsample_factor_xy: " + downSample + " (from strings[" + (i - 1) + "])");
+            downSampleXY = Integer.parseInt(strings[i++]);
+            System.out.println("Assigned downsample_factor_xy: " + downSampleXY + " (from strings[" + (i - 1) + "])");
+        }
+
+        int downSampleZ = hasZ ? Integer.parseInt(strings[i++]) : 0;
+        if (hasZ) {
+            System.out.println("Assigned downsample_factor_z: " + downSampleZ + " (from strings[" + (i - 1) + "])");
+        } else {
+            System.out.println("downsample_factor_z not applicable (depth <= 1), set to: " + downSampleZ);
         }
         System.out.println("--- Finished Parsing User Input ---");
 
@@ -231,8 +250,9 @@ public class UserInput {
                 vectorFieldMagnitude,
                 overlay,
                 (float) defaultTolerance, // This is a default value and not parsed from the string array
-                downSample,
-                vectorFieldSpacingZ
+                downSampleXY,
+                vectorFieldSpacingZ,
+                downSampleZ
         );
     }
 
@@ -255,19 +275,30 @@ public class UserInput {
         return (origSample / downSampleFactorXY) * downSampleFactorXY;
     }
 
+    /**
+     * The greatest multiple of downSampleFactorZ that is less than origSample.
+     *
+     * @param origSample An integer.
+     * @return The greatest multiple of downSampleFactorZ that is less than origSample.
+     */
+    public int downSampleZ(int origSample) {
+        return (origSample / downSampleFactorZ) * downSampleFactorZ;
+    }
+
     @Override
     public String toString() {
         return "UserInput {\n"
-                + "  neighborhoodSize         = " + neighborhoodSize + ",\n"
-                + "  heatMap                  = " + heatMap + ",\n"
-                + "  vectorField              = " + vectorField + ",\n"
-                + "  overlay                 = " + overlay + ",\n"
-                + "  useCoherence             = " + useCoherence + ",\n"
-                + "  vfSpacingXY              = " + vfSpacingXY + ",\n"
-                + "  vfSpacingZ               = " + vfSpacingZ + ",\n"
-                + "  vfMag                    = " + vfMag + ",\n"
-                + "  tolerance                = " + tolerance + ",\n"
-                + "  downSampleFactorXY       = " + downSampleFactorXY + "\n"
+                + "  neighborhoodSize           = " + neighborhoodSize + ",\n"
+                + "  heatMap                    = " + heatMap + ",\n"
+                + "  vectorField                = " + vectorField + ",\n"
+                + "  overlay                   = " + overlay + ",\n"
+                + "  useCoherence               = " + useCoherence + ",\n"
+                + "  vfSpacingXY                = " + vfSpacingXY + ",\n"
+                + "  vfSpacingZ                 = " + vfSpacingZ + ",\n"
+                + "  vfMag                      = " + vfMag + ",\n"
+                + "  tolerance                  = " + tolerance + ",\n"
+                + "  downSampleFactorXY         = " + downSampleFactorXY + ",\n"
+                + "  downSampleFactorZ          = " + downSampleFactorZ + "\n"
                 + '}';
     }
 

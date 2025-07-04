@@ -34,9 +34,13 @@ public class UserDialog {
         GenericDialog gd = new GenericDialog("NeighborhoodPIG Parameters");
         HelpDialog hf = addHelpButton(gd);
 
-        NumericField downSample = new NumericField("Downsample factor XY:", 1, gd, 0,
+        NumericField downSampleXY = new NumericField("Downsample factor XY:", 1, gd, 0,
                 "Determines how many pixels are skipped (1 = every pixel, 2 = every other). \nIncreased values improve memory & time performance.",
                 hf);
+
+        NumericField downSampleZ = hasZ ? new NumericField("Downsample factor Z:", 1, gd, 0,
+                "Determines how many pixels are skipped in the Z-direction (1 = every pixel, 2 = every other). \nIncreased values improve memory & time performance.",
+                hf) : null;
 
         BooleanField heatmap = new BooleanField("Heatmap", true, gd,
                 "Generates a heatmap visualizing image orientations.",
@@ -68,7 +72,7 @@ public class UserDialog {
                 hf);
 
         NumericField spacingZ = hasZ ? new NumericField("Vector Field Spacing Z:", 0, gd, 0,
-                "Distance (pixels) between vectors in the xy plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
+                "Distance (pixels) between vectors in the z plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
                 hf) : null;
 
         NumericField mag = new NumericField("Vector Field Magnitude:", 0, gd, 0,
@@ -81,45 +85,63 @@ public class UserDialog {
 
                 mag.setEnabled(vectorField.is());
 
-                if (hasZ)
+                if (hasZ) {
                     spacingZ.setEnabled(vectorField.is());
-                else {
+                    downSampleZ.setEnabled(true); // Always enabled if hasZ
+                } else {
                     overlay.setEnabled(vectorField.is());
 
-                    if (vectorField.is() && overlay.is())
-                        spacingXY.val(downSample.val()).setEnabled(false);
+                    if (vectorField.is() && overlay.is()) {
+                        spacingXY.val(downSampleXY.val()).setEnabled(false);
+                    } else {
+                        spacingXY.setEnabled(true); // Re-enable if overlay is off
+                    }
 
-                    if (!vectorField.is()) overlay.is(false);
-
+                    if (!vectorField.is()) {
+                        overlay.is(false);
+                    }
                 }
+                
                 if (vectorField.is()) {
-                    if (downSample.val() == 1 && downSampelOrig) {
-                        downSample.val((int) xyR.val());
-                        downSampelOrig = false;
+                    if (downSampleXY.val() == 1 && downSampleXYOrig) {
+                        downSampleXY.val((int) xyR.val());
+                        downSampleXYOrig = false;
+                    }
+                    if (hasZ && downSampleZ.val() == 1 && downSampleZOrig) {
+                        downSampleZ.val((int) zR.val());
+                        downSampleZOrig = false;
                     }
                     if (spacingXY.val() == 0) spacingXY.val(xyR.val());
-                    if (hasZ && spacingZ.val() == 0) spacingZ.val(xyR.val());
+                    if (hasZ && spacingZ.val() == 0) spacingZ.val(xyR.val()); // Using xyR.val() as a placeholder for z spacing
                     if (mag.val() == 0) mag.val(xyR.val());
                 } else {
                     if (spacingXY.val() != 0) spacingXY.val(0);
                     if (mag.val() != 0) mag.val(0);
                     if (hasZ && spacingZ.val() != 0) spacingZ.val(0);
-                    if (!downSampelOrig) {
-                        downSample.val(1);
-                        downSampelOrig = true;
+                    if (!downSampleXYOrig) {
+                        downSampleXY.val(1);
+                        downSampleXYOrig = true;
+                    }
+                    if (hasZ && !downSampleZOrig) {
+                        downSampleZ.val(1);
+                        downSampleZOrig = true;
                     }
                 }
 
             } catch (NumberFormatException nfe) {
-
+                // Handle the exception if needed, though GenericDialog usually handles basic parsing errors
             }
             return true;
         });
 
         spacingXY.setEnabled(vectorField.is());
         mag.setEnabled(vectorField.is());
-        if (hasZ) spacingZ.setEnabled(vectorField.is());
-        else overlay.setEnabled(vectorField.is());
+        if (hasZ) {
+            spacingZ.setEnabled(vectorField.is());
+            downSampleZ.setEnabled(true);
+        } else {
+            overlay.setEnabled(vectorField.is());
+        }
 
         gd.showDialog();
 
@@ -134,12 +156,14 @@ public class UserDialog {
                 vectorField.is() ? (int) mag.val() : 0,
                 vectorField.is() && !hasZ ? overlay.is() : false,
                 defaultTolerance,
-                (int) downSample.val(),
-                hasZ && vectorField.is() ? (int) spacingZ.val() : 0
+                (int) downSampleXY.val(),
+                hasZ && vectorField.is() ? (int) spacingZ.val() : 0,
+                hasZ ? (int) downSampleZ.val() : 1 // Pass downSampleFactorZ
         );
     }
 
-    private boolean downSampelOrig = true;
+    private boolean downSampleXYOrig = true;
+    private boolean downSampleZOrig = true;
 
     /**
      * Adds the help button and ties it to the generic dialog.

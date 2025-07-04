@@ -42,11 +42,12 @@ public:
      * @param width The width of each 2D slice.
      * @param depth The number of slices along the depth dimension (per frame).
      * @param downSampleFactorXY The downsampling factor applied in the x and y dimensions.
+     * @param downSampleFactorZ The downsampling factor applied in the z dimension.
      */
-    __device__ Get(const int idx, const int* dim, const int downSampleFactorXY)
+    __device__ Get(const int idx, const int* dim, const int downSampleFactorXY, const int downSampleFactorZ)
     : idx(idx), 
       layerSize(dim[4]), 
-      layer((idx / dim[4]) % dim[2]), 
+      layer(((idx / dim[4]) % dim[2]) * downSampleFactorZ), 
       frame(idx / dim[5]),
       row((idx % dim[0])*downSampleFactorXY),
       col(((idx % dim[4])/dim[0])*downSampleFactorXY) {}
@@ -270,13 +271,9 @@ public:
      */
     __device__ void subtractRow(int minuendInd, int subtrahendInd, double scale, int startCol) {
         mat[minuendInd][startCol] = 0;
-        for (int i = startCol + 1; i < 3; i++){
-            if(fabs(mat[minuendInd][i]) <= tolerance && fabs(mat[subtrahendInd][i]) <= tolerance) mat[minuendInd][i] = 0;
-            else if(fabs(mat[minuendInd][i]) <= tolerance) mat[minuendInd][i] = prod(scale, mat[subtrahendInd][i]);
-            else if(fabs(mat[subtrahendInd][i]) <= tolerance) mat[minuendInd][i] = -mat[minuendInd][i];
-            else 
-                mat[minuendInd][i] = fma(scale, mat[subtrahendInd][i], -mat[minuendInd][i]);
-        }
+        for (int x = startCol + 1; x < 3; x++)
+	    mat[minuendInd][x] = fma(mat[minuendInd][x], -scale, mat[subtrahendInd][x]);
+        
         
     }
 
@@ -314,18 +311,17 @@ public:
         
         MaxAbs maxPivot(row, fabs(mat[row][col]));
         
-	for (int i = row + 1; i < 3; i++) maxPivot.challenge(i, mat[i][col]);
-	
+	for (int y = row + 1; y < 3; y++) maxPivot.challenge(y, mat[y][col]);
 
         if (maxPivot.getVal() <= tolerance) return false;
 
         if (maxPivot.getArg() != row) swapRows(maxPivot.getArg(), row, col);
         
-        for (int i = row + 1; i < 3; i++){
-	    subtractRow(i, row, mat[i][col]/mat[row][col], col);
-	    scaleRow(row, col);
-	}
-
+        scaleRow(row, col);
+        
+        for (int y = row + 1; y < 3; y++)
+	    if(fabs(mat[y][col]) > tolerance) subtractRow(y, row, mat[y][col], col);
+	
         return true;
     }
 
@@ -722,15 +718,15 @@ extern "C" __global__ void eigenBatch3dKernel(
         
     const int* dim,
     
-    const int downSampleFactorXY, const int eigenInd,
+    const int downSampleFactorXY, const int downSampleFactorZ, const int eigenInd,
     const double tolerance    
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= n) return;
       
-    Get src(idx, dim, downSampleFactorXY);
-    Get dst(idx, dim, 1);
+    Get src(idx, dim, downSampleFactorXY, downSampleFactorZ);
+    Get dst(idx, dim, 1, 1);
       
     Matrix3x3 mat(
     	src(xx, ldxx, ldldxx, ldPtrxx), src(xy, ldxy, ldldxy, ldPtrxy), src(xz, ldxz, ldldxz, ldPtrxz), 
@@ -739,13 +735,13 @@ extern "C" __global__ void eigenBatch3dKernel(
         tolerance
     );
     
+    if(idx == 0*dim[5] + 7*dim[4] + 25*dim[0] + 0){
+       printf("tolerance = %.17f\n ", tolerance);
+       mat.print();
+    }
+    
     Vec eVals(tolerance);
     eVals.setEVal(mat);
-    
-  //  if(idx == dim[5] + 38*dim[4] + 32*dim[0] + 19){
-//       mat.print();
-  //     eVals.print();
-   // }
         
     dst.set(coherence, ldCoh, ldldCoh, ldPtrCoh, (float)eVals.coherence());
     
@@ -759,5 +755,9 @@ extern "C" __global__ void eigenBatch3dKernel(
     vec.writeTo(eVecs[dst.page(ldPtrEVec)] + dst.col * ldEVec[dst.page(ldldEVec)] + dst.row * 3);
     dst.set(azimuthal, ldAzi, ldldAzi, ldPtrAzi, vec.azimuth());
     dst.set(zenith, ldZen, ldldZen, ldPtrZen, vec.zenith());
+    
+    if(idx == 0*dim[5] + 7*dim[4] + 25*dim[0] + 0)
+       mat.print();
+    
 }
 

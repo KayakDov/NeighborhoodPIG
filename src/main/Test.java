@@ -66,7 +66,7 @@ public class Test {
         // Regex: Matches a number (integer or float) followed by E/e and a negative exponent.
         // It's quite comprehensive for scientific notation with negative exponents.
         // Ensures it doesn't match E+ or just E.
-        result = result.replaceAll("\\b\\d*\\.?\\d+(?:[Ee][-+]?\\d+)\\b", "0");
+        result = result.replaceAll("\\b\\d*\\.?\\d+(?:[Ee][-+]?\\d+)\\b", "");
 
         // 2. Truncate all floating point numbers to 1 value after the decimal place.
         // This regex specifically targets numbers with more than one digit after the decimal
@@ -99,6 +99,11 @@ public class Test {
         result = result.replace("-0,", "0,");
         result = result.replace("-0]", "0]");
         result = result.replace("NaN", "N");
+        result = result.replace("0,", ",");
+        result = result.replace("0]", "]");
+        result = result.replace("-,", ",");
+        result = result.replace("-]", "]");
+        
 
 
         return result;

@@ -28,10 +28,9 @@ public class StructureTensorMatrices implements AutoCloseable {
      */
     public StructureTensorMatrices(Handle handle, MyImagePlus imp, UserInput ui) {
         try (Gradient grad = new Gradient(handle, imp, ui)) {
-            
             dim = grad.dim;            
 
-            eigen = new Eigen(handle, dim, ui.downSampleFactorXY, ui.tolerance);
+            eigen = new Eigen(handle, dim, ui);
             
             try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, ui.neighborhoodSize, dim)) {
 
@@ -41,14 +40,16 @@ public class StructureTensorMatrices implements AutoCloseable {
             }
         }
         
-        downSampled = dim.downSampleXY(handle, ui.downSampleFactorXY);
+        downSampled = dim.downSample(handle, ui.downSampleFactorXY, ui.downSampleFactorZ);
         
         azimuth = downSampled.emptyP2dToF2d(handle);
         zenith = dim.hasDepth() ? downSampled.emptyP2dToF2d(handle) : null;
         coherence = downSampled.emptyP2dToF2d(handle);
         vectors = new PArray2dToF2d(downSampled.depth, downSampled.batchSize, downSampled.height * dim.num(), downSampled.width, handle);
-        
+                
         eigen.set(dim.num() - 1, vectors, coherence, azimuth, zenith, downSampled).close();
+        
+//        System.out.println("fijiPlugin.StructureTensorMatrices.<init>()\n" + Test.format(azimuth.toString()));
     }
 
     /**

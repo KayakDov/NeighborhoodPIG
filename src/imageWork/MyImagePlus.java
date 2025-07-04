@@ -125,12 +125,13 @@ public class MyImagePlus extends ImagePlus {
      * Prepares the image for saving. If the image is a 32-bit float, it is
      * normalized to 8-bit. Otherwise, a copy of the original image is created.
      * This makes the saveSlices method more robust for different image types.
-     *@param toTiff true if the image will be saved as a tiff, false otherwise.
+     *
+     * @param toTiff true if the image will be saved as a tiff, false otherwise.
      * @return An ImagePlus ready for saving.
      */
     private MyImagePlus prepareImageForSaving(boolean toTiff) {
 
-        return getType() == ImagePlus.GRAY32 && !toTiff? normalizeFloatImageTo8Bit() : this;
+        return getType() == ImagePlus.GRAY32 && !toTiff ? normalizeFloatImageTo8Bit() : this;
     }
 
     /**
@@ -223,7 +224,7 @@ public class MyImagePlus extends ImagePlus {
             for (int z = 1; z <= slices; z++) {
                 int index = imp.getStackIndex(1, z, t);
                 imp.setSlice(index);
-                
+
                 ImagePlus sliceToSave = new ImagePlus(
                         baseFileName + "_F" + t + "_Z" + z,
                         imp.getProcessor().duplicate() // Duplicate the processor to ensure isolated saving
@@ -231,16 +232,16 @@ public class MyImagePlus extends ImagePlus {
 
                 // If it's an 8-bit image, ensure its display range is set for proper saving
                 if (sliceToSave.getProcessor() instanceof ByteProcessor || sliceToSave.getProcessor() instanceof ColorProcessor)
-                    sliceToSave.setDisplayRange(0, 255);                
+                    sliceToSave.setDisplayRange(0, 255);
 
-                File outFile = new File(saveTo, sliceToSave.getTitle() + (toTiff?".tiff":".png"));
+                File outFile = new File(saveTo, sliceToSave.getTitle() + (toTiff ? ".tiff" : ".png"));
                 ensureDir(outFile.getParentFile());
 
                 FileSaver fs = new FileSaver(sliceToSave);
-                
-                if (!toTiff && fs.saveAsPng(outFile.getAbsolutePath()) ||
-                        toTiff && fs.saveAsTiff(outFile.getAbsolutePath())) 
-                    System.out.println("Saved: " + outFile.getAbsolutePath());                
+
+                if (!toTiff && fs.saveAsPng(outFile.getAbsolutePath())
+                        || toTiff && fs.saveAsTiff(outFile.getAbsolutePath()))
+                    System.out.println("Saved: " + outFile.getAbsolutePath());
                 else System.err.println("Failed to save: " + outFile.getAbsolutePath());
             }
         }
@@ -369,13 +370,21 @@ public class MyImagePlus extends ImagePlus {
      *
      * @param width The new width of this image.
      * @param height The new height of this image.
+     * @param depth The new depth.
      * @return this image.
      */
-    public MyImagePlus crop(int height, int width) {
-        dim = new Dimensions(height, width, dim.depth, dim.batchSize);
+    public MyImagePlus crop(int height, int width, int depth) {
+
         setRoi(new Roi(new Rectangle(0, 0, width, height)));
+
+        for (int t = 0; t < dim.batchSize; t++)
+            for (int z = depth; z < dim.depth; z++)
+                getStack().deleteSlice((t + 1) * depth + 1);
+
         setStack(crop("stack").getImageStack());
+
         deleteRoi();
+        dim = new Dimensions(height, width, depth, dim.batchSize);
         return this;
     }
 
