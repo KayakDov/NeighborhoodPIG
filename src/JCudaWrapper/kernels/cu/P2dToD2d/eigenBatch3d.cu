@@ -272,7 +272,7 @@ public:
     __device__ void subtractRow(int minuendInd, int subtrahendInd, double scale, int startCol) {
         mat[minuendInd][startCol] = 0;
         for (int x = startCol + 1; x < 3; x++)
-	    mat[minuendInd][x] = fma(mat[minuendInd][x], -scale, mat[subtrahendInd][x]);
+	    mat[minuendInd][x] = fma(-scale, mat[subtrahendInd][x], mat[minuendInd][x]);
         
         
     }
@@ -735,10 +735,10 @@ extern "C" __global__ void eigenBatch3dKernel(
         tolerance
     );
     
-    if(idx == 0*dim[5] + 7*dim[4] + 25*dim[0] + 0){
-       printf("tolerance = %.17f\n ", tolerance);
-       mat.print();
-    }
+    //if(idx == 0*dim[5] + 7*dim[4] + 25*dim[0] + 0){
+      // printf("tolerance = %.17f\n ", tolerance);
+     //  mat.print();
+    //}
     
     Vec eVals(tolerance);
     eVals.setEVal(mat);
@@ -756,8 +756,8 @@ extern "C" __global__ void eigenBatch3dKernel(
     dst.set(azimuthal, ldAzi, ldldAzi, ldPtrAzi, vec.azimuth());
     dst.set(zenith, ldZen, ldldZen, ldPtrZen, vec.zenith());
     
-    if(idx == 0*dim[5] + 7*dim[4] + 25*dim[0] + 0)
-       mat.print();
+ //   if(idx == 0*dim[5] + 7*dim[4] + 25*dim[0] + 0)
+//       mat.print();
     
 }
 
