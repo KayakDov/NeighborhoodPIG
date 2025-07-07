@@ -68,10 +68,6 @@ public class UserDialog {
                 "Overlays the vector field directly on the original image.",
                 hf);
 
-        DirectoryField saveToDirField = new DirectoryField("Save Directory:", null, gd,
-                "Select the directory where vector data files (.dat) will be saved. Leave empty if not saving.",
-                hf);
-                
         NumericField spacingXY = new NumericField("Vector Field Spacing XY:", 0, gd, 0,
                 "Distance (pixels) between vectors in the xy plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
                 hf);
@@ -83,36 +79,29 @@ public class UserDialog {
         NumericField mag = new NumericField("Vector Field Magnitude:", 0, gd, 0,
                 "Visual length (pixels) of the displayed vectors.",
                 hf);
-        
-        BooleanField saveVectorsToFile = new BooleanField("Save Vectors to File", false, gd,
-                "Saves the computed vectors (x y z nx ny nz) to a tab-separated text file.",
+
+        DirectoryField saveToDirField = new DirectoryField("Save Directory:", "", gd,
+                "Select the directory where vector data files (.dat) will be saved. Leave empty if not saving.",
                 hf);
 
         gd.addDialogListener((GenericDialog gd1, AWTEvent e) -> {
             try {
-                spacingXY.setEnabled(vectorField.is());
+                
+                boolean noOverlay = overlay == null || !overlay.is();
+                boolean enableSpacing = (vectorField.is() || saveToDirField.getPath().isPresent());
+                
+                spacingXY.setEnabled(enableSpacing);
 
                 mag.setEnabled(vectorField.is());
 
                 if (hasZ) {
-                    spacingZ.setEnabled(vectorField.is());
-                    downSampleZ.setEnabled(true); // Always enabled if hasZ
+                    spacingZ.setEnabled(enableSpacing);
+                    downSampleZ.setEnabled(true);
                 } else {
                     overlay.setEnabled(vectorField.is());
-
-                    if (vectorField.is() && overlay.is()) {
-                        spacingXY.val(downSampleXY.val()).setEnabled(false);
-                    } else {
-                        spacingXY.setEnabled(true); // Re-enable if overlay is off
-                    }
-
-                    if (!vectorField.is()) {
-                        overlay.is(false);
-                    }
+                    if (!vectorField.is()) overlay.is(false);
+                    spacingXY.setEnabled(enableSpacing);
                 }
-
-                // Enable/disable saveVectorsToFile based on whether vectorField is enabled
-                saveVectorsToFile.setEnabled(vectorField.is());
 
                 if (vectorField.is()) {
                     if (downSampleXY.val() == 1 && downSampleXYOrig) {
@@ -123,59 +112,45 @@ public class UserDialog {
                         downSampleZ.val((int) zR.val());
                         downSampleZOrig = false;
                     }
-                    if (spacingXY.val() == 0) spacingXY.val(xyR.val());
-                    if (hasZ && spacingZ.val() == 0) spacingZ.val(xyR.val()); // Using xyR.val() as a placeholder for z spacing
                     if (mag.val() == 0) mag.val(xyR.val());
-                } else {
-                    if (spacingXY.val() != 0) spacingXY.val(0);
-                    if (mag.val() != 0) mag.val(0);
-                    if (hasZ && spacingZ.val() != 0) spacingZ.val(0);
-                    if (!downSampleXYOrig) {
-                        downSampleXY.val(1);
-                        downSampleXYOrig = true;
-                    }
-                    if (hasZ && !downSampleZOrig) {
-                        downSampleZ.val(1);
-                        downSampleZOrig = true;
-                    }
-                    // If vectorField is disabled, ensure saveVectorsToFile is also deselected and disabled
-                    if (!vectorField.is()) {
-                        saveVectorsToFile.is(false);
-                    }
+                } 
+                if(enableSpacing){
+                    if (spacingXY.val() == 0) spacingXY.val(xyR.val());
+                    if (hasZ && spacingZ.val() == 0) spacingZ.val(xyR.val()); 
                 }
 
-            } catch (NumberFormatException nfe) {                
+            } catch (NumberFormatException nfe) {
             }
             return true;
         });
 
-        spacingXY.setEnabled(vectorField.is());
-        mag.setEnabled(vectorField.is());
+        spacingXY.setEnabled(false);
+        mag.setEnabled(false);
         if (hasZ) {
-            spacingZ.setEnabled(vectorField.is());
+            spacingZ.setEnabled(false);
             downSampleZ.setEnabled(true);
         } else {
-            overlay.setEnabled(vectorField.is());
+            overlay.setEnabled(false);
         }
-        saveVectorsToFile.setEnabled(vectorField.is()); // Set initial state for new field
-
+        
         gd.showDialog();
 
         if (gd.wasCanceled()) throw new UserCanceled();
-        
+        saveToDirField.savePath();
+
         ui = new UserInput(
                 new NeighborhoodDim((int) xyR.val(), hasZ ? (int) zR.val() : 1, hasZ ? (int) layerDist.val() : 1),
                 heatmap.is(),
                 vectorField.is(),
                 coherence.is(),
-                saveToDirField.getPath(), 
-                vectorField.is() ? (int) spacingXY.val() : 0,
-                vectorField.is() ? (int) mag.val() : 0,
+                saveToDirField.getPath(),
                 vectorField.is() && !hasZ ? overlay.is() : false,
-                defaultTolerance,
-                (int) downSampleXY.val(),
-                hasZ && vectorField.is() ? (int) spacingZ.val() : 0,
-                hasZ ? (int) downSampleZ.val() : 1 
+                vectorField.is() ? (int) mag.val() : 0,
+                (int) spacingXY.val(),
+                (int) spacingZ.val(),
+                (int)downSampleXY.val(),
+                downSampleZ != null ? (int) downSampleZ.val() : 1, 
+                defaultTolerance
         );
     }
 
@@ -210,7 +185,7 @@ public class UserDialog {
 
         return help;
     }
-    
+
     /**
      * Gets the user's input.
      *
@@ -219,6 +194,5 @@ public class UserDialog {
     public UserInput getUserInput() {
         return ui;
     }
-    
 
 }

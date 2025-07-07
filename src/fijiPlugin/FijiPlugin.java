@@ -360,7 +360,7 @@ public class FijiPlugin implements PlugIn {
                 if (ui.useCoherence) appendHM(coh, np.getCoherence(ui.tolerance), 0, 1);
 
                 if (ui.saveDatToDir.isPresent())
-                    new DatSaver(downSampled, np.stm.getVectors(), handle, ui.saveDatToDir.get()).saveAllVectors();
+                    new DatSaver(downSampled, np.stm.getVectors(), handle, ui.saveDatToDir.get(), ui.vfSpacingXY, ui.vfSpacingZ).saveAllVectors();
                 
                     
 

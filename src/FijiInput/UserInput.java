@@ -13,7 +13,7 @@ import java.util.Optional;
  */
 public class UserInput {
 
-    public final static float defaultTolerance = 1e-5f;
+    public final static double defaultTolerance = 1e-5f;
 
     /**
      * The dimensions of the neighborhood used for processing.
@@ -82,14 +82,14 @@ public class UserInput {
      * @param useCoherence Whether to generate coherence information.
      * @param saveDatToDir Whether to save the computed vectors to a file. Set
      * this to null if the vectors should not ve saved to a .dat file.
-     * @param vfSpacing The spacing between vectors in the vector field.
+     * @param vfSpacingXY The spacing between vectors in the vector field.
      * @param vfMag The magnitude of the vectors in the vector field.
      * @param tolerance The tolerance value.
      * @param downSampleFactorXY The downsample factor for XY dimensions.
      * @param vfSpacingZ The spacing between vectors in the Z dimension.
      * @param downSampleFactorZ The downsample factor for Z dimension.
      */
-    UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, boolean useCoherence, Optional<Path> saveDatToDir, int vfSpacing, int vfMag, boolean vfOverlay, float tolerance, int downSampleFactorXY, int vfSpacingZ, int downSampleFactorZ) {
+    UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, boolean useCoherence, Optional<Path> saveDatToDir, boolean vfOverlay, int vfMag, int vfSpacingXY, int vfSpacingZ, int downSampleFactorXY, int downSampleFactorZ, double tolerance) {
         this.neighborhoodSize = neighborhoodSize;
         this.heatMap = heatMap;
         this.vectorField = vectorField;
@@ -99,7 +99,7 @@ public class UserInput {
         this.tolerance = tolerance;
         this.downSampleFactorXY = downSampleFactorXY;
         this.overlay = vfOverlay;
-        this.vfSpacingXY = overlay ? downSampleFactorXY : vfSpacing;
+        this.vfSpacingXY = vfSpacingXY;
         this.vfSpacingZ = vfSpacingZ;
         this.downSampleFactorZ = downSampleFactorZ;
     }
@@ -257,13 +257,13 @@ public class UserInput {
                 vectorField,
                 coherence,
                 saveVectors,
-                vectorFieldSpacingXY,
-                vectorFieldMagnitude,
                 overlay,
-                (float) defaultTolerance, // This is a default value and not parsed from the string array
+                vectorFieldMagnitude,
+                vectorFieldSpacingXY,
+                vectorFieldSpacingZ, // This is a default value and not parsed from the string array
                 downSampleXY,
-                vectorFieldSpacingZ,
-                downSampleZ
+                downSampleZ, 
+                defaultTolerance
         );
     }
 

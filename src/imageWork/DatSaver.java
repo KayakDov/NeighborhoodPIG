@@ -27,6 +27,7 @@ public class DatSaver {
     private final PArray2dToF2d gpuVectorData;
     private final Handle handle;
     private final Path dstDir;
+    private final int scaleXY, scaleZ;
 
     /**
      * Constructs a new VectorDataSaver.
@@ -40,16 +41,16 @@ public class DatSaver {
      * @param handle The JCuda handle for memory operations.
      * @param dstDirectory The base directory where the output files will be
      * saved.
+     * @param scaleXY Scale the vector xy locations.
+     * @param scaleZ Scale the vector z locations.
      */
-    public DatSaver(
-            Dimensions dim,
-            PArray2dToF2d gpuVectorData,
-            Handle handle,
-            Path dstDirectory) {
+    public DatSaver(Dimensions dim, PArray2dToF2d gpuVectorData, Handle handle, Path dstDirectory, int scaleXY, int scaleZ) {
         this.dim = dim;
         this.gpuVectorData = gpuVectorData;
         this.handle = handle;
         this.dstDir = dstDirectory;
+        this.scaleXY = scaleXY;
+        this.scaleZ = scaleZ;
 
     }
 
@@ -119,8 +120,8 @@ public class DatSaver {
             for (int col = 0; col < dim.width; col++) {
 
                 vm.get(row, col, vec);
-                if (dim.hasDepth()) writer.printf("%d %d %d %f %f %f%n", col, row, sliceIndex, vec.getX(), vec.getY(), vec.getZ());
-                else writer.printf("%d %d %f %f%n", col, row, vec.getX(), vec.getY());
+                if (dim.hasDepth()) writer.printf("%d %d %d %f %f %f%n", col * scaleXY, row * scaleXY, sliceIndex * scaleZ, vec.getX(), vec.getY(), vec.getZ());
+                else writer.printf("%d %d %f %f%n", col*scaleXY, row * scaleXY, vec.getX(), vec.getY());
             }
 
     }
