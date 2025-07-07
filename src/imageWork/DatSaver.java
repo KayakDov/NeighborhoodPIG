@@ -66,7 +66,6 @@ public class DatSaver {
         try {
             Files.createDirectories(dstDir);
 
-
             for (int t = 0; t < dim.batchSize; t++) saveFrame(t);
 
         } catch (IOException ex) {
@@ -90,13 +89,12 @@ public class DatSaver {
 
             for (int z = 0; z < dim.depth; z++)
                 appendSliceToFile(pw, vm.setFrom(gpuVectorData, t, z, handle), z);
-            
+
         } catch (FileNotFoundException ex) {
             Logger.getLogger(DatSaver.class.getName()).log(Level.SEVERE, null, ex);
         }
 
     }
-
 
     /**
      * Saves all vectors from the current slice managed by this `VecManager` to
@@ -120,8 +118,9 @@ public class DatSaver {
             for (int col = 0; col < dim.width; col++) {
 
                 vm.get(row, col, vec);
-                if (dim.hasDepth()) writer.printf("%d %d %d %f %f %f%n", col * scaleXY, row * scaleXY, sliceIndex * scaleZ, vec.getX(), vec.getY(), vec.getZ());
-                else writer.printf("%d %d %f %f%n", col*scaleXY, row * scaleXY, vec.getX(), vec.getY());
+                if (vec.isFinite())
+                    if (dim.hasDepth()) writer.printf("%d %d %d %f %f %f%n", col * scaleXY, row * scaleXY, sliceIndex * scaleZ, vec.getX(), vec.getY(), vec.getZ());
+                    else writer.printf("%d %d %f %f%n", col * scaleXY, row * scaleXY, vec.getX(), vec.getY());
             }
 
     }

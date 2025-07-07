@@ -17,25 +17,23 @@ import java.util.Optional;
  */
 public class DirectoryField extends Field {
 
-    /**
-     * Constructs the directory field and adds it to the GenericDialog.
-     *
-     * @param name The name of the field (label for the text box).
-     * @param defaultPath The default path to display in the text field (can be
-     * null or empty).
-     * @param gd The dialog the field is to be added to.
-     * @param helpText Instructions to the user on how to use this field.
-     * @param helpLabel The HelpDialog instance to display help text.
-     */
+    // This loads the preference when the class is initialized.
+    private static String lastDirectory = Prefs.get("NeighborhoodPIG.lastDirectory", null);
+
     public DirectoryField(String name, String defaultPath, GenericDialog gd, String helpText, HelpDialog helpLabel) {
         super(name, gd, helpText, helpLabel);
 
+        // Use the last directory if defaultPath is null or empty
+        if ((defaultPath == null || defaultPath.trim().isEmpty()) && lastDirectory != null)
+            defaultPath = lastDirectory;
+
         gd.addDirectoryField(name, defaultPath, 15);
 
-        this.awtComponent = (TextField)gd.getStringFields().lastElement();
-
-        this.awtComponent.addFocusListener(this); // Add focus listener for help text and dialog updates
+        awtComponent = (TextField) gd.getStringFields().lastElement();
+        
+        awtComponent.addFocusListener(this);
     }
+
     /**
      * Returns the currently selected directory path as an Optional. If the text
      * field is empty or contains only whitespace, it returns Optional.empty().
@@ -44,20 +42,36 @@ public class DirectoryField extends Field {
      * Optional.empty() if not.
      */
     public Optional<Path> getPath() {
-        // Cast awtComponent to TextField to access getText()
         String pathText = ((TextField) this.awtComponent).getText().trim();
-        if (pathText.isEmpty()) {
-            return Optional.empty();
-        }
+        if (pathText.isEmpty()) return Optional.empty();
         return Optional.of(Paths.get(pathText));
     }
-    
-    /**
-     * Saves the path used this time, if one was used, for next time.
-     */
-    public void savePath(){
-        if(getPath().isPresent()) Prefs.set("NeighborhoodPIG.lastDirectory", getPath().get().toString());
 
+    /**
+     * Saves the path used this time, if one was used, for next time. This
+     * method is intended to be called explicitly (e.g., when the dialog is
+     * accepted).
+     */
+    public void savePath() {
+        if (getPath().isPresent()) {
+            String currentPath = getPath().get().toString();
+            lastDirectory = currentPath; // Update static field
+            Prefs.set("NeighborhoodPIG.lastDirectory", currentPath);
+        } else {
+            lastDirectory = null; // Clear static field if path is empty
+            Prefs.set("NeighborhoodPIG.lastDirectory", null); // Clear preference if path is empty
+        }
     }
 
+    /**
+     *
+     * It's crucial for saving the preference when the user types or uses the
+     * browse button.
+     *
+     * @param fe The FocusEvent.
+     */
+    @Override
+    public void focusLost(FocusEvent fe) {
+        savePath();
+    }
 }
