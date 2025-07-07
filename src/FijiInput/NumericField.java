@@ -40,21 +40,20 @@ public class NumericField extends Field {
             }
         });
 
-        ((TextField) this.awtComponent).addFocusListener(new FocusListener() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (helpMessageFrame != null) {
-                    helpMessageFrame.setHelpText(helpText); // Update with this field's help text
-                }
-            }
-
-            @Override
-            public void focusLost(FocusEvent e) {
-                enforceNonNegative();
-            }
-        });
+        ((TextField) this.awtComponent).addFocusListener(this);
     }
 
+    /**
+     * {@inheritDoc }
+     * @param fe 
+     */
+    @Override
+    public void focusLost(FocusEvent fe) {
+        enforceNonNegative();
+    }
+
+    
+    
     /**
      * Internal method to enforce non-negative values. If the current value is
      * negative or non-numeric, it sets it to 0.

@@ -113,7 +113,7 @@ public class VectorImg {
                 
                 float[] currentIntensitySlice = new float[dim.layerSize()];
                 
-                VecManager gridVecs = new VecManager(dim).setFrom(vecs, t, z, handle);
+                VecManager2d gridVecs = new VecManager2d(dim).setFrom(vecs, t, z, handle);
                 intensity.get(z, t).getVal(handle).get(handle, currentIntensitySlice);
 
                 exec.submit(() -> {

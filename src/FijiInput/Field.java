@@ -14,7 +14,7 @@ import java.awt.event.FocusListener;
  *
  * @author E. Dov Niemand
  */
-public abstract class Field {
+public abstract class Field implements FocusListener {
 
     public final String name, helpText;
     protected final GenericDialog gd;
@@ -64,6 +64,25 @@ public abstract class Field {
      */
     public String getHelpText() {
         return helpText;
+    }
+
+    /**
+     * Update the help message if focus is gained.
+     * @param fe 
+     */
+    @Override
+    public void focusGained(FocusEvent fe) {
+        if (helpMessageFrame != null)
+            helpMessageFrame.setHelpText(helpText);
+    }
+
+    /**
+     * Do nothing if focus is lost.
+     * @param fe 
+     */
+    @Override
+    public void focusLost(FocusEvent fe) {
+        
     }
 
 }

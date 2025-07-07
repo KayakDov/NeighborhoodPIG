@@ -9,6 +9,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.nio.file.Path;
 
 /**
  * This class is responsible for displaying a graphical user interface (GUI)
@@ -67,6 +68,10 @@ public class UserDialog {
                 "Overlays the vector field directly on the original image.",
                 hf);
 
+        DirectoryField saveToDirField = new DirectoryField("Save Directory:", null, gd,
+                "Select the directory where vector data files (.dat) will be saved. Leave empty if not saving.",
+                hf);
+                
         NumericField spacingXY = new NumericField("Vector Field Spacing XY:", 0, gd, 0,
                 "Distance (pixels) between vectors in the xy plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
                 hf);
@@ -77,6 +82,10 @@ public class UserDialog {
 
         NumericField mag = new NumericField("Vector Field Magnitude:", 0, gd, 0,
                 "Visual length (pixels) of the displayed vectors.",
+                hf);
+        
+        BooleanField saveVectorsToFile = new BooleanField("Save Vectors to File", false, gd,
+                "Saves the computed vectors (x y z nx ny nz) to a tab-separated text file.",
                 hf);
 
         gd.addDialogListener((GenericDialog gd1, AWTEvent e) -> {
@@ -101,7 +110,10 @@ public class UserDialog {
                         overlay.is(false);
                     }
                 }
-                
+
+                // Enable/disable saveVectorsToFile based on whether vectorField is enabled
+                saveVectorsToFile.setEnabled(vectorField.is());
+
                 if (vectorField.is()) {
                     if (downSampleXY.val() == 1 && downSampleXYOrig) {
                         downSampleXY.val((int) xyR.val());
@@ -126,10 +138,13 @@ public class UserDialog {
                         downSampleZ.val(1);
                         downSampleZOrig = true;
                     }
+                    // If vectorField is disabled, ensure saveVectorsToFile is also deselected and disabled
+                    if (!vectorField.is()) {
+                        saveVectorsToFile.is(false);
+                    }
                 }
 
-            } catch (NumberFormatException nfe) {
-                // Handle the exception if needed, though GenericDialog usually handles basic parsing errors
+            } catch (NumberFormatException nfe) {                
             }
             return true;
         });
@@ -142,23 +157,25 @@ public class UserDialog {
         } else {
             overlay.setEnabled(vectorField.is());
         }
+        saveVectorsToFile.setEnabled(vectorField.is()); // Set initial state for new field
 
         gd.showDialog();
 
         if (gd.wasCanceled()) throw new UserCanceled();
-
+        
         ui = new UserInput(
                 new NeighborhoodDim((int) xyR.val(), hasZ ? (int) zR.val() : 1, hasZ ? (int) layerDist.val() : 1),
                 heatmap.is(),
                 vectorField.is(),
                 coherence.is(),
+                saveToDirField.getPath(), 
                 vectorField.is() ? (int) spacingXY.val() : 0,
                 vectorField.is() ? (int) mag.val() : 0,
                 vectorField.is() && !hasZ ? overlay.is() : false,
                 defaultTolerance,
                 (int) downSampleXY.val(),
                 hasZ && vectorField.is() ? (int) spacingZ.val() : 0,
-                hasZ ? (int) downSampleZ.val() : 1 // Pass downSampleFactorZ
+                hasZ ? (int) downSampleZ.val() : 1 
         );
     }
 
@@ -193,7 +210,7 @@ public class UserDialog {
 
         return help;
     }
-
+    
     /**
      * Gets the user's input.
      *
@@ -202,5 +219,6 @@ public class UserDialog {
     public UserInput getUserInput() {
         return ui;
     }
+    
 
 }

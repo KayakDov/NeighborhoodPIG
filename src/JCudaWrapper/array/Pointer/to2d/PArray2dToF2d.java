@@ -6,6 +6,7 @@ import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to1d.PArray1dToD1d;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;
+import jcuda.Pointer;
 
 /**
  *
@@ -113,4 +114,22 @@ public class PArray2dToF2d extends PArray2dTo2d implements PointToF2d {
         }
     }
 
+    
+    /**
+     * All the elements pointed to  by a line of this array.
+     * @param hand The context.
+     * @param lineIndex The index of the desired line.
+     * @return All the elements pointed to  by a line of this array.
+     */
+    public float[] getLine(Handle hand, int lineIndex){
+        
+        float[] line = new float[targetSize() * entriesPerLine()];
+        
+        for(int i = 0; i < entriesPerLine(); i++){
+            Pointer pLine = Pointer.to(line).withByteOffset(bytesPerEntry * targetSize() * i);
+            get(lineIndex, i).getVal(hand).get(hand, pLine);
+        }
+        
+        return line;
+    }
 }

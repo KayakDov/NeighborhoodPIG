@@ -1,6 +1,8 @@
 package FijiInput;
 
 import fijiPlugin.NeighborhoodDim;
+import java.nio.file.Path;
+import java.util.Optional;
 
 /**
  * This class encapsulates user input parameters obtained from a dialog box. It
@@ -32,6 +34,11 @@ public class UserInput {
      * A boolean indicating whether to generate coherence information.
      */
     public final boolean useCoherence;
+
+    /**
+     * A boolean indicating whether to save the computed vectors to a file.
+     */
+    public final Optional<Path> saveDatToDir;
 
     /**
      * The spacing between vectors in the generated vector field in the xy
@@ -73,15 +80,21 @@ public class UserInput {
      * @param heatMap Whether to generate a heatmap.
      * @param vectorField Whether to generate a vector field.
      * @param useCoherence Whether to generate coherence information.
+     * @param saveDatToDir Whether to save the computed vectors to a file. Set
+     * this to null if the vectors should not ve saved to a .dat file.
      * @param vfSpacing The spacing between vectors in the vector field.
      * @param vfMag The magnitude of the vectors in the vector field.
      * @param tolerance The tolerance value.
+     * @param downSampleFactorXY The downsample factor for XY dimensions.
+     * @param vfSpacingZ The spacing between vectors in the Z dimension.
+     * @param downSampleFactorZ The downsample factor for Z dimension.
      */
-    UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, boolean useCoherence, int vfSpacing, int vfMag, boolean vfOverlay, float tolerance, int downSampleFactorXY, int vfSpacingZ, int downSampleFactorZ) {
+    UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, boolean useCoherence, Optional<Path> saveDatToDir, int vfSpacing, int vfMag, boolean vfOverlay, float tolerance, int downSampleFactorXY, int vfSpacingZ, int downSampleFactorZ) {
         this.neighborhoodSize = neighborhoodSize;
         this.heatMap = heatMap;
         this.vectorField = vectorField;
         this.useCoherence = useCoherence;
+        this.saveDatToDir = saveDatToDir;
         this.vfMag = vfMag;
         this.tolerance = tolerance;
         this.downSampleFactorXY = downSampleFactorXY;
@@ -89,17 +102,6 @@ public class UserInput {
         this.vfSpacingXY = overlay ? downSampleFactorXY : vfSpacing;
         this.vfSpacingZ = vfSpacingZ;
         this.downSampleFactorZ = downSampleFactorZ;
-    }
-
-    /**
-     * Some default values for testing purposes.
-     *
-     * @param nd The neighborhood dimensions.
-     * @return
-     */
-    public static UserInput defaultVals(NeighborhoodDim nd) {
-        int spacing = 6;
-        return new UserInput(nd, false, true, false, spacing, Math.max(spacing - 2, 0), false, defaultTolerance, 1, spacing, 1);
     }
 
     /**
@@ -125,7 +127,8 @@ public class UserInput {
      * <li>`generate_heatmap` (boolean)</li>
      * <li>`generate_vector_field` (boolean)</li>
      * <li>`generate_coherence` (boolean)</li>
-     * <li>If `generate_vector_field` is `true`:
+     * <li>`save_vectors_to_file` (boolean)</li> * <li>If
+     * `generate_vector_field` is `true`:
      * <ul>
      * <li>`vector_field_spacing_xy` (int)</li>
      * <li>If image has Z-depth (`depth > 1`):
@@ -145,11 +148,7 @@ public class UserInput {
      * `generate_vector_field` is `true` AND `overlay_vector_field` is `true`
      * (in which case its value is derived from `vector_field_spacing` and it is
      * omitted from the command-line string).</li>
-     * <li>If image has Z-depth (`depth > 1`):
-     * <ul>
      * <li>`downsample_factor_z` (int)</li>
-     * </ul>
-     * </li>
      * </ol>
      * @param depth The depth (number of Z-slices) of the image stack.
      * @return A new {@code UserInput} object populated with the parsed values.
@@ -192,6 +191,17 @@ public class UserInput {
 
         boolean coherence = Boolean.parseBoolean(strings[i++]);
         System.out.println("Assigned generate_coherence: " + coherence + " (from strings[" + (i - 1) + "])");
+
+        String pathString = strings[i++];
+        Optional<Path> saveVectors;
+        try {
+            Boolean.parseBoolean(pathString);
+            saveVectors = Optional.empty();
+        } catch (Exception ex) {
+            saveVectors = Optional.of(Path.of(pathString));
+        }
+        ;
+        System.out.println("Assigned save_vectors_to_file: " + saveVectors + " (from strings[" + (i - 1) + "])");
 
         int vectorFieldSpacingXY = vectorField ? Integer.parseInt(strings[i++]) : 0;
         if (vectorField) {
@@ -246,6 +256,7 @@ public class UserInput {
                 heatMap,
                 vectorField,
                 coherence,
+                saveVectors,
                 vectorFieldSpacingXY,
                 vectorFieldMagnitude,
                 overlay,
@@ -271,7 +282,7 @@ public class UserInput {
      * @param origSample An integer.
      * @return The greatest multiple of downSample that is less than origSample.
      */
-    public int downSample(int origSample) {
+    public int downSampleXY(int origSample) {
         return (origSample / downSampleFactorXY) * downSampleFactorXY;
     }
 
@@ -279,7 +290,8 @@ public class UserInput {
      * The greatest multiple of downSampleFactorZ that is less than origSample.
      *
      * @param origSample An integer.
-     * @return The greatest multiple of downSampleFactorZ that is less than origSample.
+     * @return The greatest multiple of downSampleFactorZ that is less than
+     * origSample.
      */
     public int downSampleZ(int origSample) {
         return (origSample / downSampleFactorZ) * downSampleFactorZ;
@@ -293,6 +305,7 @@ public class UserInput {
                 + "  vectorField                = " + vectorField + ",\n"
                 + "  overlay                   = " + overlay + ",\n"
                 + "  useCoherence               = " + useCoherence + ",\n"
+                + "  saveVectorsToFile          = " + saveDatToDir + ",\n" // NEW TOSTRING ENTRY
                 + "  vfSpacingXY                = " + vfSpacingXY + ",\n"
                 + "  vfSpacingZ                 = " + vfSpacingZ + ",\n"
                 + "  vfMag                      = " + vfMag + ",\n"

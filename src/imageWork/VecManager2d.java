@@ -10,9 +10,9 @@ import fijiPlugin.Dimensions;
 /**
  * class to manage vector data.
  */
-public class VecManager {
+public class VecManager2d {
 
-    private final float[] vecs;
+    private float[] vecs;
     private final Dimensions dim;
 
     /**
@@ -20,7 +20,7 @@ public class VecManager {
      *
      * @param d The dimensions (number and organization of 3d vectors) in this manager
      */
-    public VecManager(Dimensions d) {
+    public VecManager2d(Dimensions d) {
         this.dim = d;
         this.vecs = new float[d.tensorSize() * dim.num()];
     }
@@ -36,11 +36,11 @@ public class VecManager {
      * @param handle
      * @return this.
      */
-    public VecManager setFrom(PArray2dToF2d gpuVecs, int t, int z, Handle handle) {
-        gpuVecs.get(z, t).getVal(handle).get(handle, vecs);        
+    public VecManager2d setFrom(PArray2dToF2d gpuVecs, int t, int z, Handle handle) {
+        gpuVecs.get(z, t).getVal(handle).get(handle, vecs);
         return this;
     }
-
+    
     /**
      * Calculates the index of a vector in the vector data array.
      *
