@@ -7,6 +7,7 @@ import imageWork.HeatMapCreator;
 import imageWork.MyImagePlus;
 import imageWork.VectorImg;
 import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Each neighborhood pig has it's own handle.

@@ -9,6 +9,7 @@ import ij.process.FloatProcessor;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import main.Test;
 
 /**
@@ -20,7 +21,7 @@ import main.Test;
  *
  * @author E. Dov Neimand
  */
-public class HeatMapCreator {
+public class HeatMapCreator{
 
     private final PArray2dToF2d image;
     private final PArray2dToF2d coherence;
@@ -43,7 +44,8 @@ public class HeatMapCreator {
      * @param coherence Values of this map are set to NaN when coherence is at
      * or very near 0. Set to null to avoid doing this, if for example you want
      * to map coherence.
-     * @param tolerance Defines what is close to 0.
+     * @param tolerance Defines what coherence close enough to 0 such that it
+     * will appear as NaN rather than an orientation.
      */
     public HeatMapCreator(String[] sliceNames, String stackName, Handle handle, PArray2dToF2d image, PArray2dToF2d coherence, double tolerance) {
 
@@ -62,16 +64,17 @@ public class HeatMapCreator {
      *
      * @param min The minimum value in the range.
      * @param max The maximum value in the range.
+     * @param es An executor service.
      * @return The image plus for this image.
      */
-    public ImageStack getStack(float min, float max) {//TODO: look into multi threading this.
+    public ImageStack getStack(float min, float max, ExecutorService es) {//TODO: look into multi threading this.
 
+//        System.out.println("imageWork.HeatMapCreator.getStack() 500 500 " + image.get(0,0).getVal(handle).get(500, 500).getf(handle));
         MyImageStack stack = dim.emptyStack();
 
         FloatProcessor[] slices = new FloatProcessor[dim.totLayers()];
         Arrays.parallelSetAll(slices, i -> dim.getFloatProcessor(min, max));
 
-        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
         for (int t = 0; t < dim.batchSize; t++) {
 
@@ -85,23 +88,38 @@ public class HeatMapCreator {
 
                 if (coherence != null) coherence.get(z, t).getVal(handle).get(handle, layerCoherence);
 
-                executor.submit(() -> {
-                    for (int x = 0; x < dim.width; x++)
-                        for (int y = 0; y < dim.height; y++) {
-                            int fromInd = x * dim.height + y;
-
-                            float pixVal = coherence == null || layerCoherence[fromInd] > tolerance ? layerImage[fromInd] : Float.NaN;
-                            fp.setf(x, y, pixVal);
-                        }
-                    
-                });
+//                processLayer(fp, layerCoherence, layerImage).run();
+                es.submit(processLayer(fp, layerCoherence, layerImage));
             }
         }
-        executor.shutdown();
-        for(int i = 0; i < slices.length; i++)
+        
+
+        for (int i = 0; i < slices.length; i++)
             stack.addSlice(sliceNames == null ? "" : sliceNames[i], slices[i]);
         
         return stack;
+    }
+
+    /**
+     * transfers a layer from a cpu array to the float processor.
+     *
+     * @param fp The data destination.
+     * @param layerCoherence The coherence of the data. Pixels with near-0
+     * coherence will be set to NaN.
+     * @param layerImage
+     * @return
+     */
+    private Runnable processLayer(FloatProcessor fp, float[] layerCoherence, float[] layerImage) {
+        return () -> {
+            for (int x = 0; x < dim.width; x++)
+                for (int y = 0; y < dim.height; y++) {
+                    int fromInd = x * dim.height + y;
+
+                    float pixVal = coherence == null || layerCoherence[fromInd] > tolerance ? layerImage[fromInd] : Float.NaN;
+                    fp.setf(x, y, pixVal);
+                }
+
+        };
     }
 
     // Helper method to print the pixels of a FloatProcessor
@@ -121,21 +139,24 @@ public class HeatMapCreator {
         }
     }
 
-    /**
-     * Displays the tensor data as a heat map in Fiji, supporting multiple
-     * frames and depths.
-     */
-    public void printToFiji(float min, float max) {
-        getIP(min, max).show();
-    }
+   
+    
+//    @Override
+//    public void close() throws Exception {
+//        try {
+//            boolean terminated = es.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS); // Wait indefinitely
+//            if (!terminated) {
+//                System.err.println("HeatMapCreator: Executor did not terminate in time. Some image processing tasks might be incomplete.");
+//                // Handle this error case: perhaps log it, throw an exception, or attempt to force shutdown.
+//                // executor.shutdownNow(); // Consider forceful shutdown if tasks hang
+//            }
+//        } catch (InterruptedException e) {
+//            // If the current thread (the one calling getStack) is interrupted while waiting
+//            Thread.currentThread().interrupt(); // Restore the interrupted status
+//            System.err.println("HeatMapCreator: Waiting for image processing tasks was interrupted.");
+//            throw new RuntimeException("Image processing interrupted", e); // Re-throw as unchecked exception or handle
+//        }
+//    }
 
-    /**
-     * An imagePlus of the image.
-     *
-     * @return An imagePlus of the image.
-     */
-    public ImagePlus getIP(float min, float max) {
-        return dim.setToHyperStack(new ImagePlus(stackName, getStack(min, max)));
-    }
-
+    
 }

@@ -103,20 +103,18 @@ public class VectorImg {
      *
      * @return The generated {@link ImagePlus}.
      */
-    public ImageStack imgStack() {
-
-        ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    public ImageStack imgStack(ExecutorService es) {
 
         for (int t = 0; t < dim.batchSize; t++)
             for (int z = 0; z < dim.depth; z++) {
                 final int frame = t, layer = z;
-                
+
                 float[] currentIntensitySlice = new float[dim.layerSize()];
-                
+
                 VecManager2d gridVecs = new VecManager2d(dim).setFrom(vecs, t, z, handle);
                 intensity.get(z, t).getVal(handle).get(handle, currentIntensitySlice);
 
-                exec.submit(() -> {
+                es.submit(() -> {
                     Interval line = new Interval();
                     Point3d vec = new Point3d(), delta = new Point3d();
                     Pencil drawer = new Pencil();
@@ -144,8 +142,6 @@ public class VectorImg {
                     }
                 });
             }
-
-        exec.shutdown();
 
         return getStack();
     }
@@ -179,4 +175,6 @@ public class VectorImg {
         }
     }
 
+
+    
 }

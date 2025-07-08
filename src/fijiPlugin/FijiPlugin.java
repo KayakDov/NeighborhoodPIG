@@ -24,7 +24,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.SwingUtilities;
 import jcuda.Sizeof;
 
@@ -272,7 +279,6 @@ public class FijiPlugin implements PlugIn {
 
         String imagePath = "images/input/SingleTest/";
         int depth = 1;
-        
 
         int xyR = 3;
         int zR = 1;
@@ -285,7 +291,7 @@ public class FijiPlugin implements PlugIn {
         int vfSpacingZ = 6;
         int mag = 4;
         boolean overlay = false;
-        int downSampleXY = 2;
+        int downSampleXY = 1;
         int downSampleZ = 1;
 
         return new String[]{
@@ -293,8 +299,8 @@ public class FijiPlugin implements PlugIn {
             "" + depth,
             "png", // Default output format for image-based results
             "" + xyR,
-//            "" + zR,
-//            "" + zDist,
+            //            "" + zR,
+            //            "" + zDist,
             "" + hasHeatMap,
             "" + hasVF,
             "" + hasCoherence,
@@ -303,8 +309,7 @@ public class FijiPlugin implements PlugIn {
             //            "" + vfSpacingZ,
             //            "" + mag,
             //            "" + overlay,
-            "" + downSampleXY,
-//            "" + downSampleZ
+            "" + downSampleXY, //            "" + downSampleZ
         };
 
     }
@@ -330,8 +335,7 @@ public class FijiPlugin implements PlugIn {
 
             Dimensions downSampled = img.dim().downSample(null, ui.downSampleFactorXY, ui.downSampleFactorZ.orElse(1));
 
-            MyImageStack 
-                    vf = VectorImg.space(downSampled, ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), ui.vfMag.orElse(1), ui.overlay.orElse(false) ? img.dim() : null).emptyStack(),
+            MyImageStack vf = VectorImg.space(downSampled, ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), ui.vfMag.orElse(1), ui.overlay.orElse(false) ? img.dim() : null).emptyStack(),
                     coh = downSampled.emptyStack(),
                     az = downSampled.emptyStack(),
                     zen = downSampled.emptyStack();
@@ -348,33 +352,34 @@ public class FijiPlugin implements PlugIn {
 
             long startTime = System.currentTimeMillis();
 
+            ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
             for (int i = 0; i < img.getNFrames(); i += framesPerIteration)
                 try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, img.subset(i, framesPerIteration), ui)) {
 
                 if (ui.heatMap) {
-                    appendHM(az, np.getAzimuthalAngles(0.01), 0, (float) Math.PI);
-                    if (img.dim().hasDepth()) appendHM(zen, np.getZenithAngles(false, 0.01), 0, (float) Math.PI);
+                    appendHM(az, np.getAzimuthalAngles(ui.tolerance), 0, (float) Math.PI, es);
+                    if (img.dim().hasDepth()) appendHM(zen, np.getZenithAngles(false, 0.01), 0, (float) Math.PI, es);
                 }
 
                 if (ui.vectorField)
                     vecImgDepth = appendVF(
                             ui,
                             np.getVectorImg(ui.spacingXY.get(), ui.spacingZ.orElse(1), ui.vfMag.get(), false, ui.overlay.orElse(false) ? img.dim() : null),
-                            vf
+                            vf,
+                            es
                     );
 
-                if (ui.coherence) appendHM(coh, np.getCoherence(ui.tolerance), 0, 1);
+                if (ui.coherence) appendHM(coh, np.getCoherence(ui.tolerance), 0, 1, es);
 
                 if (ui.saveDatToDir.isPresent())
                     new DatSaver(downSampled, np.stm.getVectors(), handle, ui.saveDatToDir.get(), ui.spacingXY.orElse(1), ui.spacingZ.orElse(1)).saveAllVectors();
 
             }
 
-            long endTime = System.currentTimeMillis();
+            awaitThreadTermination(es);
+            printTime(startTime);
 
-            System.out.println("Execution time: " + (endTime - startTime) + " milliseconds");
-
-            // Removed rawEigenvectors parameter as per instruction to not implement logic here
             results(vf, coh, az, zen, save, ui, img.dim(), vecImgDepth, img);
         } catch (Exception ex) {
             System.out.println("fijiPlugin.FijiPlugin.run() " + ui.toString());
@@ -385,15 +390,41 @@ public class FijiPlugin implements PlugIn {
     }
 
     /**
+     * prints the amount of time since the clock started.
+     *
+     * @param startTime
+     */
+    private static void printTime(long startTime) {
+        long endTime = System.currentTimeMillis();
+        System.out.println("Execution time: " + (endTime - startTime) + " milliseconds");
+    }
+
+    /**
+     * Waits for all open threads to close.
+     *
+     * @param threads All open threads.
+     */
+    private static void awaitThreadTermination(ExecutorService es) {
+        es.shutdown();
+
+        try {
+            es.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(FijiPlugin.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    /**
      * Appends to the stack from the vector field.
      *
      * @param ui The user input.
      * @param vecImg The vector image to be added to the stack.
      * @param vf The stack to be appended to.
+     * @param es The executor service.
      * @return The depth of the vector image.
      */
-    public static int appendVF(UserInput ui, VectorImg vecImg, MyImageStack vf) {
-        vf.concat(vecImg.imgStack());
+    public static int appendVF(UserInput ui, VectorImg vecImg, MyImageStack vf, ExecutorService es) {
+        vf.concat(vecImg.imgStack(es));
         return vecImg.getOutputDimensions().depth;
     }
 
@@ -402,9 +433,13 @@ public class FijiPlugin implements PlugIn {
      *
      * @param addTo The stack to have the heatmap's stack added onto it.
      * @param add The heatmap whose stack is to be appended.
+     * @param min The minimum value in the stack.
+     * @param max The maximum value in the stack.
      */
-    public static void appendHM(MyImageStack addTo, HeatMapCreator add, float min, float max) {
-        addTo.concat(add.getStack(min, max));
+    public static void appendHM(MyImageStack addTo, HeatMapCreator add, float min, float max, ExecutorService es) {
+
+        addTo.concat(add.getStack(min, max, es));
+
     }
 
     /**
