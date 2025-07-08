@@ -1,5 +1,7 @@
 package fijiPlugin;
 
+import java.util.Optional;
+
 /**
  * The dimensions of a neighborhood for the purpose of computing the structure
  * tensor of a pixel. Each dimension is the distance from the center to the
@@ -9,8 +11,9 @@ package fijiPlugin;
  */
 public class NeighborhoodDim {
 
-    public final int xyR, zR;
-    public final double layerRes;
+    public final int xyR;
+    public Optional<Integer> zR;
+    public final Optional<Double> layerRes;
 
     /**
      * @param xy The distance to the nearest side of the xy plane neighborhood
@@ -19,7 +22,7 @@ public class NeighborhoodDim {
      * @param distBetweenAdjLayer The distance between adjacent layers as a
      * multiple of the distance between xy pixels.
      */
-    public NeighborhoodDim(int xy, int z, double distBetweenAdjLayer) {
+    public NeighborhoodDim(int xy, Optional<Integer> z, Optional<Double> distBetweenAdjLayer) {
         this.xyR = xy;
         this.zR = z;
         this.layerRes = distBetweenAdjLayer;
@@ -31,7 +34,7 @@ public class NeighborhoodDim {
      * @return True if all values are positive.
      */
     public boolean valid() {
-        return xyR >= 0 && zR >= 0 && layerRes >= 0;
+        return xyR >= 0 && zR.orElse(1) >= 0 && layerRes.orElse(1.0) > 0;
     }
 
     /**
@@ -44,9 +47,8 @@ public class NeighborhoodDim {
         return "NeighborhoodDim{"
                 + "rX=" + xyR
                 + ", rY=" + xyR
-                + // Assuming rY is the same as rX for a square neighborhood
-                ", rZ=" + zR
-                + ", layerSpacing=" + layerRes
+                + (zR.isPresent()? ", rZ=" + zR.get():"")                
+                + (layerRes.isPresent()?", layerSpacing=" + layerRes:"")
                 + '}';
     }
 }

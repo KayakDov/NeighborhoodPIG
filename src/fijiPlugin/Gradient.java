@@ -55,7 +55,7 @@ public class Gradient implements AutoCloseable {
                         dim.size() * x.length,
                         dataParams,
                         dim.getGpuDim(),
-                        P.to(ui.neighborhoodSize.layerRes)
+                        P.to(ui.neighborhoodSize.layerRes.orElse(1.0))
                 );
             }
        }

@@ -2,6 +2,7 @@ package FijiInput;
 
 import fijiPlugin.NeighborhoodDim;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Optional;
 
 /**
@@ -28,12 +29,17 @@ public class UserInput {
     /**
      * A boolean indicating whether to generate a vector field.
      */
-    public final boolean vectorField, overlay;
+    public final boolean vectorField;
+    
+    /**
+     * Should the vector field overlay the image?
+     */
+    public final Optional<Boolean> overlay;
 
     /**
      * A boolean indicating whether to generate coherence information.
      */
-    public final boolean useCoherence;
+    public final boolean coherence;
 
     /**
      * A boolean indicating whether to save the computed vectors to a file.
@@ -44,17 +50,17 @@ public class UserInput {
      * The spacing between vectors in the generated vector field in the xy
      * plane.
      */
-    public final int vfSpacingXY;
+    public final Optional<Integer> spacingXY;
 
     /**
      * The spacing between vectors in the generated vector field in the z plane.
      */
-    public final int vfSpacingZ;
+    public final Optional<Integer> spacingZ;
 
     /**
      * The magnitude of the vectors in the generated vector field.
      */
-    public final int vfMag;
+    public final Optional<Integer> vfMag;
 
     /**
      * The tolerance value used in processing.
@@ -71,7 +77,7 @@ public class UserInput {
      * 1 in every how many pixels has its structure tensor eiganvector computed
      * computed in the Z dimension.
      */
-    public final int downSampleFactorZ;
+    public final Optional<Integer> downSampleFactorZ;
 
     /**
      * Constructs a UserInput object with the specified parameters.
@@ -89,18 +95,21 @@ public class UserInput {
      * @param vfSpacingZ The spacing between vectors in the Z dimension.
      * @param downSampleFactorZ The downsample factor for Z dimension.
      */
-    UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, boolean useCoherence, Optional<Path> saveDatToDir, boolean vfOverlay, int vfMag, int vfSpacingXY, int vfSpacingZ, int downSampleFactorXY, int downSampleFactorZ, double tolerance) {
+    UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, 
+            boolean useCoherence, Optional<Path> saveDatToDir, Optional<Boolean> vfOverlay, 
+            Optional<Integer> vfMag, Optional<Integer> vfSpacingXY, Optional<Integer> vfSpacingZ, 
+            int downSampleFactorXY, Optional<Integer> downSampleFactorZ, double tolerance) {
         this.neighborhoodSize = neighborhoodSize;
         this.heatMap = heatMap;
         this.vectorField = vectorField;
-        this.useCoherence = useCoherence;
+        this.coherence = useCoherence;
         this.saveDatToDir = saveDatToDir;
         this.vfMag = vfMag;
         this.tolerance = tolerance;
         this.downSampleFactorXY = downSampleFactorXY;
         this.overlay = vfOverlay;
-        this.vfSpacingXY = vfSpacingXY;
-        this.vfSpacingZ = vfSpacingZ;
+        this.spacingXY = vfSpacingXY;
+        this.spacingZ = vfSpacingZ;
         this.downSampleFactorZ = downSampleFactorZ;
     }
 
@@ -160,99 +169,46 @@ public class UserInput {
      */
     public static UserInput fromStrings(String[] strings, int depth) {
 
-        int i = 0;
+        System.out.println("FijiInput.UserInput.fromStrings()" + Arrays.toString(strings));
+        
+        
         System.out.println("--- Parsing User Input from Strings ---");
 
         boolean hasZ = depth > 1;
         System.out.println("Determined hasZ: " + hasZ);
 
-        int xy = Integer.parseInt(strings[i++]);
-        System.out.println("Assigned neighborhood_xy_radius: " + xy + " (from strings[" + (i - 1) + "])");
+        StringIter si = new StringIter(strings);
+        
+        int xyR = ParseInt.from(si, "xy neighborhood radius").get();
 
-        int z = hasZ ? Integer.parseInt(strings[i++]) : 0;
-        if (hasZ) {
-            System.out.println("Assigned neighborhood_z_radius: " + z + " (from strings[" + (i - 1) + "])");
-        } else {
-            System.out.println("neighborhood_z_radius not applicable (depth <= 1), set to: " + z);
-        }
+        Optional<Integer> zR = ParseInt.from(si, "z neighborhood radius", hasZ);
 
-        double distBetweenAdjacentLayer = hasZ ? Double.parseDouble(strings[i++]) : 0;
-        if (hasZ) {
-            System.out.println("Assigned z_axis_pixel_spacing_multiplier: " + distBetweenAdjacentLayer + " (from strings[" + (i - 1) + "])");
-        } else {
-            System.out.println("z_axis_pixel_spacing_multiplier not applicable (depth <= 1), set to: " + distBetweenAdjacentLayer);
-        }
+        Optional<Double> distBetweenAdjacentLayer = ParseReal.from(si, "distance factor for adjacent layers", hasZ);
 
-        boolean heatMap = Boolean.parseBoolean(strings[i++]);
-        System.out.println("Assigned generate_heatmap: " + heatMap + " (from strings[" + (i - 1) + "])");
+        boolean heatMap = ParseBool.from(si, "make heatmap").get();
 
-        boolean vectorField = Boolean.parseBoolean(strings[i++]);
-        System.out.println("Assigned generate_vector_field: " + vectorField + " (from strings[" + (i - 1) + "])");
+        boolean vectorField = ParseBool.from(si, "make vector field").get();
 
-        boolean coherence = Boolean.parseBoolean(strings[i++]);
-        System.out.println("Assigned generate_coherence: " + coherence + " (from strings[" + (i - 1) + "])");
+        Boolean coherence = ParseBool.from(si, "make coherence").get();
+        
+        Optional<Path> saveVectors = ParsePath.from(si, "save vectors to dat file");
 
-        String pathString = strings[i++];
-        Optional<Path> saveVectors;
-        try {
-            Boolean.parseBoolean(pathString);
-            saveVectors = Optional.empty();
-        } catch (Exception ex) {
-            saveVectors = Optional.of(Path.of(pathString));
-        }
-        ;
-        System.out.println("Assigned save_vectors_to_file: " + saveVectors + " (from strings[" + (i - 1) + "])");
+        Optional<Integer> vectorFieldSpacingXY = ParseInt.from(si, "xy spacing", vectorField);
 
-        int vectorFieldSpacingXY = vectorField ? Integer.parseInt(strings[i++]) : 0;
-        if (vectorField) {
-            System.out.println("Assigned vector_field_spacing_xy: " + vectorFieldSpacingXY + " (from strings[" + (i - 1) + "])");
-        } else {
-            System.out.println("vector_field_spacing_xy not applicable (generate_vector_field is false), set to: " + vectorFieldSpacingXY);
-        }
+        Optional<Integer> vectorFieldSpacingZ = ParseInt.from(si, "z spacing", hasZ && vectorField);
+        
+        Optional<Integer> vectorFieldMagnitude = ParseInt.from(si, "vector magnitude", vectorField);
+        
+        Optional<Boolean> overlay = ParseBool.from(si, "overlay vector field", vectorField && !hasZ);
 
-        int vectorFieldSpacingZ = hasZ && vectorField ? Integer.parseInt(strings[i++]) : 0;
-        if (hasZ && vectorField) {
-            System.out.println("Assigned vector_field_spacing_z: " + vectorFieldSpacingZ + " (from strings[" + (i - 1) + "])");
-        } else {
-            System.out.println("vector_field_spacing_z not applicable (depth <= 1 or generate_vector_field is false), set to: " + vectorFieldSpacingZ);
-        }
+        int downSampleXY = ParseInt.from(si, "down sample xy").get();
 
-        int vectorFieldMagnitude = vectorField ? Integer.parseInt(strings[i++]) : 0;
-        if (vectorField) {
-            System.out.println("Assigned vector_field_magnitude: " + vectorFieldMagnitude + " (from strings[" + (i - 1) + "])");
-        } else {
-            System.out.println("vector_field_magnitude not applicable (generate_vector_field is false), set to: " + vectorFieldMagnitude);
-        }
-
-        boolean overlay = vectorField && !hasZ ? Boolean.parseBoolean(strings[i++]) : false;
-        if (vectorField && !hasZ) {
-            System.out.println("Assigned overlay_vector_field: " + overlay + " (from strings[" + (i - 1) + "])");
-        } else {
-            System.out.println("overlay_vector_field not applicable (generate_vector_field is false or depth > 1), set to: " + overlay);
-        }
-
-        // Default tolerance value for UserInput constructor, not parsed from strings
-        double defaultTolerance = UserInput.defaultTolerance;
-
-        int downSampleXY;
-        if (overlay) {
-            downSampleXY = vectorFieldSpacingXY;
-            System.out.println("Assigned downsample_factor_xy: " + downSampleXY + " (derived from vector_field_spacing_xy due to overlay being true)");
-        } else {
-            downSampleXY = Integer.parseInt(strings[i++]);
-            System.out.println("Assigned downsample_factor_xy: " + downSampleXY + " (from strings[" + (i - 1) + "])");
-        }
-
-        int downSampleZ = hasZ ? Integer.parseInt(strings[i++]) : 0;
-        if (hasZ) {
-            System.out.println("Assigned downsample_factor_z: " + downSampleZ + " (from strings[" + (i - 1) + "])");
-        } else {
-            System.out.println("downsample_factor_z not applicable (depth <= 1), set to: " + downSampleZ);
-        }
+        Optional<Integer> downSampleZ = ParseInt.from(si, "down sample z", hasZ);
+        
         System.out.println("--- Finished Parsing User Input ---");
 
         return new UserInput(
-                new NeighborhoodDim(xy, z, distBetweenAdjacentLayer),
+                new NeighborhoodDim(xyR, zR, distBetweenAdjacentLayer),
                 heatMap,
                 vectorField,
                 coherence,
@@ -273,7 +229,16 @@ public class UserInput {
      * @return true if the parameters are valid, false otherwise.
      */
     public boolean validParamaters() {
-        return neighborhoodSize.valid() && vfSpacingXY >= 0 && vfSpacingZ >= 0 && vfMag >= 0 && tolerance >= 0;
+        return neighborhoodSize.valid() && 
+                spacingXY.orElse(2) > 1 && 
+                spacingZ.orElse(2) > 1 && 
+                vfMag.orElse(2) > 1 && 
+                tolerance > 0 &&
+                (!overlay.orElse(false) || 
+                    (downSampleFactorXY == spacingXY.get() && 
+                     downSampleFactorZ.orElse(0) == spacingZ.orElse(0))) &&
+                downSampleFactorXY >= 1 &&
+                downSampleFactorZ.orElse(2)  >= 1;
     }
 
     /**
@@ -294,7 +259,7 @@ public class UserInput {
      * origSample.
      */
     public int downSampleZ(int origSample) {
-        return (origSample / downSampleFactorZ) * downSampleFactorZ;
+        return (origSample / downSampleFactorZ.orElse(1)) * downSampleFactorZ.orElse(1);
     }
 
     @Override
@@ -304,10 +269,10 @@ public class UserInput {
                 + "  heatMap                    = " + heatMap + ",\n"
                 + "  vectorField                = " + vectorField + ",\n"
                 + "  overlay                   = " + overlay + ",\n"
-                + "  useCoherence               = " + useCoherence + ",\n"
+                + "  useCoherence               = " + coherence + ",\n"
                 + "  saveVectorsToFile          = " + saveDatToDir + ",\n" // NEW TOSTRING ENTRY
-                + "  vfSpacingXY                = " + vfSpacingXY + ",\n"
-                + "  vfSpacingZ                 = " + vfSpacingZ + ",\n"
+                + "  vfSpacingXY                = " + spacingXY + ",\n"
+                + "  vfSpacingZ                 = " + spacingZ + ",\n"
                 + "  vfMag                      = " + vfMag + ",\n"
                 + "  tolerance                  = " + tolerance + ",\n"
                 + "  downSampleFactorXY         = " + downSampleFactorXY + ",\n"

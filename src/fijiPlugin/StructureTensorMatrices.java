@@ -40,7 +40,7 @@ public class StructureTensorMatrices implements AutoCloseable {
             }
         }
         
-        downSampled = dim.downSample(handle, ui.downSampleFactorXY, ui.downSampleFactorZ);
+        downSampled = dim.downSample(handle, ui.downSampleFactorXY, ui.downSampleFactorZ.orElse(1));
         
         azimuth = downSampled.emptyP2dToF2d(handle);
         zenith = dim.hasDepth() ? downSampled.emptyP2dToF2d(handle) : null;

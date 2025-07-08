@@ -87,7 +87,7 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
                     },
                     downSampledDim,
                     P.to(ui.downSampleFactorXY),
-                    P.to(ui.downSampleFactorZ),
+                    P.to(ui.downSampleFactorZ.get()),
                     P.to(eigenInd),
                     P.to(ui.tolerance)
             );

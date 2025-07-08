@@ -17,15 +17,14 @@ import imageWork.HeatMapCreator;
 import imageWork.MyImagePlus;
 import imageWork.MyImageStack;
 import imageWork.ProcessImage;
-import imageWork.VecManager2d;
 import imageWork.VectorImg;
 import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Optional;
 import javax.swing.SwingUtilities;
 import jcuda.Sizeof;
 
@@ -267,39 +266,45 @@ public class FijiPlugin implements PlugIn {
     }
 
     private static String[] defaultArgs() {
-        String imagePath = "images/input/cyl/";
-        int depth = 50;
-        NeighborhoodDim neighborhoodSize = new NeighborhoodDim(3, 3, 1);
+//        String imagePath = "images/input/cyl/";
+//        int depth = 50;
+//        NeighborhoodDim neighborhoodSize = new NeighborhoodDim(3, 3, 1);
 
+        String imagePath = "images/input/SingleTest/";
+        int depth = 1;
+        
+
+        int xyR = 3;
+        int zR = 1;
         double zDist = 1;
-        boolean hasHeatMap = false;
+        boolean hasHeatMap = true;
         boolean hasVF = false;
         boolean hasCoherence = false;
-        boolean saveVectors = true;
+        String saveVectors = "false";
         int vfSpacingXY = 6;
         int vfSpacingZ = 6;
         int mag = 4;
         boolean overlay = false;
-        int downSampleXY = 1;
+        int downSampleXY = 2;
         int downSampleZ = 1;
 
         return new String[]{
             imagePath,
             "" + depth,
             "png", // Default output format for image-based results
-            "" + neighborhoodSize.xyR,
-            "" + neighborhoodSize.zR,
-            "" + zDist,
+            "" + xyR,
+//            "" + zR,
+//            "" + zDist,
             "" + hasHeatMap,
             "" + hasVF,
             "" + hasCoherence,
             "" + saveVectors, // This flag would be parsed by UserInput.fromStrings
-//            "" + vfSpacingXY,
-//            "" + vfSpacingZ,
-//            "" + mag,
-//            "" + overlay,
+            //            "" + vfSpacingXY,
+            //            "" + vfSpacingZ,
+            //            "" + mag,
+            //            "" + overlay,
             "" + downSampleXY,
-            "" + downSampleZ
+//            "" + downSampleZ
         };
 
     }
@@ -323,9 +328,10 @@ public class FijiPlugin implements PlugIn {
                     ui.downSampleZ(userImg.getNSlices())
             );
 
-            Dimensions downSampled = img.dim().downSample(null, ui.downSampleFactorXY, ui.downSampleFactorZ);
+            Dimensions downSampled = img.dim().downSample(null, ui.downSampleFactorXY, ui.downSampleFactorZ.orElse(1));
 
-            MyImageStack vf = VectorImg.space(downSampled, ui.vfSpacingXY, ui.vfSpacingZ, ui.vfMag, ui.overlay ? img.dim() : null).emptyStack(),
+            MyImageStack 
+                    vf = VectorImg.space(downSampled, ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), ui.vfMag.orElse(1), ui.overlay.orElse(false) ? img.dim() : null).emptyStack(),
                     coh = downSampled.emptyStack(),
                     az = downSampled.emptyStack(),
                     zen = downSampled.emptyStack();
@@ -353,16 +359,14 @@ public class FijiPlugin implements PlugIn {
                 if (ui.vectorField)
                     vecImgDepth = appendVF(
                             ui,
-                            np.getVectorImg(ui.vfSpacingXY, ui.vfSpacingZ, ui.vfMag, false, ui.overlay ? img.dim() : null),
+                            np.getVectorImg(ui.spacingXY.get(), ui.spacingZ.orElse(1), ui.vfMag.get(), false, ui.overlay.orElse(false) ? img.dim() : null),
                             vf
                     );
 
-                if (ui.useCoherence) appendHM(coh, np.getCoherence(ui.tolerance), 0, 1);
+                if (ui.coherence) appendHM(coh, np.getCoherence(ui.tolerance), 0, 1);
 
                 if (ui.saveDatToDir.isPresent())
-                    new DatSaver(downSampled, np.stm.getVectors(), handle, ui.saveDatToDir.get(), ui.vfSpacingXY, ui.vfSpacingZ).saveAllVectors();
-                
-                    
+                    new DatSaver(downSampled, np.stm.getVectors(), handle, ui.saveDatToDir.get(), ui.spacingXY.orElse(1), ui.spacingZ.orElse(1)).saveAllVectors();
 
             }
 
@@ -429,14 +433,14 @@ public class FijiPlugin implements PlugIn {
         }
         if (ui.vectorField) {
             MyImagePlus impVF;
-            if (!dims.hasDepth() && ui.overlay)
+            if (!dims.hasDepth() && ui.overlay.orElse(false))
                 impVF = new MyImagePlus("Overlaid Nematic Vectors", myImg.getImageStack(), dims.depth)
                         .overlay(vf, Color.GREEN);
             else impVF = vf.imp("Nematic Vectors", vecImgDepth);
             present(impVF, save, "N_PIG_images" + File.separatorChar + "vectors");
         }
 
-        if (ui.useCoherence) present(coh.imp("Coherence", dims.depth), save, "N_PIG_images" + File.separatorChar + "Coherence");
+        if (ui.coherence) present(coh.imp("Coherence", dims.depth), save, "N_PIG_images" + File.separatorChar + "Coherence");
 
         // Logic for saving raw vector data (e.g., when save == Save.txt or ui.saveVectorsToFile is true)
         // would be placed here, but is omitted as per instruction.

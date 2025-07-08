@@ -22,7 +22,7 @@ import JCudaWrapper.resourceManagement.Handle;
 public class NeighborhoodProductSums implements AutoCloseable {
 
     private final PArray2dToD2d workSpace1, workSpace2;
-   private final Kernel nSum;
+    private final Kernel nSum;
     private final Mapper X, Y, Z;
     private final Handle handle;
     private final Dimensions dim;
@@ -39,9 +39,12 @@ public class NeighborhoodProductSums implements AutoCloseable {
      */
     public NeighborhoodProductSums(Handle handle, NeighborhoodDim nRad, Dimensions dim) {
 
-        this.handle = handle; this.dim = dim;
-        
-        Z = new Mapper(dim.layerSize() * dim.batchSize, dim.depth, 2, nRad.zR);
+        this.handle = handle;
+        this.dim = dim;
+
+        Z = dim.hasDepth()
+                ? new Mapper(dim.layerSize() * dim.batchSize, dim.depth, 2, nRad.zR.get())
+                : null;
 
         Y = new Mapper(dim.depth * dim.width * dim.batchSize, dim.height, 1, nRad.xyR);
 
@@ -87,7 +90,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
          * @param ldTo The increment of the the destination matrices.
          */
         public void neighborhoodSum(PArray2dToD2d src, PArray2dToD2d dst) {
-                        
+
             nSum.run(handle,
                     numThreads,
                     new PArray2dTo2d[]{src, dst},
@@ -119,14 +122,14 @@ public class NeighborhoodProductSums implements AutoCloseable {
                 new PArray2dTo2d[]{workSpace1, a, b},
                 dim
         );
-        
+
         X.neighborhoodSum(workSpace1, workSpace2);
-                
-        if (dim.depth > 1) {
+
+        if (dim.hasDepth()) {
             Y.neighborhoodSum(workSpace2, workSpace1);
-            
+
             Z.neighborhoodSum(workSpace1, dst);
-            
+
         } else
             Y.neighborhoodSum(workSpace2, dst);
     }
