@@ -58,9 +58,9 @@ public class UserDialog {
                 "Determines how many pixels are skipped (1 = every pixel, 2 = every other). \nIncreased values improve memory & time performance.",
                 hf);
 
-        downSampleZ = hasZ ? new NumericField("Downsample factor Z:", 1, gd, 0,
+        downSampleZ = new NumericField("Downsample factor Z:", 1, gd, 0,
                 "Determines how many pixels are skipped in the Z-direction (1 = every pixel, 2 = every other). \nIncreased values improve memory & time performance.",
-                hf) : null;
+                hf, hasZ);
 
         heatmap = new BooleanField("Heatmap", true, gd,
                 "Generates a heatmap visualizing image orientations.",
@@ -69,12 +69,12 @@ public class UserDialog {
         xyR = new NumericField("Neighborhood xy radius", 5, gd, 0,
                 "Radius (pixels) of the square neighborhood in the XY plane for structure tensor calculation.",
                 hf);
-        zR = hasZ ? new NumericField("Neighborhood z radius:", 5, gd, 0,
+        zR = new NumericField("Neighborhood z radius:", 5, gd, 0,
                 "Radius (pixels) of the cube neighborhood in the Z-direction for 3D stacks.",
-                hf) : null;
-        layerDist = hasZ ? new NumericField("Z axis pixel spacing multiplier", 1, gd, 1,
+                hf, hasZ);
+        layerDist = new NumericField("Z axis pixel spacing multiplier", 1, gd, 1,
                 "Factor for anisotropic Z-spacing (e.g., 1.5 if Z-distance is 1.5 x XY pixel size).",
-                hf) : null;
+                hf, hasZ);
 
         coherence = new BooleanField("Generate coherence", false, gd,
                 "Computes and displays a heatmap representing pixel coherence.",
@@ -83,78 +83,62 @@ public class UserDialog {
         vectorField = new BooleanField("Vector field", false, gd,
                 "Displays vectors representing orientations.",
                 hf);
-        overlay = hasZ ? null : new BooleanField("Overlay Vector Field", false, gd,
-                "Overlays the vector field directly on the original image.",
-                hf);
-
-        spacingXY = new NumericField("Vector Field Spacing XY:", 0, gd, 0,
-                "Distance (pixels) between vectors in the xy plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
-                hf);
-
-        spacingZ = hasZ ? new NumericField("Vector Field Spacing Z:", 0, gd, 0,
-                "Distance (pixels) between vectors in the z plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
-                hf) : null;
-
-        mag = new NumericField("Vector Field Magnitude:", 0, gd, 0,
-                "Visual length (pixels) of the displayed vectors.",
-                hf);
 
         saveToDirField = new DirectoryField("Save Directory:", "", gd,
                 "Select the directory where vector data files (.dat) will be saved. Leave empty if not saving.",
                 hf);
 
+        overlay = new BooleanField("Overlay Vector Field", false, gd,
+                "Overlays the vector field directly on the original image.",
+                hf, !hasZ).setEnabled(false);
+
+        spacingXY = new NumericField("Vector Field Spacing XY:", 0, gd, 0,
+                "Distance (pixels) between vectors in the xy plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
+                hf).setEnabled(saveToDirField.getPath().isPresent());
+
+        spacingZ = new NumericField("Vector Field Spacing Z:", 0, gd, 0,
+                "Distance (pixels) between vectors in the z plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
+                hf, hasZ).setEnabled(saveToDirField.getPath().isPresent());
+
+        mag = new NumericField("Vector Field Magnitude:", 0, gd, 0,
+                "Visual length (pixels) of the displayed vectors.",
+                hf).setEnabled(false);
+
         gd.addDialogListener(dl);
 
         gd.showDialog();
-        
-        ableFields();
 
-        if (gd.wasCanceled()) throw new UserCanceled();
-        saveToDirField.savePath();
+        if (gd.wasCanceled()) throw new UserCanceled();        
 
         ui = new UserInput(
                 new NeighborhoodDim(
-                        (int) xyR.val(),
-                        (hasZ ? Optional.of((int) zR.val()) : Optional.empty()),
-                        (hasZ ? Optional.of((double) layerDist.val()) : Optional.empty())
+                        xyR.valF().get().intValue(),
+                        zR.valI(),
+                        layerDist.valD()
                 ),
-                heatmap.is(),
-                vectorField.is(),
-                coherence.is(),
+                heatmap.is().get(),
+                vectorField.is().get(),
+                coherence.is().get(),
                 saveToDirField.getPath(),
-                vectorField.is() && !hasZ ? Optional.of(overlay.is()) : Optional.empty(),
-                vectorField.is() ? Optional.of((int) mag.val()) : Optional.empty(),
-                enableSpacing() ? Optional.of((int) spacingXY.val()) : Optional.empty(),
-                hasZ && enableSpacing()? Optional.of((int)spacingZ.val()) : Optional.empty(),
-                (int) downSampleXY.val(),
-                hasZ? Optional.of((int) downSampleZ.val()) : Optional.empty(),                
+                overlay.is(),
+                mag.valI(),
+                spacingXY.valI(),
+                spacingZ.valI(),
+                downSampleXY.valI().get(),
+                downSampleZ.valI(),
                 defaultTolerance
         );
     }
 
-    private boolean downSampleXYOrig = true;
-    private boolean downSampleZOrig = true;
+    private boolean downSampleOrig = true;
 
     /**
-     * Sets fields to their initial enable/disabled setting.
-     */
-    private void ableFields(){
-        spacingXY.setEnabled(false);
-        mag.setEnabled(false);
-        if (hasZ) {
-            spacingZ.setEnabled(false);
-            downSampleZ.setEnabled(true);
-        } else {
-            overlay.setEnabled(false);
-        }
-    }
-    
-    /**
      * True of xy and z spacing should be enabled. False otherwise.
+     *
      * @return True of xy and z spacing should be enabled. False otherwise.
      */
     private boolean enableSpacing() {
-        return vectorField.is() || saveToDirField.getPath().isPresent();
+        return vectorField.is().orElse(false) || saveToDirField.getPath().isPresent();
     }
 
     /**
@@ -201,35 +185,26 @@ public class UserDialog {
     private DialogListener dl = (GenericDialog gd1, AWTEvent e) -> {
         try {
 
-            boolean noOverlay = overlay == null || !overlay.is();
-
             spacingXY.setEnabled(enableSpacing());
 
-            mag.setEnabled(vectorField.is());
+            mag.setEnabled(vectorField.is().orElse(false));
 
-            if (hasZ) {
-                spacingZ.setEnabled(enableSpacing());
-                downSampleZ.setEnabled(true);
-            } else {
-                overlay.setEnabled(vectorField.is());
-                if (!vectorField.is()) overlay.is(false);
-                spacingXY.setEnabled(enableSpacing());
+            spacingZ.setEnabled(enableSpacing());
+
+            overlay.setEnabled(vectorField.is().orElse(false));
+
+            if (downSampleOrig && vectorField.is().orElse(false)) {
+
+                if(downSampleXY.valF().get() == 0) downSampleXY.val(xyR.valI().get());
+                if(downSampleZ.valF().orElse(1f) == 0) downSampleZ.val(zR.valI().orElse(0));
+                if(mag.valF().get() == 0) mag.val(xyR.valI().get());
+                downSampleOrig = false;
+
             }
 
-            if (vectorField.is()) {
-                if (downSampleXY.val() == 1 && downSampleXYOrig) {
-                    downSampleXY.val((int) xyR.val());
-                    downSampleXYOrig = false;
-                }
-                if (hasZ && downSampleZ.val() == 1 && downSampleZOrig) {
-                    downSampleZ.val((int) zR.val());
-                    downSampleZOrig = false;
-                }
-                if (mag.val() == 0) mag.val(xyR.val());
-            }
-            if (enableSpacing()) {
-                if (spacingXY.val() == 0) spacingXY.val(xyR.val());
-                if (hasZ && spacingZ.val() == 0) spacingZ.val(xyR.val());
+            if (enableSpacing() && spacingXY.valD().get() == 0) {
+                spacingXY.val(xyR.valI().get());
+                spacingZ.val(zR.valI().orElse(0));
             }
 
         } catch (NumberFormatException nfe) {

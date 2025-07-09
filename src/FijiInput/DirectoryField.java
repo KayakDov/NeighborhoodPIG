@@ -17,20 +17,13 @@ import java.util.Optional;
  */
 public class DirectoryField extends Field {
 
-    // This loads the preference when the class is initialized.
-    private static String lastDirectory = Prefs.get("NeighborhoodPIG.lastDirectory", null);
-
     public DirectoryField(String name, String defaultPath, GenericDialog gd, String helpText, HelpDialog helpLabel) {
-        super(name, gd, helpText, helpLabel);
+        super(name, gd, helpText, helpLabel, true);
 
-        // Use the last directory if defaultPath is null or empty
-        if ((defaultPath == null || defaultPath.trim().isEmpty()) && lastDirectory != null)
-            defaultPath = lastDirectory;
-
-        gd.addDirectoryField(name, defaultPath, 15);
+        gd.addDirectoryField(name, Prefs.get(PREF_PREFIX + name, defaultPath), 15);
 
         awtComponent = (TextField) gd.getStringFields().lastElement();
-        
+
         awtComponent.addFocusListener(this);
     }
 
@@ -48,30 +41,10 @@ public class DirectoryField extends Field {
     }
 
     /**
-     * Saves the path used this time, if one was used, for next time. This
-     * method is intended to be called explicitly (e.g., when the dialog is
-     * accepted).
-     */
-    public void savePath() {
-        if (getPath().isPresent()) {
-            String currentPath = getPath().get().toString();
-            lastDirectory = currentPath; // Update static field
-            Prefs.set("NeighborhoodPIG.lastDirectory", currentPath);
-        } else {
-            lastDirectory = null; // Clear static field if path is empty
-            Prefs.set("NeighborhoodPIG.lastDirectory", null); // Clear preference if path is empty
-        }
-    }
-
-    /**
-     *
-     * It's crucial for saving the preference when the user types or uses the
-     * browse button.
-     *
-     * @param fe The FocusEvent.
+     * {@inheritDoc
      */
     @Override
-    public void focusLost(FocusEvent fe) {
-        savePath();
+    protected void saveValue() {
+        getPath().ifPresent(path -> Prefs.set(PREF_PREFIX + name, path.toString()));
     }
 }
