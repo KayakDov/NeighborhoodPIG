@@ -24,9 +24,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -273,18 +270,16 @@ public class FijiPlugin implements PlugIn {
     }
 
     private static String[] defaultArgs() {
-//        String imagePath = "images/input/cyl/";
-//        int depth = 50;
-//        NeighborhoodDim neighborhoodSize = new NeighborhoodDim(3, 3, 1);
+        String imagePath = "images/input/cyl/";
+        int depth = 50;
 
-        String imagePath = "images/input/SingleTest/";
-        int depth = 1;
-
+//        String imagePath = "images/input/SingleTest/";
+//        int depth = 1;
         int xyR = 3;
-        int zR = 1;
+        int zR = 3;
         double zDist = 1;
-        boolean hasHeatMap = true;
-        boolean hasVF = false;
+        boolean hasHeatMap = false;
+        boolean hasVF = true;
         boolean hasCoherence = false;
         String saveVectors = "false";
         int vfSpacingXY = 6;
@@ -299,17 +294,18 @@ public class FijiPlugin implements PlugIn {
             "" + depth,
             "png", // Default output format for image-based results
             "" + xyR,
-            //            "" + zR,
-            //            "" + zDist,
+            "" + zR,
+            "" + zDist,
             "" + hasHeatMap,
             "" + hasVF,
             "" + hasCoherence,
             "" + saveVectors, // This flag would be parsed by UserInput.fromStrings
-            //            "" + vfSpacingXY,
-            //            "" + vfSpacingZ,
-            //            "" + mag,
+            "" + vfSpacingXY,
+            "" + vfSpacingZ,
+            "" + mag,
             //            "" + overlay,
-            "" + downSampleXY, //            "" + downSampleZ
+            "" + downSampleXY, 
+            "" + downSampleZ
         };
 
     }

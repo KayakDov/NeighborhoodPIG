@@ -94,15 +94,15 @@ public class UserDialog {
 
         spacingXY = new NumericField("Vector Field Spacing XY:", 0, gd, 0,
                 "Distance (pixels) between vectors in the xy plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
-                hf).setEnabled(saveToDirField.getPath().isPresent());
+                hf).setEnabled(enableSpacing());
 
         spacingZ = new NumericField("Vector Field Spacing Z:", 0, gd, 0,
                 "Distance (pixels) between vectors in the z plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
-                hf, hasZ).setEnabled(saveToDirField.getPath().isPresent());
+                hf, hasZ).setEnabled(enableSpacing());
 
         mag = new NumericField("Vector Field Magnitude:", 0, gd, 0,
                 "Visual length (pixels) of the displayed vectors.",
-                hf).setEnabled(false);
+                hf).setEnabled(vectorField.is().get());
 
         gd.addDialogListener(dl);
 

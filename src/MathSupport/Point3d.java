@@ -205,16 +205,53 @@ public class Point3d {
         return new Point3d(other).scale(-1).sum(this);
     }
 
-    public void setX(int x) {
+    /**
+     * Sets the x value.
+     * @param x The new x value.
+     * @return this.
+     */
+    public Point3d setX(int x) {
         this.x = x;
+        return this;
     }
 
-    public void setY(int y) {
+    /**
+     * Sets the y value.
+     * @param y The new y value.
+     * @return this.
+     */
+    public Point3d setY(int y) {
         this.y = y;
+        return this;
     }
 
-    public void setZ(int z) {
+    /**
+     * Sets the z value.
+     * @param z The new z value.
+     * @return this.
+     */
+    public Point3d setZ(int z) {
         this.z = z;
+        return this;
+    }
+    
+    /**
+     * Increases x by 1.
+     */
+    public void incX(){
+        x++;
+    }
+    /**
+     * Increases y by 1
+     */
+    public void incY(){
+        y++;
+    }
+    /**
+     * Increases z by 1.
+     */
+    public void incZ(){
+        z++;
     }
     
     /**
