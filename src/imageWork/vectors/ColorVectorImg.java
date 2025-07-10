@@ -6,9 +6,11 @@ import MathSupport.Point3d;
 import fijiPlugin.Dimensions;
 import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
+import java.awt.Color;
 
 /**
  * Creates color vector fields.
+ *
  * @author E. Dov Neimand
  */
 public class ColorVectorImg extends VectorImg {
@@ -62,11 +64,12 @@ public class ColorVectorImg extends VectorImg {
         @Override
         public void setColor(Point3d vec) {
 
-            System.out.println("imageWork.VectorImg.Pencil.setColor() vec is " + vec.toString());
-
-            color = ((int) Math.round(((vec.x() + 1) / 2.0 * 255.0)) << 16)
+            color = dim.hasDepth()
+                    ? ((int) Math.round(((vec.x() + 1) / 2.0 * 255.0)) << 16)
                     | ((int) Math.round((vec.y() * 255.0)) << 8)
-                    | ((int) Math.round(((vec.z() + 1) / 2.0 * 255.0)));
+                    | ((int) Math.round(((vec.z() + 1) / 2.0 * 255.0)))
+                    : Color.HSBtoRGB((float) ((Math.atan2(vec.y(), vec.x()) + Math.PI/2) / Math.PI), 1.0f, 1.0f);
+
         }
 
         /**

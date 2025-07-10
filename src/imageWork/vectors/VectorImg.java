@@ -30,7 +30,7 @@ public abstract class VectorImg {
     private final int spacingXY, spacingZ, r;
     private final PArray2dToF2d vecs, intensity;
     private final double tolerance;
-    private final Dimensions dim;
+    protected final Dimensions dim;
     private final Handle handle;
 
     /**

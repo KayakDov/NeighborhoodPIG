@@ -74,6 +74,78 @@ public class GenDebugFile {
     }
 
     /**
+     * Creates a 3D integer array representing a cylinder tilted by specified
+     * zenith and azimuth angles. The cylinder is centered within the 3D volume.
+     *
+     * @param depth The depth (size along the Z-axis, first dimension of the
+     * array).
+     * @param width The width (size along the X-axis, second dimension of the
+     * array).
+     * @param height The height (size along the Y-axis, third dimension of the
+     * array).
+     * @param r The radius of the cylinder.
+     * @param phi The zenith angle (polar angle) in radians, measured from the
+     * positive Z-axis. Ranges from 0 to Math.PI.
+     * @param theta The azimuth angle in radians, measured from the positive
+     * X-axis in the XY-plane. Ranges from 0 to 2 * Math.PI.
+     * @return A 3D integer array where 255 indicates a point inside the
+     * cylinder, and 0 otherwise. The array is indexed as
+     * env[z_index][x_index][y_index].
+     */
+    public static int[][][] tiltedCylinder(int depth, int width, int height, int r, double phi, double theta) {
+        // Initialize the 3D environment array with zeros.
+        int[][][] env = new int[depth][width][height];
+
+        // Calculate the center coordinates of the 3D volume.
+        // Using double for precision in calculations.
+        double centZ = depth / 2.0;
+        double centX = width / 2.0;
+        double centY = height / 2.0;
+
+        // Calculate the components of the cylinder's axis direction vector (Dx, Dy, Dz)
+        // based on the spherical coordinates (phi, theta).
+        // Dx: Component along the X-axis
+        // Dy: Component along the Y-axis
+        // Dz: Component along the Z-axis
+        double Dx = Math.sin(phi) * Math.cos(theta);
+        double Dy = Math.sin(phi) * Math.sin(theta);
+        double Dz = Math.cos(phi);
+
+        // Iterate through each point (z_idx, x_idx, y_idx) in the 3D array.
+        for (int z_idx = 0; z_idx < depth; z_idx++) {
+            for (int x_idx = 0; x_idx < width; x_idx++) {
+                for (int y_idx = 0; y_idx < height; y_idx++) {
+                    // Translate the current point's coordinates so that the center of the volume
+                    // becomes the origin (0,0,0).
+                    double x_coord = x_idx - centX;
+                    double y_coord = y_idx - centY;
+                    double z_coord = z_idx - centZ;
+
+                    // Calculate the cross product of two vectors:
+                    // 1. Vector P: From the origin (center of volume) to the current point (x_coord, y_coord, z_coord).
+                    // 2. Vector D: The cylinder's axis direction vector (Dx, Dy, Dz).
+                    // The magnitude of this cross product gives the perpendicular distance from the point P to the line defined by D (passing through the origin).
+                    // Cross product C = P x D = (Py*Dz - Pz*Dy, Pz*Dx - Px*Dz, Px*Dy - Py*Dx)
+                    double Cx = y_coord * Dz - z_coord * Dy;
+                    double Cy = z_coord * Dx - x_coord * Dz;
+                    double Cz = x_coord * Dy - y_coord * Dx;
+
+                    // Calculate the squared perpendicular distance from the current point to the cylinder's axis.
+                    // Since D is a unit vector, the squared magnitude of the cross product directly gives the squared distance.
+                    double distanceSq = Cx * Cx + Cy * Cy + Cz * Cz;
+
+                    // If the squared distance is less than or equal to the squared radius,
+                    // the point (z_idx, x_idx, y_idx) is considered to be inside the cylinder.
+                    if (distanceSq <= r * r) {
+                        env[z_idx][x_idx][y_idx] = 255; // Mark the point as part of the cylinder.
+                    }
+                }
+            }
+        }
+        return env; // Return the populated 3D array.
+    }
+
+    /**
      * Generates a 3D array representing a solid torus. Voxels inside or on the
      * torus surface are valued 255, outside are 0. The torus is centered within
      * the given dimensions.
@@ -119,12 +191,12 @@ public class GenDebugFile {
     public static void main(String[] args) {
         // Define pixel values for each point in a grid
 
-        int depth = 15;
+        int depth = 50;
 
-        int width = 60;
-        int height = 60;
+        int width = 50;
+        int height = 50;
 
-        int[][][] pixelValues = generateTorus(depth, width, height, 20, 3);
+        int[][][] pixelValues = tiltedCylinder(depth, width, height, 10, Math.PI/4, 0);
 
         ByteProcessor[] processor = new ByteProcessor[depth];
         ImagePlus[] image = new ImagePlus[depth];
@@ -138,7 +210,7 @@ public class GenDebugFile {
                 }
 
             try {
-                String saveTo = "images/input/torus/" + String.format("%03d", z) + ".png";
+                String saveTo = "images/input/cyl/" + String.format("d%03dcylinder", z) + ".png";
 
                 new FileSaver(new ImagePlus("img " + z, processor[z])).saveAsPng(saveTo);
                 System.out.println("Image saved as: " + saveTo + ": " + height + "x" + width);

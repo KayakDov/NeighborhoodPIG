@@ -1,5 +1,6 @@
 package FijiInput;
 
+import FijiInput.field.VF;
 import fijiPlugin.NeighborhoodDim;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -29,7 +30,7 @@ public class UserInput {
     /**
      * A boolean indicating whether to generate a vector field.
      */
-    public final boolean vectorField;
+    public final VF vectorField;
     
     /**
      * Should the vector field overlay the image?
@@ -95,7 +96,7 @@ public class UserInput {
      * @param vfSpacingZ The spacing between vectors in the Z dimension.
      * @param downSampleFactorZ The downsample factor for Z dimension.
      */
-    UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, boolean vectorField, 
+    UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, VF vectorField, 
             boolean useCoherence, Optional<Path> saveDatToDir, Optional<Boolean> vfOverlay, 
             Optional<Integer> vfMag, Optional<Integer> vfSpacingXY, Optional<Integer> vfSpacingZ, 
             int downSampleFactorXY, Optional<Integer> downSampleFactorZ, double tolerance) {
@@ -187,19 +188,19 @@ public class UserInput {
 
         boolean heatMap = ParseBool.from(si, "make heatmap").get();
 
-        boolean vectorField = ParseBool.from(si, "make vector field").get();
+        VF vectorField = ParseEnum.from(si, VF.class, "make vector field").get();
 
         Boolean coherence = ParseBool.from(si, "make coherence").get();
         
         Optional<Path> saveVectors = ParsePath.from(si, "save vectors to dat file");
 
-        Optional<Integer> vectorFieldSpacingXY = ParseInt.from(si, "xy spacing", vectorField);
+        Optional<Integer> vectorFieldSpacingXY = ParseInt.from(si, "xy spacing", vectorField.is());
 
-        Optional<Integer> vectorFieldSpacingZ = ParseInt.from(si, "z spacing", hasZ && vectorField);
+        Optional<Integer> vectorFieldSpacingZ = ParseInt.from(si, "z spacing", hasZ && vectorField.is());
         
-        Optional<Integer> vectorFieldMagnitude = ParseInt.from(si, "vector magnitude", vectorField);
+        Optional<Integer> vectorFieldMagnitude = ParseInt.from(si, "vector magnitude", vectorField.is());
         
-        Optional<Boolean> overlay = ParseBool.from(si, "overlay vector field", vectorField && !hasZ);
+        Optional<Boolean> overlay = ParseBool.from(si, "overlay vector field", vectorField.is() && !hasZ);
 
         int downSampleXY = ParseInt.from(si, "down sample xy").get();
 

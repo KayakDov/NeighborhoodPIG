@@ -1,6 +1,11 @@
 package FijiInput;
 
+import FijiInput.field.NumericField;
+import FijiInput.field.DirectoryField;
+import FijiInput.field.BooleanField;
 import static FijiInput.UserInput.defaultTolerance;
+import FijiInput.field.RadioButtonsField;
+import FijiInput.field.VF;
 import fijiPlugin.NeighborhoodDim; // Assuming NeighborhoodDim is in fijiPlugin package
 import ij.ImagePlus;
 import ij.gui.DialogListener;
@@ -25,8 +30,8 @@ public class UserDialog {
 
     private UserInput ui;
 
-    private GenericDialog gd;
-    private HelpDialog hf;
+    private final GenericDialog gd;
+    private final HelpDialog hf;
     private NumericField downSampleXY;
     private NumericField downSampleZ;
     private BooleanField heatmap;
@@ -34,13 +39,13 @@ public class UserDialog {
     private NumericField zR;
     private NumericField layerDist;
     private BooleanField coherence;
-    private BooleanField vectorField;
+    private RadioButtonsField vectorField;
     private BooleanField overlay;
     private NumericField spacingXY;
     private NumericField spacingZ;
     private NumericField mag;
-    private DirectoryField saveToDirField;
-    private boolean hasZ;
+    private final DirectoryField saveToDirField;
+    private final boolean hasZ;
 
     /**
      * Creates a UserInput object from a dialog box presented to the user.
@@ -80,9 +85,9 @@ public class UserDialog {
                 "Computes and displays a heatmap representing pixel coherence.",
                 hf);
 
-        vectorField = new BooleanField("Vector field", false, gd,
-                "Displays vectors representing orientations.",
-                hf);
+        vectorField = new RadioButtonsField("Vector Field", VF.None, gd, 
+                "Select none for no vector field to be displayed. Color, for a colored vector field. And White for a field of white vectors."
+                , hf);
 
         saveToDirField = new DirectoryField("Save Directory:", "", gd,
                 "Select the directory where vector data files (.dat) will be saved. Leave empty if not saving.",
@@ -90,25 +95,27 @@ public class UserDialog {
 
         overlay = new BooleanField("Overlay Vector Field", false, gd,
                 "Overlays the vector field directly on the original image.",
-                hf, !hasZ).setEnabled(false);
+                hf, !hasZ).setEnabled(!hasZ && ((VF)vectorField.val().get()).is());
 
         spacingXY = new NumericField("Vector Field Spacing XY:", 0, gd, 0,
                 "Distance (pixels) between vectors in the xy plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
                 hf).setEnabled(enableSpacing());
 
+        if(overlay.is().orElse(false)) spacingXY.val(downSampleXY.valF().get());
+        
         spacingZ = new NumericField("Vector Field Spacing Z:", 0, gd, 0,
                 "Distance (pixels) between vectors in the z plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
                 hf, hasZ).setEnabled(enableSpacing());
 
         mag = new NumericField("Vector Field Magnitude:", 0, gd, 0,
                 "Visual length (pixels) of the displayed vectors.",
-                hf).setEnabled(vectorField.is().get());
+                hf).setEnabled(((VF)vectorField.val().get()).is());
 
         gd.addDialogListener(dl);
 
         gd.showDialog();
 
-        if (gd.wasCanceled()) throw new UserCanceled();        
+        if (gd.wasCanceled()) throw new UserCanceled();
 
         ui = new UserInput(
                 new NeighborhoodDim(
@@ -117,7 +124,7 @@ public class UserDialog {
                         layerDist.valD()
                 ),
                 heatmap.is().get(),
-                vectorField.is().get(),
+                (VF)vectorField.val().get(),
                 coherence.is().get(),
                 saveToDirField.getPath(),
                 overlay.is(),
@@ -138,7 +145,8 @@ public class UserDialog {
      * @return True of xy and z spacing should be enabled. False otherwise.
      */
     private boolean enableSpacing() {
-        return vectorField.is().orElse(false) || saveToDirField.getPath().isPresent();
+        return (!overlay.is().orElse(false)) && 
+                (((Optional<VF>)vectorField.val()).orElse(VF.None).is() || saveToDirField.getPath().isPresent());
     }
 
     /**
@@ -187,17 +195,20 @@ public class UserDialog {
 
             spacingXY.setEnabled(enableSpacing());
 
-            mag.setEnabled(vectorField.is().orElse(false));
+            boolean vfIs = ((VF)vectorField.val().get()).is();
+            
+            mag.setEnabled(vfIs);
+            overlay.setEnabled(vfIs);
 
             spacingZ.setEnabled(enableSpacing());
 
-            overlay.setEnabled(vectorField.is().orElse(false));
+            
 
-            if (downSampleOrig && vectorField.is().orElse(false)) {
+            if (downSampleOrig && vfIs) {
 
-                if(downSampleXY.valF().get() == 0) downSampleXY.val(xyR.valI().get());
-                if(downSampleZ.valF().orElse(1f) == 0) downSampleZ.val(zR.valI().orElse(0));
-                if(mag.valF().get() == 0) mag.val(xyR.valI().get());
+                if (downSampleXY.valF().get() == 0) downSampleXY.val(xyR.valI().get());
+                if (downSampleZ.valF().orElse(1f) == 0) downSampleZ.val(zR.valI().orElse(0));
+                if (mag.valF().get() == 0) mag.val(xyR.valI().get());
                 downSampleOrig = false;
 
             }
@@ -206,6 +217,8 @@ public class UserDialog {
                 spacingXY.val(xyR.valI().get());
                 spacingZ.val(zR.valI().orElse(0));
             }
+            
+            if(overlay.is().orElse(false)) spacingXY.val(downSampleXY.valF().get());
 
         } catch (NumberFormatException nfe) {
         }

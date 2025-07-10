@@ -3,6 +3,7 @@ package fijiPlugin;
 import FijiInput.UserCanceled;
 import FijiInput.UserDialog;
 import FijiInput.UserInput;
+import FijiInput.field.VF;
 import JCudaWrapper.array.Array;
 import JCudaWrapper.resourceManagement.GPU;
 import JCudaWrapper.resourceManagement.Handle;
@@ -279,7 +280,7 @@ public class FijiPlugin implements PlugIn {
         int zR = 3;
         double zDist = 1;
         boolean hasHeatMap = false;
-        boolean hasVF = true;
+        VF hasVF = VF.White;
         boolean hasCoherence = false;
         String saveVectors = "false";
         int vfSpacingXY = 6;
@@ -358,10 +359,17 @@ public class FijiPlugin implements PlugIn {
                     if (img.dim().hasDepth()) appendHM(zen, np.getZenithAngles(false, 0.01), 0, (float) Math.PI, es);
                 }
 
-                if (ui.vectorField)
+                if (ui.vectorField.is())
                     vecImgDepth = appendVF(
                             ui,
-                            np.getVectorImg(ui.spacingXY.get(), ui.spacingZ.orElse(1), ui.vfMag.get(), false, ui.overlay.orElse(false) ? img.dim() : null),
+                            np.getVectorImg(
+                                    ui.spacingXY.get(), 
+                                    ui.spacingZ.orElse(1), 
+                                    ui.vfMag.get(), 
+                                    false, 
+                                    ui.overlay.orElse(false) ? img.dim() : null,
+                                    ui.vectorField == VF.Color
+                            ),
                             vf,
                             es
                     );
@@ -462,7 +470,7 @@ public class FijiPlugin implements PlugIn {
             if (dims.hasDepth())
                 present(zen.imp("Zenith Angles", dims.depth), save, "N_PIG_images" + File.separatorChar + "Zenith");
         }
-        if (ui.vectorField) {
+        if (ui.vectorField.is()) {
             MyImagePlus impVF;
             if (!dims.hasDepth() && ui.overlay.orElse(false))
                 impVF = new MyImagePlus("Overlaid Nematic Vectors", myImg.getImageStack(), dims.depth)
@@ -499,8 +507,7 @@ public class FijiPlugin implements PlugIn {
             }
             image.saveSlices(filePath, saveTo == Save.tiff);
         }
-        // Save.txt is intentionally not handled by this method, as it refers to
-        // raw data output, not an ImagePlus.
+        
     }
 
 }

@@ -5,6 +5,7 @@ import FijiInput.UserInput;
 import JCudaWrapper.resourceManagement.Handle;
 import imageWork.HeatMapCreator;
 import imageWork.MyImagePlus;
+import imageWork.vectors.ColorVectorImg;
 import imageWork.vectors.VectorImg;
 import imageWork.vectors.WhiteVectorImg;
 import java.util.Arrays;
@@ -95,25 +96,22 @@ public class NeighborhoodPIG implements AutoCloseable {
 
     /**
      * An image of all the nematic vectors
-     *
-     * @param spacingXY The space between the vectors.
+     * TODO; Create user coherence parameter and pass it here.
+     * @param spacingXY The space between the vectors in the xy dimension.
+     * @param spacingZ The space between the vectors in the z dimension.
      * @param vecMag The magnitude of the vectors to be drawn.
      * @param useCoherence True to use coherence, false to set all vector
      * intensities to 1.
      * @param overlay The dimensions of the base image to be overlaid. Leave
      * this null if overlay is false;
+     * @param color true if the vectors should be colored, false if they should be white.
      * @return An image of all the nematic vectors
      */
-    public VectorImg getVectorImg(int spacingXY, int spacingZ, int vecMag, boolean useCoherence, Dimensions overlay) {
+    public VectorImg getVectorImg(int spacingXY, int spacingZ, int vecMag, boolean useCoherence, Dimensions overlay, boolean color) {
 
-        return new WhiteVectorImg(
-                overlay,
-                handle,
-                vecMag,
-                stm.getVectors(),
-                stm.getCoherence(),
-                spacingXY, spacingZ, 0.01
-        );
+        return color?
+                new ColorVectorImg(overlay, handle, vecMag, stm.getVectors(), stm.getCoherence(), spacingXY, spacingZ, .01):
+                new WhiteVectorImg(overlay, handle, vecMag, stm.getVectors(), stm.getCoherence(), spacingXY, spacingZ, .01);
     }
 
     /**

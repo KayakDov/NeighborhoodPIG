@@ -1,5 +1,6 @@
-package FijiInput;
+package FijiInput.field;
 
+import FijiInput.HelpDialog;
 import ij.Prefs;
 import ij.gui.GenericDialog;
 import java.awt.TextField;

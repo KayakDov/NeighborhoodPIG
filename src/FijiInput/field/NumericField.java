@@ -1,5 +1,6 @@
-package FijiInput;
+package FijiInput.field;
 
+import FijiInput.HelpDialog;
 import ij.Prefs;
 import ij.gui.GenericDialog;
 import java.awt.TextField; // To access numeric fields as TextField
@@ -91,7 +92,7 @@ public class NumericField extends Field {
      * @return The user-selected value.
      */
     public Optional<Float> valF() {
-        if (!isActive || !isEnabled()) return Optional.empty();
+        if (!isActive) return Optional.empty();
         return Optional.of(Float.valueOf(((TextField) this.awtComponent).getText()));
     }
 
@@ -101,7 +102,7 @@ public class NumericField extends Field {
      * @return The user-selected value.
      */
     public Optional<Double> valD() {
-        if (!isActive || !isEnabled()) return Optional.empty();
+        if (!isActive) return Optional.empty();
         return Optional.of(Double.valueOf(((TextField) this.awtComponent).getText()));
     }
 
@@ -111,7 +112,7 @@ public class NumericField extends Field {
      * @return The user-selected value.
      */
     public Optional<Integer> valI() {
-        if (!isActive || !isEnabled()) return Optional.empty();
+        if (!isActive) return Optional.empty();
         try {
             return Optional.of(Integer.valueOf(((TextField) this.awtComponent).getText()));
         } catch (NumberFormatException nfe) {

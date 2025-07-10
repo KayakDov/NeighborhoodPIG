@@ -451,3 +451,95 @@ class ParsePath extends Parser<Path> {
     }
 
 }
+
+/**
+ * Parses a string to an enumeration type.
+ *
+ * @param <E> The enumeration type to which the string will be parsed.
+ */
+class ParseEnum<E extends Enum<E>> extends Parser<E> {
+
+    private final Class<E> enumType;
+
+    /**
+     * Constructs a ParseEnum instance.
+     *
+     * @param toParse The string to parse, which should be the name of an enum constant.
+     * @param enumType The Class object of the enumeration type.
+     * @param expected A descriptive string for the expected argument type (e.g., "a color enum").
+     * @param present If true, indicates the parser should attempt to parse the
+     * string; if false, {@link #opt()} will immediately return
+     * {@link Optional#empty()}.
+     */
+    public ParseEnum(StringIter toParse, Class<E> enumType, String expected, boolean present) {
+        super(toParse, expected, present);
+        this.enumType = enumType;
+    }
+
+    /**
+     * Constructs a ParseEnum instance where the enum value is expected to be
+     * present. The `present` parameter for the superclass is defaulted to
+     * `true`.
+     *
+     * @param toParse The string to parse, which should be the name of an enum constant.
+     * @param enumType The Class object of the enumeration type.
+     * @param expected A descriptive string for the expected argument type (e.g., "a color enum").
+     */
+    public ParseEnum(StringIter toParse, Class<E> enumType, String expected) {
+        super(toParse, expected, true);
+        this.enumType = enumType;
+    }
+
+    /**
+     * {@inheritDoc}
+     * Parses the string to an enumeration constant of type {@code E}.
+     *
+     * @return The parsed {@code E} enum constant.
+     * @throws IllegalArgumentException If {@link #toParse} does not match any
+     * enum constant name (case-sensitive) for the given {@code enumType}.
+     * (Note: The parent's `opt()` method will replace this exception's
+     * message with `errorMessage`).
+     */
+    @Override
+    protected E parse() throws IllegalArgumentException {
+        // Enum.valueOf expects the enum constant name as a string.
+        // It throws IllegalArgumentException if the name doesn't match.
+        return Enum.valueOf(enumType, toParse);
+    }
+
+    /**
+     * Convenience static method to parse a string to an optional enumeration constant.
+     * Creates a new {@code ParseEnum} instance and calls its {@link #opt()} method.
+     *
+     * @param <E> The enumeration type.
+     * @param toParse The string to parse.
+     * @param enumType The Class object of the enumeration type.
+     * @param expected A descriptive string for the expected value (e.g., "a mode enum").
+     * @param present If true, indicates a value is expected to be parsed; if
+     * false, {@link Optional#empty()} is returned directly without parsing.
+     * @return An {@link Optional} containing the parsed enum constant, or
+     * {@link Optional#empty()} if `present` is false.
+     * @throws IllegalArgumentException If `toParse` cannot be parsed to the
+     * specified enum type and `present` is true.
+     */
+    public static <E extends Enum<E>> Optional<E> from(StringIter toParse, Class<E> enumType, String expected, boolean present) {
+        return new ParseEnum<>(toParse, enumType, expected, present).opt();
+    }
+
+    /**
+     * Convenience static method to parse a string to a present enumeration constant
+     * (defaulting `present` to true). Creates a new {@code ParseEnum} instance
+     * and calls its {@link #opt()} method.
+     *
+     * @param <E> The enumeration type.
+     * @param toParse The string to parse.
+     * @param enumType The Class object of the enumeration type.
+     * @param expected A descriptive string for the expected value (e.g., "a mode enum").
+     * @return An {@link Optional} containing the parsed enum constant.
+     * @throws IllegalArgumentException If `toParse` cannot be parsed to the
+     * specified enum type.
+     */
+    public static <E extends Enum<E>> Optional<E> from(StringIter toParse, Class<E> enumType, String expected) {
+        return new ParseEnum<>(toParse, enumType, expected, true).opt();
+    }
+}

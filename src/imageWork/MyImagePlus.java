@@ -306,20 +306,24 @@ public class MyImagePlus extends ImagePlus {
 
         Overlay overlay = new Overlay();
 
+        ImageRoi roi;
+        
         for (int z = 1; z <= overlayStack.getSize(); z++) {
-            ByteProcessor binaryProcessor = (ByteProcessor) overlayStack.getProcessor(z);
+            ImageProcessor processor = overlayStack.getProcessor(z);
 
-            // Create a color image from binary mask
-            ColorProcessor colorProcessor = new ColorProcessor(width, height);
-            for (int y = 0; y < height; y++)
-                for (int x = 0; x < width; x++) {
+            if (!(processor instanceof ColorProcessor)) {
+                // Create a color image from binary mask
+                ColorProcessor colorProcessor = new ColorProcessor(width, height);
+                for (int y = 0; y < height; y++)
+                    for (int x = 0; x < width; x++) {
 
-                    if (binaryProcessor.get(x, y) == 255)
-                        colorProcessor.set(x, y, color.getRGB());
-                    else colorProcessor.set(x, y, 0);
-                }
-
-            ImageRoi roi = new ImageRoi(0, 0, colorProcessor);
+                        if (processor.get(x, y) == 255)
+                            colorProcessor.set(x, y, color.getRGB());
+                        else colorProcessor.set(x, y, 0);
+                    }
+                roi = new ImageRoi(0, 0, colorProcessor);
+            } else roi = new ImageRoi(0, 0, processor);
+            
             roi.setZeroTransparent(true);
             roi.setPosition(z);
 
