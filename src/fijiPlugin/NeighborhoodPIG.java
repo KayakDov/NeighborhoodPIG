@@ -5,7 +5,8 @@ import FijiInput.UserInput;
 import JCudaWrapper.resourceManagement.Handle;
 import imageWork.HeatMapCreator;
 import imageWork.MyImagePlus;
-import imageWork.VectorImg;
+import imageWork.vectors.VectorImg;
+import imageWork.vectors.WhiteVectorImg;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 
@@ -105,7 +106,7 @@ public class NeighborhoodPIG implements AutoCloseable {
      */
     public VectorImg getVectorImg(int spacingXY, int spacingZ, int vecMag, boolean useCoherence, Dimensions overlay) {
 
-        return new VectorImg(
+        return new WhiteVectorImg(
                 overlay,
                 handle,
                 vecMag,

@@ -1,6 +1,6 @@
 package MathSupport;
 
-import imageWork.VectorImg;
+import imageWork.vectors.VectorImg;
 
 /**
  *
@@ -41,7 +41,7 @@ public class Interval {
      * @param setMe
      */
     public void at(double t, Point3d setMe) {
-        setMe.set(a).scale(1 - t).translate(b.getX() * t, b.getY() * t, b.getZ() * t);
+        setMe.set(a).scale(1 - t).translate(b.x() * t, b.y() * t, b.z() * t);
     }
 
     /**

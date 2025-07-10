@@ -270,15 +270,15 @@ public class Point3d {
         return Math.sqrt(normSq());
     }
 
-    public double getX() {
+    public double x() {
         return x;
     }
 
-    public double getY() {
+    public double y() {
         return y;
     }
 
-    public double getZ() {
+    public double z() {
         return z;
     }
     

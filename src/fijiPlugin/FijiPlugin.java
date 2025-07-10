@@ -17,7 +17,7 @@ import imageWork.HeatMapCreator;
 import imageWork.MyImagePlus;
 import imageWork.MyImageStack;
 import imageWork.ProcessImage;
-import imageWork.VectorImg;
+import imageWork.vectors.VectorImg;
 import java.awt.Color;
 import java.io.File;
 import java.io.IOException;

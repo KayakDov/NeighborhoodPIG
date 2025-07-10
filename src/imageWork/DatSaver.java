@@ -119,8 +119,8 @@ public class DatSaver {
 
                 vm.get(row, col, vec);
                 if (vec.isFinite())
-                    if (dim.hasDepth()) writer.printf("%d %d %d %f %f %f%n", col * scaleXY, row * scaleXY, sliceIndex * scaleZ, vec.getX(), vec.getY(), vec.getZ());
-                    else writer.printf("%d %d %f %f%n", col * scaleXY, row * scaleXY, vec.getX(), vec.getY());
+                    if (dim.hasDepth()) writer.printf("%d %d %d %f %f %f%n", col * scaleXY, row * scaleXY, sliceIndex * scaleZ, vec.x(), vec.y(), vec.z());
+                    else writer.printf("%d %d %f %f%n", col * scaleXY, row * scaleXY, vec.x(), vec.y());
             }
 
     }
