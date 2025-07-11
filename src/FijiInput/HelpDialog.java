@@ -58,6 +58,8 @@ public class HelpDialog extends Dialog {
         });
         
         helpTextArea.setFocusable(false);
+        setFocusableWindowState(false);
+
 
     }
 
