@@ -5,7 +5,7 @@ package FijiInput.field;
  * @author E. Dov Neimand
  */
 public enum VF {
-    None, White, Color;
+    None, Monochrome, Color;
     
     public boolean is(){
         return !equals(None);
