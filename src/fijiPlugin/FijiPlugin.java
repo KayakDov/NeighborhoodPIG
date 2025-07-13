@@ -271,13 +271,13 @@ public class FijiPlugin implements PlugIn {
     }
 
     private static String[] defaultArgs() {
-        String imagePath = "images/input/cyl/";
+        String imagePath = "images/input/AngleCyl/";
         int depth = 50;
 
 //        String imagePath = "images/input/SingleTest/";
 //        int depth = 1;
-        int xyR = 3;
-        int zR = 3;
+        int xyR = 5;
+        int zR = 5;
         double zDist = 1;
         boolean hasHeatMap = false;
         VF hasVF = VF.Monochrome;
@@ -359,7 +359,7 @@ public class FijiPlugin implements PlugIn {
                     if (img.dim().hasDepth()) appendHM(zen, np.getZenithAngles(false, 0.01), 0, (float) Math.PI, es);
                 }
 
-                if (ui.vectorField.is())
+                if (ui.vectorField.is()){
                     vecImgDepth = appendVF(
                             ui,
                             np.getVectorImg(
@@ -373,6 +373,7 @@ public class FijiPlugin implements PlugIn {
                             vf,
                             es
                     );
+                }
 
                 if (ui.coherence) appendHM(coh, np.getCoherence(ui.tolerance), 0, 1, es);
 

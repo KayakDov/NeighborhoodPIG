@@ -282,6 +282,14 @@ public class Point3d {
         return z;
     }
     
+    /**
+     * The maximum absolute value.
+     * @return 
+     */
+    public double infNorm(){
+        return Math.max(Math.abs(x), Math.max(Math.abs(y), Math.abs(z)));
+    }
+    
     public boolean isFinite(){
         return Double.isFinite(x) && Double.isFinite(y) && Double.isFinite(z);
     }

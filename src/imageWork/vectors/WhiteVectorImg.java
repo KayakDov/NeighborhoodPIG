@@ -7,6 +7,7 @@ import fijiPlugin.Dimensions;
 import ij.process.BinaryProcessor;
 import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
+import java.awt.Color;
 
 /**
  * Creates a vector field where all vectors are white.
@@ -44,19 +45,20 @@ public class WhiteVectorImg extends VectorImg {
     }
 
     /**
+     * The color white.
+     * @param vec not used.
+     * @return The color white.
+     */
+    @Override
+    public int color(Point3d vec) {
+        return 255;
+    }
+
+        /**
      * {@inheritDoc }
      */
     @Override
-    public Pencil getPencil() {
-        return new Pencil() {
-            @Override
-            public void setColor(Point3d vec) {
-            }
-
-            @Override
-            public void mark(Point3d p, int t) {
-                processor[t][p.zI()].putPixel(p.xI(), p.yI(), 255);
-            }
-        };
+    public void mark(Point3d p, int t, int color) {
+        processor[t][p.zI()].putPixel(p.xI(), p.yI(), color);
     }
 }

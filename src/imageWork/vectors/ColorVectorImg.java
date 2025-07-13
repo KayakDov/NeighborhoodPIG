@@ -36,6 +36,15 @@ public class ColorVectorImg extends VectorImg {
     }
 
     /**
+     * clamps the double between 0 and 255.
+     * @param v the value to be clamped.
+     * @return The closest int to v that is between 0 and 255.
+     */
+    private int colorClamp(double v) {
+        return Math.max(0, Math.min(255, (int) Math.round(v)));
+    }
+    
+    /**
      * {@inheritDoc }
      */
     @Override
@@ -43,41 +52,24 @@ public class ColorVectorImg extends VectorImg {
         return new ColorProcessor(targetSpace.width, targetSpace.height);
     }
 
+    public int color(Point3d vec) {
+
+        int r = colorClamp((int) Math.round(((vec.x() + 1) / 2.0 * 255.0))),
+                g = colorClamp((int) Math.round((vec.y() * 255.0))),
+                b = colorClamp((int) Math.round(((vec.z() + 1) / 2.0 * 255.0)));
+
+        return dim.hasDepth()
+                ? (r << 16)
+                | (g << 8)
+                | b
+                : Color.HSBtoRGB((float) ((Math.atan2(vec.y(), vec.x()) + Math.PI / 2) / Math.PI), 1.0f, 1.0f);
+    }
+
     /**
      * {@inheritDoc }
      */
     @Override
-    public Pencil getPencil() {
-        return new ColorPencil();
+    public void mark(Point3d p, int t, int color) {
+        processor[t][p.zI()].set(p.xI(), p.yI(), color);
     }
-
-    /**
-     * A color pencil for creating color images.
-     */
-    public class ColorPencil implements Pencil {
-
-        private int color;
-
-        /**
-         * {@inheritDoc }
-         */
-        @Override
-        public void setColor(Point3d vec) {
-
-            color = dim.hasDepth()
-                    ? ((int) Math.round(((vec.x() + 1) / 2.0 * 255.0)) << 16)
-                    | ((int) Math.round((vec.y() * 255.0)) << 8)
-                    | ((int) Math.round(((vec.z() + 1) / 2.0 * 255.0)))
-                    : Color.HSBtoRGB((float) ((Math.atan2(vec.y(), vec.x()) + Math.PI/2) / Math.PI), 1.0f, 1.0f);
-
-        }
-
-        /**
-         * {@inheritDoc }
-         */
-        public void mark(Point3d p, int t) {
-            processor[t][p.zI()].putPixel(p.xI(), p.yI(), color);
-        }
-    }
-
 }

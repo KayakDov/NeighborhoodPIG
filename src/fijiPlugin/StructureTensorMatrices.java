@@ -50,6 +50,7 @@ public class StructureTensorMatrices implements AutoCloseable {
         vectors = new PArray2dToF2d(downSampled.depth, downSampled.batchSize, downSampled.height * dim.num(), downSampled.width, handle);
                 
         eigen.set(dim.num() - 1, vectors, coherence, azimuth, zenith, downSampled).close();
+        
     }
 
     /**

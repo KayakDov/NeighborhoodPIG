@@ -11,6 +11,7 @@ import ij.ImageStack;
 import ij.process.ImageProcessor;
 import imageWork.MyImageStack;
 import imageWork.VecManager2d;
+import java.awt.Color;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 
@@ -87,10 +88,12 @@ public abstract class VectorImg {
         this.spacingZ = spacingZ;
         this.tolerance = tolerance;
     }
-    
+
     /**
-     * returns a new instance of the processor to be used in this class.
-     * The new processro should be constructed with targetSpace.width and targetSpace.height.
+     * returns a new instance of the processor to be used in this class. The new
+     * processro should be constructed with targetSpace.width and
+     * targetSpace.height.
+     *
      * @return A processor.
      */
     protected abstract ImageProcessor initProcessor();
@@ -108,6 +111,7 @@ public abstract class VectorImg {
      * Creates an {@link ImagePlus} from the vector and intensity data provided
      * during construction.
      *
+     * @param es For multi threading.
      * @return The generated {@link ImagePlus}.
      */
     public ImageStack imgStack(ExecutorService es) {
@@ -119,7 +123,8 @@ public abstract class VectorImg {
 
                 intensity.get(z, t).getVal(handle).get(handle, currentIntensitySlice);
 
-                es.submit(drawLayer(currentIntensitySlice, new VecManager2d(dim).setFrom(vecs, t, z, handle), t, z));
+                drawLayer(currentIntensitySlice, new VecManager2d(dim).setFrom(vecs, t, z, handle), t, z).run();
+//                es.submit(drawLayer(currentIntensitySlice, new VecManager2d(dim).setFrom(vecs, t, z, handle), t, z));
             }
 
         return getStack();
@@ -142,14 +147,13 @@ public abstract class VectorImg {
 
             Interval line = new Interval();
             Point3d vec = new Point3d(), delta = new Point3d(), loc = new Point3d().setZ(z);
-            Pencil drawer = getPencil();
+            Pencil drawer = new Pencil();
 
             for (; loc.xI() < dim.width; loc.incX()) {
 
                 int colIndex = loc.xI() * dim.height;
 
-                for (loc.setY(0); loc.yI() < dim.height; loc.incY()) {
-
+                for (loc.setY(0); loc.yI() < dim.height; loc.incY())
                     if (currentIntensitySlice[colIndex + loc.yI()] > tolerance) {
 
                         gridVecs.get(loc.yI(), loc.xI(), vec);
@@ -157,7 +161,6 @@ public abstract class VectorImg {
                         buildAndDrawVec(line, vec, delta, loc, t, drawer);
 
                     }
-                }
             }
 
         };
@@ -175,15 +178,16 @@ public abstract class VectorImg {
      */
     private void buildAndDrawVec(Interval line, Point3d vec, Point3d delta, Point3d loc, int t, Pencil drawer) {
         if (vec.isFinite()) {
-            drawer.setColor(vec);
-
+            drawer.setColor(color(vec));
+            
             line.getA().set(loc.x() * spacingXY, loc.y() * spacingXY, loc.z() * spacingZ).translate(r + 1, r + 1, dim.depth == 1 ? 0 : r + 1);
             line.getB().set(line.getA());
             line.getA().translate(vec.scale(r));
             line.getB().translate(vec.scale(-1));
 
             line.draw(drawer, vec, delta, t);
-        }
+            
+        } 
     }
 
     /**
@@ -200,32 +204,58 @@ public abstract class VectorImg {
     }
 
     /**
-     * Gets the pencil for this class.
-     * @return A pencil for this class.
+     * Computes and saves the color based on the given vector's components. This
+     * vector is expected to be normalized.
+     *
+     * @param vec The normalized vector.
      */
-    public abstract Pencil getPencil();
-    
+    /**
+     * {@inheritDoc }
+     */
+    public abstract int color(Point3d vec);
+
     /**
      * An object to facilitate drawing with IJ at the proffered point.
      */
-    public interface Pencil {
+    public class Pencil {
 
+        private int color;
 
         /**
-         * Computes and saves the color based on the given vector's components.
-         * This vector is expected to be normalized.
+         * Sets the color of the vector.
          *
-         * @param vec The normalized vector.
+         * @param color The new color of the vector.
          */
-        public void setColor(Point3d vec);
+        public void setColor(Color color) {
+            this.color = color.getRGB();
+        }
 
         /**
-         * Draws 255 in the desired time and place.
+         * Sets the color of the vector.
+         *
+         * @param color The new color of the vector.
+         */
+        public void setColor(int color) {
+            this.color = color;
+        }
+
+        /**
+         * Draws the preset color to the desired place and time.
          *
          * @param p The location to draw.
          * @param t The frame to draw on.
          */
-        public void mark(Point3d p, int t);
+        public void mark(Point3d p, int t) {
+            VectorImg.this.mark(p, t, color);
+        }
     }
+    
+    /**
+     * Draws the given color at the given time and place.
+     * @param p The place.
+     * @param t The time.
+     * @param color The color.
+     */
+    public abstract void mark(Point3d p, int t, int color);
 
 }

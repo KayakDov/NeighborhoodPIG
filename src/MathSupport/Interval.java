@@ -54,15 +54,23 @@ public class Interval {
      * many times in a row.
      * @param t The time (frame) to draw at.
      */
-    public void draw(VectorImg.Pencil pen, Point3d vector, Point3d delta, int t) {
-        double dist = length();
-               
-        pen.mark(vector.set(a), t);
-
-        delta.set(b).translate(-1, a).scale(1 / dist);
+    public void draw(VectorImg.Pencil pen, Point3d tempPoint, Point3d tempDelta, int t) {
         
-        for (int x = 0; x < dist; x++)
-            pen.mark(vector.translate(delta), t);
+        tempDelta.set(b).translate(-1, a);
+
+        double maxDim = tempDelta.infNorm();
+
+
+        int numSteps = (int) Math.round(maxDim);
+        if (numSteps < 1) numSteps = 1;
+
+        tempDelta.scale(1.0/numSteps);
+
+        tempPoint.set(a);
+
+        pen.mark(tempPoint, t); 
+        for (int i = 1; i <= numSteps; i++) 
+            pen.mark(tempPoint.translate(tempDelta), t);        
     }
 
     public Point3d getA() {

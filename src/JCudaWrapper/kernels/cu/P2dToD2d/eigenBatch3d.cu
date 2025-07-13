@@ -618,9 +618,7 @@ public:
      */
     __device__ float azimuth(){
         if(isnan(data[0]) || data[0]*data[0] + data[1]*data[1] <= tolerance) return nan("");
-        double angle = atan2(data[1], data[0]);
-        if (angle < 0.0f) angle += M_PI;
-        return angle;
+       return fmod(atan2(data[1], data[0]) + M_PI, M_PI);
     }
     
     /**
@@ -630,7 +628,7 @@ public:
         if(isnan(data[0]) || lengthSquared() <= tolerance) return nan("");
         else if(data[2] >= 1 - tolerance) return 0;
         else if(data[2] <= tolerance - 1) return M_PI;        
-        else return acos(data[2]);
+        else return acos(fabs(data[2]));
     }
 
     /**
@@ -735,11 +733,6 @@ extern "C" __global__ void eigenBatch3dKernel(
         tolerance
     );
     
-    //if(idx == 0*dim[5] + 7*dim[4] + 25*dim[0] + 0){
-      // printf("tolerance = %.17f\n ", tolerance);
-     //  mat.print();
-    //}
-    
     Vec eVals(tolerance);
     eVals.setEVal(mat);
         
@@ -756,8 +749,8 @@ extern "C" __global__ void eigenBatch3dKernel(
     dst.set(azimuthal, ldAzi, ldldAzi, ldPtrAzi, vec.azimuth());
     dst.set(zenith, ldZen, ldldZen, ldPtrZen, vec.zenith());
     
- //   if(idx == 0*dim[5] + 7*dim[4] + 25*dim[0] + 0)
-//       mat.print();
+  //  if(idx == 0*dim[5] + 25*dim[4] + 24*dim[0] + 19) vec.print();
+//    if(idx == 0*dim[5] + 25*dim[4] + 25*dim[0] + 19) vec.print();
     
 }
 
