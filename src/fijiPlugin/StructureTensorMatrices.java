@@ -51,6 +51,8 @@ public class StructureTensorMatrices implements AutoCloseable {
                 
         eigen.set(dim.num() - 1, vectors, coherence, azimuth, zenith, downSampled).close();
         
+//        System.out.println("fijiPlugin.StructureTensorMatrices.<init>()\n" + Test.format(vectors.toString()));
+        
     }
 
     /**

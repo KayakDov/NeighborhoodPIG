@@ -123,8 +123,8 @@ public abstract class VectorImg {
 
                 intensity.get(z, t).getVal(handle).get(handle, currentIntensitySlice);
 
-                drawLayer(currentIntensitySlice, new VecManager2d(dim).setFrom(vecs, t, z, handle), t, z).run();
-//                es.submit(drawLayer(currentIntensitySlice, new VecManager2d(dim).setFrom(vecs, t, z, handle), t, z));
+//                drawLayer(currentIntensitySlice, new VecManager2d(dim).setFrom(vecs, t, z, handle), t, z).run();
+                es.submit(drawLayer(currentIntensitySlice, new VecManager2d(dim).setFrom(vecs, t, z, handle), t, z));
             }
 
         return getStack();
@@ -148,6 +148,7 @@ public abstract class VectorImg {
             Interval line = new Interval();
             Point3d vec = new Point3d(), delta = new Point3d(), loc = new Point3d().setZ(z);
             Pencil drawer = new Pencil();
+            int[] colorHolder = new int[4];
 
             for (; loc.xI() < dim.width; loc.incX()) {
 
@@ -158,7 +159,7 @@ public abstract class VectorImg {
 
                         gridVecs.get(loc.yI(), loc.xI(), vec);
 
-                        buildAndDrawVec(line, vec, delta, loc, t, drawer);
+                        buildAndDrawVec(line, vec, delta, loc, t, drawer, colorHolder);
 
                     }
             }
@@ -176,9 +177,9 @@ public abstract class VectorImg {
      * @param t The frame index.
      * @param drawer The tool the line will be drawn with.
      */
-    private void buildAndDrawVec(Interval line, Point3d vec, Point3d delta, Point3d loc, int t, Pencil drawer) {
+    private void buildAndDrawVec(Interval line, Point3d vec, Point3d delta, Point3d loc, int t, Pencil drawer, int[] colorHolder) {
         if (vec.isFinite()) {
-            drawer.setColor(color(vec));
+            drawer.setColor(color(vec, colorHolder));
             
             line.getA().set(loc.x() * spacingXY, loc.y() * spacingXY, loc.z() * spacingZ).translate(r + 1, r + 1, dim.depth == 1 ? 0 : r + 1);
             line.getB().set(line.getA());
@@ -212,14 +213,14 @@ public abstract class VectorImg {
     /**
      * {@inheritDoc }
      */
-    public abstract int color(Point3d vec);
+    public abstract int[] color(Point3d vec, int[] colorGoesHere);
 
     /**
      * An object to facilitate drawing with IJ at the proffered point.
      */
     public class Pencil {
 
-        private int color;
+        private int[] color;
 
         /**
          * Sets the color of the vector.
@@ -227,7 +228,12 @@ public abstract class VectorImg {
          * @param color The new color of the vector.
          */
         public void setColor(Color color) {
-            this.color = color.getRGB();
+            this.color = new int[]{
+                color.getAlpha(), 
+                color.getRed(), 
+                color.getGreen(), 
+                color.getBlue()
+            };
         }
 
         /**
@@ -235,7 +241,7 @@ public abstract class VectorImg {
          *
          * @param color The new color of the vector.
          */
-        public void setColor(int color) {
+        public void setColor(int[] color) {
             this.color = color;
         }
 
@@ -246,16 +252,9 @@ public abstract class VectorImg {
          * @param t The frame to draw on.
          */
         public void mark(Point3d p, int t) {
-            VectorImg.this.mark(p, t, color);
+            processor[t][p.zI()].putPixel(p.xI(), p.yI(), color);
         }
     }
     
-    /**
-     * Draws the given color at the given time and place.
-     * @param p The place.
-     * @param t The time.
-     * @param color The color.
-     */
-    public abstract void mark(Point3d p, int t, int color);
 
 }

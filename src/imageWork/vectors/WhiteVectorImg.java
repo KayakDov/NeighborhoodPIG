@@ -8,6 +8,7 @@ import ij.process.BinaryProcessor;
 import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
 import java.awt.Color;
+import java.util.Arrays;
 
 /**
  * Creates a vector field where all vectors are white.
@@ -45,20 +46,12 @@ public class WhiteVectorImg extends VectorImg {
     }
 
     /**
-     * The color white.
-     * @param vec not used.
-     * @return The color white.
-     */
-    @Override
-    public int color(Point3d vec) {
-        return 255;
-    }
-
-        /**
      * {@inheritDoc }
      */
     @Override
-    public void mark(Point3d p, int t, int color) {
-        processor[t][p.zI()].putPixel(p.xI(), p.yI(), color);
+    public int[] color(Point3d vec, int[] colorGoesHere) {
+        Arrays.fill(colorGoesHere, 255);
+        return colorGoesHere;
     }
+
 }

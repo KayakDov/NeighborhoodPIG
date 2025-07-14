@@ -280,7 +280,7 @@ public class FijiPlugin implements PlugIn {
         int zR = 5;
         double zDist = 1;
         boolean hasHeatMap = false;
-        VF hasVF = VF.Monochrome;
+        VF hasVF = VF.Color;
         boolean hasCoherence = false;
         String saveVectors = "false";
         int vfSpacingXY = 6;

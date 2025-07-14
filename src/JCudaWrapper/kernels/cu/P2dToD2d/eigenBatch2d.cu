@@ -171,7 +171,7 @@ public:
         }
     }
 
-    __device__ void setEigenVec(const Matrix2x2& mat, const double eVal, int vecInd) {
+    __device__ void setEVec(const Matrix2x2& mat, const double eVal, int vecInd) {
         if(fabs(mat(1, 0)) > tolerance) set(eVal - mat(1, 1), mat(1, 0));
         else if(fabs(mat(0, 1)) > tolerance) set(mat(0, 1), eVal - mat(0, 0));
         else if(vecInd) set(1, 0); 
@@ -271,7 +271,7 @@ extern "C" __global__ void eigenBatch2dKernel(
     dst.set(coherence, ldCoh, ldldCoh, ldPtrCoh, (float)eVals.coherence());
 
     Vec vec(tolerance);
-    vec.setEigenVec(mat, eVals(eigenInd), eigenInd);
+    vec.setEVec(mat, eVals(eigenInd), eigenInd);
     
     /*if(idx == 114 + 19*4 + 0) {
         mat.print();

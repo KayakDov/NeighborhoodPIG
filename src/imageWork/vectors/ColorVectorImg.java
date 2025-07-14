@@ -7,6 +7,7 @@ import fijiPlugin.Dimensions;
 import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
 import java.awt.Color;
+import java.util.Arrays;
 
 /**
  * Creates color vector fields.
@@ -37,13 +38,14 @@ public class ColorVectorImg extends VectorImg {
 
     /**
      * clamps the double between 0 and 255.
+     *
      * @param v the value to be clamped.
      * @return The closest int to v that is between 0 and 255.
      */
     private int colorClamp(double v) {
         return Math.max(0, Math.min(255, (int) Math.round(v)));
     }
-    
+
     /**
      * {@inheritDoc }
      */
@@ -52,24 +54,25 @@ public class ColorVectorImg extends VectorImg {
         return new ColorProcessor(targetSpace.width, targetSpace.height);
     }
 
-    public int color(Point3d vec) {
-
-        int r = colorClamp((int) Math.round(((vec.x() + 1) / 2.0 * 255.0))),
-                g = colorClamp((int) Math.round((vec.y() * 255.0))),
-                b = colorClamp((int) Math.round(((vec.z() + 1) / 2.0 * 255.0)));
-
-        return dim.hasDepth()
-                ? (r << 16)
-                | (g << 8)
-                | b
-                : Color.HSBtoRGB((float) ((Math.atan2(vec.y(), vec.x()) + Math.PI / 2) / Math.PI), 1.0f, 1.0f);
-    }
-
-    /**
+     /**
      * {@inheritDoc }
      */
     @Override
-    public void mark(Point3d p, int t, int color) {
-        processor[t][p.zI()].set(p.xI(), p.yI(), color);
+    public int[] color(Point3d vec, int[] colorGoesHere) {
+        
+        if (dim.hasDepth()) {
+            colorGoesHere[0] = colorClamp((int) Math.round(Math.abs(vec.x()) * 255.0));
+            colorGoesHere[1] = colorClamp((int) Math.round(vec.y() * 255.0));
+            colorGoesHere[2] = colorClamp((int) Math.round(Math.abs(vec.z()) * 255.0));
+        }else{
+            double angle = (Math.atan2(vec.y(), vec.x()) + Math.PI / 2) / Math.PI; //TODO: use gpu computed angles.
+            Color color = Color.getHSBColor((float) angle, 1.0f, 1.0f);            
+            colorGoesHere[0] = color.getRed();
+            colorGoesHere[1] = color.getGreen();
+            colorGoesHere[2] = color.getBlue();
+            
+        }
+                
+        return colorGoesHere;
     }
 }

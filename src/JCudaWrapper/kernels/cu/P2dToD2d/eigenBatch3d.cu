@@ -542,7 +542,7 @@ public:
             data[0] *= invLen;
             data[1] *= invLen;
             data[2] *= invLen;
-            if(data[1] < 0 || (data[1] == 0 && data[0] < 0)) 
+            if(data[1] < 0 || (data[1] == 0 && (data[0] < 0 || (data[0] == 0 && data[2] < 0)))) 
                 for(int i = 0; i < 3; i++) data[i] *= -1;
         }
 
@@ -560,7 +560,7 @@ public:
      * @param freeVariables The number of free variables resulting from the row reduction.
      * @param eigenInd The index of the eigenvalue (0, 1, or 2) for which the eigenvector is being computed.
      */
-    __device__ void setEigenVec(const Matrix3x3& mat, int freeVariables, int eigenInd) {
+    __device__ void setEVec(const Matrix3x3& mat, int freeVariables, int eigenInd) {
         double smTol = 1e-6;
 
 //        switch (freeVariables) {
@@ -743,7 +743,7 @@ extern "C" __global__ void eigenBatch3dKernel(
            
     Vec vec(1e-5);
     
-    vec.setEigenVec(mat, mat.rowEchelon(), eigenInd);
+    vec.setEVec(mat, mat.rowEchelon(), eigenInd);
     
     vec.writeTo(eVecs[dst.page(ldPtrEVec)] + dst.col * ldEVec[dst.page(ldldEVec)] + dst.row * 3);
     dst.set(azimuthal, ldAzi, ldldAzi, ldPtrAzi, vec.azimuth());
