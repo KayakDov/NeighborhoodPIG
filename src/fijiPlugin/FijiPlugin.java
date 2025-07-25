@@ -5,6 +5,11 @@ import FijiInput.UserDialog;
 import FijiInput.UserInput;
 import FijiInput.field.VF;
 import JCudaWrapper.array.Array;
+import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.P;
+import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
+import JCudaWrapper.array.Pointer.to2d.PArray2dToI2d;
 import JCudaWrapper.resourceManagement.GPU;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.IJ;
@@ -38,6 +43,35 @@ import jcuda.Sizeof;
  * @author dov
  */
 public class FijiPlugin implements PlugIn {
+
+    public final MyImagePlus img;
+    public final MyImageStack vf, coh, az, zen;
+    public final ExecutorService es;
+
+    public final Dimensions dim;
+
+    /**
+     * The constructor.
+     *
+     * @param userImg The user image.
+     * @param ui The user input.
+     */
+    public FijiPlugin(ImagePlus userImg, UserInput ui) {
+        img = new MyImagePlus(userImg).crop(
+                ui.downSampleXY(userImg.getHeight()),
+                ui.downSampleXY(userImg.getWidth()),
+                ui.downSampleZ(userImg.getNSlices())
+        );
+
+        dim = img.dim().downSample(null, ui.downSampleFactorXY, ui.downSampleFactorZ.orElse(1));
+
+        vf = VectorImg.space(dim, ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), ui.vfMag.orElse(1), ui.overlay.orElse(false) ? img.dim() : null).emptyStack();
+        coh = dim.emptyStack();
+        az = dim.emptyStack();
+        zen = dim.emptyStack();
+
+        es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    }
 
     /**
      * Defines the available save formats for plugin outputs.
@@ -80,22 +114,28 @@ public class FijiPlugin implements PlugIn {
     }
 
     /**
-     * The maximum number of frames that can be processed at once.
+     * The maximum number of frames that can be processed at once. TODO: this
+     * should take downsampling into account!
      *
-     * @param height The height of each frame.
-     * @param width The width of each frame.
-     * @param depth The depth of each frame.
      * @return The maximum number of frames that can be processed at once.
      */
-    public static int framesPerRun(int height, int width, int depth) {
+    public int framesPerRun() {
 
         long freeMemory = GPU.freeMemory();
 
-        if (freeMemory == 0) throw new RuntimeException("There is no free GPU memory.");
+        if (freeMemory == 0)
+            throw new RuntimeException("There is no free GPU memory.");
 
-        long voxlesPerFrame = (long) height * width * depth;
+        long voxlesPerFrame = (long) dim.height * dim.width * dim.depth;
 
-        return (int) ((freeMemory / voxlesPerFrame) / (Sizeof.DOUBLE * (depth > 1 ? 6 : 3) + Sizeof.FLOAT * (depth > 1 ? 3 : 2)));
+        int framesPerRun = (int) ((freeMemory / voxlesPerFrame) / (Sizeof.DOUBLE * (dim.depth > 1 ? 6 : 3) + Sizeof.FLOAT * (dim.depth > 1 ? 3 : 2)));
+
+        if (framesPerRun > 1)
+            return framesPerRun / 2;
+        else if (framesPerRun <= 0)
+            IJ.error("Your stack has a high depth relative to GPU size. This may cause a crash due to insufficiant GPU memory to process a complete frame.");
+
+        return 1;
 
     }
 
@@ -152,7 +192,8 @@ public class FijiPlugin implements PlugIn {
 
         originalImage.setOpenAsHyperStack(true);
 
-        if (!validImage(originalImage)) return;
+        if (!validImage(originalImage))
+            return;
 
         UserInput ui;
 
@@ -253,7 +294,8 @@ public class FijiPlugin implements PlugIn {
      */
     public static void main(String[] args) {
 
-        if (args.length == 0) args = defaultArgs();
+        if (args.length == 0)
+            args = defaultArgs();
 
 //        loadImageJ();
         int depth = Integer.parseInt(args[1]);
@@ -270,7 +312,7 @@ public class FijiPlugin implements PlugIn {
 
     }
 
-    private static String[] defaultArgs() {
+    private static String[] defaultArgs() {//TODO: ther may be a bug for multi frame multi dimensional images with vector fields.
         String imagePath = "images/input/AngleCyl/";
         int depth = 50;
 
@@ -279,7 +321,7 @@ public class FijiPlugin implements PlugIn {
         int xyR = 5;
         int zR = 5;
         double zDist = 1;
-        boolean hasHeatMap = false;
+        boolean hasHeatMap = true;
         VF hasVF = VF.Color;
         boolean hasCoherence = false;
         String saveVectors = "false";
@@ -305,7 +347,7 @@ public class FijiPlugin implements PlugIn {
             "" + vfSpacingZ,
             "" + mag,
             //            "" + overlay,
-            "" + downSampleXY, 
+            "" + downSampleXY,
             "" + downSampleZ
         };
 
@@ -324,74 +366,91 @@ public class FijiPlugin implements PlugIn {
 
         try {
 
-            MyImagePlus img = new MyImagePlus(userImg).crop(
-                    ui.downSampleXY(userImg.getHeight()),
-                    ui.downSampleXY(userImg.getWidth()),
-                    ui.downSampleZ(userImg.getNSlices())
-            );
-
-            Dimensions downSampled = img.dim().downSample(null, ui.downSampleFactorXY, ui.downSampleFactorZ.orElse(1));
-
-            MyImageStack vf = VectorImg.space(downSampled, ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), ui.vfMag.orElse(1), ui.overlay.orElse(false) ? img.dim() : null).emptyStack(),
-                    coh = downSampled.emptyStack(),
-                    az = downSampled.emptyStack(),
-                    zen = downSampled.emptyStack();
+            FijiPlugin fp = new FijiPlugin(userImg, ui);
 
             int vecImgDepth = 0;
 
-            int framesPerIteration = framesPerRun(img.dim().height, img.dim().width, img.dim().depth);
-
-            if (framesPerIteration > 1) framesPerIteration = framesPerIteration / 2;
-            else if (framesPerIteration <= 0) {
-                IJ.error("Your stack has a high depth relative to GPU size. This may cause a crash due to insufficiant GPU memory to process a complete frame.");
-                framesPerIteration = 1;
-            }
+            int framesPerIteration = fp.framesPerRun();
 
             long startTime = System.currentTimeMillis();
 
-            ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
-            for (int i = 0; i < img.getNFrames(); i += framesPerIteration)
-                try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, img.subset(i, framesPerIteration), ui)) {
-
-                if (ui.heatMap) {
-                    appendHM(az, np.getAzimuthalAngles(ui.tolerance), 0, (float) Math.PI, es);
-                    if (img.dim().hasDepth()) appendHM(zen, np.getZenithAngles(false, 0.01), 0, (float) Math.PI, es);
-                }
-
-                if (ui.vectorField.is()){
-                    vecImgDepth = appendVF(
-                            ui,
-                            np.getVectorImg(
-                                    ui.spacingXY.get(), 
-                                    ui.spacingZ.orElse(1), 
-                                    ui.vfMag.get(), 
-                                    false, 
-                                    ui.overlay.orElse(false) ? img.dim() : null,
-                                    ui.vectorField == VF.Color
-                            ),
-                            vf,
-                            es
-                    );
-                }
-
-                if (ui.coherence) appendHM(coh, np.getCoherence(ui.tolerance), 0, 1, es);
-
-                if (ui.saveDatToDir.isPresent())
-                    new DatSaver(downSampled, np.stm.getVectors(), handle, ui.saveDatToDir.get(), ui.spacingXY.orElse(1), ui.spacingZ.orElse(1)).saveAllVectors();
-
+            for (int i = 0; i < fp.img.getNFrames(); i += framesPerIteration)
+                try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, fp.img.subset(i, framesPerIteration), ui)) {
+                vecImgDepth = processNPResults(ui, fp, handle, np);
             }
 
-            awaitThreadTermination(es);
+            fp.awaitThreadTermination();
             printTime(startTime);
 
-            results(vf, coh, az, zen, save, ui, img.dim(), vecImgDepth, img);
+            fp.results(save, ui, vecImgDepth);
         } catch (Exception ex) {
             System.out.println("fijiPlugin.FijiPlugin.run() " + ui.toString());
             throw ex;
         }
         if (!Array.allocatedArrays.isEmpty())
             throw new RuntimeException("Neighborhood PIG has a GPU memory leak.");
+    }
+
+    /**
+     * Takes the results from running NeighborhoodPIG and loads them into
+     * imageStacks or saved files based on the user's input. This method
+     * orchestrates the creation of various output images such as heatmaps for
+     * azimuthal and zenith angles, vector fields, and coherence maps. It also
+     * handles the saving of raw vector data if specified by the user.
+     *
+     * @param ui The {@link UserInput} object containing all the user-defined
+     * parameters and preferences for output generation (e.g., whether to
+     * generate heatmaps, vector fields, coherence, or save raw data).
+     * @param fp The {@link FijiPlugin} instance, which provides access to
+     * shared resources like dimensions ({@link FijiPlugin#dim}), image stacks
+     * for different outputs (e.g., {@link FijiPlugin#az},
+     * {@link FijiPlugin#zen}, {@link FijiPlugin#vf},
+     * {@link FijiPlugin#coh}), and the executor service ({@link FijiPlugin#es})
+     * for parallel processing.
+     * @param handle A {@link Handle} object, typically representing a GPU
+     * device handle or context, used for managing GPU memory and kernel
+     * execution within the current processing iteration.
+     * @param np The {@link NeighborhoodPIG} object, which contains the computed
+     * results for the current image frame(s), including coherence, vector
+     * types, and methods to retrieve azimuthal angles, zenith angles, and
+     * vector images.
+     * @return The depth of the generated vector image if a vector field was
+     * created ({@code ui.vectorField.is()} is true); otherwise, returns 0. This
+     * value is used subsequently for displaying or saving vector field results
+     * correctly.
+     */
+    private static int processNPResults(UserInput ui, FijiPlugin fp, Handle handle, NeighborhoodPIG np) {
+
+        if (ui.heatMap) {
+
+            appendHM(fp.az, np.getAzimuthalAngles(ui.tolerance), 0, (float) Math.PI, fp.es);
+            if (fp.img.dim().hasDepth())
+                appendHM(fp.zen, np.getZenithAngles(false, 0.01), 0, (float) Math.PI, fp.es);
+        }
+
+        if (ui.vectorField.is()) {
+            return appendVF(
+                    ui,
+                    np.getVectorImg(
+                            ui.spacingXY.get(),
+                            ui.spacingZ.orElse(1),
+                            ui.vfMag.get(),
+                            false,
+                            ui.overlay.orElse(false) ? fp.img.dim() : null,
+                            ui.vectorField == VF.Color
+                    ),
+                    fp.vf,
+                    fp.es
+            );
+        }
+
+        if (ui.coherence)
+            appendHM(fp.coh, np.getCoherence(ui.tolerance), 0, 1, fp.es);
+
+        if (ui.saveDatToDir.isPresent())
+            new DatSaver(fp.dim, np.stm.getVectors(), handle, ui.saveDatToDir.get(), ui.spacingXY.orElse(1), ui.spacingZ.orElse(1)).saveAllVectors();
+
+        return 0;
     }
 
     /**
@@ -409,7 +468,7 @@ public class FijiPlugin implements PlugIn {
      *
      * @param threads All open threads.
      */
-    private static void awaitThreadTermination(ExecutorService es) {
+    private void awaitThreadTermination() {
         es.shutdown();
 
         try {
@@ -440,6 +499,7 @@ public class FijiPlugin implements PlugIn {
      * @param add The heatmap whose stack is to be appended.
      * @param min The minimum value in the stack.
      * @param max The maximum value in the stack.
+     * @param es Manages the cpu threads.
      */
     public static void appendHM(MyImageStack addTo, HeatMapCreator add, float min, float max, ExecutorService es) {
 
@@ -464,23 +524,25 @@ public class FijiPlugin implements PlugIn {
      * @param vecImgDepth The depth of the vector image.
      * @param myImg The image worked on.
      */
-    private static void results(MyImageStack vf, MyImageStack coh, MyImageStack az, MyImageStack zen, Save save, UserInput ui, Dimensions dims, int vecImgDepth, MyImagePlus myImg) {
+    private void results(Save save, UserInput ui, int vecImgDepth) {
 
         if (ui.heatMap) {
-            present(az.imp("Azimuthal Angles", dims.depth), save, "N_PIG_images" + File.separatorChar + "Azimuthal");
-            if (dims.hasDepth())
-                present(zen.imp("Zenith Angles", dims.depth), save, "N_PIG_images" + File.separatorChar + "Zenith");
+            present(az.imp("Azimuthal Angles", dim.depth), save, "N_PIG_images" + File.separatorChar + "Azimuthal");
+            if (dim.hasDepth())
+                present(zen.imp("Zenith Angles", dim.depth), save, "N_PIG_images" + File.separatorChar + "Zenith");
         }
         if (ui.vectorField.is()) {
             MyImagePlus impVF;
-            if (!dims.hasDepth() && ui.overlay.orElse(false))
-                impVF = new MyImagePlus("Overlaid Nematic Vectors", myImg.getImageStack(), dims.depth)
+            if (!dim.hasDepth() && ui.overlay.orElse(false))
+                impVF = new MyImagePlus("Overlaid Nematic Vectors", img.getImageStack(), dim.depth)
                         .overlay(vf, Color.GREEN);
-            else impVF = vf.imp("Nematic Vectors", vecImgDepth);
+            else
+                impVF = vf.imp("Nematic Vectors", vecImgDepth);
             present(impVF, save, "N_PIG_images" + File.separatorChar + "vectors");
         }
 
-        if (ui.coherence) present(coh.imp("Coherence", dims.depth), save, "N_PIG_images" + File.separatorChar + "Coherence");
+        if (ui.coherence)
+            present(coh.imp("Coherence", dim.depth), save, "N_PIG_images" + File.separatorChar + "Coherence");
 
         // Logic for saving raw vector data (e.g., when save == Save.txt or ui.saveVectorsToFile is true)
         // would be placed here, but is omitted as per instruction.
@@ -508,7 +570,7 @@ public class FijiPlugin implements PlugIn {
             }
             image.saveSlices(filePath, saveTo == Save.tiff);
         }
-        
+
     }
 
 }

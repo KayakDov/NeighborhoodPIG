@@ -153,6 +153,16 @@ public class Point3d {
     public Point3d translate(float scalar, Point3d p) {
         return translate(scalar*p.x, scalar*p.y, scalar*p.z);
     }
+    /**
+     * Adds anther point to this point, changing this point.
+     *
+     * @param scalar multiply p by this before translating.
+     * @param p The point to be added to this point.
+     * @return this.
+     */
+    public Point3d translate(double scalar, Point3d p) {
+        return translate(scalar*p.x, scalar*p.y, scalar*p.z);
+    }
 
     /**
      * Scales the coordinates of this {@code Point3d} by the given factor.Note
@@ -292,5 +302,24 @@ public class Point3d {
     
     public boolean isFinite(){
         return Double.isFinite(x) && Double.isFinite(y) && Double.isFinite(z);
+    }
+    
+        /**
+     * Sets the coordinates of this Point3d to the cross product of two other Point3d vectors.
+     * This method treats Point3d objects as 3D vectors.
+     *
+     * @param a The first vector (Point3d) in the cross product (A x B).
+     * @param b The second vector (Point3d) in the cross product (A x B).
+     * @return This Point3d instance, modified to be the cross product.
+     */
+    public Point3d cross(Point3d a, Point3d b) {
+        double newX = a.y * b.z - a.z * b.y;
+        double newY = a.z * b.x - a.x * b.z;
+        double newZ = a.x * b.y - a.y * b.x;
+
+        this.x = newX;
+        this.y = newY;
+        this.z = newZ;
+        return this;
     }
 }

@@ -20,6 +20,15 @@ __device__ inline void swap(double& a, double& b) {
     a = b;
     b = temp;
 }
+/**
+ * Checks if the two values are close to one another.
+ * @param a The first value.
+ * @param b The second value.
+ * @param The tolerance.
+ */
+__device__ bool eq(double a, double b, double tol){
+	return fabs(a - b) < tol;
+}
 
 /**
  * @class Get
@@ -183,7 +192,7 @@ private:
      * A value that is less than tolerance will be returned as 0.  Otherwise as itself.
      */
     __device__ double zeroBar(double maybeNear0){
-        return fabs(maybeNear0) <= tolerance? 0: maybeNear0;
+        return eq(maybeNear0, 0, tolerance)? 0: maybeNear0;
     }
 public:
     /**
@@ -272,7 +281,7 @@ public:
     __device__ void subtractRow(int minuendInd, int subtrahendInd, double scale, int startCol) {
         mat[minuendInd][startCol] = 0;
         for (int x = startCol + 1; x < 3; x++)
-	    mat[minuendInd][x] = fma(-scale, mat[subtrahendInd][x], mat[minuendInd][x]);
+			mat[minuendInd][x] = fma(-scale, mat[subtrahendInd][x], mat[minuendInd][x]);
         
         
     }
@@ -320,7 +329,7 @@ public:
         scaleRow(row, col);
         
         for (int y = row + 1; y < 3; y++)
-	    if(fabs(mat[y][col]) > tolerance) subtractRow(y, row, mat[y][col], col);
+			if(fabs(mat[y][col]) > tolerance) subtractRow(y, row, mat[y][col], col);
 	
         return true;
     }
@@ -698,6 +707,7 @@ public:
  * @param tolerance Tolerance for floating-point comparisons.
  * @param zenith where the zenith angles, between 0 and pi, will be stored.
  * @param azimuthal where the Azimuthal angles, between 0 and pi, will be stored.
+ * @param coherence The coherence of the vector will be stored here.  Note, if this value is negaitvie then the vector at this index is normal to the plane with a coherence equal to the absolute value of the coherence stored here.
  */
 extern "C" __global__ void eigenBatch3dKernel(
     const int n,
@@ -716,7 +726,7 @@ extern "C" __global__ void eigenBatch3dKernel(
         
     const int* dim,
     
-    const int downSampleFactorXY, const int downSampleFactorZ, const int eigenInd,
+    const int downSampleFactorXY, const int downSampleFactorZ, int eigenInd,
     const double tolerance    
 ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -735,9 +745,11 @@ extern "C" __global__ void eigenBatch3dKernel(
     
     Vec eVals(tolerance);
     eVals.setEVal(mat);
-        
-    dst.set(coherence, ldCoh, ldldCoh, ldPtrCoh, (float)eVals.coherence());
-    
+	
+	bool ortho = eq(eVals(1), eVals(2), tolerance) && !eq(eVals(0), (eVals(1) +eVals(2))/2, tolerance);
+	if(ortho) eigenInd = 0;
+	
+    dst.set(coherence, ldCoh, ldldCoh, ldPtrCoh, (ortho?-1:1)*(float)eVals.coherence());
 
     mat.subtractFromDiag(eVals[eigenInd]);
            

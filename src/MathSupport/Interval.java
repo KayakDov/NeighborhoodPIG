@@ -1,5 +1,6 @@
 package MathSupport;
 
+import imageWork.Pencil;
 import imageWork.vectors.VectorImg;
 
 /**
@@ -54,7 +55,7 @@ public class Interval {
      * many times in a row.
      * @param t The time (frame) to draw at.
      */
-    public void draw(VectorImg.Pencil pen, Point3d vector, Point3d delta, int t) {
+    public void draw(Pencil pen, Point3d vector, Point3d delta, int t) {
         
         delta.set(b).translate(-1, a);
 

@@ -3,6 +3,7 @@ package imageWork.vectors;
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
+import MathSupport.Disk;
 import MathSupport.Interval;
 import MathSupport.Point3d;
 import fijiPlugin.Dimensions;
@@ -10,6 +11,7 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.ImageProcessor;
 import imageWork.MyImageStack;
+import imageWork.Pencil;
 import imageWork.VecManager2d;
 import java.awt.Color;
 import java.util.Arrays;
@@ -24,7 +26,7 @@ import java.util.concurrent.ExecutorService;
  *
  * @author E. Dov Neimand
  */
-public abstract class VectorImg {
+public abstract class VectorImg implements Pencil{
 
     protected final ImageProcessor[][] processor;
     protected final Dimensions targetSpace;
@@ -78,8 +80,9 @@ public abstract class VectorImg {
         targetSpace = space(dim, spacingXY, spacingZ, vecMag, overlay);
 
         processor = new ImageProcessor[targetSpace.batchSize][targetSpace.depth];
-        for (int t = 0; t < dim.batchSize; t++)
+        for (int t = 0; t < dim.batchSize; t++) {
             Arrays.setAll(processor[t], z -> initProcessor());
+        }
 
         r = vecMag / 2;
         this.vecs = vecs;
@@ -116,7 +119,7 @@ public abstract class VectorImg {
      */
     public ImageStack imgStack(ExecutorService es) {
 
-        for (int t = 0; t < dim.batchSize; t++)
+        for (int t = 0; t < dim.batchSize; t++) {
             for (int z = 0; z < dim.depth; z++) {
 
                 float[] currentIntensitySlice = new float[dim.layerSize()];
@@ -126,6 +129,7 @@ public abstract class VectorImg {
 //                drawLayer(currentIntensitySlice, new VecManager2d(dim).setFrom(vecs, t, z, handle), t, z).run();
                 es.submit(drawLayer(currentIntensitySlice, new VecManager2d(dim).setFrom(vecs, t, z, handle), t, z));
             }
+        }
 
         return getStack();
     }
@@ -146,24 +150,31 @@ public abstract class VectorImg {
         return () -> {
 
             Interval line = new Interval();
-            Point3d vec = new Point3d(), delta = new Point3d(), loc = new Point3d().setZ(z);
-            Pencil drawer = new Pencil();
+            Disk disk = new Disk();
+            Point3d vec = new Point3d(), holder[] = new Point3d[3], loc = new Point3d().setZ(z);
+            Arrays.setAll(holder, i -> new Point3d());
+
+            Pencil drawer = this;
             int[] colorHolder = new int[4];
 
             for (; loc.xI() < dim.width; loc.incX()) {
 
                 int colIndex = loc.xI() * dim.height;
 
-                for (loc.setY(0); loc.yI() < dim.height; loc.incY())
-                    if (currentIntensitySlice[colIndex + loc.yI()] > tolerance) {
-
+                for (loc.setY(0); loc.yI() < dim.height; loc.incY()) {
+                    double coh = currentIntensitySlice[colIndex + loc.yI()];
+                    if (Math.abs(coh) > tolerance) {
                         gridVecs.get(loc.yI(), loc.xI(), vec);
 
-                        buildAndDrawVec(line, vec, delta, loc, t, drawer, colorHolder);
+                        if (coh > tolerance)
+                            buildAndDrawVec(line, vec, holder[0], loc, t, drawer, colorHolder);
+                        else if (coh < -tolerance)
+                            disk.set(loc, vec, r).draw(drawer, holder[0], holder[1], holder[2], t);
 
                     }
-            }
+                }
 
+            }
         };
     }
 
@@ -180,15 +191,15 @@ public abstract class VectorImg {
     private void buildAndDrawVec(Interval line, Point3d vec, Point3d delta, Point3d loc, int t, Pencil drawer, int[] colorHolder) {
         if (vec.isFinite()) {
             drawer.setColor(color(vec, colorHolder));
-            
+
             line.getA().set(loc.x() * spacingXY, loc.y() * spacingXY, loc.z() * spacingZ).translate(r + 1, r + 1, dim.depth == 1 ? 0 : r + 1);
             line.getB().set(line.getA());
             line.getA().translate(vec.scale(r));
             line.getB().translate(vec.scale(-1));
 
             line.draw(drawer, vec, delta, t);
-            
-        } 
+
+        }
     }
 
     /**
@@ -198,9 +209,11 @@ public abstract class VectorImg {
      */
     private MyImageStack getStack() {
         MyImageStack stack = new MyImageStack(targetSpace.width, targetSpace.height);
-        for (int t = 0; t < processor.length; t++)
-            for (int z = 0; z < processor[t].length; z++)
+        for (int t = 0; t < processor.length; t++) {
+            for (int z = 0; z < processor[t].length; z++) {
                 stack.addSlice(processor[t][z]);
+            }
+        }
         return stack;
     }
 
@@ -215,46 +228,34 @@ public abstract class VectorImg {
      */
     public abstract int[] color(Point3d vec, int[] colorGoesHere);
 
+    private int[] color;
+
     /**
-     * An object to facilitate drawing with IJ at the proffered point.
+     * {@inheritDoc }
      */
-    public class Pencil {
-
-        private int[] color;
-
-        /**
-         * Sets the color of the vector.
-         *
-         * @param color The new color of the vector.
-         */
-        public void setColor(Color color) {
-            this.color = new int[]{
-                color.getAlpha(), 
-                color.getRed(), 
-                color.getGreen(), 
-                color.getBlue()
-            };
-        }
-
-        /**
-         * Sets the color of the vector.
-         *
-         * @param color The new color of the vector.
-         */
-        public void setColor(int[] color) {
-            this.color = color;
-        }
-
-        /**
-         * Draws the preset color to the desired place and time.
-         *
-         * @param p The location to draw.
-         * @param t The frame to draw on.
-         */
-        public void mark(Point3d p, int t) {
-            processor[t][p.zI()].putPixel(p.xI(), p.yI(), color);
-        }
+    public void setColor(Color color) {
+        this.color = new int[]{
+            color.getAlpha(),
+            color.getRed(),
+            color.getGreen(),
+            color.getBlue()
+        };
     }
-    
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public void setColor(int[] color) {
+        this.color = color;
+    }
+
+    /**
+     * {@inheritDoc }
+     */
+    @Override
+    public void mark(Point3d p, int t) {
+        processor[t][p.zI()].putPixel(p.xI(), p.yI(), color);
+    }
 
 }

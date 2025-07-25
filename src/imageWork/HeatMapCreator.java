@@ -3,14 +3,10 @@ package imageWork;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;
-import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.FloatProcessor;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import main.Test;
 
 /**
  * A class for creating grayscale images from tensor data.
