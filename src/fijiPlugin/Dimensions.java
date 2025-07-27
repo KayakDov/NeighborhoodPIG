@@ -3,7 +3,7 @@ package fijiPlugin;
 import JCudaWrapper.array.Int.IArray1d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
-import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
+import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import MathSupport.Cube;
 import ij.ImagePlus;
@@ -219,8 +219,8 @@ public class Dimensions implements Closeable {
      * memory.
      * @return An empty array with these dimensions.
      */
-    public PArray2dToF2d emptyP2dToF2d(Handle hand) {
-        return new PArray2dToF2d(depth, batchSize, height, width, hand);
+    public P2dToF2d emptyP2dToF2d(Handle hand) {
+        return new P2dToF2d(depth, batchSize, height, width, hand);
     }
 
     /**

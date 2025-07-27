@@ -1,7 +1,7 @@
 package imageWork.vectors;
 
 import JCudaWrapper.array.Float.FStrideArray3d;
-import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
+import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import MathSupport.Disk;
 import MathSupport.Interval;
@@ -31,7 +31,7 @@ public abstract class VectorImg implements Pencil{
     protected final ImageProcessor[][] processor;
     protected final Dimensions targetSpace;
     private final int spacingXY, spacingZ, r;
-    private final PArray2dToF2d vecs, intensity;
+    private final P2dToF2d vecs, intensity;
     private final double tolerance;
     protected final Dimensions dim;
     private final Handle handle;
@@ -73,7 +73,7 @@ public abstract class VectorImg implements Pencil{
      * @param tolerance If useNon0Intensities is false then this determines the
      * threshold for what is close to 0.
      */
-    public VectorImg(Dimensions overlay, Handle handle, int vecMag, PArray2dToF2d vecs, PArray2dToF2d intensity, int spacingXY, int spacingZ, double tolerance) {
+    public VectorImg(Dimensions overlay, Handle handle, int vecMag, P2dToF2d vecs, P2dToF2d intensity, int spacingXY, int spacingZ, double tolerance) {
         this.handle = handle;
         this.dim = new Dimensions(intensity);
 
@@ -209,11 +209,10 @@ public abstract class VectorImg implements Pencil{
      */
     private MyImageStack getStack() {
         MyImageStack stack = new MyImageStack(targetSpace.width, targetSpace.height);
-        for (int t = 0; t < processor.length; t++) {
-            for (int z = 0; z < processor[t].length; z++) {
-                stack.addSlice(processor[t][z]);
-            }
-        }
+        for (ImageProcessor[] frame : processor)
+            for (ImageProcessor slice : frame)
+                stack.addSlice(slice);
+        
         return stack;
     }
 
@@ -233,6 +232,7 @@ public abstract class VectorImg implements Pencil{
     /**
      * {@inheritDoc }
      */
+    @Override
     public void setColor(Color color) {
         this.color = new int[]{
             color.getAlpha(),

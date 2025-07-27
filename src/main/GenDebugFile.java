@@ -187,6 +187,84 @@ public class GenDebugFile {
 
         return torusVoxels;
     }
+    
+    /**
+     * Creates a 3D integer array representing a solid torus tilted by specified
+     * zenith and azimuth angles. The torus is centered within the 3D volume.
+     * Voxels inside or on the torus surface are valued 255, outside are 0.
+     *
+     * The tilting is achieved by rotating the coordinate system for each voxel
+     * before applying the standard torus equation. The 'phi' and 'theta' angles
+     * define the direction of the torus's central axis (the axis passing
+     * through the hole of the torus).
+     *
+     * @param depth The depth (size along the Z-axis, first dimension of the array).
+     * @param width The width (size along the X-axis, second dimension of the array).
+     * @param height The height (size along the Y-axis, third dimension of the array).
+     * @param majorRadius The major radius (R) of the torus, defining the distance
+     * from the center of the hole to the center of the tube.
+     * @param minorRadius The minor radius (r) of the torus, defining the radius
+     * of the tube itself.
+     * @param phi The zenith angle (polar angle) in radians, measured from the
+     * positive Z-axis to the torus's central axis. Ranges from 0 to Math.PI.
+     * @param theta The azimuth angle in radians, measured from the positive
+     * X-axis in the XY-plane to the projection of the torus's
+     * central axis onto the XY-plane. Ranges from 0 to 2 * Math.PI.
+     * @return A 3D integer array where 255 indicates a point inside the torus,
+     * and 0 otherwise. The array is indexed as env[z_index][x_index][y_index].
+     */
+     public static int[][][] tiltedTorus(int depth, int width, int height,
+                                        double majorRadius, double minorRadius,
+                                        double phi, double theta) {
+
+        int[][][] env = new int[depth][width][height];
+
+        double centX = width / 2.0;
+        double centY = height / 2.0;
+        double centZ = depth / 2.0;
+
+        // Direction cosines of the tilted torus's major axis (new Z-axis in local frame)
+        // This vector (Dx, Dy, Dz) represents the direction the torus is "pointing"
+        double Dx = Math.sin(phi) * Math.cos(theta);
+        double Dy = Math.sin(phi) * Math.sin(theta);
+        double Dz = Math.cos(phi);
+
+        for (int z_idx = 0; z_idx < depth; z_idx++) {
+            for (int x_idx = 0; x_idx < width; x_idx++) {
+                for (int y_idx = 0; y_idx < height; y_idx++) {
+                    // Coordinates relative to the center of the volume
+                    double x_coord = x_idx - centX;
+                    double y_coord = y_idx - centY;
+                    double z_coord = z_idx - centZ;
+
+                    // 1. Calculate the coordinate along the tilted axis (z_prime)
+                    // This is the projection of the point (x_coord, y_coord, z_coord) onto the (Dx, Dy, Dz) vector.
+                    double z_prime = x_coord * Dx + y_coord * Dy + z_coord * Dz;
+
+                    // 2. Calculate the squared distance from the tilted axis (D_sq = x_prime^2 + y_prime^2)
+                    // This is derived from the Pythagorean theorem: total_dist_sq = dist_from_axis_sq + z_prime_sq
+                    // So, dist_from_axis_sq = total_dist_sq - z_prime_sq
+                    double total_dist_sq = x_coord * x_coord + y_coord * y_coord + z_coord * z_coord;
+                    double D_sq = total_dist_sq - (z_prime * z_prime);
+
+                    // Apply the implicit equation for a torus in the rotated coordinate system.
+                    // The equation is (D_sq + z_prime^2 + R^2 - r^2)^2 = 4 * R^2 * D_sq
+                    // where D_sq is (x_prime^2 + y_prime^2) and z_prime is the coordinate along the torus axis.
+                    double left_side_inner_term = D_sq + z_prime * z_prime + majorRadius * majorRadius - minorRadius * minorRadius;
+                    double left_side = left_side_inner_term * left_side_inner_term;
+                    double right_side = 4.0 * majorRadius * majorRadius * D_sq;
+
+                    // If the point satisfies the inequality, it's inside or on the torus
+                    if (left_side <= right_side) {
+                        env[z_idx][x_idx][y_idx] = 255;
+                    } else {
+                        env[z_idx][x_idx][y_idx] = 0;
+                    }
+                }
+            }
+        }
+        return env;
+    }
 
     public static void main(String[] args) {
         // Define pixel values for each point in a grid
@@ -196,7 +274,7 @@ public class GenDebugFile {
         int width = 50;
         int height = 50;
 
-        int[][][] pixelValues = tiltedCylinder(depth, width, height, 10, Math.PI/4, 0);
+        int[][][] pixelValues = tiltedTorus(depth, width, height, 10, 3, Math.PI/4, Math.PI/4);
 
         ByteProcessor[] processor = new ByteProcessor[depth];
         ImagePlus[] image = new ImagePlus[depth];
@@ -210,7 +288,7 @@ public class GenDebugFile {
                 }
 
             try {
-                String saveTo = "images/input/cyl/" + String.format("d%03dcylinder", z) + ".png";
+                String saveTo = "images/input/torus/" + String.format("a%03dtorus", z) + ".png";
 
                 new FileSaver(new ImagePlus("img " + z, processor[z])).saveAsPng(saveTo);
                 System.out.println("Image saved as: " + saveTo + ": " + height + "x" + width);

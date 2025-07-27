@@ -6,7 +6,7 @@ import JCudaWrapper.array.Float.FArray2d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
-import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
+import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;
 import jcuda.runtime.JCuda;
@@ -38,7 +38,7 @@ public class Test {
         try (
                 Handle hand = new Handle(); 
                 Dimensions dim = new Dimensions(hand, 2, 2, 2, 2); 
-                PArray2dToF2d p = dim.emptyP2dToF2d(null)
+                P2dToF2d p = dim.emptyP2dToF2d(null)
                 ) {
 
             FArray2d[] a = new FArray2d[]{

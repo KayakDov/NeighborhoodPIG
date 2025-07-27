@@ -5,7 +5,7 @@ import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
-import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
+import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 
 /**
@@ -67,7 +67,7 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
      * @param downSampledDim
      * @return this.
      */
-    public Eigen set(int eigenInd, PArray2dToF2d vectors, PArray2dToF2d coherence, PArray2dToF2d azimuth, PArray2dToF2d zenith, Dimensions downSampledDim) {
+    public Eigen set(int eigenInd, P2dToF2d vectors, P2dToF2d coherence, P2dToF2d azimuth, P2dToF2d zenith, Dimensions downSampledDim) {
         
 //        System.out.println("fijiPlugin.Eigen.set() dim = " + downSampledDim);
         

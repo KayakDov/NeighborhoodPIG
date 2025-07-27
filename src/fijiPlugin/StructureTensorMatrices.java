@@ -1,7 +1,7 @@
 package fijiPlugin;
 
 import FijiInput.UserInput;
-import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
+import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
 import imageWork.MyImagePlus;
@@ -14,7 +14,7 @@ import main.Test;
 public class StructureTensorMatrices implements AutoCloseable {
 
     public final Eigen eigen;
-    private final PArray2dToF2d azimuth, zenith, coherence, vectors;//TODO:store these on cpu instead of gpu.
+    public final P2dToF2d azimuth, zenith, coherence, vectors;//TODO:store these on cpu instead of gpu.
     public final Dimensions dim, downSampled;
 
     /**
@@ -47,7 +47,7 @@ public class StructureTensorMatrices implements AutoCloseable {
         azimuth = downSampled.emptyP2dToF2d(handle);
         zenith = dim.hasDepth() ? downSampled.emptyP2dToF2d(handle) : null;
         coherence = downSampled.emptyP2dToF2d(handle);
-        vectors = new PArray2dToF2d(downSampled.depth, downSampled.batchSize, downSampled.height * dim.num(), downSampled.width, handle);
+        vectors = new P2dToF2d(downSampled.depth, downSampled.batchSize, downSampled.height * dim.num(), downSampled.width, handle);
                 
         eigen.set(dim.num() - 1, vectors, coherence, azimuth, zenith, downSampled).close();
         
@@ -55,32 +55,6 @@ public class StructureTensorMatrices implements AutoCloseable {
         
     }
 
-    /**
-     * The coherence matrix.
-     *
-     * @return The coherence matrix.
-     */
-    public PArray2dToF2d getCoherence() {
-        return coherence;
-    }
-
-    /**
-     * Gets the matrix of orientations.
-     *
-     * @return Thew matrix of orientations.
-     */
-    public PArray2dToF2d azimuthAngle() {
-        return azimuth;
-    }
-
-    /**
-     * Gets the matrix of orientations.
-     *
-     * @return Thew matrix of orientations.
-     */
-    public PArray2dToF2d zenithAngle() {
-        return zenith;
-    }
 
     /**
      * {@inheritDoc}
@@ -123,7 +97,7 @@ public class StructureTensorMatrices implements AutoCloseable {
      * @return The neighborhood gradient at each pixel, stored so that each
      * column is consecutive 3-dimensional vectors.
      */
-    public PArray2dToF2d getVectors() {
+    public P2dToF2d getVectors() {
         return vectors;
     }
 

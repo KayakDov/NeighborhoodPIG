@@ -1,6 +1,6 @@
 package imageWork;
 
-import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
+import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;
 import ij.ImageStack;
@@ -19,8 +19,8 @@ import java.util.concurrent.ExecutorService;
  */
 public class HeatMapCreator{
 
-    private final PArray2dToF2d image;
-    private final PArray2dToF2d coherence;
+    private final P2dToF2d image;
+    private final P2dToF2d coherence;
     private final double tolerance;
     /**
      * Array storing color data for each tensor element.
@@ -43,7 +43,7 @@ public class HeatMapCreator{
      * @param tolerance Defines what coherence close enough to 0 such that it
      * will appear as NaN rather than an orientation.
      */
-    public HeatMapCreator(String[] sliceNames, String stackName, Handle handle, PArray2dToF2d image, PArray2dToF2d coherence, double tolerance) {
+    public HeatMapCreator(String[] sliceNames, String stackName, Handle handle, P2dToF2d image, P2dToF2d coherence, double tolerance) {
 
         this.image = image;
         this.coherence = coherence;

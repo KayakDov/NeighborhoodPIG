@@ -1,6 +1,6 @@
 package imageWork.vectors;
 
-import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
+import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import MathSupport.Point3d;
 import fijiPlugin.Dimensions;
@@ -32,7 +32,7 @@ public class ColorVectorImg extends VectorImg {
      * @param tolerance If useNon0Intensities is false then this determines the
      * threshold for what is close to 0.
      */
-    public ColorVectorImg(Dimensions overlay, Handle handle, int vecMag, PArray2dToF2d vecs, PArray2dToF2d intensity, int spacingXY, int spacingZ, double tolerance) {
+    public ColorVectorImg(Dimensions overlay, Handle handle, int vecMag, P2dToF2d vecs, P2dToF2d intensity, int spacingXY, int spacingZ, double tolerance) {
         super(overlay, handle, vecMag, vecs, intensity, spacingXY, spacingZ, tolerance);
     }
 

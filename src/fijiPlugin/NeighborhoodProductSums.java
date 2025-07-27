@@ -5,7 +5,7 @@ import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
-import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
+import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 
 /**
@@ -115,7 +115,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
      * @param dst Store the result here in column major order. Note that the
      * increment of this vector is probably not one.
      */
-    public void set(PArray2dToF2d a, PArray2dToF2d b, PArray2dToD2d dst) {
+    public void set(P2dToF2d a, P2dToF2d b, PArray2dToD2d dst) {
 
         Kernel.run("setEBEProduct", handle,
                 dim.size(),

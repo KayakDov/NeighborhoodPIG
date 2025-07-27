@@ -1,6 +1,6 @@
 package imageWork;
 
-import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
+import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import MathSupport.Point3d;
 import fijiPlugin.Dimensions;
@@ -24,10 +24,11 @@ import java.util.logging.Logger;
 public class DatSaver {
 
     private final Dimensions dim;
-    private final PArray2dToF2d gpuVectorData;
+    private final P2dToF2d gpuVectorData, coherence;
     private final Handle handle;
     private final Path dstDir;
     private final int scaleXY, scaleZ;
+    private final double tolerance;
 
     /**
      * Constructs a new VectorDataSaver.
@@ -43,14 +44,18 @@ public class DatSaver {
      * saved.
      * @param scaleXY Scale the vector xy locations.
      * @param scaleZ Scale the vector z locations.
+     * @param coherence The coherence of the image.
+     * @param tolerance Vectors with a  coherence below this threshold will not be printed.
      */
-    public DatSaver(Dimensions dim, PArray2dToF2d gpuVectorData, Handle handle, Path dstDirectory, int scaleXY, int scaleZ) {
+    public DatSaver(Dimensions dim, P2dToF2d gpuVectorData, Handle handle, Path dstDirectory, int scaleXY, int scaleZ, P2dToF2d coherence, double tolerance) {
         this.dim = dim;
         this.gpuVectorData = gpuVectorData;
         this.handle = handle;
         this.dstDir = dstDirectory;
         this.scaleXY = scaleXY;
         this.scaleZ = scaleZ;
+        this.coherence = coherence;
+        this.tolerance = tolerance;
 
     }
 
@@ -66,7 +71,8 @@ public class DatSaver {
         try {
             Files.createDirectories(dstDir);
 
-            for (int t = 0; t < dim.batchSize; t++) saveFrame(t);
+            for (int t = 0; t < dim.batchSize; t++)
+                saveFrame(t);
 
         } catch (IOException ex) {
             Logger.getLogger(DatSaver.class.getName()).log(Level.SEVERE, null, ex);
@@ -80,15 +86,19 @@ public class DatSaver {
      * @throws FileNotFoundException
      */
     private void saveFrame(int t) {
-        try (PrintWriter pw = new PrintWriter(Paths.get(dstDir.toString(), "frame_" + t + ".dat").toString())) {
+        try (PrintWriter vecWriter = new PrintWriter(Paths.get(dstDir.toString(), "vecFrame_" + t + ".dat").toString()); PrintWriter cohWriter = new PrintWriter(Paths.get(dstDir.toString(), "coherenceFrame_" + t + ".dat").toString());) {
 
-            if (dim.hasDepth()) pw.println("# x y z nx ny nz");
-            else pw.println("# x y nx ny");
+            if (dim.hasDepth())
+                vecWriter.println("# x y z nx ny nz");
+            else
+                vecWriter.println("# x y nx ny");
+            cohWriter.println("#coherence vectorType");
 
-            VecManager2d vm = new VecManager2d(dim);
+            VecManager2d vecSlice = new VecManager2d(dim);
+            float[] coherenceSlice = new float[dim.layerSize()];
 
             for (int z = 0; z < dim.depth; z++)
-                appendSliceToFile(pw, vm.setFrom(gpuVectorData, t, z, handle), z);
+                appendSliceToFile(vecWriter, vecSlice.setFrom(gpuVectorData, t, z, handle), coherenceSlice, z);
 
         } catch (FileNotFoundException ex) {
             Logger.getLogger(DatSaver.class.getName()).log(Level.SEVERE, null, ex);
@@ -106,22 +116,33 @@ public class DatSaver {
      * `vectors_f<frameIndex>_s<sliceIndex>.txt` within the specified output
      * directory.
      *
-     * @param writer The writer.
-     * @param vm Manages accessing the vector.
+     * @param vecWrite The writer.vecLayer@param vm Manages accessing the
+     * vector.
+     * @param vecLayer The current layer of vectors.
+     * @param coherenceSlice The current coherence.
      * @param sliceIndex The index of the current Z-slice.
      */
-    public void appendSliceToFile(PrintWriter writer, VecManager2d vm, int sliceIndex) {
+    public void appendSliceToFile(PrintWriter vecWrite, VecManager2d vecLayer, float[] coherenceSlice, int sliceIndex) {
 
         Point3d vec = new Point3d();
 
-        for (int row = 0; row < dim.height; row++)
-            for (int col = 0; col < dim.width; col++) {
+        for (int col = 0; col < dim.width; col++) {
+            int colInd = col * dim.height;
 
-                vm.get(row, col, vec);
-                if (vec.isFinite())
-                    if (dim.hasDepth()) writer.printf("%d %d %d %f %f %f%n", col * scaleXY, row * scaleXY, sliceIndex * scaleZ, vec.x(), vec.y(), vec.z());
-                    else writer.printf("%d %d %f %f%n", col * scaleXY, row * scaleXY, vec.x(), vec.y());
+            for (int row = 0; row < dim.height; row++) {
+
+                vecLayer.get(row, col, vec);
+                float coh = coherenceSlice[colInd + row];
+
+                if (coh > tolerance)
+                    if (vec.isFinite())
+                        if (dim.hasDepth())
+                            vecWrite.printf("%d %d %d %f %f %f%n", col * scaleXY, row * scaleXY, sliceIndex * scaleZ, vec.x(), vec.y(), vec.z());
+                        else
+                            vecWrite.printf("%d %d %f %f%n", col * scaleXY, row * scaleXY, vec.x(), vec.y());
+
             }
+        }
 
     }
 

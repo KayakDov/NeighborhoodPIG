@@ -6,7 +6,7 @@ import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
-import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
+import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import ij.ImagePlus;
 import imageWork.MyImagePlus;
 import imageWork.ProcessImage;
@@ -22,7 +22,7 @@ public class Gradient implements AutoCloseable {
     /**
      * 0 is the x dimension, 1 is the y dimension, and 2 is the z dimension.
      */
-    public final PArray2dToF2d[] x;
+    public final P2dToF2d[] x;
     public final Dimensions dim;
 
     /**
@@ -38,11 +38,11 @@ public class Gradient implements AutoCloseable {
      */
     public Gradient(Handle handle, MyImagePlus imp, UserInput ui) {
 
-        try (PArray2dToF2d pic = ProcessImage.processImages(handle, imp, ui)) {
+        try (P2dToF2d pic = ProcessImage.processImages(handle, imp, ui)) {
                         
             dim = imp.dim().setGpuDim(handle);
             
-            x = new PArray2dToF2d[dim.depth > 1 ? 3 : 2];
+            x = new P2dToF2d[dim.depth > 1 ? 3 : 2];
 
             PArray2dTo2d[] dataParams = new PArray2dTo2d[x.length + 1];
             dataParams[0] = pic;

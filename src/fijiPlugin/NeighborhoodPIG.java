@@ -54,8 +54,8 @@ public class NeighborhoodPIG implements AutoCloseable {
                 concat(sourceFileNames, " Azimuth"),
                 "Azimuth Angle Heatmap",
                 handle,
-                stm.azimuthAngle(),
-                stm.getCoherence(),
+                stm.azimuth,
+                stm.coherence,
                 tolerance
         );
     }
@@ -72,8 +72,8 @@ public class NeighborhoodPIG implements AutoCloseable {
                 concat(sourceFileNames, " Zenith Angle"),
                 "Zenith Angle Heatmap",
                 handle,
-                stm.zenithAngle(),
-                stm.getCoherence(),
+                stm.zenith,
+                stm.coherence,
                 tolerance
         );
     }
@@ -88,7 +88,7 @@ public class NeighborhoodPIG implements AutoCloseable {
                 concat(sourceFileNames, " coherence"),
                 "Coherence",
                 handle,
-                stm.getCoherence(),
+                stm.coherence,
                 null,
                 tolerance
         );
@@ -110,8 +110,8 @@ public class NeighborhoodPIG implements AutoCloseable {
     public VectorImg getVectorImg(int spacingXY, int spacingZ, int vecMag, boolean useCoherence, Dimensions overlay, boolean color) {
 
         return color?
-                new ColorVectorImg(overlay, handle, vecMag, stm.getVectors(), stm.getCoherence(), spacingXY, spacingZ, .01):
-                new WhiteVectorImg(overlay, handle, vecMag, stm.getVectors(), stm.getCoherence(), spacingXY, spacingZ, .01);
+                new ColorVectorImg(overlay, handle, vecMag, stm.getVectors(), stm.coherence, spacingXY, spacingZ, .01):
+                new WhiteVectorImg(overlay, handle, vecMag, stm.getVectors(), stm.coherence, spacingXY, spacingZ, .01);
     }
 
     /**

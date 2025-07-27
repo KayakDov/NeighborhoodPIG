@@ -8,7 +8,7 @@ import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
-import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
+import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToI2d;
 import JCudaWrapper.resourceManagement.GPU;
 import JCudaWrapper.resourceManagement.Handle;
@@ -448,7 +448,7 @@ public class FijiPlugin implements PlugIn {
             appendHM(fp.coh, np.getCoherence(ui.tolerance), 0, 1, fp.es);
 
         if (ui.saveDatToDir.isPresent())
-            new DatSaver(fp.dim, np.stm.getVectors(), handle, ui.saveDatToDir.get(), ui.spacingXY.orElse(1), ui.spacingZ.orElse(1)).saveAllVectors();
+            new DatSaver(fp.dim, np.stm.getVectors(), handle, ui.saveDatToDir.get(), ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), null, 0).saveAllVectors();
 
         return 0;
     }

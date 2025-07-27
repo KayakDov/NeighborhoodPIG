@@ -2,7 +2,7 @@ package imageWork;
 
 import JCudaWrapper.array.Float.FStrideArray3d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
-import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
+import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import MathSupport.Point3d;
 import fijiPlugin.Dimensions;
@@ -36,7 +36,7 @@ public class VecManager2d {
      * @param handle
      * @return this.
      */
-    public VecManager2d setFrom(PArray2dToF2d gpuVecs, int t, int z, Handle handle) {
+    public VecManager2d setFrom(P2dToF2d gpuVecs, int t, int z, Handle handle) {
         gpuVecs.get(z, t).getVal(handle).get(handle, vecs);
         return this;
     }

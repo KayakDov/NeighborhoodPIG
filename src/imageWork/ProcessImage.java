@@ -1,7 +1,7 @@
 package imageWork;
 
 import FijiInput.UserInput;
-import JCudaWrapper.array.Pointer.to2d.PArray2dToF2d;
+import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;
 import ij.IJ;
@@ -101,7 +101,7 @@ public class ProcessImage {
      * @return A FArray containing the image data in column-major order for all
      * frames, slices, and channels.
      */
-    public static final PArray2dToF2d processImages(Handle handle, MyImagePlus imp, UserInput ui) {
+    public static final P2dToF2d processImages(Handle handle, MyImagePlus imp, UserInput ui) {
 
         // Convert the image to grayscale if necessary
         if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32) {
@@ -110,7 +110,7 @@ public class ProcessImage {
         }
         Dimensions dim = new Dimensions(imp);        
 
-        PArray2dToF2d processedImage = new PArray2dToF2d(dim.depth, dim.batchSize, dim.height, dim.width, handle);
+        P2dToF2d processedImage = new P2dToF2d(dim.depth, dim.batchSize, dim.height, dim.width, handle);
         float[] columnMajorSlice = new float[dim.layerSize()];
 
         for (int frame = 1; frame <= dim.batchSize; frame++) {
