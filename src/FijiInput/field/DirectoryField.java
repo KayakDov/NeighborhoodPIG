@@ -3,6 +3,7 @@ package FijiInput.field;
 import FijiInput.HelpDialog;
 import ij.Prefs;
 import ij.gui.GenericDialog;
+import java.awt.Checkbox;
 import java.awt.TextField;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,6 +26,12 @@ public class DirectoryField extends Field {
         awtComponent = (TextField) gd.getStringFields().lastElement();
 
         awtComponent.addFocusListener(this);
+        
+        ((TextField)awtComponent).addActionListener(e -> {
+            helpMessageFrame.setHelpText(helpText);
+            saveValue();
+            Prefs.savePreferences();
+        });
     }
 
     /**
@@ -44,7 +51,8 @@ public class DirectoryField extends Field {
      * {@inheritDoc
      */
     @Override
-    protected void saveValue() {
+    public DirectoryField saveValue() {
         getPath().ifPresent(path -> Prefs.set(PREF_PREFIX + name, path.toString()));
+        return this;
     }
 }

@@ -145,7 +145,8 @@ public class NumericField extends Field {
      * {@inheritDoc }
      */
     @Override
-    protected void saveValue() {
+    public Field saveValue() {
         valF().ifPresent(value -> Prefs.set(PREF_PREFIX + name, value));
+        return this;
     }
 }

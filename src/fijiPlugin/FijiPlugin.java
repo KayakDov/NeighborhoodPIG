@@ -50,9 +50,10 @@ public class FijiPlugin implements PlugIn {
 
     /**
      * initializes the stacks
+     *
      * @param ui The user's inputs.
      */
-    private void initStacks(){
+    private void initStacks() {
         vf = VectorImg.space(ui.dim, ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), ui.vfMag.orElse(1), ui.overlay.orElse(false) ? ui.img.dim() : null).emptyStack();
         coh = ui.dim.emptyStack();
         az = ui.dim.emptyStack();
@@ -120,8 +121,7 @@ public class FijiPlugin implements PlugIn {
      * <p>
      * For the precise format and conditional inclusion of parameters when
      * providing them as a string, please refer to the Javadoc of the
-     * {@link UsrInput#fromStrings(String[], int) UserInput.fromStrings}
-     * method.
+     * {@link UsrInput#fromStrings(String[], int) UserInput.fromStrings} method.
      * </p>
      *
      * @param string A string containing space-separated user input parameters,
@@ -159,8 +159,8 @@ public class FijiPlugin implements PlugIn {
      */
     public static void loadImageJ() {
         ImageJ ij = IJ.getInstance();
-        if (ij == null) ij = new ImageJ(ImageJ.NO_SHOW); // Start ImageJ without showing the main window initially
-       
+        if (ij == null)
+            ij = new ImageJ(ImageJ.NO_SHOW); // Start ImageJ without showing the main window initially
 
         SwingUtilities.invokeLater(new Runnable() {
             @Override
@@ -241,14 +241,13 @@ public class FijiPlugin implements PlugIn {
             args = defaultArgs();
 
         FijiPlugin fp = new FijiPlugin();
-        
-//getImage()
+
         int depth = Integer.parseInt(args[1]);
 
-        ImagePlus imp = ProcessImage.imagePlus(args[0], depth);
-        
+        ImagePlus imp = ProcessImage.getImagePlus(args[0], depth);
+
         fp.ui = UsrInput.fromStrings(
-                Arrays.copyOfRange(args, 3, args.length), 
+                Arrays.copyOfRange(args, 3, args.length),
                 imp
         );
 
@@ -258,7 +257,7 @@ public class FijiPlugin implements PlugIn {
 
     private static String[] defaultArgs() {//TODO: ther may be a bug for multi frame multi dimensional images with vector fields.
         String imagePath = "images/input/AngleCyl/";
-        int depth = 50;
+        int depth = 25;
 
 //        String imagePath = "images/input/SingleTest/";
 //        int depth = 1;
@@ -469,22 +468,21 @@ public class FijiPlugin implements PlugIn {
     private void results(Save save, UsrInput ui, int vecImgDepth) {
 
         if (ui.heatMap) {
-            present(az.imp("Azimuthal Angles", ui.dim.depth), save, "N_PIG_images" + File.separatorChar + "Azimuthal");
+            present(az.getImagePlus("Azimuthal Angles", ui.dim.depth), save, "N_PIG_images" + File.separatorChar + "Azimuthal");
             if (ui.dim.hasDepth())
-                present(zen.imp("Zenith Angles", ui.dim.depth), save, "N_PIG_images" + File.separatorChar + "Zenith");
+                present(zen.getImagePlus("Zenith Angles", ui.dim.depth), save, "N_PIG_images" + File.separatorChar + "Zenith");
         }
-        if (ui.vectorField.is()) {
-            MyImagePlus impVF;
-            if (!ui.dim.hasDepth() && ui.overlay.orElse(false))
-                impVF = new MyImagePlus("Overlaid Nematic Vectors", ui.img.getImageStack(), ui.dim.depth)
-                        .overlay(vf, Color.GREEN);
-            else
-                impVF = vf.imp("Nematic Vectors", vecImgDepth);
-            present(impVF, save, "N_PIG_images" + File.separatorChar + "vectors");
-        }
+        if (ui.vectorField.is())
+            present(
+                    !ui.dim.hasDepth() && ui.overlay.orElse(false)
+                    ? new MyImagePlus("Overlaid Nematic Vectors", ui.img.getImageStack(), ui.dim.depth).overlay(vf, Color.GREEN)
+                    : vf.getImagePlus("Nematic Vectors", vecImgDepth),
+                    save,
+                    "N_PIG_images" + File.separatorChar + "vectors"
+            );
 
         if (ui.coherence)
-            present(coh.imp("Coherence", ui.dim.depth), save, "N_PIG_images" + File.separatorChar + "Coherence");
+            present(coh.getImagePlus("Coherence", ui.dim.depth), save, "N_PIG_images" + File.separatorChar + "Coherence");
     }
 
     /**
@@ -499,6 +497,17 @@ public class FijiPlugin implements PlugIn {
      */
     private static void present(MyImagePlus image, Save saveTo, String filePath) {
         if (saveTo == Save.fiji) {
+            
+            System.out.println("fijiPlugin.FijiPlugin.present() slices "+ image.getNSlices());
+            System.out.println("fijiPlugin.FijiPlugin.present() frames "+ image.getNFrames());
+            
+            image.setOpenAsHyperStack(true);
+
+            if (image.getWindow() != null) {
+                image.getWindow().updateImage(image);
+            } else {
+                image.show();
+            }
             image.show();
         } else if (saveTo == Save.tiff || saveTo == Save.png) {
             try {

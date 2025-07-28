@@ -185,8 +185,9 @@ public class RadioButtonsField<T extends Enum<T>> extends Field {
      * Saves the selected value to ImageJ preferences.
      */
     @Override
-    protected void saveValue() {
+    public Field saveValue() {
         val().ifPresent(v -> Prefs.set(PREF_PREFIX + name, v.name()));
+        return this;
     }
 
     /**

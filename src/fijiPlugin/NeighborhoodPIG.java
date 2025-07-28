@@ -9,7 +9,6 @@ import imageWork.vectors.ColorVectorImg;
 import imageWork.vectors.VectorImg;
 import imageWork.vectors.WhiteVectorImg;
 import java.util.Arrays;
-import java.util.concurrent.ExecutorService;
 
 /**
  * Each neighborhood pig has it's own handle.

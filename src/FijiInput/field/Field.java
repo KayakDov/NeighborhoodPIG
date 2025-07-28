@@ -103,7 +103,8 @@ public abstract class Field implements FocusListener {
      * Abstract method to save the field's current value to ImageJ preferences.
      * Each concrete subclass must implement how its specific type of value
      * is saved.
+     * @return this
      */
-    protected abstract void saveValue();
+    public abstract Field saveValue();
 
 }

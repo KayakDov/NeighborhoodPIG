@@ -49,7 +49,6 @@ public class UsrDialog {
     /**
      * Creates a UserInput object from a dialog box presented to the user.
      *
-     * @param imp The ImagePlus object associated with the input.
      * @throws UserCanceled If the user cancels the dialog box.
      */
     public UsrDialog() throws UserCanceled {
@@ -128,7 +127,7 @@ public class UsrDialog {
                 heatmap.is().get(),
                 (VF)vectorField.val().get(),
                 coherence.is().get(),
-                saveToDirField.getPath(),
+                saveToDirField.saveValue().getPath(),
                 overlay.is(),
                 mag.valI(),
                 spacingXY.valI(),
@@ -146,10 +145,8 @@ public class UsrDialog {
      * @return The image currently open in imageJ.
      */
     public static ImagePlus getIJFrontImage(){
-        try {
-            ImagePlus imp  = new MyImagePlus(ij.WindowManager.getCurrentImage());
-            System.out.println("FijiInput.UsrDialog.getIJFrontImage() depth = " + imp.getNSlices());
-            return imp;
+        try {            
+            return new MyImagePlus(ij.WindowManager.getCurrentImage());
         } catch (NullPointerException npe) {
             IJ.error("Missing Image", "No image found. Please open one.");
             return null;

@@ -91,8 +91,9 @@ public class BooleanField extends Field {
      * {@inheritDoc }
      */
     @Override
-    protected void saveValue() {
+    public Field saveValue() {
         is().ifPresent(state -> Prefs.set(PREF_PREFIX + name, state));
+        return this;
     }
 
 }

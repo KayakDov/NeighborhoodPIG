@@ -32,14 +32,15 @@ public class ProcessImage {
      * @throws IllegalArgumentException If the depth is less than or equal to
      * zero.
      */
-    public static ImagePlus imagePlus(String folderPath, int depth) {
+    public static ImagePlus getImagePlus(String folderPath, int depth) {
 
         File[] files = getImageFiles(folderPath);
 
         Opener opener = new Opener();
         
-
-        Dimensions dim = new Dimensions(null, opener.openImage(files[0].getPath()));
+        ImagePlus imp = opener.openImage(files[0].getPath());
+                
+        Dimensions dim = new Dimensions(imp.getHeight(), imp.getWidth(), depth, files.length/depth);
 
         ImageStack frameSequence = dim.emptyStack();
 
@@ -49,7 +50,6 @@ public class ProcessImage {
         }
 
         return dim.setToHyperStack(new ImagePlus(folderPath.substring(Math.max(folderPath.lastIndexOf(File.pathSeparator), 0)), frameSequence));
-
     }
 
     /**

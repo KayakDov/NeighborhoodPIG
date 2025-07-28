@@ -134,7 +134,6 @@ public class UsrInput {
         );
         img.setOpenAsHyperStack(true);
         dim = this.img.dim().downSample(null, downSampleFactorXY, downSampleFactorZ.orElse(1));;
-
     }
 
     /**

@@ -1,16 +1,6 @@
 package imageWork;
 
-import fijiPlugin.Dimensions;
-import ij.IJ;
-import ij.ImagePlus;
 import ij.ImageStack;
-import ij.gui.ImageRoi;
-import ij.gui.Overlay;
-import ij.process.ColorProcessor;
-import ij.process.ImageProcessor;
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
 
 /**
  *
@@ -48,7 +38,8 @@ public class MyImageStack extends ImageStack {
      * @param depth The depth of the new ImagePlus.
      * @return An ImagePlus object generated from this stack.
      */
-    public MyImagePlus imp(String title, int depth) {
+    public MyImagePlus getImagePlus(String title, int depth) {
+        System.out.println("imageWork.MyImageStack.getImagePlus() depth = " + depth);
         return new MyImagePlus(title, this, depth);
     }
 

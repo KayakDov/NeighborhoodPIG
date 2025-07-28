@@ -30,13 +30,13 @@ public class MyImagePlus extends ImagePlus {
      *
      * @param title The title.
      * @param imp The stack.
+     * @param depth The depth of the image.
      */
     public MyImagePlus(String title, ImageStack imp, int depth) {
         super(title, imp);
         setDimensions(1, depth, imp.size() / depth);
         dim = new Dimensions(imp, depth);
-        dim.setToHyperStack(this);
-
+//        dim.setToHyperStack(this);  I don't think this is neccessary after setDimensions.
     }
 
     /**
@@ -61,8 +61,6 @@ public class MyImagePlus extends ImagePlus {
         this.setDimensions(1, imp.getNSlices(), imp.getNFrames()); // Copies C, Z, T dimensions
         this.setDisplayRange(imp.getDisplayRangeMin(), imp.getDisplayRangeMax()); // Copies display range
         this.setActivated(); // Makes it behave like an active image
-
-        System.out.println("imageWork.MyImagePlus.<init>() depth = " + imp.getNSlices());
         
         dim = new Dimensions(imp.getImageStack(), imp.getNSlices());
         dim.setToHyperStack(this);
@@ -380,6 +378,8 @@ public class MyImagePlus extends ImagePlus {
      * @return this image.
      */
     public MyImagePlus crop(int height, int width, int depth) {
+        
+        System.out.println("imageWork.MyImagePlus.crop() slices = " + getNSlices() + " frames = " + getNFrames());
 
         setRoi(new Roi(new Rectangle(0, 0, width, height)));
 
@@ -390,7 +390,12 @@ public class MyImagePlus extends ImagePlus {
         setStack(crop("stack").getImageStack());
 
         deleteRoi();
+        
+        setDimensions(1, depth, dim.batchSize);
         dim = new Dimensions(height, width, depth, dim.batchSize);
+        
+        System.out.println("imageWork.MyImagePlus.crop() slices = " + getNSlices() + " frames = " + getNFrames());
+        
         return this;
     }
 
