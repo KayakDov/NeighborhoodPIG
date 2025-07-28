@@ -44,33 +44,19 @@ import jcuda.Sizeof;
  */
 public class FijiPlugin implements PlugIn {
 
-    public final MyImagePlus img;
-    public final MyImageStack vf, coh, az, zen;
-    public final ExecutorService es;
-
-    public final Dimensions dim;
+    public MyImageStack vf, coh, az, zen;
+    public final ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private UserInput ui;
 
     /**
-     * The constructor.
-     *
-     * @param userImg The user image.
-     * @param ui The user input.
+     * initializes the stacks
+     * @param ui The user's inputs.
      */
-    public FijiPlugin(ImagePlus userImg, UserInput ui) {
-        img = new MyImagePlus(userImg).crop(
-                ui.downSampleXY(userImg.getHeight()),
-                ui.downSampleXY(userImg.getWidth()),
-                ui.downSampleZ(userImg.getNSlices())
-        );
-
-        dim = img.dim().downSample(null, ui.downSampleFactorXY, ui.downSampleFactorZ.orElse(1));
-
-        vf = VectorImg.space(dim, ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), ui.vfMag.orElse(1), ui.overlay.orElse(false) ? img.dim() : null).emptyStack();
-        coh = dim.emptyStack();
-        az = dim.emptyStack();
-        zen = dim.emptyStack();
-
-        es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    private void initStacks(){
+        vf = VectorImg.space(ui.dim, ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), ui.vfMag.orElse(1), ui.overlay.orElse(false) ? ui.img.dim() : null).emptyStack();
+        coh = ui.dim.emptyStack();
+        az = ui.dim.emptyStack();
+        zen = ui.dim.emptyStack();
     }
 
     /**
@@ -88,32 +74,6 @@ public class FijiPlugin implements PlugIn {
     }
 
     /**
-     * Checks that the image is selected and gray scale.
-     *
-     * @param imp The image.
-     * @return true if the image is selected and gray scale, false otherwise.
-     */
-    private static boolean validImage(ImagePlus imp) {
-
-        // Check if an image is open
-        if (imp == null) {
-            ij.IJ.showMessage("No image open.");
-            return false;
-        }
-
-        // Convert the image to grayscale if it's not already
-        if (imp.getType() != ImagePlus.GRAY32
-                && imp.getType() != ImagePlus.GRAY16
-                && imp.getType() != ImagePlus.GRAY8) {
-            ij.IJ.showMessage("Image is being converted to grayscale.");
-            ImageConverter converter = new ImageConverter(imp);
-            converter.convertToGray32(); // Convert to 32-bit grayscale for consistency
-        }
-
-        return true;
-    }
-
-    /**
      * The maximum number of frames that can be processed at once. TODO: this
      * should take downsampling into account!
      *
@@ -126,9 +86,9 @@ public class FijiPlugin implements PlugIn {
         if (freeMemory == 0)
             throw new RuntimeException("There is no free GPU memory.");
 
-        long voxlesPerFrame = (long) dim.height * dim.width * dim.depth;
+        long voxlesPerFrame = (long) ui.dim.height * ui.dim.width * ui.dim.depth;
 
-        int framesPerRun = (int) ((freeMemory / voxlesPerFrame) / (Sizeof.DOUBLE * (dim.depth > 1 ? 6 : 3) + Sizeof.FLOAT * (dim.depth > 1 ? 3 : 2)));
+        int framesPerRun = (int) ((freeMemory / voxlesPerFrame) / (Sizeof.DOUBLE * (ui.dim.depth > 1 ? 6 : 3) + Sizeof.FLOAT * (ui.dim.depth > 1 ? 3 : 2)));
 
         if (framesPerRun > 1)
             return framesPerRun / 2;
@@ -181,33 +141,17 @@ public class FijiPlugin implements PlugIn {
     @Override
     public void run(String string) {
 
-        MyImagePlus originalImage = null;
-
-        try {
-            originalImage = new MyImagePlus(ij.WindowManager.getCurrentImage());
-        } catch (NullPointerException npe) {
-            IJ.error("Missing Image", "No image found. Please open one.");
-            return;
-        }
-
-        originalImage.setOpenAsHyperStack(true);
-
-        if (!validImage(originalImage))
-            return;
-
-        UserInput ui;
-
         if (string.length() == 0) {
             try {
-                ui = new UserDialog(originalImage).getUserInput();
+                ui = new UserDialog().getUserInput();
             } catch (UserCanceled ex) {
                 System.out.println("fijiPlugin.FijiPlugin.run() User canceled dialog.");
                 return;
             }
         } else {
-            ui = UserInput.fromStrings(string.split(" "), originalImage.getNSlices());
+            ui = UserInput.fromStrings(string.split(" "), UserDialog.getImage());
         }
-        run(ui, originalImage, Save.fiji);
+        run(Save.fiji);
     }
 
     /**
@@ -215,9 +159,8 @@ public class FijiPlugin implements PlugIn {
      */
     public static void loadImageJ() {
         ImageJ ij = IJ.getInstance();
-        if (ij == null) {
-            ij = new ImageJ(ImageJ.NO_SHOW); // Start ImageJ without showing the main window initially
-        }
+        if (ij == null) ij = new ImageJ(ImageJ.NO_SHOW); // Start ImageJ without showing the main window initially
+       
 
         SwingUtilities.invokeLater(new Runnable() {
             @Override
@@ -292,23 +235,24 @@ public class FijiPlugin implements PlugIn {
      * internal parameters are inconsistent (e.g., spacing/downsample mismatch
      * if `overlay` is true).
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) {//        loadImageJ();
 
         if (args.length == 0)
             args = defaultArgs();
 
-//        loadImageJ();
+        FijiPlugin fp = new FijiPlugin();
+        
+//getImage()
         int depth = Integer.parseInt(args[1]);
 
-        UserInput ui = UserInput.fromStrings(Arrays.copyOfRange(args, 3, args.length), depth);
-
         ImagePlus imp = ProcessImage.imagePlus(args[0], depth);
+        
+        fp.ui = UserInput.fromStrings(
+                Arrays.copyOfRange(args, 3, args.length), 
+                imp
+        );
 
-        imp = new Dimensions(imp.getStack(), depth).setToHyperStack(imp);
-
-        imp.setDimensions(1, depth, new File(args[0]).list().length / depth);
-
-        run(ui, imp, Save.valueOf(args[2]));
+        fp.run(Save.valueOf(args[2]));
 
     }
 
@@ -356,33 +300,31 @@ public class FijiPlugin implements PlugIn {
     /**
      * Allows for code to be run both from the main and from run.
      *
-     * @param ui The user input.
-     * @param userImg The image to be run.
      * @param save Where to save the file to.
      */
-    public static void run(UserInput ui, ImagePlus userImg, Save save) {
+    public void run(Save save) {
         if (!ui.validParamaters())
             throw new RuntimeException("fijiPlugin.FijiPlugin.run() Invalid Parameters!");
 
         try {
 
-            FijiPlugin fp = new FijiPlugin(userImg, ui);
+            initStacks();
 
             int vecImgDepth = 0;
 
-            int framesPerIteration = fp.framesPerRun();
+            int framesPerIteration = framesPerRun();
 
             long startTime = System.currentTimeMillis();
 
-            for (int i = 0; i < fp.img.getNFrames(); i += framesPerIteration)
-                try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, fp.img.subset(i, framesPerIteration), ui)) {
-                vecImgDepth = processNPResults(ui, fp, handle, np);
+            for (int i = 0; i < ui.img.getNFrames(); i += framesPerIteration)
+                try (Handle handle = new Handle(); NeighborhoodPIG np = new NeighborhoodPIG(handle, ui.img.subset(i, framesPerIteration), ui)) {
+                vecImgDepth = processNPIGResults(ui, handle, np);
             }
 
-            fp.awaitThreadTermination();
+            awaitThreadTermination();
             printTime(startTime);
 
-            fp.results(save, ui, vecImgDepth);
+            results(save, ui, vecImgDepth);
         } catch (Exception ex) {
             System.out.println("fijiPlugin.FijiPlugin.run() " + ui.toString());
             throw ex;
@@ -419,13 +361,13 @@ public class FijiPlugin implements PlugIn {
      * value is used subsequently for displaying or saving vector field results
      * correctly.
      */
-    private static int processNPResults(UserInput ui, FijiPlugin fp, Handle handle, NeighborhoodPIG np) {
+    private int processNPIGResults(UserInput ui, Handle handle, NeighborhoodPIG np) {
 
         if (ui.heatMap) {
 
-            appendHM(fp.az, np.getAzimuthalAngles(ui.tolerance), 0, (float) Math.PI, fp.es);
-            if (fp.img.dim().hasDepth())
-                appendHM(fp.zen, np.getZenithAngles(false, 0.01), 0, (float) Math.PI, fp.es);
+            appendHM(az, np.getAzimuthalAngles(ui.tolerance), 0, (float) Math.PI, es);
+            if (ui.img.dim().hasDepth())
+                appendHM(zen, np.getZenithAngles(false, 0.01), 0, (float) Math.PI, es);
         }
 
         if (ui.vectorField.is()) {
@@ -436,19 +378,19 @@ public class FijiPlugin implements PlugIn {
                             ui.spacingZ.orElse(1),
                             ui.vfMag.get(),
                             false,
-                            ui.overlay.orElse(false) ? fp.img.dim() : null,
+                            ui.overlay.orElse(false) ? ui.img.dim() : null,
                             ui.vectorField == VF.Color
                     ),
-                    fp.vf,
-                    fp.es
+                    vf,
+                    es
             );
         }
 
         if (ui.coherence)
-            appendHM(fp.coh, np.getCoherence(ui.tolerance), 0, 1, fp.es);
+            appendHM(coh, np.getCoherence(ui.tolerance), 0, 1, es);
 
         if (ui.saveDatToDir.isPresent())
-            new DatSaver(fp.dim, np.stm.getVectors(), handle, ui.saveDatToDir.get(), ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), null, 0).saveAllVectors();
+            new DatSaver(ui.dim, np.stm.getVectors(), handle, ui.saveDatToDir.get(), ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), np.stm.coherence, ui.tolerance).saveAllVectors();
 
         return 0;
     }
@@ -527,14 +469,14 @@ public class FijiPlugin implements PlugIn {
     private void results(Save save, UserInput ui, int vecImgDepth) {
 
         if (ui.heatMap) {
-            present(az.imp("Azimuthal Angles", dim.depth), save, "N_PIG_images" + File.separatorChar + "Azimuthal");
-            if (dim.hasDepth())
-                present(zen.imp("Zenith Angles", dim.depth), save, "N_PIG_images" + File.separatorChar + "Zenith");
+            present(az.imp("Azimuthal Angles", ui.dim.depth), save, "N_PIG_images" + File.separatorChar + "Azimuthal");
+            if (ui.dim.hasDepth())
+                present(zen.imp("Zenith Angles", ui.dim.depth), save, "N_PIG_images" + File.separatorChar + "Zenith");
         }
         if (ui.vectorField.is()) {
             MyImagePlus impVF;
-            if (!dim.hasDepth() && ui.overlay.orElse(false))
-                impVF = new MyImagePlus("Overlaid Nematic Vectors", img.getImageStack(), dim.depth)
+            if (!ui.dim.hasDepth() && ui.overlay.orElse(false))
+                impVF = new MyImagePlus("Overlaid Nematic Vectors", ui.img.getImageStack(), ui.dim.depth)
                         .overlay(vf, Color.GREEN);
             else
                 impVF = vf.imp("Nematic Vectors", vecImgDepth);
@@ -542,11 +484,7 @@ public class FijiPlugin implements PlugIn {
         }
 
         if (ui.coherence)
-            present(coh.imp("Coherence", dim.depth), save, "N_PIG_images" + File.separatorChar + "Coherence");
-
-        // Logic for saving raw vector data (e.g., when save == Save.txt or ui.saveVectorsToFile is true)
-        // would be placed here, but is omitted as per instruction.
-        // It would typically check ui.saveVectorsToFile and then perform file writing.
+            present(coh.imp("Coherence", ui.dim.depth), save, "N_PIG_images" + File.separatorChar + "Coherence");
     }
 
     /**

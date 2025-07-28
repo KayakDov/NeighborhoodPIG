@@ -679,7 +679,7 @@ public class FArray1d extends Array1d implements FArray {
      * {@inheritDoc }
      */
     @Override
-    public void get(Handle handle, float[] dst) {
+    public float[] get(Handle handle, float[] dst) {
         if (hasPadding()) {
             try (FArray1d gpuArray = new FArray1d(dst.length)) {
                 get(handle, (FArray1d)gpuArray);
@@ -688,6 +688,7 @@ public class FArray1d extends Array1d implements FArray {
             }
         } else
             get(handle, Pointer.to(dst));
+        return dst;
     }
 
     /**

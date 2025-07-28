@@ -1,7 +1,12 @@
 package FijiInput;
 
 import FijiInput.field.VF;
+import fijiPlugin.Dimensions;
 import fijiPlugin.NeighborhoodDim;
+import ij.IJ;
+import ij.ImagePlus;
+import ij.process.ImageConverter;
+import imageWork.MyImagePlus;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Optional;
@@ -17,6 +22,9 @@ public class UserInput {
 
     public final static double defaultTolerance = 1e-5f;
 
+    public final MyImagePlus img;
+    public final Dimensions dim;
+
     /**
      * The dimensions of the neighborhood used for processing.
      */
@@ -31,7 +39,7 @@ public class UserInput {
      * A boolean indicating whether to generate a vector field.
      */
     public final VF vectorField;
-    
+
     /**
      * Should the vector field overlay the image?
      */
@@ -83,12 +91,16 @@ public class UserInput {
     /**
      * Constructs a UserInput object with the specified parameters.
      *
+     * @param img The image to be analyzed.
      * @param neighborhoodSize The dimensions of the neighborhood.
      * @param heatMap Whether to generate a heatmap.
      * @param vectorField Whether to generate a vector field.
      * @param useCoherence Whether to generate coherence information.
      * @param saveDatToDir Whether to save the computed vectors to a file. Set
      * this to null if the vectors should not ve saved to a .dat file.
+     * @param vfOverlay true if the vector field should overlay the image, false
+     * if it should not, absent if this is not a 2d image with a request for a
+     * vector field.
      * @param vfSpacingXY The spacing between vectors in the vector field.
      * @param vfMag The magnitude of the vectors in the vector field.
      * @param tolerance The tolerance value.
@@ -96,9 +108,9 @@ public class UserInput {
      * @param vfSpacingZ The spacing between vectors in the Z dimension.
      * @param downSampleFactorZ The downsample factor for Z dimension.
      */
-    UserInput(NeighborhoodDim neighborhoodSize, boolean heatMap, VF vectorField, 
-            boolean useCoherence, Optional<Path> saveDatToDir, Optional<Boolean> vfOverlay, 
-            Optional<Integer> vfMag, Optional<Integer> vfSpacingXY, Optional<Integer> vfSpacingZ, 
+    public UserInput(ImagePlus img, NeighborhoodDim neighborhoodSize, boolean heatMap, VF vectorField,
+            boolean useCoherence, Optional<Path> saveDatToDir, Optional<Boolean> vfOverlay,
+            Optional<Integer> vfMag, Optional<Integer> vfSpacingXY, Optional<Integer> vfSpacingZ,
             int downSampleFactorXY, Optional<Integer> downSampleFactorZ, double tolerance) {
         this.neighborhoodSize = neighborhoodSize;
         this.heatMap = heatMap;
@@ -112,8 +124,45 @@ public class UserInput {
         this.spacingXY = vfSpacingXY;
         this.spacingZ = vfSpacingZ;
         this.downSampleFactorZ = downSampleFactorZ;
+        
+        if(!validImage(img)) IJ.error("There's something wrong with your image.");
+        
+        this.img = new MyImagePlus(img).crop(
+                downSampleXY(img.getHeight()),
+                downSampleXY(img.getWidth()),
+                downSampleZ(img.getNSlices())
+        );
+        img.setOpenAsHyperStack(true);
+        dim = this.img.dim().downSample(null, downSampleFactorXY, downSampleFactorZ.orElse(1));;
+
     }
 
+    /**
+     * Checks that the image is selected and gray scale.
+     *
+     * @param imp The image.
+     * @return true if the image is selected and gray scale, false otherwise.
+     */
+    private static boolean validImage(ImagePlus imp) {
+
+        // Check if an image is open
+        if (imp == null) {
+            ij.IJ.showMessage("No image open.");
+            return false;
+        }
+
+        // Convert the image to grayscale if it's not already
+        if (imp.getType() != ImagePlus.GRAY32
+                && imp.getType() != ImagePlus.GRAY16
+                && imp.getType() != ImagePlus.GRAY8) {
+            ij.IJ.showMessage("Image is being converted to grayscale.");
+            ImageConverter converter = new ImageConverter(imp);
+            converter.convertToGray32(); // Convert to 32-bit grayscale for consistency
+        }
+
+        return true;
+    }
+    
     /**
      * Constructs a {@code UserInput} object by parsing an array of strings.
      * This method is useful for loading parameters from a saved configuration
@@ -161,6 +210,7 @@ public class UserInput {
      * <li>`downsample_factor_z` (int)</li>
      * </ol>
      * @param depth The depth (number of Z-slices) of the image stack.
+     * @param img the image
      * @return A new {@code UserInput} object populated with the parsed values.
      * @throws NumberFormatException if any string cannot be parsed into its
      * corresponding numeric or boolean type.
@@ -168,18 +218,17 @@ public class UserInput {
      * not contain enough elements for the required parameters based on the
      * logic.
      */
-    public static UserInput fromStrings(String[] strings, int depth) {
+    public static UserInput fromStrings(String[] strings, ImagePlus img) {
 
         System.out.println("FijiInput.UserInput.fromStrings()" + Arrays.toString(strings));
-        
-        
+
         System.out.println("--- Parsing User Input from Strings ---");
 
-        boolean hasZ = depth > 1;
+        boolean hasZ = img.getNSlices() > 1;
         System.out.println("Determined hasZ: " + hasZ);
 
         StringIter si = new StringIter(strings);
-        
+
         int xyR = ParseInt.from(si, "xy neighborhood radius").get();
 
         Optional<Integer> zR = ParseInt.from(si, "z neighborhood radius", hasZ);
@@ -191,24 +240,25 @@ public class UserInput {
         VF vectorField = ParseEnum.from(si, VF.class, "make vector field").get();
 
         Boolean coherence = ParseBool.from(si, "make coherence").get();
-        
+
         Optional<Path> saveVectors = ParsePath.from(si, "save vectors to dat file");
 
         Optional<Integer> vectorFieldSpacingXY = ParseInt.from(si, "xy spacing", vectorField.is());
 
         Optional<Integer> vectorFieldSpacingZ = ParseInt.from(si, "z spacing", hasZ && vectorField.is());
-        
+
         Optional<Integer> vectorFieldMagnitude = ParseInt.from(si, "vector magnitude", vectorField.is());
-        
+
         Optional<Boolean> overlay = ParseBool.from(si, "overlay vector field", vectorField.is() && !hasZ);
 
         int downSampleXY = ParseInt.from(si, "down sample xy").get();
 
         Optional<Integer> downSampleZ = ParseInt.from(si, "down sample z", hasZ);
-        
+
         System.out.println("--- Finished Parsing User Input ---");
 
         return new UserInput(
+                img,
                 new NeighborhoodDim(xyR, zR, distBetweenAdjacentLayer),
                 heatMap,
                 vectorField,
@@ -219,7 +269,7 @@ public class UserInput {
                 vectorFieldSpacingXY,
                 vectorFieldSpacingZ, // This is a default value and not parsed from the string array
                 downSampleXY,
-                downSampleZ, 
+                downSampleZ,
                 defaultTolerance
         );
     }
@@ -230,16 +280,16 @@ public class UserInput {
      * @return true if the parameters are valid, false otherwise.
      */
     public boolean validParamaters() {
-        return neighborhoodSize.valid() && 
-                spacingXY.orElse(2) > 1 && 
-                spacingZ.orElse(2) > 1 && 
-                vfMag.orElse(2) > 1 && 
-                tolerance > 0 &&
-                (!overlay.orElse(false) || 
-                    (downSampleFactorXY == spacingXY.get() && 
-                     downSampleFactorZ.orElse(0) == spacingZ.orElse(0))) &&
-                downSampleFactorXY >= 1 &&
-                downSampleFactorZ.orElse(2)  >= 1;
+        return neighborhoodSize.valid()
+                && spacingXY.orElse(2) > 1
+                && spacingZ.orElse(2) > 1
+                && vfMag.orElse(2) > 1
+                && tolerance > 0
+                && (!overlay.orElse(false)
+                || (downSampleFactorXY == spacingXY.get()
+                && downSampleFactorZ.orElse(0) == spacingZ.orElse(0)))
+                && downSampleFactorXY >= 1
+                && downSampleFactorZ.orElse(2) >= 1;
     }
 
     /**
@@ -248,7 +298,7 @@ public class UserInput {
      * @param origSample An integer.
      * @return The greatest multiple of downSample that is less than origSample.
      */
-    public int downSampleXY(int origSample) {
+    public final int downSampleXY(int origSample) {
         return (origSample / downSampleFactorXY) * downSampleFactorXY;
     }
 
@@ -259,7 +309,7 @@ public class UserInput {
      * @return The greatest multiple of downSampleFactorZ that is less than
      * origSample.
      */
-    public int downSampleZ(int origSample) {
+    public final int downSampleZ(int origSample) {
         return (origSample / downSampleFactorZ.orElse(1)) * downSampleFactorZ.orElse(1);
     }
 

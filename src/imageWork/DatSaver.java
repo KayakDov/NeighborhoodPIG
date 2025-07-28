@@ -89,16 +89,21 @@ public class DatSaver {
         try (PrintWriter vecWriter = new PrintWriter(Paths.get(dstDir.toString(), "vecFrame_" + t + ".dat").toString()); PrintWriter cohWriter = new PrintWriter(Paths.get(dstDir.toString(), "coherenceFrame_" + t + ".dat").toString());) {
 
             if (dim.hasDepth())
-                vecWriter.println("# x y z nx ny nz");
+                vecWriter.println("#\tx\ty\tz\tnx\tny\tnz");
             else
-                vecWriter.println("# x y nx ny");
+                vecWriter.println("#\tx\ty\tnx\tny");
             cohWriter.println("#coherence vectorType");
 
             VecManager2d vecSlice = new VecManager2d(dim);
             float[] coherenceSlice = new float[dim.layerSize()];
 
             for (int z = 0; z < dim.depth; z++)
-                appendSliceToFile(vecWriter, vecSlice.setFrom(gpuVectorData, t, z, handle), coherenceSlice, z);
+                appendSliceToFile(
+                        vecWriter, 
+                        vecSlice.setFrom(gpuVectorData, t, z, handle), 
+                        coherence.get(z, t).getVal(handle).get(handle, coherenceSlice), 
+                        z
+                );
 
         } catch (FileNotFoundException ex) {
             Logger.getLogger(DatSaver.class.getName()).log(Level.SEVERE, null, ex);
@@ -133,13 +138,14 @@ public class DatSaver {
 
                 vecLayer.get(row, col, vec);
                 float coh = coherenceSlice[colInd + row];
+                
 
                 if (coh > tolerance)
                     if (vec.isFinite())
                         if (dim.hasDepth())
-                            vecWrite.printf("%d %d %d %f %f %f%n", col * scaleXY, row * scaleXY, sliceIndex * scaleZ, vec.x(), vec.y(), vec.z());
+                            vecWrite.printf("%d\t%d\t%d\t%f\t%f\t%f%n", col * scaleXY, row * scaleXY, sliceIndex * scaleZ, vec.x(), vec.y(), vec.z());
                         else
-                            vecWrite.printf("%d %d %f %f%n", col * scaleXY, row * scaleXY, vec.x(), vec.y());
+                            vecWrite.printf("%d\t%d\t%f\t%f%n", col * scaleXY, row * scaleXY, vec.x(), vec.y());
 
             }
         }

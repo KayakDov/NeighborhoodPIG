@@ -4,7 +4,6 @@ import FijiInput.HelpDialog;
 import ij.Prefs;
 import ij.gui.GenericDialog;
 import java.awt.TextField;
-import java.awt.event.FocusEvent;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;

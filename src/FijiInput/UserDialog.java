@@ -7,15 +7,14 @@ import static FijiInput.UserInput.defaultTolerance;
 import FijiInput.field.RadioButtonsField;
 import FijiInput.field.VF;
 import fijiPlugin.NeighborhoodDim; // Assuming NeighborhoodDim is in fijiPlugin package
+import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.DialogListener;
 import ij.gui.GenericDialog;
+import imageWork.MyImagePlus;
 import java.awt.AWTEvent;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.nio.file.Path;
 import java.util.Optional;
 
 /**
@@ -34,11 +33,11 @@ public class UserDialog {
     private final HelpDialog hf;
     private NumericField downSampleXY;
     private NumericField downSampleZ;
-    private BooleanField heatmap;
+    private final BooleanField heatmap;
     private NumericField xyR;
     private NumericField zR;
-    private NumericField layerDist;
-    private BooleanField coherence;
+    private final NumericField layerDist;
+    private final BooleanField coherence;
     private RadioButtonsField vectorField;
     private BooleanField overlay;
     private NumericField spacingXY;
@@ -53,7 +52,9 @@ public class UserDialog {
      * @param imp The ImagePlus object associated with the input.
      * @throws UserCanceled If the user cancels the dialog box.
      */
-    public UserDialog(ImagePlus imp) throws UserCanceled {
+    public UserDialog() throws UserCanceled {
+        ImagePlus imp = getImage();
+        
         hasZ = imp.getNSlices() > 1;
 
         gd = new GenericDialog("NeighborhoodPIG Parameters");
@@ -118,6 +119,7 @@ public class UserDialog {
         if (gd.wasCanceled()) throw new UserCanceled();
 
         ui = new UserInput(
+                imp,
                 new NeighborhoodDim(
                         xyR.valF().get().intValue(),
                         zR.valI(),
@@ -140,6 +142,19 @@ public class UserDialog {
     private boolean downSampleOrig = true;
 
     /**
+     * Gets the image from ImageJ.
+     * @return The image currently open in imageJ.
+     */
+    public static ImagePlus getImage(){
+        try {
+            return new MyImagePlus(ij.WindowManager.getCurrentImage());
+        } catch (NullPointerException npe) {
+            IJ.error("Missing Image", "No image found. Please open one.");
+            return null;
+        }
+    }
+    
+    /**
      * True of xy and z spacing should be enabled. False otherwise.
      *
      * @return True of xy and z spacing should be enabled. False otherwise.
@@ -159,12 +174,9 @@ public class UserDialog {
 
         HelpDialog help = new HelpDialog(gd, "Help for Neighborhood PIG");
 
-        gd.addButton("Help", new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                help.setVisible(!help.isVisible());
-                if (help.isVisible()) help.toFront();
-            }
+        gd.addButton("Help", e -> {
+            help.setVisible(!help.isVisible());
+            if (help.isVisible()) help.toFront();
         });
 
         gd.addWindowListener(new WindowAdapter() {
@@ -190,7 +202,7 @@ public class UserDialog {
     /**
      * The dialog listener.
      */
-    private DialogListener dl = (GenericDialog gd1, AWTEvent e) -> {
+    private final DialogListener dl = (GenericDialog gd1, AWTEvent e) -> {
         try {
 
             spacingXY.setEnabled(enableSpacing());
