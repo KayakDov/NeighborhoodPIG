@@ -3,7 +3,7 @@ package FijiInput;
 import FijiInput.field.NumericField;
 import FijiInput.field.DirectoryField;
 import FijiInput.field.BooleanField;
-import static FijiInput.UserInput.defaultTolerance;
+import static FijiInput.UsrInput.defaultTolerance;
 import FijiInput.field.RadioButtonsField;
 import FijiInput.field.VF;
 import fijiPlugin.NeighborhoodDim; // Assuming NeighborhoodDim is in fijiPlugin package
@@ -21,13 +21,13 @@ import java.util.Optional;
  * This class is responsible for displaying a graphical user interface (GUI)
  * using ImageJ's GenericDialog to collect input parameters from the user. It
  * manages the lifecycle of the dialog, user interactions, and then constructs
- * an immutable {@link UserInput} object from the collected data.
+ * an immutable {@link UsrInput} object from the collected data.
  *
  * @author E. Dov Neimand
  */
-public class UserDialog {
+public class UsrDialog {
 
-    private UserInput ui;
+    private UsrInput ui;
 
     private final GenericDialog gd;
     private final HelpDialog hf;
@@ -52,8 +52,8 @@ public class UserDialog {
      * @param imp The ImagePlus object associated with the input.
      * @throws UserCanceled If the user cancels the dialog box.
      */
-    public UserDialog() throws UserCanceled {
-        ImagePlus imp = getImage();
+    public UsrDialog() throws UserCanceled {
+        ImagePlus imp = getIJFrontImage();
         
         hasZ = imp.getNSlices() > 1;
 
@@ -118,7 +118,7 @@ public class UserDialog {
 
         if (gd.wasCanceled()) throw new UserCanceled();
 
-        ui = new UserInput(
+        ui = new UsrInput(
                 imp,
                 new NeighborhoodDim(
                         xyR.valF().get().intValue(),
@@ -145,9 +145,11 @@ public class UserDialog {
      * Gets the image from ImageJ.
      * @return The image currently open in imageJ.
      */
-    public static ImagePlus getImage(){
+    public static ImagePlus getIJFrontImage(){
         try {
-            return new MyImagePlus(ij.WindowManager.getCurrentImage());
+            ImagePlus imp  = new MyImagePlus(ij.WindowManager.getCurrentImage());
+            System.out.println("FijiInput.UsrDialog.getIJFrontImage() depth = " + imp.getNSlices());
+            return imp;
         } catch (NullPointerException npe) {
             IJ.error("Missing Image", "No image found. Please open one.");
             return null;
@@ -195,7 +197,7 @@ public class UserDialog {
      *
      * @return The user's input.
      */
-    public UserInput getUserInput() {
+    public UsrInput getUserInput() {
         return ui;
     }
 

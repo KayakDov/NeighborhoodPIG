@@ -62,6 +62,8 @@ public class MyImagePlus extends ImagePlus {
         this.setDisplayRange(imp.getDisplayRangeMin(), imp.getDisplayRangeMax()); // Copies display range
         this.setActivated(); // Makes it behave like an active image
 
+        System.out.println("imageWork.MyImagePlus.<init>() depth = " + imp.getNSlices());
+        
         dim = new Dimensions(imp.getImageStack(), imp.getNSlices());
         dim.setToHyperStack(this);
     }

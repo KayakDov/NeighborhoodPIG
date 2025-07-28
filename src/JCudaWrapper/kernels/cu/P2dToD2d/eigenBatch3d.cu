@@ -748,8 +748,8 @@ extern "C" __global__ void eigenBatch3dKernel(
 	
 	bool ortho = eq(eVals(1), eVals(2), tolerance) && !eq(eVals(0), (eVals(1) +eVals(2))/2, tolerance);
 	if(ortho) eigenInd = 0;
-	
     dst.set(coherence, ldCoh, ldldCoh, ldPtrCoh, (ortho?-1:1)*(float)eVals.coherence());
+	
 
     mat.subtractFromDiag(eVals[eigenInd]);
            

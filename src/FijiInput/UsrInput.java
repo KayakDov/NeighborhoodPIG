@@ -18,7 +18,7 @@ import java.util.Optional;
  *
  * @author E. Dov Neimand
  */
-public class UserInput {
+public class UsrInput {
 
     public final static double defaultTolerance = 1e-5f;
 
@@ -108,7 +108,7 @@ public class UserInput {
      * @param vfSpacingZ The spacing between vectors in the Z dimension.
      * @param downSampleFactorZ The downsample factor for Z dimension.
      */
-    public UserInput(ImagePlus img, NeighborhoodDim neighborhoodSize, boolean heatMap, VF vectorField,
+    public UsrInput(ImagePlus img, NeighborhoodDim neighborhoodSize, boolean heatMap, VF vectorField,
             boolean useCoherence, Optional<Path> saveDatToDir, Optional<Boolean> vfOverlay,
             Optional<Integer> vfMag, Optional<Integer> vfSpacingXY, Optional<Integer> vfSpacingZ,
             int downSampleFactorXY, Optional<Integer> downSampleFactorZ, double tolerance) {
@@ -218,7 +218,7 @@ public class UserInput {
      * not contain enough elements for the required parameters based on the
      * logic.
      */
-    public static UserInput fromStrings(String[] strings, ImagePlus img) {
+    public static UsrInput fromStrings(String[] strings, ImagePlus img) {
 
         System.out.println("FijiInput.UserInput.fromStrings()" + Arrays.toString(strings));
 
@@ -257,7 +257,7 @@ public class UserInput {
 
         System.out.println("--- Finished Parsing User Input ---");
 
-        return new UserInput(
+        return new UsrInput(
                 img,
                 new NeighborhoodDim(xyR, zR, distBetweenAdjacentLayer),
                 heatMap,

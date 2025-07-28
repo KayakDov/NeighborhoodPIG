@@ -1,6 +1,6 @@
 package fijiPlugin;
 
-import FijiInput.UserInput;
+import FijiInput.UsrInput;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
@@ -15,7 +15,7 @@ import JCudaWrapper.resourceManagement.Handle;
  */
 public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up into StructureTensorMatrices.
 
-    private final UserInput ui;
+    private final UsrInput ui;
     private final Dimensions dim;
     private final Handle handle;
 
@@ -31,7 +31,7 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
      * @param dim
      * @param ui User defined preferences.  Will be used for down sample factors and tolerance.
      */
-    public Eigen(Handle handle, Dimensions dim, UserInput ui) {
+    public Eigen(Handle handle, Dimensions dim, UsrInput ui) {
         this.dim = dim;
         this.handle = handle;
         this.ui = ui;

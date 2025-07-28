@@ -1,8 +1,8 @@
 package fijiPlugin;
 
 import FijiInput.UserCanceled;
-import FijiInput.UserDialog;
-import FijiInput.UserInput;
+import FijiInput.UsrDialog;
+import FijiInput.UsrInput;
 import FijiInput.field.VF;
 import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Kernel;
@@ -46,7 +46,7 @@ public class FijiPlugin implements PlugIn {
 
     public MyImageStack vf, coh, az, zen;
     public final ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-    private UserInput ui;
+    private UsrInput ui;
 
     /**
      * initializes the stacks
@@ -120,7 +120,7 @@ public class FijiPlugin implements PlugIn {
      * <p>
      * For the precise format and conditional inclusion of parameters when
      * providing them as a string, please refer to the Javadoc of the
-     * {@link UserInput#fromStrings(String[], int) UserInput.fromStrings}
+     * {@link UsrInput#fromStrings(String[], int) UserInput.fromStrings}
      * method.
      * </p>
      *
@@ -143,13 +143,13 @@ public class FijiPlugin implements PlugIn {
 
         if (string.length() == 0) {
             try {
-                ui = new UserDialog().getUserInput();
+                ui = new UsrDialog().getUserInput();
             } catch (UserCanceled ex) {
                 System.out.println("fijiPlugin.FijiPlugin.run() User canceled dialog.");
                 return;
             }
         } else {
-            ui = UserInput.fromStrings(string.split(" "), UserDialog.getImage());
+            ui = UsrInput.fromStrings(string.split(" "), UsrDialog.getIJFrontImage());
         }
         run(Save.fiji);
     }
@@ -198,7 +198,7 @@ public class FijiPlugin implements PlugIn {
      * number and order of these parameters depend on the `depth` (from
      * `args[1]`) and other boolean flags (like `generate_vector_field`). Refer
      * to the
-     * {@link FijiInput.UserInput#fromStrings(String[], int) UserInput.fromStrings}
+     * {@link FijiInput.UsrInput#fromStrings(String[], int) UserInput.fromStrings}
      * method's Javadoc for the precise conditional order and meaning of these
      * parameters.
      * </li>
@@ -247,7 +247,7 @@ public class FijiPlugin implements PlugIn {
 
         ImagePlus imp = ProcessImage.imagePlus(args[0], depth);
         
-        fp.ui = UserInput.fromStrings(
+        fp.ui = UsrInput.fromStrings(
                 Arrays.copyOfRange(args, 3, args.length), 
                 imp
         );
@@ -340,7 +340,7 @@ public class FijiPlugin implements PlugIn {
      * azimuthal and zenith angles, vector fields, and coherence maps. It also
      * handles the saving of raw vector data if specified by the user.
      *
-     * @param ui The {@link UserInput} object containing all the user-defined
+     * @param ui The {@link UsrInput} object containing all the user-defined
      * parameters and preferences for output generation (e.g., whether to
      * generate heatmaps, vector fields, coherence, or save raw data).
      * @param fp The {@link FijiPlugin} instance, which provides access to
@@ -361,13 +361,13 @@ public class FijiPlugin implements PlugIn {
      * value is used subsequently for displaying or saving vector field results
      * correctly.
      */
-    private int processNPIGResults(UserInput ui, Handle handle, NeighborhoodPIG np) {
+    private int processNPIGResults(UsrInput ui, Handle handle, NeighborhoodPIG np) {
 
         if (ui.heatMap) {
 
-            appendHM(az, np.getAzimuthalAngles(ui.tolerance), 0, (float) Math.PI, es);
+            appendHM(az, np.getAzimuthalAnglesHeatMap(ui.tolerance), 0, (float) Math.PI, es);
             if (ui.img.dim().hasDepth())
-                appendHM(zen, np.getZenithAngles(false, 0.01), 0, (float) Math.PI, es);
+                appendHM(zen, np.getZenithAnglesHeatMap(false, 0.01), 0, (float) Math.PI, es);
         }
 
         if (ui.vectorField.is()) {
@@ -387,7 +387,7 @@ public class FijiPlugin implements PlugIn {
         }
 
         if (ui.coherence)
-            appendHM(coh, np.getCoherence(ui.tolerance), 0, 1, es);
+            appendHM(coh, np.getCoherenceHeatMap(ui.tolerance), 0, 1, es);
 
         if (ui.saveDatToDir.isPresent())
             new DatSaver(ui.dim, np.stm.getVectors(), handle, ui.saveDatToDir.get(), ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), np.stm.coherence, ui.tolerance).saveAllVectors();
@@ -429,7 +429,7 @@ public class FijiPlugin implements PlugIn {
      * @param es The executor service.
      * @return The depth of the vector image.
      */
-    public static int appendVF(UserInput ui, VectorImg vecImg, MyImageStack vf, ExecutorService es) {
+    public static int appendVF(UsrInput ui, VectorImg vecImg, MyImageStack vf, ExecutorService es) {
         vf.concat(vecImg.imgStack(es));
         return vecImg.getOutputDimensions().depth;
     }
@@ -466,7 +466,7 @@ public class FijiPlugin implements PlugIn {
      * @param vecImgDepth The depth of the vector image.
      * @param myImg The image worked on.
      */
-    private void results(Save save, UserInput ui, int vecImgDepth) {
+    private void results(Save save, UsrInput ui, int vecImgDepth) {
 
         if (ui.heatMap) {
             present(az.imp("Azimuthal Angles", ui.dim.depth), save, "N_PIG_images" + File.separatorChar + "Azimuthal");

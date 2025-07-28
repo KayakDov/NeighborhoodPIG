@@ -1,6 +1,6 @@
 package fijiPlugin;
 
-import FijiInput.UserInput;
+import FijiInput.UsrInput;
 import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.ImagePlus;
@@ -26,7 +26,7 @@ public class StructureTensorMatrices implements AutoCloseable {
      * @param ui User selected specifications.
      *
      */
-    public StructureTensorMatrices(Handle handle, MyImagePlus imp, UserInput ui) {
+    public StructureTensorMatrices(Handle handle, MyImagePlus imp, UsrInput ui) {
         try (Gradient grad = new Gradient(handle, imp, ui)) {
             dim = grad.dim;            
             

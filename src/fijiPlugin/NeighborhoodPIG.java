@@ -1,6 +1,6 @@
 package fijiPlugin;
 
-import FijiInput.UserInput;
+import FijiInput.UsrInput;
 
 import JCudaWrapper.resourceManagement.Handle;
 import imageWork.HeatMapCreator;
@@ -32,7 +32,7 @@ public class NeighborhoodPIG implements AutoCloseable {
      * @param image An image.
      * @param ui The input from the user.
      */
-    public NeighborhoodPIG(Handle handle, MyImagePlus image, UserInput ui) {
+    public NeighborhoodPIG(Handle handle, MyImagePlus image, UsrInput ui) {
         this.handle = handle;
 
         this.sourceFileNames = image.getImageStack().getSliceLabels();
@@ -44,11 +44,10 @@ public class NeighborhoodPIG implements AutoCloseable {
     /**
      * A heat map of the orientation in the xy plane.
      *
-     * @param color True for a color image, false for grayscale.
      * @param tolerance When is a value considered 0.
      * @return A heat map of the orientation in the xy plane.
      */
-    public HeatMapCreator getAzimuthalAngles(double tolerance) {
+    public HeatMapCreator getAzimuthalAnglesHeatMap(double tolerance) {
 
         return new HeatMapCreator(
                 concat(sourceFileNames, " Azimuth"),
@@ -67,7 +66,7 @@ public class NeighborhoodPIG implements AutoCloseable {
      * @param tolerance
      * @return A heat map of the zenith angles.
      */
-    public HeatMapCreator getZenithAngles(boolean color, double tolerance) {
+    public HeatMapCreator getZenithAnglesHeatMap(boolean color, double tolerance) {
         return new HeatMapCreator(
                 concat(sourceFileNames, " Zenith Angle"),
                 "Zenith Angle Heatmap",
@@ -81,9 +80,10 @@ public class NeighborhoodPIG implements AutoCloseable {
     /**
      * The coherence heatmap.
      *
+     * @param tolerance
      * @return The coherence heatmap.
      */
-    public HeatMapCreator getCoherence(double tolerance) {
+    public HeatMapCreator getCoherenceHeatMap(double tolerance) {
         return new HeatMapCreator(
                 concat(sourceFileNames, " coherence"),
                 "Coherence",

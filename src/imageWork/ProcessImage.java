@@ -1,6 +1,6 @@
 package imageWork;
 
-import FijiInput.UserInput;
+import FijiInput.UsrInput;
 import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;
@@ -101,7 +101,7 @@ public class ProcessImage {
      * @return A FArray containing the image data in column-major order for all
      * frames, slices, and channels.
      */
-    public static final P2dToF2d processImages(Handle handle, MyImagePlus imp, UserInput ui) {
+    public static final P2dToF2d processImages(Handle handle, MyImagePlus imp, UsrInput ui) {
 
         // Convert the image to grayscale if necessary
         if (imp.getType() != ImagePlus.GRAY8 && imp.getType() != ImagePlus.GRAY16 && imp.getType() != ImagePlus.GRAY32) {

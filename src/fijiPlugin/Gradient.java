@@ -1,6 +1,6 @@
 package fijiPlugin;
 
-import FijiInput.UserInput;
+import FijiInput.UsrInput;
 import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
@@ -36,7 +36,7 @@ public class Gradient implements AutoCloseable {
      *
      *
      */
-    public Gradient(Handle handle, MyImagePlus imp, UserInput ui) {
+    public Gradient(Handle handle, MyImagePlus imp, UsrInput ui) {
 
         try (P2dToF2d pic = ProcessImage.processImages(handle, imp, ui)) {
                         
