@@ -378,9 +378,7 @@ public class MyImagePlus extends ImagePlus {
      * @return this image.
      */
     public MyImagePlus crop(int height, int width, int depth) {
-        
-        System.out.println("imageWork.MyImagePlus.crop() slices = " + getNSlices() + " frames = " + getNFrames());
-
+    
         setRoi(new Roi(new Rectangle(0, 0, width, height)));
 
         for (int t = 0; t < dim.batchSize; t++)
@@ -393,8 +391,6 @@ public class MyImagePlus extends ImagePlus {
         
         setDimensions(1, depth, dim.batchSize);
         dim = new Dimensions(height, width, depth, dim.batchSize);
-        
-        System.out.println("imageWork.MyImagePlus.crop() slices = " + getNSlices() + " frames = " + getNFrames());
         
         return this;
     }

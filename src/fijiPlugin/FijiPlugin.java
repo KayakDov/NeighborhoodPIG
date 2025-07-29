@@ -498,9 +498,6 @@ public class FijiPlugin implements PlugIn {
     private static void present(MyImagePlus image, Save saveTo, String filePath) {
         if (saveTo == Save.fiji) {
             
-            System.out.println("fijiPlugin.FijiPlugin.present() slices "+ image.getNSlices());
-            System.out.println("fijiPlugin.FijiPlugin.present() frames "+ image.getNFrames());
-            
             image.setOpenAsHyperStack(true);
 
             if (image.getWindow() != null) {

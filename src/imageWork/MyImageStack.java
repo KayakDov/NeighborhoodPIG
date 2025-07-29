@@ -39,7 +39,6 @@ public class MyImageStack extends ImageStack {
      * @return An ImagePlus object generated from this stack.
      */
     public MyImagePlus getImagePlus(String title, int depth) {
-        System.out.println("imageWork.MyImageStack.getImagePlus() depth = " + depth);
         return new MyImagePlus(title, this, depth);
     }
 
