@@ -497,15 +497,11 @@ public class FijiPlugin implements PlugIn {
      */
     private static void present(MyImagePlus image, Save saveTo, String filePath) {
         if (saveTo == Save.fiji) {
-            
+
             image.setOpenAsHyperStack(true);
 
-            if (image.getWindow() != null) {
-                image.getWindow().updateImage(image);
-            } else {
-                image.show();
-            }
             image.show();
+
         } else if (saveTo == Save.tiff || saveTo == Save.png) {
             try {
                 Files.createDirectories(Paths.get(filePath));
