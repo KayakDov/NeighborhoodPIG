@@ -274,7 +274,7 @@ public class GenDebugFile {
         int width = 50;
         int height = 50;
 
-        int[][][] pixelValues = tiltedTorus(depth, width, height, 10, 3, Math.PI/4, Math.PI/4);
+        int[][][] pixelValues = tiltedTorus(depth, width, height, 18, 3, Math.PI/4, Math.PI/4);
 
         ByteProcessor[] processor = new ByteProcessor[depth];
         ImagePlus[] image = new ImagePlus[depth];

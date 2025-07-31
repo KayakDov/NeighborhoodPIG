@@ -122,7 +122,7 @@ After the numeric fields, you'll find three checkboxes:
 
         * **For a Vector Field (Standalone):** Even if not superimposed, downsampling can reduce the resulting image size, which can be very large otherwise.
 
-![A Slice from a 3D Bacteria Image](images/examples/posDefectZenith.jpeg)
+![A Slice from a 3D Bacteria Image](images/examples/torusColored.png)
 *Figure 5: A slice of a 3D bacteria image (left) and the heatmaps it may generate.*
 
 ---
