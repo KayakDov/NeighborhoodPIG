@@ -51,8 +51,12 @@ public class UsrDialog {
      *
      * @throws UserCanceled If the user cancels the dialog box.
      */
-    public UsrDialog() throws UserCanceled {
+    public UsrDialog() throws UserCanceled, NoImage {
         ImagePlus imp = getIJFrontImage();
+        
+        
+        if(imp == null) throw new NoImage();
+        
         
         hasZ = imp.getNSlices() > 1;
 
@@ -115,8 +119,8 @@ public class UsrDialog {
 
         gd.showDialog();
 
-        if (gd.wasCanceled()) throw new UserCanceled();
-
+        if (gd.wasCanceled()) throw new UserCanceled();        
+        
         ui = new UsrInput(
                 imp,
                 new NeighborhoodDim(

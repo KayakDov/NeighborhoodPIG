@@ -279,6 +279,7 @@ public class UsrInput {
      * @return true if the parameters are valid, false otherwise.
      */
     public boolean validParamaters() {
+        
         return neighborhoodSize.valid()
                 && spacingXY.orElse(2) > 1
                 && spacingZ.orElse(2) > 1

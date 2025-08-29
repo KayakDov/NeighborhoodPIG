@@ -72,8 +72,7 @@ public class DatSaver {
         try {
             Files.createDirectories(dstDir);
 
-            for (int t = 0; t < dim.batchSize; t++)
-                saveFrame(t);
+            for (int t = 0; t < dim.batchSize; t++) saveFrame(t);
 
         } catch (IOException ex) {
             Logger.getLogger(DatSaver.class.getName()).log(Level.SEVERE, null, ex);
@@ -92,7 +91,9 @@ public class DatSaver {
                 cohFormat = dim.hasDepth() ? "_x_y_z_coherence" : "_x_y_coherence";
 
         try (
-                PrintWriter vecWriter = new PrintWriter(Paths.get(dstDir.toString(), "vecFrame_" + t + vecFormat + ".dat").toString()); PrintWriter cohWriter = new PrintWriter(Paths.get(dstDir.toString(), "coherenceFrame_" + t + cohFormat + ".dat").toString());) {
+                PrintWriter vecWriter = new PrintWriter(Paths.get(dstDir.toString(), "vecFrame_" + t + vecFormat + ".dat").toString()); 
+                PrintWriter cohWriter = new PrintWriter(Paths.get(dstDir.toString(), "coherenceFrame_" + t + cohFormat + ".dat").toString());
+                ) {
 
             VecManager2d vecSlice = new VecManager2d(dim);
             float[] coherenceSlice = new float[dim.layerSize()];

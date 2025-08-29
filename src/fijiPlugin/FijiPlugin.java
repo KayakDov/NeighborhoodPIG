@@ -1,15 +1,11 @@
 package fijiPlugin;
 
+import FijiInput.NoImage;
 import FijiInput.UserCanceled;
 import FijiInput.UsrDialog;
 import FijiInput.UsrInput;
 import FijiInput.field.VF;
 import JCudaWrapper.array.Array;
-import JCudaWrapper.array.Kernel;
-import JCudaWrapper.array.P;
-import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
-import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
-import JCudaWrapper.array.Pointer.to2d.PArray2dToI2d;
 import JCudaWrapper.resourceManagement.GPU;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.IJ;
@@ -17,7 +13,6 @@ import ij.ImageJ;
 import ij.ImagePlus;
 import ij.gui.Toolbar;
 import ij.plugin.PlugIn;
-import ij.process.ImageConverter;
 import imageWork.DatSaver;
 import imageWork.HeatMapCreator;
 import imageWork.MyImagePlus;
@@ -146,6 +141,9 @@ public class FijiPlugin implements PlugIn {
                 ui = new UsrDialog().getUserInput();
             } catch (UserCanceled ex) {
                 System.out.println("fijiPlugin.FijiPlugin.run() User canceled dialog.");
+                return;
+            } catch(NoImage nie){
+                IJ.error("Your must select an image.");
                 return;
             }
         } else {
@@ -325,7 +323,7 @@ public class FijiPlugin implements PlugIn {
 
             results(save, ui, vecImgDepth);
         } catch (Exception ex) {
-            System.out.println("fijiPlugin.FijiPlugin.run() " + ui.toString());
+            System.out.println("fijiPlugin.FijiPlugin.run() " + ui.toString() + " " + ex.toString());
             throw ex;
         }
         if (!Array.allocatedArrays.isEmpty())

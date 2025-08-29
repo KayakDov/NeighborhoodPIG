@@ -79,9 +79,9 @@ public class NumericField extends Field {
     private void enforceNonNegative() {
 
         try {
-            if (isActive && valF().get() < 0) val(0.0f);
+            if (isEnabled() && valF().get() < 0) val(0.0f);
         } catch (NumberFormatException nfe) {
-            if (isActive) val(0f);
+            if (isEnabled()) val(0f);
         }
 
     }
@@ -92,7 +92,7 @@ public class NumericField extends Field {
      * @return The user-selected value.
      */
     public Optional<Float> valF() {
-        if (!isActive) return Optional.empty();
+        if (!isEnabled()) return Optional.empty();
         return Optional.of(Float.valueOf(((TextField) this.awtComponent).getText()));
     }
 
@@ -102,7 +102,7 @@ public class NumericField extends Field {
      * @return The user-selected value.
      */
     public Optional<Double> valD() {
-        if (!isActive) return Optional.empty();
+        if (!isEnabled()) return Optional.empty();
         return Optional.of(Double.valueOf(((TextField) this.awtComponent).getText()));
     }
 
@@ -112,7 +112,7 @@ public class NumericField extends Field {
      * @return The user-selected value.
      */
     public Optional<Integer> valI() {
-        if (!isActive) return Optional.empty();
+        if (!isEnabled()) return Optional.empty();
         try {
             return Optional.of(Integer.valueOf(((TextField) this.awtComponent).getText()));
         } catch (NumberFormatException nfe) {
@@ -127,7 +127,7 @@ public class NumericField extends Field {
      * @return this
      */
     public NumericField val(float value) {
-        if (!isActive) return this;
+        if (!isEnabled()) return this;
         ((TextField) this.awtComponent).setText(String.valueOf((int) value));
         return this;
     }
