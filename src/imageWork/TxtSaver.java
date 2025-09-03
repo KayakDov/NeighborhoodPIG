@@ -142,9 +142,8 @@ public class TxtSaver {
                 vecLayer.get(row, col, vec);
                 float coh = coherenceSlice[colInd + row];
 
-                if (coh <= tolerance || !vec.isFinite()) {
-                    vec.set(0, 0, 0);
-                }
+                if (coh <= tolerance || !vec.isFinite()) vec.set(0, 0, 0);
+                
 
                 int x = col * scaleXY, y = row * scaleXY, z = sliceIndex * scaleZ;
                 if (dim.hasDepth()) {
