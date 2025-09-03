@@ -21,7 +21,7 @@ import java.util.logging.Logger;
  * It utilizes the provided VecManager to handle per-slice vector data and file
  * writing.
  */
-public class DatSaver {
+public class TxtSaver {
 
     private final Dimensions dim;
     private final P2dToF2d gpuVectorData, coherence;
@@ -48,7 +48,7 @@ public class DatSaver {
      * @param tolerance Vectors with a coherence below this threshold will not
      * be printed.
      */
-    public DatSaver(Dimensions dim, P2dToF2d gpuVectorData, Handle handle, Path dstDirectory, int scaleXY, int scaleZ, P2dToF2d coherence, double tolerance) {
+    public TxtSaver(Dimensions dim, P2dToF2d gpuVectorData, Handle handle, Path dstDirectory, int scaleXY, int scaleZ, P2dToF2d coherence, double tolerance) {
         this.dim = dim;
         this.gpuVectorData = gpuVectorData;
         this.handle = handle;
@@ -72,10 +72,12 @@ public class DatSaver {
         try {
             Files.createDirectories(dstDir);
 
-            for (int t = 0; t < dim.batchSize; t++) saveFrame(t);
+            for (int t = 0; t < dim.batchSize; t++) {
+                saveFrame(t);
+            }
 
         } catch (IOException ex) {
-            Logger.getLogger(DatSaver.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TxtSaver.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -91,14 +93,12 @@ public class DatSaver {
                 cohFormat = dim.hasDepth() ? "_x_y_z_coherence" : "_x_y_coherence";
 
         try (
-                PrintWriter vecWriter = new PrintWriter(Paths.get(dstDir.toString(), "vecFrame_" + t + vecFormat + ".dat").toString()); 
-                PrintWriter cohWriter = new PrintWriter(Paths.get(dstDir.toString(), "coherenceFrame_" + t + cohFormat + ".dat").toString());
-                ) {
+                PrintWriter vecWriter = new PrintWriter(Paths.get(dstDir.toString(), "vecFrame_" + t + vecFormat + ".txt").toString()); PrintWriter cohWriter = new PrintWriter(Paths.get(dstDir.toString(), "coherenceFrame_" + t + cohFormat + ".txt").toString());) {
 
             VecManager2d vecSlice = new VecManager2d(dim);
             float[] coherenceSlice = new float[dim.layerSize()];
 
-            for (int z = 0; z < dim.depth; z++)
+            for (int z = 0; z < dim.depth; z++) {
                 appendSliceToFile(
                         vecWriter,
                         vecSlice.setFrom(gpuVectorData, t, z, handle),
@@ -106,9 +106,10 @@ public class DatSaver {
                         coherence.get(z, t).getVal(handle).get(handle, coherenceSlice),
                         z
                 );
+            }
 
         } catch (FileNotFoundException ex) {
-            Logger.getLogger(DatSaver.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TxtSaver.class.getName()).log(Level.SEVERE, null, ex);
         }
 
     }
@@ -141,15 +142,23 @@ public class DatSaver {
                 vecLayer.get(row, col, vec);
                 float coh = coherenceSlice[colInd + row];
 
-                if (coh <= tolerance || !vec.isFinite()) vec.set(0, 0, 0);
+                if (coh <= tolerance || !vec.isFinite()) {
+                    vec.set(0, 0, 0);
+                }
 
                 int x = col * scaleXY, y = row * scaleXY, z = sliceIndex * scaleZ;
                 if (dim.hasDepth()) {
-                    vecWrite.printf("%d\t%d\t%d\t%f\t%f\t%f\n", x, y, z, vec.x(), vec.y(), vec.z());
-                    cohWrite.printf("%d\t%d\t%d\t%f%n", x, y, z, coh);
+                    vecWrite.printf("%.18e\t%.18e\t%.18e\t%.18e\t%.18e\t%.18e%n",
+                            (double) x, (double) y, (double) z, vec.x(), vec.y(), vec.z());
+
+                    cohWrite.printf("%.18e\t%.18e\t%.18e\t%.18e%n",
+                            (double) x, (double) y, (double) z, coh);
                 } else {
-                    vecWrite.printf("%d\t%d\t%f\t%f\n", x, y, vec.x(), vec.y());
-                    cohWrite.printf("%d\t%d\t%f\n", x, y, coh);
+                    vecWrite.printf("%.18e\t%.18e\t%.18e\t%.18e%n",
+                            (double) x, (double) y, vec.x(), vec.y());
+
+                    cohWrite.printf("%.18e\t%.18e\t%.18e%n",
+                            (double) x, (double) y, coh);
                 }
 
             }

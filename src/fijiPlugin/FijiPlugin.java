@@ -13,7 +13,7 @@ import ij.ImageJ;
 import ij.ImagePlus;
 import ij.gui.Toolbar;
 import ij.plugin.PlugIn;
-import imageWork.DatSaver;
+import imageWork.TxtSaver;
 import imageWork.HeatMapCreator;
 import imageWork.MyImagePlus;
 import imageWork.MyImageStack;
@@ -253,7 +253,7 @@ public class FijiPlugin implements PlugIn {
 
     }
 
-    private static String[] defaultArgs() {//TODO: ther may be a bug for multi frame multi dimensional images with vector fields.
+    private static String[] defaultArgs() {//TODO: Should be able to save data and view a file with the same run command.
         String imagePath = "images/input/AngleCyl/";
         int depth = 25;
 
@@ -387,7 +387,7 @@ public class FijiPlugin implements PlugIn {
             appendHM(coh, np.getCoherenceHeatMap(ui.tolerance), 0, 1, es);
 
         if (ui.saveDatToDir.isPresent())
-            new DatSaver(ui.dim, np.stm.getVectors(), handle, ui.saveDatToDir.get(), ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), np.stm.coherence, ui.tolerance).saveAllVectors();
+            new TxtSaver(ui.dim, np.stm.getVectors(), handle, ui.saveDatToDir.get(), ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), np.stm.coherence, ui.tolerance).saveAllVectors();
 
         return 0;
     }
