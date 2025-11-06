@@ -253,7 +253,7 @@ public class FijiPlugin implements PlugIn {
 
     }
 
-    private static String[] defaultArgs() {//TODO: Should be able to save data and view a file with the same run command.
+    private static String[] defaultArgs() {
         String imagePath = "images/input/AngleCyl/";
         int depth = 25;
 
@@ -262,7 +262,7 @@ public class FijiPlugin implements PlugIn {
         int xyR = 5;
         int zR = 5;
         double zDist = 1;
-        boolean hasHeatMap = true;
+        boolean hasHeatMap = false;
         VF hasVF = VF.Color;
         boolean hasCoherence = false;
         String saveVectors = "false";
@@ -270,7 +270,7 @@ public class FijiPlugin implements PlugIn {
         int vfSpacingZ = 6;
         int mag = 4;
         boolean overlay = false;
-        int downSampleXY = 1;
+        int downSampleXY = 4;
         int downSampleZ = 1;
 
         return new String[]{

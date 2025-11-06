@@ -9,6 +9,7 @@ import FijiInput.field.VF;
 import fijiPlugin.NeighborhoodDim; // Assuming NeighborhoodDim is in fijiPlugin package
 import ij.IJ;
 import ij.ImagePlus;
+import ij.Prefs;
 import ij.gui.DialogListener;
 import ij.gui.GenericDialog;
 import imageWork.MyImagePlus;
@@ -140,6 +141,8 @@ public class UsrDialog {
                 downSampleZ.valI(),
                 defaultTolerance
         );
+        
+        Prefs.savePreferences();
     }
 
     private boolean downSampleOrig = true;

@@ -26,8 +26,8 @@ public class DirectoryField extends Field {
         awtComponent = (TextField) gd.getStringFields().lastElement();
 
         awtComponent.addFocusListener(this);
-        
-        ((TextField)awtComponent).addActionListener(e -> {
+
+        ((TextField) awtComponent).addActionListener(e -> {
             helpMessageFrame.setHelpText(helpText);
             saveValue();
             Prefs.savePreferences();
@@ -43,7 +43,9 @@ public class DirectoryField extends Field {
      */
     public Optional<Path> getPath() {
         String pathText = ((TextField) this.awtComponent).getText().trim();
-        if (pathText.isEmpty()) return Optional.empty();
+        if (pathText.isEmpty()) {
+            return Optional.empty();
+        }
         return Optional.of(Paths.get(pathText));
     }
 
@@ -51,8 +53,10 @@ public class DirectoryField extends Field {
      * {@inheritDoc
      */
     @Override
-    public DirectoryField saveValue() {
-        getPath().ifPresent(path -> Prefs.set(PREF_PREFIX + name, path.toString()));
+    public DirectoryField saveValue() {        
+        if (getPath().isPresent()) 
+            Prefs.set(PREF_PREFIX + name, getPath().get().toString());
+        else Prefs.set(PREF_PREFIX + name, "");
         return this;
     }
 }
