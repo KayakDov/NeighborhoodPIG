@@ -666,7 +666,7 @@ public:
     
     __device__ double coherence(){
         if(isnan(data[0])) return 0;
-        return data[0] <=  tolerance ? 0 : (data[0] - data[1]) / (data[0] + data[1] + data[2]);
+        return data[0] <=  tolerance ? 0 : (data[1] - data[2]) / (data[1] + data[2]);
     }
     
 };
