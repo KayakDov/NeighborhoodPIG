@@ -254,7 +254,7 @@ public class FijiPlugin implements PlugIn {
     }
 
     private static String[] defaultArgs() {
-        String imagePath = "images/input/AngleCyl/";
+        String imagePath = "images/input/SingleTest";
         int depth = 25;
 
 //        String imagePath = "images/input/SingleTest/";
@@ -262,15 +262,15 @@ public class FijiPlugin implements PlugIn {
         int xyR = 5;
         int zR = 5;
         double zDist = 1;
-        boolean hasHeatMap = false;
+        boolean hasHeatMap = true;
         VF hasVF = VF.Color;
-        boolean hasCoherence = false;
+        boolean hasCoherence = true;
         String saveVectors = "false";
-        int vfSpacingXY = 6;
+        int vfSpacingXY = 7;
         int vfSpacingZ = 6;
-        int mag = 4;
-        boolean overlay = false;
-        int downSampleXY = 4;
+        int mag = 7;
+        boolean overlay = true;
+        int downSampleXY = 7;
         int downSampleZ = 1;
 
         return new String[]{
@@ -278,18 +278,18 @@ public class FijiPlugin implements PlugIn {
             "" + depth,
             "png", // Default output format for image-based results
             "" + xyR,
-            "" + zR,
-            "" + zDist,
+//            "" + zR,
+//            "" + zDist,
             "" + hasHeatMap,
             "" + hasVF,
             "" + hasCoherence,
             "" + saveVectors, // This flag would be parsed by UserInput.fromStrings
             "" + vfSpacingXY,
-            "" + vfSpacingZ,
+//            "" + vfSpacingZ,
             "" + mag,
-            //            "" + overlay,
+            "" + overlay,
             "" + downSampleXY,
-            "" + downSampleZ
+//            "" + downSampleZ
         };
 
     }
@@ -368,7 +368,7 @@ public class FijiPlugin implements PlugIn {
         }
 
         if (ui.vectorField.is()) {
-            return appendVF(
+            appendVF(
                     ui,
                     np.getVectorImg(
                             ui.spacingXY.get(),

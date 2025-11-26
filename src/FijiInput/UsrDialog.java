@@ -120,6 +120,8 @@ public class UsrDialog {
 
         gd.showDialog();
 
+        spacingXY.setEnabled(overlay.isEnabled() || spacingXY.isEnabled());
+        
         if (gd.wasCanceled()) throw new UserCanceled();        
         
         ui = new UsrInput(
@@ -216,10 +218,13 @@ public class UsrDialog {
             boolean vfIs = ((VF)vectorField.val().get()).is();
             
             mag.setEnabled(vfIs);
+            
+            if(overlay.is().orElse(false)) spacingXY.val(downSampleXY.valF().get());
+            
+            
             overlay.setEnabled(vfIs);
 
             spacingZ.setEnabled(enableSpacing());
-
             
 
             if (downSampleOrig && vfIs) {
@@ -235,8 +240,6 @@ public class UsrDialog {
                 spacingXY.val(xyR.valI().get());
                 spacingZ.val(zR.valI().orElse(0));
             }
-            
-            if(overlay.is().orElse(false)) spacingXY.val(downSampleXY.valF().get());
 
         } catch (NumberFormatException nfe) {
         }

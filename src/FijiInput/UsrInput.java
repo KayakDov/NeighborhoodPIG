@@ -9,6 +9,7 @@ import ij.process.ImageConverter;
 import imageWork.MyImagePlus;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -285,9 +286,7 @@ public class UsrInput {
                 && spacingZ.orElse(2) > 1
                 && vfMag.orElse(2) > 1
                 && tolerance > 0
-                && (!overlay.orElse(false)
-                || (downSampleFactorXY == spacingXY.get()
-                && downSampleFactorZ.orElse(0) == spacingZ.orElse(0)))
+                && (!overlay.orElse(false) || (downSampleFactorXY == spacingXY.get() && Objects.equals(downSampleFactorZ.orElse(0), spacingZ.orElse(0))))
                 && downSampleFactorXY >= 1
                 && downSampleFactorZ.orElse(2) >= 1;
     }

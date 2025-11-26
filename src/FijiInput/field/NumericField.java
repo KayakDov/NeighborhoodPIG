@@ -127,7 +127,7 @@ public class NumericField extends Field {
      * @return this
      */
     public NumericField val(float value) {
-        if (!isEnabled()) return this;
+//        if (!isEnabled()) return this;
         ((TextField) this.awtComponent).setText(String.valueOf((int) value));
         return this;
     }
