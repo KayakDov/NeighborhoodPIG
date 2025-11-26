@@ -254,8 +254,8 @@ public class FijiPlugin implements PlugIn {
     }
 
     private static String[] defaultArgs() {
-        String imagePath = "images/input/SingleTest";
-        int depth = 25;
+        String imagePath = "/home/dov/Downloads/OneDrive_1_11-26-2025";
+        int depth = 34;
 
 //        String imagePath = "images/input/SingleTest/";
 //        int depth = 1;
@@ -266,30 +266,30 @@ public class FijiPlugin implements PlugIn {
         VF hasVF = VF.Color;
         boolean hasCoherence = true;
         String saveVectors = "false";
-        int vfSpacingXY = 7;
-        int vfSpacingZ = 6;
-        int mag = 7;
-        boolean overlay = true;
-        int downSampleXY = 7;
-        int downSampleZ = 1;
+        int vfSpacingXY = 15;
+        int vfSpacingZ = 5;
+        int mag =15;
+        boolean overlay = false;
+        int downSampleXY = 10;
+        int downSampleZ = 3;
 
         return new String[]{
             imagePath,
             "" + depth,
             "png", // Default output format for image-based results
             "" + xyR,
-//            "" + zR,
-//            "" + zDist,
+            "" + zR,
+            "" + zDist,
             "" + hasHeatMap,
             "" + hasVF,
             "" + hasCoherence,
             "" + saveVectors, // This flag would be parsed by UserInput.fromStrings
             "" + vfSpacingXY,
-//            "" + vfSpacingZ,
+            "" + vfSpacingZ,
             "" + mag,
-            "" + overlay,
+//            "" + overlay,
             "" + downSampleXY,
-//            "" + downSampleZ
+            "" + downSampleZ
         };
 
     }
@@ -359,7 +359,10 @@ public class FijiPlugin implements PlugIn {
      * correctly.
      */
     private int processNPIGResults(UsrInput ui, Handle handle, NeighborhoodPIG np) {
+        
+        int depth = 0;
 
+    
         if (ui.heatMap) {
 
             appendHM(az, np.getAzimuthalAnglesHeatMap(ui.tolerance), 0, (float) Math.PI, es);
@@ -368,7 +371,7 @@ public class FijiPlugin implements PlugIn {
         }
 
         if (ui.vectorField.is()) {
-            appendVF(
+            depth = appendVF(
                     ui,
                     np.getVectorImg(
                             ui.spacingXY.get(),
@@ -389,7 +392,7 @@ public class FijiPlugin implements PlugIn {
         if (ui.saveDatToDir.isPresent())
             new TxtSaver(ui.dim, np.stm.getVectors(), handle, ui.saveDatToDir.get(), ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), np.stm.coherence, ui.tolerance).saveAllVectors();
 
-        return 0;
+        return depth;
     }
 
     /**
