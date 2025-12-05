@@ -238,7 +238,7 @@ public class UsrDialog {
 
             if (enableSpacing() && spacingXY.valD().get() == 0) {
                 spacingXY.val(xyR.valI().get());
-                spacingZ.val(zR.valI().orElse(0));
+                if(spacingZ.isEnabled()) spacingZ.val(zR.valI().orElse(0));
             }
 
         } catch (NumberFormatException nfe) {

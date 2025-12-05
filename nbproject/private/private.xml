@@ -2,6 +2,17 @@
 <project-private xmlns="http://www.netbeans.org/ns/project-private/1">
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
-        <group/>
+        <group>
+            <file>file:/home/dov/Documents/NeighborhoodPIG/src/FijiInput/UsrInput.java</file>
+            <file>file:/home/dov/Documents/NeighborhoodPIG/src/FijiInput/UsrDialog.java</file>
+            <file>file:/home/dov/Documents/NeighborhoodPIG/src/FijiInput/field/RadioButtonsField.java</file>
+            <file>file:/home/dov/Documents/NeighborhoodPIG/src/FijiInput/field/VF.java</file>
+            <file>file:/home/dov/Documents/NeighborhoodPIG/src/FijiInput/field/NumericField.java</file>
+            <file>file:/home/dov/Documents/NeighborhoodPIG/src/FijiInput/field/Field.java</file>
+            <file>file:/home/dov/Documents/NeighborhoodPIG/src/fijiPlugin/FijiPlugin.java</file>
+            <file>file:/home/dov/Documents/NeighborhoodPIG/src/imageWork/MyImagePlus.java</file>
+            <file>file:/home/dov/Documents/NeighborhoodPIG/src/fijiPlugin/Dimensions.java</file>
+            <file>file:/home/dov/Documents/NeighborhoodPIG/src/imageWork/MyImageStack.java</file>
+        </group>
     </open-files>
 </project-private>
