@@ -220,6 +220,7 @@ public class MyImagePlus extends ImagePlus {
         int frames = imp.getNFrames();
         String baseFileName = new File(getTitle()).getName().replaceFirst("^_", "");
 
+        System.out.println("Saving to: " + saveTo);
         for (int t = 1; t <= frames; t++) {
             for (int z = 1; z <= slices; z++) {
                 int index = imp.getStackIndex(1, z, t);
@@ -239,10 +240,8 @@ public class MyImagePlus extends ImagePlus {
 
                 FileSaver fs = new FileSaver(sliceToSave);
 
-                if (!toTiff && fs.saveAsPng(outFile.getAbsolutePath())
-                        || toTiff && fs.saveAsTiff(outFile.getAbsolutePath()))
-                    System.out.println("Saved: " + outFile.getAbsolutePath());
-                else System.err.println("Failed to save: " + outFile.getAbsolutePath());
+                if (toTiff || !fs.saveAsPng(outFile.getAbsolutePath()) && (!toTiff || !fs.saveAsTiff(outFile.getAbsolutePath())))
+                    System.err.println("Failed to save: " + outFile.getAbsolutePath());
             }
         }
     }

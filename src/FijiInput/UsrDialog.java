@@ -6,14 +6,18 @@ import FijiInput.field.BooleanField;
 import static FijiInput.UsrInput.defaultTolerance;
 import FijiInput.field.RadioButtonsField;
 import FijiInput.field.VF;
+import fijiPlugin.FijiPlugin;
+import fijiPlugin.Launcher;
 import fijiPlugin.NeighborhoodDim; // Assuming NeighborhoodDim is in fijiPlugin package
 import ij.IJ;
 import ij.ImagePlus;
 import ij.Prefs;
 import ij.gui.DialogListener;
-import ij.gui.GenericDialog;
+import ij.gui.NonBlockingGenericDialog;
 import imageWork.MyImagePlus;
 import java.awt.AWTEvent;
+import java.awt.Button;
+import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Optional;
@@ -21,16 +25,14 @@ import java.util.Optional;
 /**
  * This class is responsible for displaying a graphical user interface (GUI)
  * using ImageJ's GenericDialog to collect input parameters from the user. It
- * manages the lifecycle of the dialog, user interactions, and then constructs
+ * manages the life cycle of the dialog, user interactions, and then constructs
  * an immutable {@link UsrInput} object from the collected data.
  *
  * @author E. Dov Neimand
  */
 public class UsrDialog {
 
-    private UsrInput ui;
-
-    private final GenericDialog gd;
+    private final NonBlockingGenericDialog gd;
     private final HelpDialog hf;
     private NumericField downSampleXY;
     private NumericField downSampleZ;
@@ -47,21 +49,26 @@ public class UsrDialog {
     private final DirectoryField saveToDirField;
     private final boolean hasZ;
 
+    
+    /**
+     * Creates a UserInput object from a dialog box presented to the user.     
+     */
+    public UsrDialog() {
+        this(-1, -1);
+    }
+    
     /**
      * Creates a UserInput object from a dialog box presented to the user.
-     *
-     * @throws UserCanceled If the user cancels the dialog box.
+     * @param xLoc The x location of the dialog.
+     * @param yLoc The y location of the dialog.
      */
-    public UsrDialog() throws UserCanceled, NoImage {
-        ImagePlus imp = getIJFrontImage();
-        
-        
-        if(imp == null) throw new NoImage();
-        
-        
-        hasZ = imp.getNSlices() > 1;
+    public UsrDialog(int xLoc, int yLoc) {
 
-        gd = new GenericDialog("NeighborhoodPIG Parameters");
+        hasZ = getIJFrontImage().getNSlices() > 1;
+
+        gd = new NonBlockingGenericDialog("NeighborhoodPIG Parameters");
+        if(xLoc >= 0 && yLoc >=0) gd.setLocation(xLoc, yLoc);;
+        
         hf = addHelpButton(gd);
 
         downSampleXY = new NumericField("Downsample factor XY:", 1, gd, 0,
@@ -90,9 +97,9 @@ public class UsrDialog {
                 "Computes and displays a heatmap representing pixel coherence.",
                 hf);
 
-        vectorField = new RadioButtonsField("Vector Field", VF.None, gd, 
-                "Select none for no vector field to be displayed. Color, for a colored vector field. And White for a field of white vectors."
-                , hf);
+        vectorField = new RadioButtonsField("Vector Field", VF.None, gd,
+                "Select none for no vector field to be displayed. Color, for a colored vector field. And White for a field of white vectors.",
+                hf);
 
         saveToDirField = new DirectoryField("Save Directory:", "", gd,
                 "Select the directory where vector data files (.dat) will be saved. Leave empty if not saving.",
@@ -100,39 +107,110 @@ public class UsrDialog {
 
         overlay = new BooleanField("Overlay Vector Field", false, gd,
                 "Overlays the vector field directly on the original image.",
-                hf, !hasZ).setEnabled(!hasZ && ((VF)vectorField.val().get()).is());
+                hf, !hasZ).setEnabled(!hasZ && ((VF) vectorField.val().get()).is());
 
         spacingXY = new NumericField("Vector Field Spacing XY:", 0, gd, 0,
                 "Distance (pixels) between vectors in the xy plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
                 hf).setEnabled(enableSpacing());
 
-        if(overlay.is().orElse(false)) spacingXY.val(downSampleXY.valF().get());
-        
+        if (overlay.is().orElse(false)) {
+            spacingXY.val(downSampleXY.valF().get());
+        }
+
         spacingZ = new NumericField("Vector Field Spacing Z:", 0, gd, 0,
                 "Distance (pixels) between vectors in the z plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
                 hf, hasZ).setEnabled(enableSpacing());
 
         mag = new NumericField("Vector Field Magnitude:", 0, gd, 0,
                 "Visual length (pixels) of the displayed vectors.",
-                hf).setEnabled(((VF)vectorField.val().get()).is());
+                hf).setEnabled(((VF) vectorField.val().get()).is());
+
+        updateFields();
+        final DialogListener dl = (gd1, e) -> {
+            updateFields();
+            return true;
+        };
 
         gd.addDialogListener(dl);
 
-        gd.showDialog();
+        gd.showDialog(); 
 
-        spacingXY.setEnabled(overlay.isEnabled() || spacingXY.isEnabled());
+        if (gd.wasOKed()) {   
+            new Thread(new Launcher(buildUsrInput(), Launcher.Save.fiji)).start();
+            if(getIJFrontImage() != null) new UsrDialog(gd.getX(), gd.getY());
+        }
+        if (hf != null) hf.dispose();
         
-        if (gd.wasCanceled()) throw new UserCanceled();        
-        
-        ui = new UsrInput(
-                imp,
+
+    
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////
+//        gd.addDialogListener(dl);
+//
+//        gd.showDialog();
+//
+//        spacingXY.setEnabled(overlay.isEnabled() || spacingXY.isEnabled());
+//        if (gd.wasCanceled()) throw new UserCanceled();        
+//        Prefs.savePreferences();
+    }
+
+    private void updateFields() {
+        try {
+
+            spacingXY.setEnabled(enableSpacing());
+
+            boolean vfIs = ((VF) vectorField.val().get()).is();
+
+            mag.setEnabled(vfIs);
+
+            if (overlay.is().orElse(false)) {
+                spacingXY.val(downSampleXY.valF().get());
+            }
+
+            overlay.setEnabled(vfIs);
+
+            spacingZ.setEnabled(enableSpacing());
+
+            if (downSampleOrig && vfIs) {
+
+                if (downSampleXY.valF().get() == 0) {
+                    downSampleXY.val(xyR.valI().get());
+                }
+                if (downSampleZ.valF().orElse(1f) == 0) {
+                    downSampleZ.val(zR.valI().orElse(0));
+                }
+                if (mag.valF().get() == 0) {
+                    mag.val(xyR.valI().get());
+                }
+                downSampleOrig = false;
+
+            }
+
+            if (enableSpacing() && spacingXY.valD().get() == 0) {
+                spacingXY.val(xyR.valI().get());
+                if (spacingZ.isEnabled()) {
+                    spacingZ.val(zR.valI().orElse(0));
+                }
+            }
+
+            if (enableSpacing() && mag.valD().orElse(1.0) == 0) {
+                mag.val(spacingXY.valF().orElse(xyR.valF().orElse(3f)));
+            }
+
+        } catch (NumberFormatException nfe) {
+        }
+    }
+
+    private UsrInput buildUsrInput() {
+        return new UsrInput(
+                getIJFrontImage(),
                 new NeighborhoodDim(
                         xyR.valF().get().intValue(),
                         zR.valI(),
                         layerDist.valD()
                 ),
                 heatmap.is().get(),
-                (VF)vectorField.val().get(),
+                (VF) vectorField.val().get(),
                 coherence.is().get(),
                 saveToDirField.saveValue().getPath(),
                 overlay.is(),
@@ -143,33 +221,32 @@ public class UsrDialog {
                 downSampleZ.valI(),
                 defaultTolerance
         );
-        
-        Prefs.savePreferences();
     }
 
     private boolean downSampleOrig = true;
 
     /**
      * Gets the image from ImageJ.
+     *
      * @return The image currently open in imageJ.
      */
-    public static ImagePlus getIJFrontImage(){
-        try {            
+    public static ImagePlus getIJFrontImage() {
+        try {
             return new MyImagePlus(ij.WindowManager.getCurrentImage());
         } catch (NullPointerException npe) {
             IJ.error("Missing Image", "No image found. Please open one.");
             return null;
         }
     }
-    
+
     /**
      * True of xy and z spacing should be enabled. False otherwise.
      *
      * @return True of xy and z spacing should be enabled. False otherwise.
      */
     private boolean enableSpacing() {
-        return (!overlay.is().orElse(false)) && 
-                (((Optional<VF>)vectorField.val()).orElse(VF.None).is() || saveToDirField.getPath().isPresent());
+        return (!overlay.is().orElse(false))
+                && (((Optional<VF>) vectorField.val()).orElse(VF.None).is() || saveToDirField.getPath().isPresent());
     }
 
     /**
@@ -178,13 +255,15 @@ public class UsrDialog {
      * @param gd The generic dialog the help frame should be added to.
      * @return The help frame.
      */
-    private HelpDialog addHelpButton(GenericDialog gd) {
+    private HelpDialog addHelpButton(NonBlockingGenericDialog gd) {
 
         HelpDialog help = new HelpDialog(gd, "Help for Neighborhood PIG");
 
         gd.addButton("Help", e -> {
             help.setVisible(!help.isVisible());
-            if (help.isVisible()) help.toFront();
+            if (help.isVisible()) {
+                help.toFront();
+            }
         });
 
         gd.addWindowListener(new WindowAdapter() {
@@ -197,53 +276,5 @@ public class UsrDialog {
 
         return help;
     }
-
-    /**
-     * Gets the user's input.
-     *
-     * @return The user's input.
-     */
-    public UsrInput getUserInput() {
-        return ui;
-    }
-
-    /**
-     * The dialog listener.
-     */
-    private final DialogListener dl = (GenericDialog gd1, AWTEvent e) -> {
-        try {
-
-            spacingXY.setEnabled(enableSpacing());
-
-            boolean vfIs = ((VF)vectorField.val().get()).is();
-            
-            mag.setEnabled(vfIs);
-            
-            if(overlay.is().orElse(false)) spacingXY.val(downSampleXY.valF().get());
-            
-            
-            overlay.setEnabled(vfIs);
-
-            spacingZ.setEnabled(enableSpacing());
-            
-
-            if (downSampleOrig && vfIs) {
-
-                if (downSampleXY.valF().get() == 0) downSampleXY.val(xyR.valI().get());
-                if (downSampleZ.valF().orElse(1f) == 0) downSampleZ.val(zR.valI().orElse(0));
-                if (mag.valF().get() == 0) mag.val(xyR.valI().get());
-                downSampleOrig = false;
-
-            }
-
-            if (enableSpacing() && spacingXY.valD().get() == 0) {
-                spacingXY.val(xyR.valI().get());
-                if(spacingZ.isEnabled()) spacingZ.val(zR.valI().orElse(0));
-            }
-
-        } catch (NumberFormatException nfe) {
-        }
-        return true;
-    };
 
 }
