@@ -64,7 +64,7 @@ public class UsrDialog {
      */
     public UsrDialog(int xLoc, int yLoc) {
 
-        hasZ = getIJFrontImage().getNSlices() > 1;
+        hasZ = getIJFrontImage().get().getNSlices() > 1;
 
         gd = new NonBlockingGenericDialog("NeighborhoodPIG Parameters");
         if(xLoc >= 0 && yLoc >=0) gd.setLocation(xLoc, yLoc);;
@@ -136,8 +136,14 @@ public class UsrDialog {
         gd.showDialog(); 
 
         if (gd.wasOKed()) {   
-            new Thread(new Launcher(buildUsrInput(), Launcher.Save.fiji)).start();
-            if(getIJFrontImage() != null) new UsrDialog(gd.getX(), gd.getY());
+            
+            if(getIJFrontImage().isPresent()) {
+                new Thread(new Launcher(buildUsrInput(), Launcher.Save.fiji)).start();
+                new UsrDialog(gd.getX(), gd.getY());
+            } else {
+                IJ.error("NeighborhoodPIG", "No image found.");
+
+            }
         }
         if (hf != null) hf.dispose();
         
@@ -203,7 +209,7 @@ public class UsrDialog {
 
     private UsrInput buildUsrInput() {
         return new UsrInput(
-                getIJFrontImage(),
+                getIJFrontImage().get(),
                 new NeighborhoodDim(
                         xyR.valF().get().intValue(),
                         zR.valI(),
@@ -230,12 +236,11 @@ public class UsrDialog {
      *
      * @return The image currently open in imageJ.
      */
-    public static ImagePlus getIJFrontImage() {
+    public static Optional<ImagePlus> getIJFrontImage() {
         try {
-            return new MyImagePlus(ij.WindowManager.getCurrentImage());
-        } catch (NullPointerException npe) {
-            IJ.error("Missing Image", "No image found. Please open one.");
-            return null;
+            return Optional.of(new MyImagePlus(ij.WindowManager.getCurrentImage()));
+        } catch (NullPointerException npe) {            
+            return Optional.empty();
         }
     }
 

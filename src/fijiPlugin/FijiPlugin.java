@@ -1,37 +1,17 @@
 package fijiPlugin;
 
-import FijiInput.NoImage;
-import FijiInput.UserCanceled;
 import FijiInput.UsrDialog;
 import FijiInput.UsrInput;
 import FijiInput.field.VF;
-import JCudaWrapper.array.Array;
 import JCudaWrapper.resourceManagement.GPU;
-import JCudaWrapper.resourceManagement.Handle;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.gui.Toolbar;
 import ij.plugin.PlugIn;
-import imageWork.TxtSaver;
-import imageWork.HeatMapCreator;
-import imageWork.MyImagePlus;
-import imageWork.MyImageStack;
 import imageWork.ProcessImage;
-import imageWork.vectors.VectorImg;
-import java.awt.Color;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.SwingUtilities;
-import jcuda.Sizeof;
 
 /**
  *
@@ -86,7 +66,7 @@ public class FijiPlugin implements PlugIn {
             }
             else  IJ.error("Your must select an image.");
         } else
-            new Launcher(UsrInput.fromStrings(string.split(" "), UsrDialog.getIJFrontImage()), Launcher.Save.png).run();
+            new Launcher(UsrInput.fromStrings(string.split(" "), UsrDialog.getIJFrontImage().get()), Launcher.Save.png).run();
         
     }
 
