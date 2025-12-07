@@ -61,7 +61,7 @@ public class FijiPlugin implements PlugIn {
     public void run(String string) {
 
         if (string.length() == 0) {
-            if(UsrDialog.getIJFrontImage() != null) {
+            if(UsrDialog.getIJFrontImage().isPresent()) {
                 UsrDialog ud = new UsrDialog();
             }
             else  IJ.error("Your must select an image.");

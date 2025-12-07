@@ -34,15 +34,15 @@ public abstract class Field implements FocusListener {
      * @param helpText Instructions to the user for how to use the field.
      * @param helpLabel The help message will be posted here when focus is on
      * this.
-     * @param isAcitve Set to false if this will never be used. Otherwise set to
+     * @param appearsInDialog Set to false if this will never be used. Otherwise set to
      * true.
      */
-    public Field(String name, GenericDialog gd, String helpText, HelpDialog helpLabel, boolean isAcitve) {
+    public Field(String name, GenericDialog gd, String helpText, HelpDialog helpLabel, boolean appearsInDialog) {
         this.name = name;
         this.gd = gd;
         this.helpText = helpText;
         this.helpMessageFrame = helpLabel;
-        this.isActive = isAcitve;
+        this.isActive = appearsInDialog;
     }
 
     /**

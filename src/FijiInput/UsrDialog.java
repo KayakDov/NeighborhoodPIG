@@ -221,7 +221,7 @@ public class UsrDialog {
                 saveToDirField.saveValue().getPath(),
                 overlay.is(),
                 mag.valI(),
-                spacingXY.valI(),
+                overlay.is().orElse(false) ? downSampleXY.valI() : spacingXY.valI(),
                 spacingZ.valI(),
                 downSampleXY.valI().get(),
                 downSampleZ.valI(),
