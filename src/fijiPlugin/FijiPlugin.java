@@ -61,9 +61,7 @@ public class FijiPlugin implements PlugIn {
     public void run(String string) {
 
         if (string.length() == 0) {
-            if(UsrDialog.getIJFrontImage().isPresent()) {
-                UsrDialog ud = new UsrDialog();
-            }
+            if(UsrDialog.getIJFrontImage().isPresent()) new UsrDialog();            
             else  IJ.error("Your must select an image.");
         } else
             new Launcher(UsrInput.fromStrings(string.split(" "), UsrDialog.getIJFrontImage().get()), Launcher.Save.png).run();
@@ -153,11 +151,7 @@ public class FijiPlugin implements PlugIn {
      */
     public static void main(String[] args) {//        loadImageJ();
 
-        System.out.println("fijiPlugin.FijiPlugin.main()before \n" + GPU.memory());
-
-        if (args.length == 0) {
-            args = defaultArgs();
-        }
+        if (args.length == 0) args = defaultArgs();        
 
         FijiPlugin fp = new FijiPlugin();
 
@@ -165,29 +159,33 @@ public class FijiPlugin implements PlugIn {
 
         ImagePlus imp = ProcessImage.getImagePlus(args[0], depth);
 
-        new Launcher(UsrInput.fromStrings(Arrays.copyOfRange(args, 3, args.length), imp), Launcher.Save.valueOf(args[2])).run();        
+        new Launcher(
+                UsrInput.fromStrings(Arrays.copyOfRange(args, 3, args.length), imp), 
+                Launcher.Save.valueOf(args[2])
+        ).run();
 
     }
 
     private static String[] defaultArgs() {
-        String imagePath = "/home/dov/Downloads/OneDrive_1_11-26-2025";
-        int depth = 34;
+//        String imagePath = "/home/dov/Downloads/OneDrive_1_11-26-2025";
+        String imagePath = "/home/dov/Documents/NeighborhoodPIG/images/input/colorStack";
+        
 
 //        String imagePath = "images/input/SingleTest/";
-//        int depth = 1;
+        int depth = 3;
         int xyR = 5;
-        int zR = 5;
+        int zR = 1;
         double zDist = 1;
         boolean hasHeatMap = true;
-        VF hasVF = VF.Color;
-        boolean hasCoherence = true;
+        VF hasVF = VF.None;
+        boolean hasCoherence = false;
         String saveVectors = "false";
-        int vfSpacingXY = 15;
-        int vfSpacingZ = 5;
+//        int vfSpacingXY = 15;
+//        int vfSpacingZ = 5;
         int mag = 15;
         boolean overlay = false;
-        int downSampleXY = 10;
-        int downSampleZ = 3;
+        int downSampleXY = 1;
+        int downSampleZ = 1;
 
         return new String[]{
             imagePath,
@@ -200,9 +198,9 @@ public class FijiPlugin implements PlugIn {
             "" + hasVF,
             "" + hasCoherence,
             "" + saveVectors, // This flag would be parsed by UserInput.fromStrings
-            "" + vfSpacingXY,
-            "" + vfSpacingZ,
-            "" + mag,
+//            "" + vfSpacingXY,
+//            "" + vfSpacingZ,
+//            "" + mag,
             //            "" + overlay,
             "" + downSampleXY,
             "" + downSampleZ

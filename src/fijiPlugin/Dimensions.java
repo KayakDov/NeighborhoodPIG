@@ -114,7 +114,8 @@ public class Dimensions implements Closeable {
     /**
      * Finds the dimensions from an ImagePlus.
      *
-     * @param imp
+     * @param imp The height and width will be extracted from this image.
+     * @param depth The depth of the image.
      */
     public Dimensions(ImageStack imp, int depth) {
         this(imp.getHeight(), imp.getWidth(), depth, imp.size() / depth);

@@ -48,9 +48,7 @@ public class MyImagePlus extends ImagePlus {
      *
      * @param imp The ImagePlus to copy from.
      */
-    public MyImagePlus(ImagePlus imp) {
-        // Call the superclass constructor using the original ImagePlus's stack reference.
-        // This is efficient as it doesn't duplicate the pixel data.
+    public MyImagePlus(ImagePlus imp) {        
         super(imp.getTitle(), imp.getImageStack());
 
         // Copy all relevant metadata from the original ImagePlus

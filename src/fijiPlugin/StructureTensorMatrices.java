@@ -28,9 +28,7 @@ public class StructureTensorMatrices implements AutoCloseable {
      */
     public StructureTensorMatrices(Handle handle, MyImagePlus imp, UsrInput ui) {
         try (Gradient grad = new Gradient(handle, imp, ui)) {
-            dim = grad.dim;            
-            
-            
+            dim = grad.dim;         
             
             eigen = new Eigen(handle, dim, ui);
             

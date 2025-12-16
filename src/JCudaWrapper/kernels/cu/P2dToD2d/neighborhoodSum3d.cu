@@ -122,6 +122,7 @@ extern "C" __global__ void neighborhoodSum3dKernel(
     const int r,
     const int direction
 ) {
+
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= n) return; // Out-of-bounds thread
@@ -154,28 +155,35 @@ extern "C" __global__ void neighborhoodSum3dKernel(
     }
 
     double rollingSum = 0;
-    for (int i = 0; i <= r; i++)
+
+    int m = min(r + 1, numSteps);
+
+    for (int i = 0; i < m; i++) //loop 1: init 1st value
         rollingSum += src.get(i);
     
     dst.set(rollingSum);
 
     int i = 1;
-    
-    for (; i <= r; i++) {
+    m = min(r + 1, numSteps - r); //loop 2: first section
+    for (; i < m; i++) {
         src.move(); 
         dst.move();
         dst.set(rollingSum += src.get(r));
     }
-    
-    for (; i < numSteps - r; i++) {
+    m = numSteps - r;
+    for (; i < m; i++) { //loop 3: mid section
         src.move();
         dst.move();
         dst.set(rollingSum += src.get(r) - src.get(-r - 1));
     }
-
-    for (; i < numSteps; i++) {
-	src.move();
-	dst.move();
+    m = min(r + 1, numSteps);
+    for(;i < m; i++){//loop 4: end section for big r
+        dst.move();
+        dst.set(rollingSum);
+    }
+    for (; i < numSteps; i++) { //loop 5: end section for small r
+	    src.move();
+	    dst.move();
         dst.set(rollingSum -= src.get(-r - 1));
     }
 }

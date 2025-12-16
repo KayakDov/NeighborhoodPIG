@@ -27,9 +27,8 @@ import jcuda.Sizeof;
  *
  * @author dov
  */
-public class Launcher implements Runnable{
+public class Launcher implements Runnable {
 
-    
     /**
      * Defines the available save formats for plugin outputs.
      * <ul>
@@ -43,7 +42,7 @@ public class Launcher implements Runnable{
     public enum Save {
         tiff, png, fiji, txt // Added txt for saving raw vector data
     }
-    
+
     public final MyImageStack vf, coh, az, zen;
     public final ExecutorService es = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     private final UsrInput ui;
@@ -51,6 +50,7 @@ public class Launcher implements Runnable{
 
     /**
      * Constructs the launcher.
+     *
      * @param ui The user input.
      * @param save How the data should be saved.
      */
@@ -59,11 +59,11 @@ public class Launcher implements Runnable{
         coh = ui.dim.emptyStack();
         az = ui.dim.emptyStack();
         zen = ui.dim.emptyStack();
-        
+
         this.ui = ui;
         this.save = save;
     }
-    
+
     /**
      * The maximum number of frames that can be processed at once. TODO: this
      * should take downsampling into account!
@@ -74,24 +74,22 @@ public class Launcher implements Runnable{
 
         long freeMemory = GPU.freeMemory();
 
-        if (freeMemory == 0) {
+        if (freeMemory == 0)
             throw new RuntimeException("There is no free GPU memory.");
-        }
 
         long voxlesPerFrame = (long) ui.dim.height * ui.dim.width * ui.dim.depth;
 
         int framesPerRun = (int) ((freeMemory / voxlesPerFrame) / (Sizeof.DOUBLE * (ui.dim.depth > 1 ? 6 : 3) + Sizeof.FLOAT * (ui.dim.depth > 1 ? 3 : 2)));
 
-        if (framesPerRun > 1) {
+        if (framesPerRun > 1)
             return framesPerRun / 2;
-        } else if (framesPerRun <= 0) {
+        else if (framesPerRun <= 0)
             IJ.error("Your stack has a high depth relative to GPU size. This may cause a crash due to insufficiant GPU memory to process a complete frame.");
-        }
 
         return 1;
 
     }
-    
+
     /**
      * Takes the results from running NeighborhoodPIG and loads them into
      * imageStacks or saved files based on the user's input. This method
@@ -127,12 +125,11 @@ public class Launcher implements Runnable{
         if (ui.heatMap) {
 
             appendHM(az, np.getAzimuthalAnglesHeatMap(ui.tolerance), 0, (float) Math.PI, es);
-            if (ui.img.dim().hasDepth()) {
+            if (ui.img.dim().hasDepth())
                 appendHM(zen, np.getZenithAnglesHeatMap(false, 0.01), 0, (float) Math.PI, es);
-            }
         }
 
-        if (ui.vectorField.is()) {
+        if (ui.vectorField.is())
             depth = appendVF(
                     ui,
                     np.getVectorImg(
@@ -146,19 +143,17 @@ public class Launcher implements Runnable{
                     vf,
                     es
             );
-        }
 
-        if (ui.coherence) {
+        if (ui.coherence)
             appendHM(coh, np.getCoherenceHeatMap(ui.tolerance), 0, 1, es);
-        }
 
-        if (ui.saveDatToDir.isPresent()) {
+        if (ui.saveDatToDir.isPresent())
             new TxtSaver(ui.dim, np.stm.getVectors(), handle, ui.saveDatToDir.get(), ui.spacingXY.orElse(1), ui.spacingZ.orElse(1), np.stm.coherence, ui.tolerance).saveAllVectors();
-        }
 
         return depth;
     }
-/**
+
+    /**
      * prints the amount of time since the clock started.
      *
      * @param startTime
@@ -229,15 +224,14 @@ public class Launcher implements Runnable{
      * @param vecImgDepth The depth of the vector image.
      * @param myImg The image worked on.
      */
-    private void results(Save save, UsrInput ui, int vecImgDepth) {
+    private void processResults(Save save, UsrInput ui, int vecImgDepth) {
 
         if (ui.heatMap) {
             present(az.getImagePlus("Azimuthal Angles", ui.dim.depth), save, "N_PIG_images" + File.separatorChar + "Azimuthal");
-            if (ui.dim.hasDepth()) {
+            if (ui.dim.hasDepth())
                 present(zen.getImagePlus("Zenith Angles", ui.dim.depth), save, "N_PIG_images" + File.separatorChar + "Zenith");
-            }
         }
-        if (ui.vectorField.is()) {
+        if (ui.vectorField.is())
             present(
                     !ui.dim.hasDepth() && ui.overlay.orElse(false)
                     ? new MyImagePlus("Overlaid Nematic Vectors", ui.img.getImageStack(), ui.dim.depth).overlay(vf, Color.GREEN)
@@ -245,11 +239,9 @@ public class Launcher implements Runnable{
                     save,
                     "N_PIG_images" + File.separatorChar + "vectors"
             );
-        }
 
-        if (ui.coherence) {
+        if (ui.coherence)
             present(coh.getImagePlus("Coherence", ui.dim.depth), save, "N_PIG_images" + File.separatorChar + "Coherence");
-        }
     }
 
     /**
@@ -279,13 +271,12 @@ public class Launcher implements Runnable{
         }
 
     }
-    
+
     @Override
     public void run() {
         System.out.println("fijiPlugin.FijiPlugin.run() Thread launched.");
-        if (!ui.validParamaters()) {
+        if (!ui.validParamaters())
             throw new RuntimeException("fijiPlugin.FijiPlugin.run() Invalid Parameters!");
-        }
 
         try {
 
@@ -303,15 +294,13 @@ public class Launcher implements Runnable{
             awaitThreadTermination();
             printTime(startTime);
 
-            results(save, ui, vecImgDepth);
+            processResults(save, ui, vecImgDepth);
         } catch (Exception ex) {
             System.out.println("fijiPlugin.FijiPlugin.run() " + ui.toString() + " " + ex.toString());
             throw ex;
         }
-        if (!Array.allocatedArrays.isEmpty()) {
+        if (!Array.allocatedArrays.isEmpty())
             throw new RuntimeException("Neighborhood PIG has a GPU memory leak.");
-        }
     }
 
-    
 }

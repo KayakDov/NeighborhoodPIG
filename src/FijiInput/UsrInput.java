@@ -125,16 +125,17 @@ public class UsrInput {
         this.spacingXY = vfSpacingXY;
         this.spacingZ = vfSpacingZ;
         this.downSampleFactorZ = downSampleFactorZ;
-        
-        if(!validImage(img)) IJ.error("There's something wrong with your image.");
-        
+
+        if (!validImage(img))
+            IJ.error("There's something wrong with your image.");
+
         this.img = new MyImagePlus(img).crop(
                 downSampleXY(img.getHeight()),
                 downSampleXY(img.getWidth()),
                 downSampleZ(img.getNSlices())
         );
         img.setOpenAsHyperStack(true);
-        dim = this.img.dim().downSample(null, downSampleFactorXY, downSampleFactorZ.orElse(1));;
+        dim = this.img.dim().downSample(null, downSampleFactorXY, downSampleFactorZ.orElse(1));
     }
 
     /**
@@ -145,13 +146,10 @@ public class UsrInput {
      */
     private static boolean validImage(ImagePlus imp) {
 
-        // Check if an image is open
         if (imp == null) {
             ij.IJ.showMessage("No image open.");
             return false;
         }
-
-        // Convert the image to grayscale if it's not already
         if (imp.getType() != ImagePlus.GRAY32
                 && imp.getType() != ImagePlus.GRAY16
                 && imp.getType() != ImagePlus.GRAY8) {
@@ -159,10 +157,9 @@ public class UsrInput {
             ImageConverter converter = new ImageConverter(imp);
             converter.convertToGray32(); // Convert to 32-bit grayscale for consistency
         }
-
         return true;
     }
-    
+
     /**
      * Constructs a {@code UserInput} object by parsing an array of strings.
      * This method is useful for loading parameters from a saved configuration
@@ -280,7 +277,7 @@ public class UsrInput {
      * @return true if the parameters are valid, false otherwise.
      */
     public boolean validParamaters() {
-        
+
         return neighborhoodSize.valid()
                 && spacingXY.orElse(2) > 1
                 && spacingZ.orElse(2) > 1

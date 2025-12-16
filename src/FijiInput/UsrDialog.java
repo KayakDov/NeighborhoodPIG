@@ -11,12 +11,18 @@ import fijiPlugin.Launcher;
 import fijiPlugin.NeighborhoodDim; // Assuming NeighborhoodDim is in fijiPlugin package
 import ij.IJ;
 import ij.ImagePlus;
+import ij.ImageStack;
 import ij.Prefs;
 import ij.gui.DialogListener;
 import ij.gui.NonBlockingGenericDialog;
+import ij.process.ByteProcessor;
+import ij.process.ColorProcessor;
+import ij.process.ImageConverter;
+import ij.process.ImageProcessor;
 import imageWork.MyImagePlus;
 import java.awt.AWTEvent;
 import java.awt.Button;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -49,26 +55,26 @@ public class UsrDialog {
     private final DirectoryField saveToDirField;
     private final boolean hasZ;
 
-    
-    /**
-     * Creates a UserInput object from a dialog box presented to the user.     
-     */
-    public UsrDialog() {
-        this(-1, -1);
-    }
-    
     /**
      * Creates a UserInput object from a dialog box presented to the user.
-     * @param xLoc The x location of the dialog.
-     * @param yLoc The y location of the dialog.
      */
-    public UsrDialog(int xLoc, int yLoc) {
+    public UsrDialog() {
+        this(null);
+    }
+
+    /**
+     * Creates a UserInput object from a dialog box presented to the user.
+     *
+     * @param loc The location of the dialog.
+     */
+    public UsrDialog(Point loc) {
 
         hasZ = getIJFrontImage().get().getNSlices() > 1;
 
         gd = new NonBlockingGenericDialog("NeighborhoodPIG Parameters");
-        if(xLoc >= 0 && yLoc >=0) gd.setLocation(xLoc, yLoc);;
-        
+        if (loc != null)
+            gd.setLocation(loc);
+
         hf = addHelpButton(gd);
 
         downSampleXY = new NumericField("Downsample factor XY:", 1, gd, 0,
@@ -113,9 +119,8 @@ public class UsrDialog {
                 "Distance (pixels) between vectors in the xy plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
                 hf).setEnabled(enableSpacing());
 
-        if (overlay.is().orElse(false)) {
+        if (overlay.is().orElse(false))
             spacingXY.val(downSampleXY.valF().get());
-        }
 
         spacingZ = new NumericField("Vector Field Spacing Z:", 0, gd, 0,
                 "Distance (pixels) between vectors in the z plane. \nAdjust to prevent crowding or sparse display.\nToo much spacing may cause an out of memmory crash.",
@@ -133,20 +138,19 @@ public class UsrDialog {
 
         gd.addDialogListener(dl);
 
-        gd.showDialog(); 
+        gd.showDialog();
 
-        if (gd.wasOKed()) {   
-            
-            if(getIJFrontImage().isPresent()) {
+        if (gd.wasOKed()) {
+
+            if (getIJFrontImage().isPresent()) {
                 new Thread(new Launcher(buildUsrInput(), Launcher.Save.fiji)).start();
-                new UsrDialog(gd.getX(), gd.getY());
-            } else {
+                new UsrDialog(gd.getLocation());
+            } else
                 IJ.error("NeighborhoodPIG", "No image found.");
 
-            }
+            if (hf != null)
+                hf.dispose();
         }
-        if (hf != null) hf.dispose();
-        
 
     
 
@@ -169,9 +173,8 @@ public class UsrDialog {
 
             mag.setEnabled(vfIs);
 
-            if (overlay.is().orElse(false)) {
+            if (overlay.is().orElse(false))
                 spacingXY.val(downSampleXY.valF().get());
-            }
 
             overlay.setEnabled(vfIs);
 
@@ -179,35 +182,31 @@ public class UsrDialog {
 
             if (downSampleOrig && vfIs) {
 
-                if (downSampleXY.valF().get() == 0) {
+                if (downSampleXY.valF().get() == 0)
                     downSampleXY.val(xyR.valI().get());
-                }
-                if (downSampleZ.valF().orElse(1f) == 0) {
+                if (downSampleZ.valF().orElse(1f) == 0)
                     downSampleZ.val(zR.valI().orElse(0));
-                }
-                if (mag.valF().get() == 0) {
+                if (mag.valF().get() == 0)
                     mag.val(xyR.valI().get());
-                }
                 downSampleOrig = false;
 
             }
 
             if (enableSpacing() && spacingXY.valD().get() == 0) {
                 spacingXY.val(xyR.valI().get());
-                if (spacingZ.isEnabled()) {
+                if (spacingZ.isEnabled())
                     spacingZ.val(zR.valI().orElse(0));
-                }
             }
 
-            if (enableSpacing() && mag.valD().orElse(1.0) == 0) {
+            if (enableSpacing() && mag.valD().orElse(1.0) == 0)
                 mag.val(spacingXY.valF().orElse(xyR.valF().orElse(3f)));
-            }
 
         } catch (NumberFormatException nfe) {
         }
     }
 
     private UsrInput buildUsrInput() {
+
         return new UsrInput(
                 getIJFrontImage().get(),
                 new NeighborhoodDim(
@@ -238,8 +237,13 @@ public class UsrDialog {
      */
     public static Optional<ImagePlus> getIJFrontImage() {
         try {
-            return Optional.of(new MyImagePlus(ij.WindowManager.getCurrentImage()));
-        } catch (NullPointerException npe) {            
+            ImagePlus imp = ij.WindowManager.getCurrentImage();
+
+            if (imp.getType() == ImagePlus.COLOR_RGB)
+                new ImageConverter(imp).convertToGray8();
+
+            return Optional.of(imp);
+        } catch (Exception x) {
             return Optional.empty();
         }
     }
@@ -266,9 +270,8 @@ public class UsrDialog {
 
         gd.addButton("Help", e -> {
             help.setVisible(!help.isVisible());
-            if (help.isVisible()) {
+            if (help.isVisible())
                 help.toFront();
-            }
         });
 
         gd.addWindowListener(new WindowAdapter() {
