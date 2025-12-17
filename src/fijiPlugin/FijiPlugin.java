@@ -168,13 +168,13 @@ public class FijiPlugin implements PlugIn {
 
     private static String[] defaultArgs() {
 //        String imagePath = "/home/dov/Downloads/OneDrive_1_11-26-2025";
-        String imagePath = "/home/dov/Documents/NeighborhoodPIG/images/input/colorStack";
+        String imagePath = "/home/dov/Documents/NeighborhoodPIG/images/input/cylBasic";
         
 
 //        String imagePath = "images/input/SingleTest/";
-        int depth = 3;
+        int depth = 50;
         int xyR = 5;
-        int zR = 1;
+        int zR = 25;
         double zDist = 1;
         boolean hasHeatMap = true;
         VF hasVF = VF.None;

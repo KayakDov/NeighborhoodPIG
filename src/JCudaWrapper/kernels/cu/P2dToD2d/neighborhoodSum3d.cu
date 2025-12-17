@@ -17,20 +17,19 @@ private:
 public:
     /**
      * Default constructor does nothing
+     * @param data the data
      */
-    __device__ PixelCursor(){}
+    __device__ PixelCursor(double** data): data(data){}
 
     /**
      * Sets all internal state for this pixel cursor.
      *
-     * @param data Pointer to matrix data (array of pointers to rows or layers).
      * @param xy Starting xy-coordinate index.
      * @param zt Starting zt-coordinate index.
      * @param dxy Step in xy-direction (0 or 1 usually).
      * @param dzt Step in zt-direction (0 or 1 usually).
      */
-    __device__ void setAll(double** data, int xy, int zt, int dxy, int dzt) {
-        this->data = data;
+    __device__ void setAll(int xy, int zt, int dxy, int dzt) {
         this->xyInd = xy;
         this->ztInd = zt;
         this->xyStep = dxy;
@@ -44,7 +43,10 @@ public:
     __device__ int getZT() const { return ztInd; }
 
     /** Move the cursor by one step in xy and zt directions. */
-    __device__ void move() { xyInd += xyStep; ztInd += ztStep; }
+    __device__ void move() {
+        xyInd += xyStep;
+        ztInd += ztStep;
+    }
 
     /**
      * Get the value at the current position, with optional offset.
@@ -53,6 +55,7 @@ public:
      */
     __device__ double get(int offset = 0) const {
         return data[ztInd + offset * ztStep][xyInd + offset * xyStep];
+
     }
 
     /**
@@ -129,28 +132,28 @@ extern "C" __global__ void neighborhoodSum3dKernel(
     
     XYLd xySrcLd(xyLdSrc, ldldSrc), xyDstLd(xyLdDst, ldldDst);
 
-    PixelCursor src, dst;
+    PixelCursor src(srcData), dst(dstData);
 
     switch (direction) {
         case X: {
             int row = idx % dim[0], absLayer = idx / dim[0], layer = absLayer % dim[2], tensor = absLayer/dim[2];
             
-            src.setAll(srcData, row, tensor * ztLdSrc + layer, xySrcLd(layer, tensor), 0);
-            dst.setAll(dstData, row, tensor * ztLdDst + layer, xyDstLd(layer, tensor), 0);
+            src.setAll(row, tensor * ztLdSrc + layer, xySrcLd(layer, tensor), 0);
+            dst.setAll(row, tensor * ztLdDst + layer, xyDstLd(layer, tensor), 0);
             
         break;}  // Row-wise
         case Y: {
             int col = idx % dim[1], absLayer = idx/dim[1], layer = absLayer % dim[2], tensor = absLayer / dim[2];
 
-            src.setAll(srcData, col * xySrcLd(layer, tensor), tensor * ztLdSrc + layer, 1, 0);
-            dst.setAll(dstData, col * xyDstLd(layer, tensor), tensor * ztLdDst + layer, 1, 0);
+            src.setAll(col * xySrcLd(layer, tensor), tensor * ztLdSrc + layer, 1, 0);
+            dst.setAll(col * xyDstLd(layer, tensor), tensor * ztLdDst + layer, 1, 0);
 	    
         break; }// Column-wise
         case Z: {
             int idxInLayer = idx % dim[4], row = idxInLayer % dim[0], col = idxInLayer/dim[0], tensor = idx / dim[4];
             
-            src.setAll(srcData, col * xySrcLd(0, tensor) + row, tensor * ztLdSrc, 0, 1);
-            dst.setAll(dstData, col * xyDstLd(0, tensor) + row, tensor * ztLdDst, 0, 1);            
+            src.setAll(col * xySrcLd(0, tensor) + row, tensor * ztLdSrc, 0, 1);
+            dst.setAll(col * xyDstLd(0, tensor) + row, tensor * ztLdDst, 0, 1);
         }//depth-wise
     }
 
@@ -160,31 +163,35 @@ extern "C" __global__ void neighborhoodSum3dKernel(
 
     for (int i = 0; i < m; i++) //loop 1: init 1st value
         rollingSum += src.get(i);
-    
-    dst.set(rollingSum);
+
+    dst.set(rollingSum);//i = 0
 
     int i = 1;
+    src.move();
+    dst.move();
+
     m = min(r + 1, numSteps - r); //loop 2: first section
     for (; i < m; i++) {
-        src.move(); 
-        dst.move();
         dst.set(rollingSum += src.get(r));
+        src.move();
+        dst.move();
     }
     m = numSteps - r;
     for (; i < m; i++) { //loop 3: mid section
+        dst.set(rollingSum += src.get(r) - src.get(-r - 1));
         src.move();
         dst.move();
-        dst.set(rollingSum += src.get(r) - src.get(-r - 1));
     }
     m = min(r + 1, numSteps);
     for(;i < m; i++){//loop 4: end section for big r
-        dst.move();
         dst.set(rollingSum);
+        dst.move();
+        src.move();
     }
     for (; i < numSteps; i++) { //loop 5: end section for small r
-	    src.move();
-	    dst.move();
         dst.set(rollingSum -= src.get(-r - 1));
+        src.move();
+        dst.move();
     }
 }
 
