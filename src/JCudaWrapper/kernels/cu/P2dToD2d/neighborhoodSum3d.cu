@@ -6,11 +6,11 @@ enum Direction {
 };
 
 
-class PixelCursor {
+class Vec {
 private:
     double** data;
-    int xyInd;
-    int ztInd;
+    int xyInd0;
+    int ztInd0;
     int xyStep;
     int ztStep;
 
@@ -19,52 +19,25 @@ public:
      * Default constructor does nothing
      * @param data the data
      */
-    __device__ PixelCursor(double** data): data(data){}
+    __device__ Vec(double** data): data(data){}
 
     /**
      * Sets all internal state for this pixel cursor.
      *
-     * @param xy Starting xy-coordinate index.
+     * @param xy0 Starting xy-coordinate index.
      * @param zt Starting zt-coordinate index.
      * @param dxy Step in xy-direction (0 or 1 usually).
-     * @param dzt Step in zt-direction (0 or 1 usually).
+     * @param strideZT Step in zt-direction (0 or 1 usually).
      */
-    __device__ void setAll(int xy, int zt, int dxy, int dzt) {
-        this->xyInd = xy;
-        this->ztInd = zt;
-        this->xyStep = dxy;
-        this->ztStep = dzt;
+    __device__ void setAll(int xy0, int zt, int strideXY, int strideZT) {
+        this->xyInd0 = xy0;
+        this->ztInd0 = zt;
+        this->xyStep = strideXY;
+        this->ztStep = strideZT;
     }
 
-    /** @return Current XY index. */
-    __device__ int getXY() const { return xyInd; }
-
-    /** @return Current ZT index. */
-    __device__ int getZT() const { return ztInd; }
-
-    /** Move the cursor by one step in xy and zt directions. */
-    __device__ void move() {
-        xyInd += xyStep;
-        ztInd += ztStep;
-    }
-
-    /**
-     * Get the value at the current position, with optional offset.
-     * @param offset Offset from current position in the scan direction.
-     * @return Value at the offset location.
-     */
-    __device__ double get(int offset = 0) const {
-        return data[ztInd + offset * ztStep][xyInd + offset * xyStep];
-
-    }
-
-    /**
-     * Set the value at the current position, with optional offset.
-     * @param val Value to set.
-     * @param offset Offset from current position in the scan direction.
-     */
-    __device__ void set(double val, int offset = 0) {
-        data[ztInd + offset * ztStep][xyInd + offset * xyStep] = val;
+    __device__ double& operator[](int i){
+        return data[ztInd0 + i * ztStep][xyInd0 + i * xyStep];
     }
 };
 
@@ -132,7 +105,7 @@ extern "C" __global__ void neighborhoodSum3dKernel(
     
     XYLd xySrcLd(xyLdSrc, ldldSrc), xyDstLd(xyLdDst, ldldDst);
 
-    PixelCursor src(srcData), dst(dstData);
+    Vec src(srcData), dst(dstData);
 
     switch (direction) {
         case X: {
@@ -162,36 +135,21 @@ extern "C" __global__ void neighborhoodSum3dKernel(
     int m = min(r + 1, numSteps);
 
     for (int i = 0; i < m; i++) //loop 1: init 1st value
-        rollingSum += src.get(i);
+        rollingSum += src[i];
 
-    dst.set(rollingSum);//i = 0
+    dst[0] = rollingSum;//i = 0
 
     int i = 1;
-    src.move();
-    dst.move();
 
-    m = min(r + 1, numSteps - r); //loop 2: first section
-    for (; i < m; i++) {
-        dst.set(rollingSum += src.get(r));
-        src.move();
-        dst.move();
-    }
+    m = min(r + 1, numSteps - r);
+    for (; i < m; i++) dst[i] = (rollingSum += src[i + r]); //loop 2: first section
+
     m = numSteps - r;
-    for (; i < m; i++) { //loop 3: mid section
-        dst.set(rollingSum += src.get(r) - src.get(-r - 1));
-        src.move();
-        dst.move();
-    }
+    for (; i < m; i++) dst[i] = (rollingSum += src[i + r] - src[i - r - 1]); //loop 3: mid section
+
     m = min(r + 1, numSteps);
-    for(;i < m; i++){//loop 4: end section for big r
-        dst.set(rollingSum);
-        dst.move();
-        src.move();
-    }
-    for (; i < numSteps; i++) { //loop 5: end section for small r
-        dst.set(rollingSum -= src.get(-r - 1));
-        src.move();
-        dst.move();
-    }
+    for(;i < m; i++) dst[i] = rollingSum; //loop 4: end section for big r
+
+    for (; i < numSteps; i++) dst[i] = (rollingSum -= src[i - r - 1]); //loop 5: end section for small r
 }
 
