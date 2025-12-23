@@ -168,7 +168,7 @@ public class FijiPlugin implements PlugIn {
 
     private static String[] defaultArgs() {
 //        String imagePath = "/home/dov/Downloads/OneDrive_1_11-26-2025";
-        String imagePath = "/home/dov/Documents/NeighborhoodPIG/images/input/cylBasic";
+        String imagePath = "images/input/cylBasic";
         
 
 //        String imagePath = "images/input/SingleTest/";

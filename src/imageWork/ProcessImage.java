@@ -142,7 +142,7 @@ public class ProcessImage {
     private static File[] getImageFiles(String parentDirectory) {
         File folder = new File(parentDirectory);
         if (!folder.exists() || !folder.isDirectory()) {
-            throw new IllegalArgumentException("The provided path is not a valid folder.");
+            throw new IllegalArgumentException("The provided path " + parentDirectory + " is not a valid folder.");
         }
         File[] imageFiles = folder.listFiles(name -> ProcessImage.isPicture(name));
         if (imageFiles == null || imageFiles.length == 0) {

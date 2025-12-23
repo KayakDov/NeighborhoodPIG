@@ -192,10 +192,9 @@ public class UsrDialog {
 
             }
 
-            if (enableSpacing() && spacingXY.valD().get() == 0) {
-                spacingXY.val(xyR.valI().get());
-                if (spacingZ.isEnabled())
-                    spacingZ.val(zR.valI().orElse(0));
+            if (enableSpacing()) {
+                if(spacingXY.valD().get() <= 0) spacingXY.val(xyR.valI().get());
+                if (spacingZ.isEnabled() && spacingZ.valD().orElse(1d) <= 0) spacingZ.val(zR.valI().orElse(0));
             }
 
             if (enableSpacing() && mag.valD().orElse(1.0) == 0)
