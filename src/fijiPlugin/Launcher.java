@@ -3,6 +3,7 @@ package fijiPlugin;
 import FijiInput.UsrInput;
 import FijiInput.field.VF;
 import JCudaWrapper.array.Array;
+import JCudaWrapper.array.Kernel;
 import JCudaWrapper.resourceManagement.GPU;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.IJ;
@@ -297,10 +298,12 @@ public class Launcher implements Runnable {
             processResults(save, ui, vecImgDepth);
         } catch (Exception ex) {
             System.out.println("fijiPlugin.FijiPlugin.run() " + ui.toString() + " " + ex.toString());
+            Kernel.closeModule();
             throw ex;
         }
         if (!Array.allocatedArrays.isEmpty())
             throw new RuntimeException("Neighborhood PIG has a GPU memory leak.");
+        Kernel.closeModule();
     }
 
 }

@@ -36,7 +36,7 @@ import jcuda.runtime.cudaError;
  *
  * @author E. Dov Neimand
  */
-public class Kernel implements AutoCloseable {
+public class Kernel {
 
     /**
      * The CUDA function handle for the loaded kernel.
@@ -47,47 +47,53 @@ public class Kernel implements AutoCloseable {
      * The number of threads per block to be used in kernel execution.
      */
     private final static int BLOCK_SIZE = 256;
-
-    private CUmodule module;//TODO: set this up so that multiple kernels can use the same module.
+    private static final String CONSOLIDATED_PTX = "JCudaWrapper/kernels/ptx/kernels.ptx";
+    
+    private static CUmodule module;
     
 
     /**
-     * Sets up a kernel whose main method's name is the same as its file name
-     * plus the word "Kernel".
+     * Sets up a kernel.
      *
-     * @param name The name of the file, without the .cu.
+     * @param functionName The name of the file, without the .cu.
      */
-    public Kernel(String name) {
-        this(name, name + "Kernel");
-    }
-
-    /**
-     * Constructs a {@code Kernel} object that loads a CUDA module from a given
-     * file and retrieves a function handle for the specified kernel function.
-     *
-     * @param cuName The name of the file without the .cu or .ptx at the end of
-     * it. This should also be the name of the main function in the kernel with
-     * the work "Kernel" appended.
-     * @param functionName The name of the main function.
-     */
-    public Kernel(String cuName, String functionName) {
-        String fileName = "JCudaWrapper/kernels/ptx/P2dToD2d/" + cuName + ".ptx";
-        this.module = new CUmodule();
-
-        try (
-                InputStream resourceStream = getClass().getClassLoader()
-                        .getResourceAsStream(fileName);) {
-            File tempFile = File.createTempFile("kernel_", ".ptx");
-            tempFile.deleteOnExit(); // Clean up after the program ends
-            Files.copy(resourceStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);  //TODO: copying the file seems ineficiant.  Can this be made faster?
-            checkResult(JCudaDriver.cuModuleLoad(module, tempFile.getAbsolutePath()));
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to load kernel file " + e.toString() + "\nFile name: " + fileName, e);
-        }
-        
+    public Kernel(String functionName) {
+        if (module == null)  loadModuleOnce();
+           
         function = new CUfunction();
-        checkResult(JCudaDriver.cuModuleGetFunction(function, module, functionName));    
+        checkResult(JCudaDriver.cuModuleGetFunction(function, module, functionName));
     }
+    
+    /**
+     * This method handles the file copying and loading exactly as before,
+     * but it's only called once.
+     */
+    private static synchronized void loadModuleOnce() {
+        
+        module = new CUmodule();
+        try (InputStream resourceStream = Kernel.class.getClassLoader()
+                .getResourceAsStream(CONSOLIDATED_PTX)) {
+            
+            if (resourceStream == null) 
+                throw new RuntimeException("Resource not found: " + CONSOLIDATED_PTX);
+            
+
+            File tempFile = File.createTempFile("kernel_", ".ptx");
+            tempFile.deleteOnExit(); 
+            Files.copy(resourceStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            
+            // Note: We use a separate result check since we're in a static context
+            int result = JCudaDriver.cuModuleLoad(module, tempFile.getAbsolutePath());
+            if (result != CUresult.CUDA_SUCCESS) {
+                throw new RuntimeException("CUDA Driver error " + result + " loading module.");
+            }
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load consolidated kernels: " + e.getMessage(), e);
+        }
+    }
+
+    
 
     /**
      * Runs the kernel on the parameters provided. If the kernel will only be
@@ -104,9 +110,8 @@ public class Kernel implements AutoCloseable {
      */
     public static void run(String name, Handle handle, int numThreads, Pointer... additionalArguments) {//TODO: organize this so vectors are always followed by their ld and height.
 
-        try (Kernel km = new Kernel(name)) {
-            km.run(handle, numThreads, additionalArguments);
-        }
+        new Kernel(name).run(handle, numThreads, additionalArguments);
+        
     }
 
     /**
@@ -157,9 +162,7 @@ public class Kernel implements AutoCloseable {
      */
     public static void run(String name, Handle handle, int numThreads, PArray2dTo2d[] arrays, Dimensions dim, Pointer... additionalParmaters) {
 
-        try (Kernel km = new Kernel(name)) {
-            km.run(handle, numThreads, arrays, dim.getGpuDim(), additionalParmaters);
-        }
+        new Kernel(name).run(handle, numThreads, arrays, dim.getGpuDim(), additionalParmaters);
     }
 
     /**
@@ -211,12 +214,9 @@ public class Kernel implements AutoCloseable {
         }
     }
 
-    /**
-     * Cleans up resources by unloading the CUDA module.
-     */
-    @Override
-    public void close() {
-        JCudaDriver.cuModuleUnload(module);
+    public static void closeModule(){
+        if(module != null) JCudaDriver.cuModuleUnload(module);
+        module = null;
     }
 
 }

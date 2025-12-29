@@ -361,7 +361,7 @@ __device__ void rollTheSum(const int r, const int numSteps, Vec& src, Vec& dst) 
  * @param numSteps Total number of steps to compute.
  * @param r Radius of the summation window.
  */
-extern "C" __global__ void neighborhoodSum3dKernelX(
+extern "C" __global__ void neighborhoodSumX(
     const int n,
     double** srcData, const int* xyLdSrc, const int ldldSrc, const int ztLdSrc,
     double** dstData, const int* xyLdDst, const int ldldDst, const int ztLdDst,
@@ -387,7 +387,7 @@ extern "C" __global__ void neighborhoodSum3dKernelX(
     rollTheSum(r, numSteps, src, dst);
 }
 
-extern "C" __global__ void neighborhoodSum3dKernelY(
+extern "C" __global__ void neighborhoodSumY(
     const int n,
     double** srcData, const int* xyLdSrc, const int ldldSrc, const int ztLdSrc,
     double** dstData, const int* xyLdDst, const int ldldDst, const int ztLdDst,
@@ -413,7 +413,7 @@ extern "C" __global__ void neighborhoodSum3dKernelY(
     rollTheSum(r, numSteps, src, dst);
 }
 
-extern "C" __global__ void neighborhoodSum3dKernelZ(
+extern "C" __global__ void neighborhoodSumZ(
     const int n,
     double** srcData, const int* xyLdSrc, const int ldldSrc, const int ztLdSrc,
     double** dstData, const int* xyLdDst, const int ldldDst, const int ztLdDst,
@@ -422,8 +422,7 @@ extern "C" __global__ void neighborhoodSum3dKernelZ(
 
     const int numSteps,
 
-    const int r,
-    const int direction
+    const int r
 ) {
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -474,7 +473,7 @@ extern "C" __global__ void neighborhoodSum3dKernelZ(
  *
  * @param timesDst  Scalar multiplier applied to the existing value in `dst`.
  */
-extern "C" __global__ void setEBEProductKernel(
+extern "C" __global__ void setEBEProduct(
     const int n,
     double** dst, const int* xyLdDst, const int ldldDst, const int ztLdDst,
     const float** a, const int* xyLdA, const int ldldA, const int ztLdA,
@@ -507,7 +506,7 @@ extern "C" __global__ void setEBEProductKernel(
  * @param dim The dimensions
  * @param scalar          Scalar to multiply each element by.
  */
-extern "C" __global__ void multiplyScalarKernel(
+extern "C" __global__ void multiplyScalar(
     const int totalElements,
     float** pointersToLayers, const int* ldLayers, const int ldld, const int ldPtrs,
     const int* dim,
@@ -1104,7 +1103,7 @@ public:
  * @param azimuthal where the Azimuthal angles, between 0 and pi, will be stored.
  * @param coherence The coherence of the vector will be stored here.  Note, if this value is negaitvie then the vector at this index is normal to the plane with a coherence equal to the absolute value of the coherence stored here.
  */
-extern "C" __global__ void eigenBatch3dKernel(
+extern "C" __global__ void eigenBatch3d(
     const int n,
 
     const double** xx, const int* ldxx, const int ldldxx, const int ldPtrxx,
@@ -1296,7 +1295,7 @@ public:
  * @param eigenInd Index of eigenvector (0 for primary, 1 for secondary).
  * @param tolerance Floating-point tolerance.
  */
-extern "C" __global__ void eigenBatch2dKernel(
+extern "C" __global__ void eigenBatch2d(
     const int n_ds, // Use n_ds to indicate it's the downsampled size
 
     const double** xx, const int* ldxx, const int ldldxx, const int ldPtrxx,

@@ -3,6 +3,7 @@ package fijiPlugin;
 import FijiInput.UsrDialog;
 import FijiInput.UsrInput;
 import FijiInput.field.VF;
+import JCudaWrapper.array.Kernel;
 import JCudaWrapper.resourceManagement.GPU;
 import ij.IJ;
 import ij.ImageJ;
@@ -164,24 +165,25 @@ public class FijiPlugin implements PlugIn {
                 Launcher.Save.valueOf(args[2])
         ).run();
 
+        Kernel.closeModule();
     }
 
     private static String[] defaultArgs() {
-//        String imagePath = "/home/dov/Downloads/OneDrive_1_11-26-2025";
+//        String imagePath = "/home/usr/Documents/cells/croppedAndZexpended";
         String imagePath = "images/input/cylBasic";
         
 
 //        String imagePath = "images/input/SingleTest/";
         int depth = 50;
-        int xyR = 5;
-        int zR = 25;
+        int xyR = 10;
+        int zR = 10;
         double zDist = 1;
         boolean hasHeatMap = true;
-        VF hasVF = VF.None;
-        boolean hasCoherence = false;
+        VF hasVF = VF.Color;
+        boolean hasCoherence = true;
         String saveVectors = "false";
-//        int vfSpacingXY = 15;
-//        int vfSpacingZ = 5;
+        int vfSpacingXY = 10;
+        int vfSpacingZ = 10;
         int mag = 15;
         boolean overlay = false;
         int downSampleXY = 1;
@@ -198,9 +200,9 @@ public class FijiPlugin implements PlugIn {
             "" + hasVF,
             "" + hasCoherence,
             "" + saveVectors, // This flag would be parsed by UserInput.fromStrings
-//            "" + vfSpacingXY,
-//            "" + vfSpacingZ,
-//            "" + mag,
+            "" + vfSpacingXY,
+            "" + vfSpacingZ,
+            "" + mag,
             //            "" + overlay,
             "" + downSampleXY,
             "" + downSampleZ
