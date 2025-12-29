@@ -1,0 +1,155 @@
+
+enum Direction {
+    X = 0,
+    Y = 1,
+    Z = 2
+};
+
+
+class Vec {
+private:
+    double** data;
+    int xyInd0;
+    int ztInd0;
+    int xyStep;
+    int ztStep;
+
+public:
+    /**
+     * Default constructor does nothing
+     * @param data the data
+     */
+    __device__ Vec(double** data): data(data){}
+
+    /**
+     * Sets all internal state for this pixel cursor.
+     *
+     * @param xy0 Starting xy-coordinate index.
+     * @param zt Starting zt-coordinate index.
+     * @param dxy Step in xy-direction (0 or 1 usually).
+     * @param strideZT Step in zt-direction (0 or 1 usually).
+     */
+    __device__ void setAll(int xy0, int zt, int strideXY, int strideZT) {
+        this->xyInd0 = xy0;
+        this->ztInd0 = zt;
+        this->xyStep = strideXY;
+        this->ztStep = strideZT;
+    }
+
+    __device__ double& operator[](int i){
+        return data[ztInd0 + i * ztStep][xyInd0 + i * xyStep];
+    }
+};
+
+/**
+ * Provides the leading dimensions for the desired layer in the desired tensor.
+ */
+class XYLd {
+private:
+    const int* xyLd; ///< Pointer to leading dimension array.
+    const int ldld;  ///< Stride for indexing layers.
+
+public:
+    /**
+     * Constructor.
+     * @param xyLd Pointer to base array holding the leading dimensions of all the layers.
+     * @param ldld Leading dimension (stride) beteen columns of xyLd.
+     */
+    __device__ XYLd(const int* xyLd, int ldld) : xyLd(xyLd), ldld(ldld) {}
+
+    /**
+     * Indexing operator.
+     * @param layer Layer index (e.g., z-slice).
+     * @param tensor Tensor index (e.g., batch).
+     * @return The XY leading dimension for the given tensor layer.
+     */
+    __device__ int operator()(int layer, int tensor) const {
+        return xyLd[tensor * ldld + layer];
+    }
+};
+/**
+ * CUDA kernel to compute a directional rolling sum over a 3D tensor.
+ *
+ * @param n Total number of elements to process.
+ * @param srcData Source tensor in global memory.
+ * @param xyLdSrc Leading dimensions for source in x/y.
+ * @param ldldSrc Leading dimension stride for x/y.
+ * @param ztLdSrc Leading dimension for z/t in source.
+ * @param dstData Destination tensor in global memory.
+ * @param xyLdDst Leading dimensions for destination in x/y.
+ * @param ldldDst Leading dimension stride for x/y in destination.
+ * @param ztLdDst Leading dimension for z/t in destination.
+ * @param height Height of the tensor (Y).
+ * @param width Width of the tensor (X).
+ * @param depth Depth of the tensor (Z).
+ * @param numSteps Total number of steps to compute.
+ * @param r Radius of the summation window.
+ * @param direction Direction of the summation: 0 = row, 1 = column, 2 = depth.
+ */
+extern "C" __global__ void neighborhoodSum3dKernel(
+    const int n,
+    double** srcData, const int* xyLdSrc, const int ldldSrc, const int ztLdSrc,
+    double** dstData, const int* xyLdDst, const int ldldDst, const int ztLdDst,
+
+    const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6 
+
+    const int numSteps,
+
+    const int r,
+    const int direction
+) {
+
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx >= n) return; // Out-of-bounds thread
+    
+    XYLd xySrcLd(xyLdSrc, ldldSrc), xyDstLd(xyLdDst, ldldDst);
+
+    Vec src(srcData), dst(dstData);
+
+    switch (direction) {
+        case X: {
+            int row = idx % dim[0], absLayer = idx / dim[0], layer = absLayer % dim[2], tensor = absLayer/dim[2];
+            
+            src.setAll(row, tensor * ztLdSrc + layer, xySrcLd(layer, tensor), 0);
+            dst.setAll(row, tensor * ztLdDst + layer, xyDstLd(layer, tensor), 0);
+            
+        break;}  // Row-wise
+        case Y: {
+            int col = idx % dim[1], absLayer = idx/dim[1], layer = absLayer % dim[2], tensor = absLayer / dim[2];
+
+            src.setAll(col * xySrcLd(layer, tensor), tensor * ztLdSrc + layer, 1, 0);
+            dst.setAll(col * xyDstLd(layer, tensor), tensor * ztLdDst + layer, 1, 0);
+	    
+        break; }// Column-wise
+        case Z: {
+            int idxInLayer = idx % dim[4], row = idxInLayer % dim[0], col = idxInLayer/dim[0], tensor = idx / dim[4];
+            
+            src.setAll(col * xySrcLd(0, tensor) + row, tensor * ztLdSrc, 0, 1);
+            dst.setAll(col * xyDstLd(0, tensor) + row, tensor * ztLdDst, 0, 1);
+        }//depth-wise
+    }
+
+    double rollingSum = 0;
+
+    int m = min(r + 1, numSteps);
+
+    for (int i = 0; i < m; i++) //loop 1: init 1st value
+        rollingSum += src[i];
+
+    dst[0] = rollingSum;//i = 0
+
+    int i = 1;
+
+    m = min(r + 1, numSteps - r);
+    for (; i < m; i++) dst[i] = (rollingSum += src[i + r]); //loop 2: first section
+
+    m = numSteps - r;
+    for (; i < m; i++) dst[i] = (rollingSum += src[i + r] - src[i - r - 1]); //loop 3: mid section
+
+    m = min(r + 1, numSteps);
+    for(;i < m; i++) dst[i] = rollingSum; //loop 4: end section for big r
+
+    for (; i < numSteps; i++) dst[i] = (rollingSum -= src[i - r - 1]); //loop 5: end section for small r
+}
+
