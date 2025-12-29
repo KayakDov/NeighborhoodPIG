@@ -3,9 +3,7 @@ package fijiPlugin;
 import FijiInput.UsrInput;
 import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
-import ij.ImagePlus;
 import imageWork.MyImagePlus;
-import main.Test;
 
 /**
  *

@@ -1,12 +1,14 @@
 package fijiPlugin;
 
 import JCudaWrapper.array.Float.FArray;
+import JCudaWrapper.array.Int.IArray1d;
 import JCudaWrapper.array.Kernel;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
+import jcuda.Pointer;
 
 /**
  * This class implements element-by-element multiplication (EBEM) for
@@ -22,7 +24,7 @@ import JCudaWrapper.resourceManagement.Handle;
 public class NeighborhoodProductSums implements AutoCloseable {
 
     private final PArray2dToD2d workSpace1, workSpace2;
-    private final Kernel nSum;
+    
     private final Mapper X, Y, Z;
     private final Handle handle;
     private final Dimensions dim;
@@ -43,24 +45,43 @@ public class NeighborhoodProductSums implements AutoCloseable {
         this.dim = dim;
 
         Z = dim.hasDepth()
-                ? new Mapper(dim.layerSize() * dim.batchSize, dim.depth, 2, nRad.zR.get())
+                ? (new Mapper(dim.layerSize() * dim.batchSize, dim.depth, 2, nRad.zR.get()) {
+            @Override
+            public void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, IArray1d dim, Pointer numSteps, Pointer nRad) {
+                new Kernel("neighborhoodSumZ")
+                        .run(handle, numThreads, arrays, dim, numSteps, nRad);
+            }
+
+        })
                 : null;
 
-        Y = new Mapper(dim.depth * dim.width * dim.batchSize, dim.height, 1, nRad.xyR);
+        Y = new Mapper(dim.depth * dim.width * dim.batchSize, dim.height, 1, nRad.xyR){
+            @Override
+            public void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, IArray1d dim, Pointer numSteps, Pointer nRad) {
+                new Kernel("neighborhoodSumY")
+                        .run(handle, numThreads, arrays, dim, numSteps, nRad);
+            }
 
-        X = new Mapper(dim.depth * dim.height * dim.batchSize, dim.width, 0, nRad.xyR);
+        };
+
+        X = new Mapper(dim.depth * dim.height * dim.batchSize, dim.width, 0, nRad.xyR){
+            @Override
+            public void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, IArray1d dim, Pointer numSteps, Pointer nRad) {
+                new Kernel("neighborhoodSumX").run(handle, numThreads, arrays, dim, numSteps, nRad);                
+            }
+
+        };
 
         workSpace2 = dim.emptyP2dToD2d(handle);
         workSpace1 = dim.emptyP2dToD2d(handle);
 
-        nSum = new Kernel("neighborhoodSum3d");
     }
 
     /**
      * A class to manage data for computing neighborhood sums in a specific
      * dimension.
      */
-    private class Mapper {
+    private abstract class Mapper {
 
         public final int numSteps, numThreads, dirOrd, nRad;
 
@@ -91,16 +112,29 @@ public class NeighborhoodProductSums implements AutoCloseable {
          */
         public void neighborhoodSum(PArray2dToD2d src, PArray2dToD2d dst) {
 
-            nSum.run(handle,
+            nSum(handle,
                     numThreads,
                     new PArray2dTo2d[]{src, dst},
                     dim.getGpuDim(),
                     P.to(numSteps),
-                    P.to(nRad),
-                    P.to(dirOrd)
+                    P.to(nRad)
             );
 
         }
+
+        /**
+         * The kernel that summs up the elements in the neighborhood in the
+         * given dimension.
+         *
+         * @param hand
+         * @param numThreads The numvber of threads.
+         * @param arrays An array containing he src and dst.
+         * @param dim The dimesnisons of the data.
+         * @param numSteps The numver of elements the rolling sums will be taken
+         * over.
+         * @param nRad The radius of each neighborhood.
+         */
+        public abstract void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, IArray1d dim, Pointer numSteps, Pointer nRad);
 
     }
 
@@ -130,8 +164,9 @@ public class NeighborhoodProductSums implements AutoCloseable {
 
             Z.neighborhoodSum(workSpace1, dst);
 
-        } else
+        } else {
             Y.neighborhoodSum(workSpace2, dst);
+        }
     }
 
     /**
@@ -142,6 +177,5 @@ public class NeighborhoodProductSums implements AutoCloseable {
 
         workSpace1.close();
         workSpace2.close();
-        nSum.close();
     }
 }

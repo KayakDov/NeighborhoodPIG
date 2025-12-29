@@ -48,16 +48,16 @@ public class Gradient implements AutoCloseable {
             dataParams[0] = pic;
             for (int i = 0; i < x.length; i++) dataParams[i + 1] = x[i] = dim.emptyP2dToF2d(handle);            
             
-            try (Kernel batchGrad = new Kernel("batchGradients", "batchGradients" + x.length + "d")) {
+            
 
-                batchGrad.run(
+                new Kernel("batchGradients" + x.length + "d").run(
                         handle,
                         dim.size() * x.length,
                         dataParams,
                         dim.getGpuDim(),
                         P.to(ui.neighborhoodSize.layerRes.orElse(1.0))
                 );
-            }
+            
        }
 
     }
