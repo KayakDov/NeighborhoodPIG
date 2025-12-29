@@ -3,7 +3,7 @@ package fijiPlugin;
 import FijiInput.UsrDialog;
 import FijiInput.UsrInput;
 import FijiInput.field.VF;
-import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.KernelManager;
 import JCudaWrapper.resourceManagement.GPU;
 import ij.IJ;
 import ij.ImageJ;
@@ -165,7 +165,6 @@ public class FijiPlugin implements PlugIn {
                 Launcher.Save.valueOf(args[2])
         ).run();
 
-        Kernel.closeModule();
     }
 
     private static String[] defaultArgs() {

@@ -1,5 +1,9 @@
 package JCudaWrapper.resourceManagement;
 
+import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
+import fijiPlugin.Dimensions;
+import jcuda.Pointer;
 import jcuda.driver.CUstream;
 import jcuda.driver.CUstream_flags;
 import jcuda.driver.JCudaDriver;
@@ -45,6 +49,8 @@ public class Handle implements AutoCloseable {
     private cudaStream_t stream;
 
     private CUstream cuStream;
+    
+    private KernelManager km;
 
     /**
      * Constructs a new {@code Handle}, creating a CUBLAS handle and associating
@@ -62,6 +68,8 @@ public class Handle implements AutoCloseable {
 
         // Associate the CUBLAS handle with the CUDA stream
         JCublas2.cublasSetStream(handle, stream);
+        
+        km = new KernelManager();
     }
 
     /**
@@ -100,7 +108,18 @@ public class Handle implements AutoCloseable {
     }
 
 
-
+    /**
+     * runs the kernel from the preset file in the KernelManagaer class
+     * @param name The name of the function in the file.
+     * @param numThreads The number of threads that will be run in the kernel
+     * @param arrays All the arrays that will be passed to the kerenel.
+     * @param dim The dimensions of the data.
+     * @param additionalParmaters Pointers to any additional data.
+     */
+    public void runKernel(String name, int numThreads, PArray2dTo2d[] arrays, Dimensions dim, Pointer... additionalParmaters){
+        km.run(name, this, numThreads, arrays, dim, additionalParmaters);
+    }
+    
     /**
      * A custream for this handle.
      *
@@ -130,7 +149,7 @@ public class Handle implements AutoCloseable {
         JCublas2.cublasDestroy(handle);
         JCuda.cudaStreamDestroy(stream);
         isOpen = false;
-
+        km.close();
         if (cuStream != null) JCudaDriver.cuStreamDestroy(cuStream);
 
     }

@@ -2,7 +2,7 @@ package fijiPlugin;
 
 import FijiInput.UsrInput;
 import JCudaWrapper.array.Array;
-import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.KernelManager;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
@@ -48,13 +48,11 @@ public class Gradient implements AutoCloseable {
             dataParams[0] = pic;
             for (int i = 0; i < x.length; i++) dataParams[i + 1] = x[i] = dim.emptyP2dToF2d(handle);            
             
-            
-
-                new Kernel("batchGradients" + x.length + "d").run(
-                        handle,
-                        dim.size() * x.length,
-                        dataParams,
-                        dim.getGpuDim(),
+                handle.runKernel(
+                        "batchGradients" + x.length + "d", 
+                        dim.size() * x.length, 
+                        dataParams, 
+                        dim, 
                         P.to(ui.neighborhoodSize.layerRes.orElse(1.0))
                 );
             

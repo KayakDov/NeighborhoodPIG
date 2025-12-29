@@ -1,7 +1,7 @@
 package JCudaWrapper.array.Pointer.to2d;
 
 import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.KernelManager;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to1d.PArray1dToD1d;
 import JCudaWrapper.resourceManagement.Handle;
@@ -101,11 +101,12 @@ public class P2dToF2d extends PArray2dTo2d implements PointToF2d {
      *
      * @param handle
      * @param scalar
+     * @param km
      */
     public void scale(Handle handle, float scalar) {
 
         try (Dimensions dims = new Dimensions(handle, targetDim().entriesPerLine, targetDim().numLines, entriesPerLine(), linesPerLayer())) {
-            Kernel.run("multiplyScalar", handle,
+            handle.runKernel("multiplyScalar", 
                     deepSize(),
                     new PArray2dTo2d[]{this},
                     dims,

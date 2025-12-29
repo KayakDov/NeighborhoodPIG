@@ -2,7 +2,7 @@ package fijiPlugin;
 
 import JCudaWrapper.array.Float.FArray;
 import JCudaWrapper.array.Int.IArray1d;
-import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.KernelManager;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
@@ -44,30 +44,27 @@ public class NeighborhoodProductSums implements AutoCloseable {
         this.handle = handle;
         this.dim = dim;
 
-        Z = dim.hasDepth()
-                ? (new Mapper(dim.layerSize() * dim.batchSize, dim.depth, 2, nRad.zR.get()) {
+        if(dim.hasDepth()) Z = new Mapper(dim.layerSize() * dim.batchSize, dim.depth, 2, nRad.zR.get()) {
             @Override
-            public void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, IArray1d dim, Pointer numSteps, Pointer nRad) {
-                new Kernel("neighborhoodSumZ")
-                        .run(handle, numThreads, arrays, dim, numSteps, nRad);
+            public void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, Dimensions dim, Pointer numSteps, Pointer nRad) {
+                handle.runKernel("neighborhoodSumZ", numThreads, arrays, dim, numSteps, nRad);
             }
-
-        })
-                : null;
+        };
+        else Z = null;
 
         Y = new Mapper(dim.depth * dim.width * dim.batchSize, dim.height, 1, nRad.xyR){
             @Override
-            public void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, IArray1d dim, Pointer numSteps, Pointer nRad) {
-                new Kernel("neighborhoodSumY")
-                        .run(handle, numThreads, arrays, dim, numSteps, nRad);
+            public void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, Dimensions dim, Pointer numSteps, Pointer nRad) {
+                handle.runKernel("neighborhoodSumY", numThreads, arrays, dim, numSteps, nRad);
             }
 
         };
 
         X = new Mapper(dim.depth * dim.height * dim.batchSize, dim.width, 0, nRad.xyR){
             @Override
-            public void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, IArray1d dim, Pointer numSteps, Pointer nRad) {
-                new Kernel("neighborhoodSumX").run(handle, numThreads, arrays, dim, numSteps, nRad);                
+            public void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, Dimensions dim, Pointer numSteps, Pointer nRad) {
+                handle.runKernel("neighborhoodSumX", numThreads, arrays, dim, numSteps, nRad);
+//                        , numThreads, arrays, dim, 
             }
 
         };
@@ -115,7 +112,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
             nSum(handle,
                     numThreads,
                     new PArray2dTo2d[]{src, dst},
-                    dim.getGpuDim(),
+                    dim,
                     P.to(numSteps),
                     P.to(nRad)
             );
@@ -134,7 +131,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
          * over.
          * @param nRad The radius of each neighborhood.
          */
-        public abstract void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, IArray1d dim, Pointer numSteps, Pointer nRad);
+        public abstract void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, Dimensions dim, Pointer numSteps, Pointer nRad);
 
     }
 
@@ -151,7 +148,7 @@ public class NeighborhoodProductSums implements AutoCloseable {
      */
     public void set(P2dToF2d a, P2dToF2d b, PArray2dToD2d dst) {
 
-        Kernel.run("setEBEProduct", handle,
+        handle.runKernel("setEBEProduct", 
                 dim.size(),
                 new PArray2dTo2d[]{workSpace1, a, b},
                 dim

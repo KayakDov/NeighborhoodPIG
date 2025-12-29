@@ -1,11 +1,5 @@
 package JCudaWrapper.array.Double;
 
-import JCudaWrapper.array.Kernel;
-import JCudaWrapper.array.P;
-import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
-import JCudaWrapper.resourceManagement.Handle;
-import jcuda.Sizeof;
-
 /**
  *
  * @author E. Dov Neimand

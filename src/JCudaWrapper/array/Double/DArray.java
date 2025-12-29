@@ -2,7 +2,7 @@ package JCudaWrapper.array.Double;
 
 import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Int.ISingleton;
-import JCudaWrapper.array.Kernel;
+import JCudaWrapper.array.KernelManager;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Pointer;
