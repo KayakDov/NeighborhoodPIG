@@ -3,7 +3,7 @@ package main;
 import JCudaWrapper.array.Double.DArray2d;
 import JCudaWrapper.array.Float.FArray;
 import JCudaWrapper.array.Float.FArray2d;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.kernels.KernelManager;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.array.Pointer.to2d.P2dToF2d;

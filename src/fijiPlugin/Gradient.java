@@ -2,7 +2,7 @@ package fijiPlugin;
 
 import FijiInput.UsrInput;
 import JCudaWrapper.array.Array;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.kernels.KernelManager;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;

@@ -1,7 +1,7 @@
 package imageWork;
 
 import FijiInput.UsrInput;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.kernels.KernelManager;
 import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import fijiPlugin.Dimensions;

@@ -1,6 +1,6 @@
 package JCudaWrapper.resourceManagement;
 
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.kernels.KernelManager;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import fijiPlugin.Dimensions;
 import jcuda.Pointer;

@@ -1,7 +1,7 @@
 package JCudaWrapper.array.Float;
 
 import JCudaWrapper.array.Double.*;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.kernels.KernelManager;
 import JCudaWrapper.array.P;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Sizeof;

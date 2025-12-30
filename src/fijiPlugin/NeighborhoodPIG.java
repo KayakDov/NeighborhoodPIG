@@ -1,7 +1,7 @@
 package fijiPlugin;
 
 import FijiInput.UsrInput;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.kernels.KernelManager;
 
 import JCudaWrapper.resourceManagement.Handle;
 import imageWork.HeatMapCreator;

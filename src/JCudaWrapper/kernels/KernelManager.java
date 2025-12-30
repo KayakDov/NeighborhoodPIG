@@ -1,6 +1,8 @@
-package JCudaWrapper.array;
+package JCudaWrapper.kernels;
 
+import JCudaWrapper.array.Array;
 import JCudaWrapper.array.Int.IArray;
+import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import jcuda.NativePointerObject;
 import jcuda.Pointer;
@@ -41,12 +43,12 @@ public class KernelManager implements AutoCloseable {
 
     private CUmodule module;
     private final static int BLOCK_SIZE = 256;
-    private static final String CONSOLIDATED_PTX = "JCudaWrapper/kernels/ptx/kernels.ptx";
+    private static final String CONSOLIDATED_PTX = "JCudaWrapper/kernels/kernels.ptx";
 
     public KernelManager() {
 
         module = new CUmodule();
-        try (InputStream resourceStream = JCudaWrapper.array.KernelManager.class.getClassLoader()
+        try (InputStream resourceStream = JCudaWrapper.kernels.KernelManager.class.getClassLoader()
                 .getResourceAsStream(CONSOLIDATED_PTX)) {
 
             if (resourceStream == null) {

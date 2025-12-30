@@ -3,7 +3,7 @@ package fijiPlugin;
 import FijiInput.UsrInput;
 import FijiInput.field.VF;
 import JCudaWrapper.array.Array;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.kernels.KernelManager;
 import JCudaWrapper.resourceManagement.GPU;
 import JCudaWrapper.resourceManagement.Handle;
 import ij.IJ;

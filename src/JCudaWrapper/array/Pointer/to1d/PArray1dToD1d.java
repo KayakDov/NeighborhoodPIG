@@ -5,7 +5,7 @@ import JCudaWrapper.array.Array1d;
 import JCudaWrapper.array.Array2d;
 import JCudaWrapper.array.Array3d;
 import JCudaWrapper.array.Double.DArray1d;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.kernels.KernelManager;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.PArray;
 import JCudaWrapper.array.Pointer.PArray1d;

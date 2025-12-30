@@ -1,7 +1,7 @@
 package JCudaWrapper.array.Pointer.to2d;
 
 import JCudaWrapper.array.Array3d;
-import JCudaWrapper.array.KernelManager;
+import JCudaWrapper.kernels.KernelManager;
 import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to1d.PArray1dToD1d;
 import JCudaWrapper.resourceManagement.Handle;
