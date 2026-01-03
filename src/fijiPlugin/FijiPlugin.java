@@ -168,14 +168,14 @@ public class FijiPlugin implements PlugIn {
     }
 
     private static String[] defaultArgs() {
-        String imagePath = "/home/usr/Documents/cells/croppedAndZexpended";
-//        String imagePath = "images/input/cyl";
+//        String imagePath = "/home/usr/Documents/cells/croppedAndZexpended";
+        String imagePath = "images/input/cyl";
         
 
 //        String imagePath = "images/input/SingleTest/";
-        int depth = 400;
-        int xyR = 10;
-        int zR = 10;
+        int depth = 150;
+        int xyR = 5;
+        int zR = 5;
         double zDist = 1;
         boolean hasHeatMap = true;
         VF hasVF = VF.None;

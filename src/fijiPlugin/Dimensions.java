@@ -4,6 +4,7 @@ import JCudaWrapper.array.Int.IArray1d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
+import JCudaWrapper.kernels.ThreadCount;
 import JCudaWrapper.resourceManagement.Handle;
 import MathSupport.Cube;
 import ij.ImagePlus;
@@ -54,6 +55,14 @@ public class Dimensions implements Closeable {
      * The dimesnsions stored on the GPU.
      */
     private IArray1d gpuDim;
+    
+    /**
+     * The number of threads so that each element in the grid gets its own thread.
+     * @return 
+     */
+    public ThreadCount threadCount(){
+        return new ThreadCount(width, height, depth, batchSize);
+    }
 
     /**
      * Creates an array to be stored on the gpu representing these dimensions.

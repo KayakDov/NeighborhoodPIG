@@ -1,203 +1,5 @@
-#include <cuda_runtime.h>
-#include <math.h>
-
-/**
- * Represents the multi-dimensional indices needed to access a specific element
- * in a batched tensor structure.
- */
-class Indices {
-public:
-    const int idx;       ///< The global flat index.
-    const int tensorInd; ///< The tensorindex (frame), unadjusted for leading dimension.
-    const int layerInd;  //< The layer index, unadjusted for leading dimension.
-    const int row;
-    const int col;
-
-    /**
-     * Computes the flat index in the 2D matrix of pointers.
-     * @param ldPtr Leading dimension of the layer matrix.
-     * @return Offset into the pointer matrix.
-     */
-    __device__ int page(const int ldPtr) const {
-    	return tensorInd * ldPtr + layerInd;
-    }
-    
-    /**
-     * Computes the flat index in the layer.
-     * @param ld Pointer to leading dimension array for each layer.
-     * @param ldld Leading dimension of the ldMatrix itself.
-     * @return Offset into the memory location for the element.
-     */
-    __device__ int word(const int* ld, const int ldld) const {
-        return col * ld[page(ldld)] + row;
-    }
-
-    /**
-     * @brief Retrieves a value from the source 4D dataset using the calculated indices.
-     *
-     * @param src   Array of pointers to 2D slices, arranged in frame-major and then depth-major order.
-     * @param ld    Array of leading dimensions for each slice (used for column-major indexing).
-     * @param ldld  Leading dimension of the ld array (stride across layers).
-     * @param ldPtr Leading dimension of the src array (stride across frames).
-     * @return      The double value at the resolved position in the 4D dataset.
-     */
-    template<typename T>
-    __device__ T operator()(const T** src, const int* ld, const int ldld, const int ldPtr) const{
-        return src[page(ldPtr)][word(ld, ldld)];
-    }
-    template<typename T>
-    __device__ T& operator()(T** src, const int* ld, const int ldld, const int ldPtr) {
-        return src[page(ldPtr)][word(ld, ldld)];
-    }
-
-    /**
-     * Constructs Indices from a flat thread index.
-     * @param idx Global thread index.
-     * @param dim Array describing tensor shape:
-     *        height → 0, width → 1, depth → 2, numTensors → 3,
-     *        layerSize → 4, tensorSize → 5, batchSize → 6.
-     */
-    __device__ Indices(int threadID, const int* dim): 
-	idx(threadID % dim[6]),
-    	tensorInd((idx % dim[6]) / dim[5]),
-    	layerInd((idx % dim[5]) / dim[4]),
-    	row(idx % dim[0]),
-    	col((idx % dim[4])/ dim[0]){}
-
-     __device__ void print() const {
-     
-        int globalThreadId = threadIdx.x + blockIdx.x * blockDim.x;
-
-        printf("Thread %d (Global): Indices - idx: %d, tensorInd: %d, layerInd: %d, row: %d, col: %d\n",
-               globalThreadId, idx, tensorInd, layerInd, row, col);
-    }
-
-    /**
-     * @brief Constructs a Get object to calculate indices for accessing elements in a 3D data batch.
-     * @param inputIdx The linear index of the element being processed by the current thread, before downsampling.
-     * @param width The width of each 2D slice.
-     * @param depth The number of slices along the depth dimension (per frame).
-     * @param downSampleFactorXY The downsampling factor applied in the x and y dimensions.
-     * @param downSampleFactorZ The downsampling factor applied in the z dimension.
-     */
-    __device__ Indices(const int idx, const int* dim, const int downSampleFactorXY, const int downSampleFactorZ)
-    : idx(idx),
-      layerInd(((idx / dim[4]) % dim[2]) * downSampleFactorZ),
-      tensorInd(idx / dim[5]),
-      row((idx % dim[0])*downSampleFactorXY),
-      col(((idx % dim[4])/dim[0])*downSampleFactorXY) {}
-
-
-    /**
-     * @brief Constructs a Get object to calculate indices for accessing elements in a 3D data batch.
-     * @param inputIdx The linear index of the element being processed by the current thread, before downsampling.
-     * @param width The width of each 2D slice.
-     * @param depth The number of slices along the depth dimension (per frame).
-     * @param downSampleFactorXY The downsampling factor applied in the x and y dimensions.
-     */
-    __device__ Indices(const int inputIdx, const int* dim, const int downSampleFactorXY)
-    : idx(inputIdx),
-      tensorInd(idx / dim[4]),
-      layerInd(0),
-      row((idx % dim[0]) * downSampleFactorXY),
-      col(((idx % dim[4])/dim[0]) * downSampleFactorXY) {}
-};
-
-/**
- * Utility to compute gradient of a tensor element using a finite difference stencil.
- */
-class Grad{
-private:
-    const float** data; ///< Pointer to batched tensor data.
-    const int page;      ///< Offset into the layer matrix.
-    const int word;      ///< Offset within the tensor layer.
-    
-public:
-
-    /**
-     * Constructs a Grad object for a specific thread.
-     * @param data Pointer to tensor data matrix.
-     * @param inds Precomputed indices for the thread.
-     * @param dim Tensor dimension array.
-     * @param ld Pointer to leading dimension matrix.
-     * @param ldld Leading dimension of ldMatrix.
-     * @param ldPtr Leading dimension of the pointer matrix.
-     */
-    __device__ Grad(const float** data, const Indices& inds, const int* dim, const int* ld, const int ldld, const int ldPtr):
-        data(data), 
-        page(inds.page(ldPtr)), 
-        word(inds.word(ld, ldld)){}
-
-    /**
-     * Computes a spatial gradient using a finite difference stencil.
-     *
-     * @param loc Index in the current dimension (x, y, or z).
-     * @param end Size of the current dimension.
-     * @param layerScale Scaling factor for spacing between layers.
-     * @param dPage Offset for stepping through layers.
-     * @param dWord Offset for stepping through positions within a layer.
-     * @return Computed gradient value.
-     */
-    __device__ double at(const int loc, const int end, const double layerScale, const int dPage, const int dWord) const {
-
-	double val;
-
-        if (end == 1)                        val = 0.0; // Single element case.
-        else if (loc == 0)                   val = data[page + dPage][word + dWord] - data[page][word]; // Forward difference at start.
-        else if (loc == end - 1)             val = data[page][word] - data[page - dPage][word - dWord]; // Backward difference at end.
-        else if (loc == 1 || loc == end - 2) val = (data[page + dPage][word + dWord] - data[page - dPage][word - dWord]) / 2.0; // Central difference.
-        else                                 val = (data[page - 2*dPage][word - 2*dWord] - 8.0*data[page - dPage][word - dWord] + 8.0*data[page + dPage][word + dWord] - data[page + 2*dPage][word + 2*dWord])/12.0; // Higher-order stencil.
-   
-        return layerScale == 1? val : val/layerScale;
-    }    
-
-    __host__ __device__ void print() const {
-        printf("Thread [%d]: Grad - page: %d, word: %d\n",
-            threadIdx.x + blockIdx.x * blockDim.x,
-            page, word);
-    }
-
-
-
-};
-
-__device__ void batchGradients(const int n, 
-    const float** mat, const int* ldMat, const int ldldMat, const int ldPtrMat,
-    float** dX, const int* ldx, const int ldldX, const int ldPtrX,
-    float** dY, const int* ldy, const int ldldY, const int ldPtrY,
-    float** dZ, const int* ldz, const int ldldZ, const int ldPtrZ,
-    const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
-    const double zLayerMult
-){
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-        
-    if (idx >= n) return;
-
-    const Indices inds(idx, dim);
-
-    const Grad grad(mat, inds, dim, ldMat, ldldMat, ldPtrMat);
-
-    switch(idx / dim[6]){ 
-    	case 0: dX[inds.page(ldPtrX)][inds.word(ldx, ldldX)] = grad.at(inds.col,      dim[1],          1, 0, ldMat[inds.page(ldldMat)]); break;
-	case 1: dY[inds.page(ldPtrY)][inds.word(ldy, ldldY)] = grad.at(inds.row,      dim[0],          1, 0, 1                        ); break;
-	case 2: dZ[inds.page(ldPtrZ)][inds.word(ldz, ldldZ)] = grad.at(inds.layerInd, dim[2], zLayerMult, 1, 0                        );
-    }
-}
-/**
- * Computes numerical gradients for a batch of 3D tensors using finite differences.
- * 
- * The input tensors are organized in a 2D array of pointers where each column is a tensor,
- * and each row corresponds to a layer. Each pointer in this matrix points to a 
- * height x width column-major matrix representing a layer. 
- * 
- * The gradients are computed along the X, Y, and Z axes and stored in output tensors.
- * 
- * @param n Total number of elements to process (should be 3 * height * width * depth * numTensors).
- * @param mat A depth x numTensors matrix of pointers to input tensor layers.
- * @param ldMat Leading dimensions for each tensor layer (column-major).
- * @param ldldMat Leading dimension of ldMat (needed to index correctly).
- * @param ldPtrMat Leading dimension of the pointer matrix `mat`.
- * @param dim Array of tensor dimensions:
+/*
+ *    indensions:
  *            - dim[0] = height
  *            - dim[1] = width
  *            - dim[2] = depth
@@ -205,96 +7,122 @@ __device__ void batchGradients(const int n,
  *            - dim[4] = layerSize (height * width)
  *            - dim[5] = tensorSize (depth * height * width)
  *            - dim[6] = batchSize (3 * tensorSize)
- * @param dX Gradient outputs in the X direction.
- * @param ldx Leading dimensions for dX.
- * @param ldldX Leading dimension of ldx.
- * @param ldPtrX Leading dimension of pointer matrix dX.
- * @param dY Gradient outputs in the Y direction.
- * @param ldy Leading dimensions for dY.
- * @param ldldY Leading dimension of ldy.
- * @param ldPtrY Leading dimension of pointer matrix dY.
- * @param dZ Gradient outputs in the Z direction.
- * @param ldz Leading dimensions for dZ.
- * @param ldldZ Leading dimension of ldz.
- * @param ldPtrZ Leading dimension of pointer matrix dZ.
- * @param zLayerMult Scaling factor for the z-gradient (accounts for spacing differences between z-layers and x/y pixels).
  */
-extern "C" __global__ void batchGradients3d(
-    const int n, 
-    const float** mat, const int* ldMat, const int ldldMat, const int ldPtrMat,
-    float** dX, const int* ldx, const int ldldX, const int ldPtrX,
-    float** dY, const int* ldy, const int ldldY, const int ldPtrY,
-    float** dZ, const int* ldz, const int ldldZ, const int ldPtrZ,
-    const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
-    const double zLayerMult
-) {    
-    batchGradients(    
-        n, 
-        mat, ldMat, ldldMat, ldPtrMat,
-        dX, ldx, ldldX, ldPtrX,
-        dY, ldy, ldldY, ldPtrY,
-        dZ, ldz, ldldZ, ldPtrZ,
-        dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
-        zLayerMult
-    );
-}
-extern "C" __global__ void batchGradients2d(
-    const int n, 
-    const float** mat, const int* ldMat, const int ldldMat, const int ldPtrMat,
-    float** dX, const int* ldx, const int ldldX, const int ldPtrX,
-    float** dY, const int* ldy, const int ldldY, const int ldPtrY,    
-    const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
-    const double zLayerMult
-) {
-
-    batchGradients(    
-        n, 
-        mat, ldMat, ldldMat, ldPtrMat,
-        dX, ldx, ldldX, ldPtrX,
-        dY, ldy, ldldY, ldPtrY,
-        nullptr, nullptr, -1, -1,
-        dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
-        zLayerMult
-    );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-/**
- * Provides the leading dimensions for the desired layer in the desired tensor.
- */
-class XYLd {
-private:
-    const int* xyLd; ///< Pointer to leading dimension array.
-    const int ldld;  ///< Stride for indexing layers.
+//TODO: make sure x threads is always width * tensors.
+#include <cuda_runtime.h>
+#include <math.h>
 
+__device__ inline int idx(){return blockIdx.x * blockDim.x + threadIdx.x;}
+__device__ inline int idy(){return blockIdx.y * blockDim.y + threadIdx.y;}
+__device__ inline int idz(){return blockIdx.z * blockDim.z + threadIdx.z;}
+
+class GridInd2d {
 public:
-    /**
-     * Constructor.
-     * @param xyLd Pointer to base array holding the leading dimensions of all the layers.
-     * @param ldld Leading dimension (stride) beteen columns of xyLd.
-     */
-    __device__ XYLd(const int* xyLd, int ldld) : xyLd(xyLd), ldld(ldld) {}
+    int row, col;
+    __device__ inline GridInd2d(int row, int col):row(row), col(col){}
 
     /**
-     * Indexing operator.
-     * @param layer Layer index (e.g., z-slice).
-     * @param tensor Tensor index (e.g., batch).
-     * @return The XY leading dimension for the given tensor layer.
+     * The index of the thread.
      */
-    __device__ int operator()(int layer, int tensor) const {
-        return xyLd[tensor * ldld + layer];
+    __device__ inline GridInd2d(): GridInd2d(idy(), idx()){}
+    
+    __device__ inline void shiftRow(int i){
+    	row += i;
+    }
+    __device__ inline void shiftCol(int i){
+    	col += i;
+    }
+    
+
+};
+
+class GridInd3d : public GridInd2d{
+public:
+    int layer;
+    __device__ inline GridInd3d(int row, int col, int layer, int downSampleXY = 1, int downSampleZ = 1):
+        GridInd2d(row * downSampleXY, col * downSampleXY), layer(layer * downSampleZ) {
+    }
+    __device__ inline GridInd3d(): GridInd2d(), layer(idz()){}
+    
+    __device__ inline void shiftLayer(int i){
+    	layer += i;
+    }
+    
+};
+
+class GridInd4d : public GridInd3d{
+public:
+    int frame;
+    __device__ inline GridInd4d(int row, int col, int layer, int frame): GridInd3d(row, col, layer), frame(frame) {
+    }
+    __device__ inline GridInd4d(int width, int downSampleXY = 1, int downSampleZ = 1){
+    	int flatX = idx() * downSampleXY;
+    	this-> row = idy() * downSampleXY;
+    	this-> col = (flatX % width);
+    	this-> layer = idz() * downSampleZ;
+    	this-> frame = flatX / width;
     }
 };
 
+template <typename T>
+class Array4d{
+
+public:
+	const int ztLd, ldld;
+ 	const int* _xyLd;
+
+private:
+    T** array;
+
+public:
+
+	__device__ Array4d(T** array, const int* _xyLd, int ldld, int ztLd): ztLd(ztLd), array(array), _xyLd(_xyLd), ldld(ldld){}
+
+    __device__ int xyLd(int frame, int layer) const{
+	    return _xyLd[frame * ldld + layer];
+	}
+
+    __device__ int page(const int z, const int t) const {
+	    return t * ztLd + z;
+	}
+    __device__ int word(const int x, const int y, const int z, const int t) const {
+	    return x * xyLd(t, z) + y;
+	}
+
+    __device__ int page(const GridInd4d& ind) const {
+	    return page(ind.layer, ind.frame);
+	}
+    __device__ int word(const GridInd4d& ind) const {
+	    return word(ind.col, ind.row, ind.layer, ind.frame);
+	}
+	
+	__device__ T& operator[](GridInd4d& ind){
+		return array[page(ind)][word(ind)];
+	}
+	
+	__device__ T operator[](const GridInd4d& ind) const{
+	    return array[page(ind)][word(ind)];
+	}
+
+    __device__ T& operator()(const GridInd4d& ind, const int xOffset, const int yOffset, const int zOffset){
+	    return array[page(ind) + zOffset][word(ind) + xOffset * xyLd(ind.frame, ind.layer) + yOffset];
+	}
+
+    __device__ T operator()(const GridInd4d& ind, const int xOffset, const int yOffset, const int zOffset) const{
+	    return array[page(ind) + zOffset][word(ind) + xOffset * xyLd(ind.frame, ind.layer) + yOffset];
+	}
+};
+
+template <typename T>
 class Vec {
 private:
-    double** data;
-    const int xyInd0;
-    const int ztInd0;
-    const int xyStep;
-    const int ztStep;
+    Array4d<T>& data;
+    const GridInd4d& ind0;
+    const int xStride;
+    const int yStride;
+    const int zStride;
 
 public:
     /**
@@ -305,12 +133,67 @@ public:
      * @param dxy Step in xy-direction (0 or 1 usually).
      * @param strideZT Step in zt-direction (0 or 1 usually).
      */
-    __device__ Vec(double** data, int xy0, int zt0, int strideXY, int strideZT): data(data), xyInd0(xy0), ztInd0(zt0), xyStep(strideXY), ztStep(strideZT) {}
+    __device__ Vec(Array4d<T>& data, const GridInd4d& ind0, int xStride, int yStride, int zStride):
+        data(data), ind0(ind0), xStride(xStride), yStride(yStride), zStride(zStride) {}
 
-    __device__ double& operator[](int i){
-        return data[ztInd0 + i * ztStep][xyInd0 + i * xyStep];
+    __device__ T& operator[](int i){
+        return data(ind0, i * xStride, i * yStride, i * zStride);
+    }
+
+    __device__ T operator[](int i) const{
+        return data(ind0, i * xStride, i * yStride, i * zStride);
     }
 };
+
+template <typename T>
+__device__ T grad(const Vec<T> data, const int loc, const int end){
+    T result = 0;
+    if (loc == 0)  return data[1] - data[0];
+    else if (loc == end - 1) return data[0] - data[-1];
+    else if (loc == 1 || loc == end - 2) return (data[1] - data[-1]) / 2.0f;
+    else return (data[-2] - 8.0 * data[-1] + 8.0*data[1] - data[2])/12.0f;
+}
+
+/**
+ * Checks if the index is in bounds.
+ */
+__device__ bool operator <(const GridInd4d& ind, const int* dim){
+	return ind.row < dim[0] && ind.col < dim[1] && ind.layer < dim[2] && ind.frame < dim[3];
+}
+__device__ bool operator >=(const GridInd4d& ind, const int* dim){
+	return !(ind < dim);
+}
+
+extern "C" __global__ void batchGrad(
+    const float** mat, const int* xyLdMat, const int ldldMat, const int ztLdMat,
+    float** dX, const int* xyLdX, const int ldldX, const int ztLdX,
+    float** dY, const int* xyLdY, const int ldldY, const int ztLdY,
+    float** dZ, const int* xyLdZ, const int ldldZ, const int ztLdZ,
+    const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+    const double layerRes
+) {
+
+    GridInd4d ind(dim[1]);
+
+    if (ind >= dim) return;
+
+    Array4d<const float> src(mat, xyLdMat, ldldMat, ztLdMat);
+
+    Array4d<float> dstX(dX, xyLdX, ldldX, ztLdX);
+    Vec<const float> xVec(src, ind, 1, 0, 0);
+    dstX[ind] = grad(xVec, ind.col, dim[1]);
+
+    Array4d<float> dstY(dY, xyLdY, ldldY, ztLdY);
+    Vec<const float> yVec(src, ind, 0, 1, 0);
+    dstY[ind] = grad(yVec, ind.row, dim[0]);
+
+    Array4d<float> dstZ(dZ, xyLdZ, ldldZ, ztLdZ);
+    Vec<const float> zVec(src, ind, 0, 0, 1);
+    dstZ[ind] = grad(zVec, ind.layer, dim[2])/layerRes;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 /**
  * Computes the neighborhood with a rolling sum.
@@ -319,7 +202,7 @@ public:
  * @param src The src vector whose some is to be taken.
  * @param dst where the sums are to be placed.
  */
-__device__ void rollTheSum(const int r, const int numSteps, Vec& src, Vec& dst) {
+__device__ void rollTheSum(const int r, const int numSteps, const Vec<const double> &src, Vec<double> &dst) {
     double rollingSum = 0;
 
     int m = min(r + 1, numSteps);
@@ -346,15 +229,17 @@ __device__ void rollTheSum(const int r, const int numSteps, Vec& src, Vec& dst) 
 /**
  * CUDA kernel to compute a directional rolling sum over a 3D tensor.
  *
+ * The threads passed here should be height X depth X numTensors of ind.
+ *
  * @param n Total number of elements to process.
  * @param srcData Source tensor in global memory.
- * @param xyLdSrc Leading dimensions for source in x/y.
- * @param ldldSrc Leading dimension stride for x/y.
- * @param ztLdSrc Leading dimension for z/t in source.
+ * @param xyLdSrc Leading indensions for source in x/y.
+ * @param ldldSrc Leading indension stride for x/y.
+ * @param ztLdSrc Leading indension for z/t in source.
  * @param dstData Destination tensor in global memory.
- * @param xyLdDst Leading dimensions for destination in x/y.
- * @param ldldDst Leading dimension stride for x/y in destination.
- * @param ztLdDst Leading dimension for z/t in destination.
+ * @param xyLdDst Leading indensions for destination in x/y.
+ * @param ldldDst Leading indension stride for x/y in destination.
+ * @param ztLdDst Leading indension for z/t in destination.
  * @param height Height of the tensor (Y).
  * @param width Width of the tensor (X).
  * @param depth Depth of the tensor (Z).
@@ -362,81 +247,78 @@ __device__ void rollTheSum(const int r, const int numSteps, Vec& src, Vec& dst) 
  * @param r Radius of the summation window.
  */
 extern "C" __global__ void neighborhoodSumX(
-    const int n,
-    double** srcData, const int* xyLdSrc, const int ldldSrc, const int ztLdSrc,
-    double** dstData, const int* xyLdDst, const int ldldDst, const int ztLdDst,
-
+    const double** aData, const int* xyLdA, const int ldldA, const int ztLdA,
+    double** bData, const int* xyLdB, const int ldldB, const int ztLdB,
     const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
-
-    const int numSteps,
-
     const int r
 ) {
+    GridInd3d ind;
 
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (ind.row >= dim[0] || ind.col >= dim[2] || ind.layer >= dim[3]) return; // TODO: sort this out.
 
-    if (idx >= n) return; // Out-of-bounds thread
 
-    XYLd xySrcLd(xyLdSrc, ldldSrc), xyDstLd(xyLdDst, ldldDst);
+    Array4d<const double> a(aData, xyLdA, ldldA, ztLdA);
+    Array4d<double> b(bData, xyLdB, ldldB, ztLdB);
 
-    int row = idx % dim[0], absLayer = idx / dim[0], layer = absLayer % dim[2], tensor = absLayer/dim[2];
 
-    Vec src(srcData, row, tensor * ztLdSrc + layer, xySrcLd(layer, tensor), 0),
-        dst(dstData, row, tensor * ztLdDst + layer, xyDstLd(layer, tensor), 0);
+    GridInd4d ind0(ind.row, 0, ind.col, ind.layer);
 
-    rollTheSum(r, numSteps, src, dst);
+    Vec<const double> aVec(a, ind0, 1, 0, 0);
+    Vec<double> bVec(b, ind0, 1, 0, 0);
+
+    rollTheSum(r, dim[1], aVec, bVec);
 }
 
+/**
+ *Threads should be cols X layers X frames
+ */
 extern "C" __global__ void neighborhoodSumY(
-    const int n,
-    double** srcData, const int* xyLdSrc, const int ldldSrc, const int ztLdSrc,
-    double** dstData, const int* xyLdDst, const int ldldDst, const int ztLdDst,
+        const double** aData, const int* xyLdA, const int ldldA, const int ztLdA,
+        double** bData, const int* xyLdB, const int ldldB, const int ztLdB,
+        const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+        const int r
+    ) {
+        GridInd3d ind;
 
-    const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+        if (ind.row >= dim[1] || ind.col >= dim[2] || ind.layer >= dim[3]) return; // TODO: sort this out.
 
-    const int numSteps,
 
-    const int r
-) {
+        Array4d<const double> a(aData, xyLdA, ldldA, ztLdA);
+        Array4d<double> b(bData, xyLdB, ldldB, ztLdB);
 
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= n) return; // Out-of-bounds thread
+        GridInd4d ind0(0, ind.row, ind.col, ind.layer);
 
-    XYLd xySrcLd(xyLdSrc, ldldSrc), xyDstLd(xyLdDst, ldldDst);
+        Vec<const double> aVec(a, ind0, 0, 1, 0);
+        Vec<double> bVec(b, ind0, 0, 1, 0);
 
-    int col = idx % dim[1], absLayer = idx/dim[1], layer = absLayer % dim[2], tensor = absLayer / dim[2];
-
-    Vec src(srcData, col * xySrcLd(layer, tensor), tensor * ztLdSrc + layer, 1, 0),
-        dst(dstData, col * xyDstLd(layer, tensor), tensor * ztLdDst + layer, 1, 0);
-
-    rollTheSum(r, numSteps, src, dst);
+        rollTheSum(r, dim[0], aVec, bVec);
 }
 
+/**
+ * Threads should be rows X cols X frames
+ */
 extern "C" __global__ void neighborhoodSumZ(
-    const int n,
-    double** srcData, const int* xyLdSrc, const int ldldSrc, const int ztLdSrc,
-    double** dstData, const int* xyLdDst, const int ldldDst, const int ztLdDst,
-
+    const double** aData, const int* xyLdA, const int ldldA, const int ztLdA,
+    double** bData, const int* xyLdB, const int ldldB, const int ztLdB,
     const int* dim, //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
-
-    const int numSteps,
-
     const int r
 ) {
+    GridInd3d ind;
 
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (ind.row >= dim[0] || ind.col >= dim[1] || ind.layer >= dim[3]) return; // TODO: sort this out.
 
-    if (idx >= n) return; // Out-of-bounds thread
 
-    XYLd xySrcLd(xyLdSrc, ldldSrc), xyDstLd(xyLdDst, ldldDst);
+    Array4d<const double> a(aData, xyLdA, ldldA, ztLdA);
+    Array4d<double> b(bData, xyLdB, ldldB, ztLdB);
 
-    int idxInLayer = idx % dim[4], row = idxInLayer % dim[0], col = idxInLayer/dim[0], tensor = idx / dim[4];
 
-    Vec src(srcData, col * xySrcLd(0, tensor) + row, tensor * ztLdSrc, 0, 1),
-        dst(dstData, col * xyDstLd(0, tensor) + row, tensor * ztLdDst, 0, 1);
+    GridInd4d ind0(ind.row, ind.col, 0, ind.layer);
 
-    rollTheSum(r, numSteps, src, dst);
+    Vec<const double> aVec(a, ind0, 0, 0, 1);
+    Vec<double> bVec(b, ind0, 0, 0, 1);
+
+    rollTheSum(r, dim[2], aVec, bVec);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -446,27 +328,27 @@ extern "C" __global__ void neighborhoodSumZ(
  *        `dst = timesDst * dst + timesProduct * a * b`
  *
  * This kernel operates on 4D batched data (frames × depth × height × width), allowing
- * for strided memory access via pointer arrays and leading-dimension arrays. It reads
+ * for strided memory access via pointer arrays and leading-indension arrays. It reads
  * corresponding values from two inputs (`a` and `b`), multiplies them, scales the result,
  * and accumulates it with a scaled value from the destination (`dst`).
  *
  * @param n         Total number of elements to process (threads).
  * @param dst       Pointer array to output 2D slices (modifiable).
- * @param xyLdDst   Leading dimension array for `dst` (per slice).
+ * @param xyLdDst   Leading indension array for `dst` (per slice).
  * @param ldldDst   Stride across `xyLdDst` for indexing slices.
  * @param ztLdDst   Stride across `dst` for frame × depth indexing.
  *
  * @param a         Pointer array to 2D slices of input A.
- * @param xyLdA     Leading dimension array for input A slices.
+ * @param xyLdA     Leading indension array for input A slices.
  * @param ldldA     Stride across `xyLdA` for indexing.
  * @param ztLdA     Stride across `a` for frame × depth indexing.
  *
  * @param b         Pointer to 1D flattened array of input B.
- * @param xyLdB     Leading dimension array for input B.
+ * @param xyLdB     Leading indension array for input B.
  * @param ldldB     Stride across `xyLdB` for indexing.
  * @param ztLdB     Stride across `b` for frame × depth indexing.
  *
- * @param dim       height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+ * @param ind       height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
  *
  * @param timesProduct Scalar multiplier for the product of `a` and `b`.
  *
@@ -474,19 +356,20 @@ extern "C" __global__ void neighborhoodSumZ(
  * @param timesDst  Scalar multiplier applied to the existing value in `dst`.
  */
 extern "C" __global__ void setEBEProduct(
-    const int n,
-    double** dst, const int* xyLdDst, const int ldldDst, const int ztLdDst,
-    const float** a, const int* xyLdA, const int ldldA, const int ztLdA,
-    const float** b, const int* xyLdB, const int ldldB, const int ztLdB,
+    double** dstData, const int* xyLdDst, const int ldldDst, const int ztLdDst,
+    const float** aData, const int* xyLdA, const int ldldA, const int ztLdA,
+    const float** bData, const int* xyLdB, const int ldldB, const int ztLdB,
 
     const int* dim //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
 ) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= n) return;
+    GridInd4d ind(dim[1]);
+    if (ind >= dim) return;
 
-    Indices ind(idx, dim);
+    Array4d<double> dst(dstData, xyLdDst, ldldDst, ztLdDst);
+    Array4d<const float> a(aData, xyLdA, ldldA, ztLdA);
+    Array4d<const float> b(bData, xyLdB, ldldB, ztLdB);
 
-    ind(dst, xyLdDst, ldldDst, ztLdDst) = ind(a, xyLdA, ldldA, ztLdA) * ind(b, xyLdB, ldldB, ztLdB);
+    dst[ind] = a[ind] * b[ind];
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -501,23 +384,22 @@ extern "C" __global__ void setEBEProduct(
  * @param totalElements   Total number of elements to process.
  * @param pointersToLayers 2D array of pointers to 2D layers.
  * @param ldLayers        2D array of column strides per layer.
- * @param ldld            Leading dimension of ldLayers (stride across depth).
- * @param ldPtrs          Leading dimension of pointersToLayers (stride across frames).
- * @param dim The dimensions
+ * @param ldld            Leading indension of ldLayers (stride across depth).
+ * @param ldPtrs          Leading indension of pointersToLayers (stride across frames).
+ * @param ind The indensions
  * @param scalar          Scalar to multiply each element by.
  */
 extern "C" __global__ void multiplyScalar(
-    const int totalElements,
     float** pointersToLayers, const int* ldLayers, const int ldld, const int ldPtrs,
     const int* dim,
     const float scalar
 ) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= totalElements) return;
+    GridInd4d ind(dim[1]);
+    if (ind >= dim) return;
 
-    Indices mapper(idx, dim);
+    Array4d<float> dst(pointersToLayers, ldLayers, ldPtrs, ldld);
 
-    mapper(pointersToLayers, ldLayers, ldld, ldPtrs) *= scalar;
+    dst[ind] *= scalar;
 }
 
 
@@ -935,7 +817,7 @@ public:
      * @param i The index of the component (0 for x, 1 for y, 2 for z).
      * @return The element at the ith index.
      */
-    __device__ double operator()(int i) const{
+    __device__ double operator[](int i) const{
         return data[i];
     }
 
@@ -1051,13 +933,6 @@ public:
         return (data[0] == data[ind]) + (data[1] == data[ind]) + (data[2] == data[ind]) - 1;
     }
 
-    /**
-     * Copies these values to the desired location.
-     */
-    __device__ void writeTo(float* dst){
-     	for(int i = 0; i < 3; i++) dst[i] = (float)data[i];
-    }
-
     __device__ double coherence(){
         if(isnan(data[0])) return 0;
         return data[0] <=  tolerance ? 0 : (data[1] - data[2]) / (data[1] + data[2]);
@@ -1065,38 +940,38 @@ public:
 
 };
 
-
-
 /**
  * CUDA Kernel to compute eigenvalues and eigenvectors of a batch of 3x3 symmetric matrices.
  *
+ * Be sure the number of threads passed arraySize / downSample.
+ *
  * @param n Total number of input elements before downsampling.
  * @param xx Array of pointers to the xx components of each height x width slice (row is depth and col is frame.).
- * @param ldxx Array of leading dimensions for the xx components of each slice (size: depth * batchSize).
- * @param ldldxx Leading dimension of the ldxx array (stride between leading dimensions in memory).
- * @param ldPtrxx Leading dimension of the xx pointer array (stride between pointers in memory).
+ * @param ldxx Array of leading indensions for the xx components of each slice (size: depth * batchSize).
+ * @param ldldxx Leading indension of the ldxx array (stride between leading indensions in memory).
+ * @param ldPtrxx Leading indension of the xx pointer array (stride between pointers in memory).
  * @param xy Array of pointers to the xy components of each height x width slice (organized by depth then batch).
- * @param ldxy Array of leading dimensions for the xy components of each slice (size: depth * batchSize).
- * @param ldldxy Leading dimension of the ldxy array.
- * @param ldPtrxy Leading dimension of the xy pointer array.
+ * @param ldxy Array of leading indensions for the xy components of each slice (size: depth * batchSize).
+ * @param ldldxy Leading indension of the ldxy array.
+ * @param ldPtrxy Leading indension of the xy pointer array.
  * @param xz Array of pointers to the xz components of each height x width slice (organized by depth then batch).
- * @param ldxz Array of leading dimensions for the xz components of each slice (size: depth * batchSize).
- * @param ldldxz Leading dimension of the ldxz array.
- * @param ldPtrxz Leading dimension of the xz pointer array.
+ * @param ldxz Array of leading indensions for the xz components of each slice (size: depth * batchSize).
+ * @param ldldxz Leading indension of the ldxz array.
+ * @param ldPtrxz Leading indension of the xz pointer array.
  * @param yy Array of pointers to the yy components of each height x width slice (organized by depth then batch).
- * @param ldyy Array of leading dimensions for the yy components of each slice (size: depth * batchSize).
- * @param ldldyy Leading dimension of the ldyy array.
- * @param ldPtryy Leading dimension of the yy pointer array.
+ * @param ldyy Array of leading indensions for the yy components of each slice (size: depth * batchSize).
+ * @param ldldyy Leading indension of the ldyy array.
+ * @param ldPtryy Leading indension of the yy pointer array.
  * @param yz Array of pointers to the yz components of each height x width slice (organized by depth then batch).
- * @param ldyz Array of leading dimensions for the yz components of each slice (size: depth * batchSize).
- * @param ldldyz Leading dimension of the ldyz array.
- * @param ldPtryz Leading dimension of the yz pointer array.
+ * @param ldyz Array of leading indensions for the yz components of each slice (size: depth * batchSize).
+ * @param ldldyz Leading indension of the ldyz array.
+ * @param ldPtryz Leading indension of the yz pointer array.
  * @param zz Array of pointers to the zz components of each height x width slice (organized by depth then batch).
- * @param ldzz Array of leading dimensions for the zz components of each slice (size: depth * batchSize).
- * @param ldldzz Leading dimension of the ldzz array.
- * @param ldPtrzz Leading dimension of the zz pointer array.
+ * @param ldzz Array of leading indensions for the zz components of each slice (size: depth * batchSize).
+ * @param ldldzz Leading indension of the ldzz array.
+ * @param ldPtrzz Leading indension of the zz pointer array.
 
- * @param dim  height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+ * @param ind  height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
 
  * @param tolerance Tolerance for floating-point comparisons.
  * @param zenith where the zenith angles, between 0 and pi, will be stored.
@@ -1104,56 +979,69 @@ public:
  * @param coherence The coherence of the vector will be stored here.  Note, if this value is negaitvie then the vector at this index is normal to the plane with a coherence equal to the absolute value of the coherence stored here.
  */
 extern "C" __global__ void eigenBatch3d(
-    const int n,
+    const double** xxData, const int* ldxx, const int ldldxx, const int ldPtrxx,
+    const double** xyData, const int* ldxy, const int ldldxy, const int ldPtrxy,
+    const double** xzData, const int* ldxz, const int ldldxz, const int ldPtrxz,
+    const double** yyData, const int* ldyy, const int ldldyy, const int ldPtryy,
+    const double** yzData, const int* ldyz, const int ldldyz, const int ldPtryz,
+    const double** zzData, const int* ldzz, const int ldldzz, const int ldPtrzz,
 
-    const double** xx, const int* ldxx, const int ldldxx, const int ldPtrxx,
-    const double** xy, const int* ldxy, const int ldldxy, const int ldPtrxy,
-    const double** xz, const int* ldxz, const int ldldxz, const int ldPtrxz,
-    const double** yy, const int* ldyy, const int ldldyy, const int ldPtryy,
-    const double** yz, const int* ldyz, const int ldldyz, const int ldPtryz,
-    const double** zz, const int* ldzz, const int ldldzz, const int ldPtrzz,
-
-    float** eVecs, const int* ldEVec, const int ldldEVec, const int ldPtrEVec,
-    float** coherence, const int* ldCoh, const int ldldCoh, const int ldPtrCoh,
-    float** azimuthal, const int* ldAzi, const int ldldAzi, const int ldPtrAzi,
-    float** zenith, const int* ldZen, const int ldldZen, const int ldPtrZen,
+    float** eVecsData, const int* ldEVec, const int ldldEVec, const int ldPtrEVec,
+    float** coherenceData, const int* ldCoh, const int ldldCoh, const int ldPtrCoh,
+    float** azimuthalData, const int* ldAzi, const int ldldAzi, const int ldPtrAzi,
+    float** zenithData, const int* ldZen, const int ldldZen, const int ldPtrZen,
 
     const int* dim,
 
     const int downSampleFactorXY, const int downSampleFactorZ, int eigenInd,
     const double tolerance
 ) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    GridInd4d id(dim[1], downSampleFactorXY, downSampleFactorZ);
 
-    if (idx >= n) return;
-
-    Indices src(idx, dim, downSampleFactorXY, downSampleFactorZ);
-    Indices dst(idx, dim, 1, 1);
+    if (id >= dim) return;
+    
+    Array4d<const double> xx(xxData, ldxx, ldldxx, ldPtrxx);
+    Array4d<const double> xy(xyData, ldxy, ldldxy, ldPtrxy);
+    Array4d<const double> xz(xzData, ldxz, ldldxz, ldPtrxz);
+    Array4d<const double> yy(yyData, ldyy, ldldyy, ldPtryy);
+    Array4d<const double> yz(yzData, ldyz, ldldyz, ldPtryz);
+    Array4d<const double> zz(zzData, ldzz, ldldzz, ldPtrzz);
 
     Matrix3x3 mat(
-    	src(xx, ldxx, ldldxx, ldPtrxx), src(xy, ldxy, ldldxy, ldPtrxy), src(xz, ldxz, ldldxz, ldPtrxz),
-                                        src(yy, ldyy, ldldyy, ldPtryy), src(yz, ldyz, ldldyz, ldPtryz),
-    					                                src(zz, ldzz, ldldzz, ldPtrzz),
+    	xx[id], xy[id], xz[id],
+    	        yy[id], yz[id],
+    	                zz[id],
         tolerance
     );
 
     Vec3 eVals(tolerance);
     eVals.setEVal(mat);
 
-	bool ortho = eq(eVals(1), eVals(2), tolerance) && !eq(eVals(0), (eVals(1) +eVals(2))/2, tolerance);
+	bool ortho = eq(eVals[1], eVals[2], tolerance)
+        && !eq(eVals[0], (eVals[1] + eVals[2])/2, tolerance);
+
 	if(ortho) eigenInd = 0;
-    dst(coherence, ldCoh, ldldCoh, ldPtrCoh) = (ortho?-1:1)*(float)eVals.coherence();
+
+    Array4d<float> coherence(coherenceData, ldCoh, ldldCoh, ldPtrCoh);
+    coherence[id] = (ortho?-1:1)*(float)eVals.coherence();
 
 
     mat.subtractFromDiag(eVals[eigenInd]);
 
     Vec3 vec(1e-5);
-
     vec.setEVec(mat, mat.rowEchelon(), eigenInd);
 
-    vec.writeTo(eVecs[dst.page(ldPtrEVec)] + dst.col * ldEVec[dst.page(ldldEVec)] + dst.row * 3);
-    dst(azimuthal, ldAzi, ldldAzi, ldPtrAzi) = vec.azimuth();
-    dst(zenith, ldZen, ldldZen, ldPtrZen) = vec.zenith();
+    Array4d<float> eVecs(eVecsData, ldEVec, ldldEVec, ldPtrEVec);
+    GridInd4d eVecInd(id.row * 3, id.col, id.layer, id.frame);
+    Vec<float> eVec(eVecs, eVecInd, 0, 1, 0);
+
+    for (int i = 0; i < 3; i++) eVec[i] = vec[i];
+
+    Array4d<float> azimuthal(azimuthalData, ldAzi, ldldAzi, ldPtrAzi);
+    azimuthal[id] = vec.azimuth();
+
+    Array4d<float> zenith(zenithData, ldZen, ldldZen, ldPtrZen);
+    zenith[id] = vec.zenith();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1188,7 +1076,7 @@ public:
      * For debugging purposes.
      */
     __device__ void print() const {
-        printf("Matrix2x2 Debug Info (Thread %d)\n", threadIdx.x + blockIdx.x * blockDim.x);
+        printf("Matrix2x2 Debug Info (Thread %d)\n", idx());
         printf("  [ %.6f  %.6f ]\n", mat[0][0], mat[0][1]);
         printf("  [ %.6f  %.6f ]\n", mat[1][0], mat[1][1]);
         printf("  Tolerance: %.6f\n", tolerance);
@@ -1269,7 +1157,7 @@ public:
      * Includes vector components and results of key methods.
      */
     __device__ void print() const {
-        printf("Vec Debug Info (Thread %d)\n", threadIdx.x + blockIdx.x * blockDim.x);
+        printf("Vec Debug Info (Thread %d)\n", idx());
         printf("  Components: [x=%.6f, y=%.6f]\n", data[0], data[1]);
         printf("  Tolerance: %.6f\n", tolerance);
         printf("  Length: %.6f\n", length());
@@ -1279,32 +1167,33 @@ public:
 
 /**
  * @brief CUDA Kernel to compute eigenvalues/vectors of 2x2 matrices with downsampling.
+ * thread count should be rows X cols X 1 X frames.  Though this is not the most efficiant runtime, it's easiest to write  TODO: come up with a bell written Array3d that is rows X cols X frames so this method will be more efficient.
  *
  * @param n_ds Total number of *downsampled* elements (pixels * frames).
  * @param xx, xy, yy Input structure tensor components (arrays of pointers).
- * @param ldxx, ldxy, ldyy Leading dimensions (heights) for input tensors.
+ * @param ldxx, ldxy, ldyy Leading indensions (heights) for input tensors.
  * @param ldldxx, ... (unused, but kept for consistency with 3D example if needed).
  * @param ldPtrxx, ... (unused, but kept for consistency).
  * @param eVecs, coherence, angle Output arrays (arrays of pointers).
- * @param ldEVec, ldCoh, ldAng Leading dimensions (heights) for output tensors.
+ * @param ldEVec, ldCoh, ldAng Leading indensions (heights) for output tensors.
  * @param ldldEVec, ... (unused).
  * @param ldPtrEVec, ... (unused).
- * @param dim Original dimensions {height, width, numFrames, imageSize}.
- * @param dsDim Downsampled dimensions {h_ds, w_ds, numFrames, imageSize_ds}.
+ * @param ind Original indensions {height, width, numFrames, imageSize}.
+ * @param dsind Downsampled indensions {h_ds, w_ds, numFrames, imageSize_ds}.
  * @param downSampleFactor Downsampling factor (e.g., 2, 4).
  * @param eigenInd Index of eigenvector (0 for primary, 1 for secondary).
  * @param tolerance Floating-point tolerance.
  */
 extern "C" __global__ void eigenBatch2d(
-    const int n_ds, // Use n_ds to indicate it's the downsampled size
 
-    const double** xx, const int* ldxx, const int ldldxx, const int ldPtrxx,
-    const double** xy, const int* ldxy, const int ldldxy, const int ldPtrxy,
-    const double** yy, const int* ldyy, const int ldldyy, const int ldPtryy,
 
-    float** eVecs, const int* ldEVec, const int ldldEVec, const int ldPtrEVec,
-    float** coherence, const int* ldCoh, const int ldldCoh, const int ldPtrCoh,
-    float** angle, const int* ldAng, const int ldldAng, const int ldPtrAng,
+    const double** xxData, const int* ldxx, const int ldldxx, const int ldPtrxx,
+    const double** xyData, const int* ldxy, const int ldldxy, const int ldPtrxy,
+    const double** yyData, const int* ldyy, const int ldldyy, const int ldPtryy,
+
+    float** eVecsData, const int* ldEVec, const int ldldEVec, const int ldPtrEVec,
+    float** coherenceData, const int* ldCoh, const int ldldCoh, const int ldPtrCoh,
+    float** angleData, const int* ldAng, const int ldldAng, const int ldPtrAng,
 
     const int* dim,
 
@@ -1312,28 +1201,128 @@ extern "C" __global__ void eigenBatch2d(
     const int eigenInd,
     const double tolerance
 ) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    GridInd4d id(dim[1], downSampleFactor);
 
-    if (idx >= n_ds) return; // Check bounds against downsampled size
+    if (id.row >= dim[0] || id.col >= dim[1] || id.frame >= dim[3]) return; // Check bounds against downsampled size
 
-    Indices src(idx, dim, downSampleFactor);
+    Array4d<const double> xx(xxData, ldxx, ldldxx, ldPtrxx);
+    Array4d<const double> xy(xyData, ldxy, ldldxy, ldPtrxy);
+    Array4d<const double> yy(yyData, ldyy, ldldyy, ldPtryy);
 
     const Matrix2x2 mat(
-    	src(xx, ldxx, ldldxx, ldPtrxx), src(xy, ldxy, ldldxy, ldPtrxy),
-                                        src(yy, ldyy, ldldyy, ldPtryy),
+    	xx[id], xy[id],
+    	        yy[id],
         tolerance
     );
 
     Vec2 eVals(1e-5);
     eVals.setEVal(mat);
 
-    Indices dst(idx, dim, 1);
-
-    dst(coherence, ldCoh, ldldCoh, ldPtrCoh) = (float)eVals.coherence();
+    Array4d<float> coherence(coherenceData, ldCoh, ldldCoh, ldPtrCoh);
+    coherence[id] = (float)eVals.coherence();
 
     Vec2 vec(tolerance);
     vec.setEVec(mat, eVals(eigenInd), eigenInd);
+    Array4d<float> eVecs(eVecsData, ldEVec, ldldEVec, ldPtrEVec);
+    GridInd4d eVecInd(id.row * 2, id.col, id.layer, id.frame);
+    Vec<float> eVec(eVecs, eVecInd, 0, 1, 0);
+    for (int i = 0; i < 2; i++) eVec[i] = vec[i];
 
-    vec.writeTo(eVecs[dst.page(ldPtrEVec)] + dst.col * ldEVec[dst.page(ldldEVec)] + 2 * dst.row);
-    dst(angle, ldAng, ldldAng, ldPtrAng) = vec.angle();
+    Array4d<float> angles(angleData, ldAng, ldldAng, ldPtrAng);
+    angles[id] = vec.angle();
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+///////////////////////////////////////////////////garbage/////////////////////////////////////////////////////////////////////
+
+class Indices {
+public:
+    const int idx;       ///< The global flat index.
+    const int tensorInd; ///< The tensorindex (frame), unadjusted for leading indension.
+    const int layerInd;  //< The layer index, unadjusted for leading indension.
+    const int row;
+    const int col;
+
+    __device__ int page(const int ldPtr) const {
+    	return tensorInd * ldPtr + layerInd;
+    }
+    
+    __device__ int word(const int* ld, const int ldld) const {
+        return col * ld[page(ldld)] + row;
+    }
+
+ld, const int ldld, const int ldPtr) const{
+        return src[page(ldPtr)][word(ld, ldld)];
+    }
+    template<typename T>
+    __device__ T& operator()(T** src, const int* ld, const int ldld, const int ldPtr) {
+        return src[page(ldPtr)][word(ld, ldld)];
+    }
+
+    __device__ Indices(int threadID, const int* dim):
+	idx(threadID % dim[6]),
+    	tensorInd((idx % dim[6]) / dim[5]),
+    	layerInd((idx % dim[5]) / dim[4]),
+    	row(idx % dim[0]),
+    	col((idx % dim[4])/ dim[0]){}
+
+     __device__ void print() const {
+     
+        int globalThreadId = idx();
+
+        printf("Thread %d (Global): Indices - idx: %d, tensorInd: %d, layerInd: %d, row: %d, col: %d\n",
+               globalThreadId, idx, tensorInd, layerInd, row, col);
+    }
+    __device__ Indices(const int idx, const int* dim, const int downSampleFactorXY, const int downSampleFactorZ)
+    : idx(idx),
+      layerInd(((idx / dim[4]) % dim[2]) * downSampleFactorZ),
+      tensorInd(idx / dim[5]),
+      row((idx % dim[0])*downSampleFactorXY),
+      col(((idx % dim[4])/dim[0])*downSampleFactorXY) {}
+
+    __device__ Indices(const int inputIdx, const int* dim, const int downSampleFactorXY)
+    : idx(inputIdx),
+      tensorInd(idx / dim[4]),
+      layerInd(0),
+      row((idx % dim[0]) * downSampleFactorXY),
+      col(((idx % dim[4])/dim[0]) * downSampleFactorXY) {}
+};
+*/

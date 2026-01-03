@@ -72,7 +72,6 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
 //        System.out.println("fijiPlugin.Eigen.set() dim = " + downSampledDim);
         
         if (dim.hasDepth()) handle.runKernel("eigenBatch3d", 
-                    azimuth.deepSize(),
                     new PArray2dTo2d[]{
                         mat[0][0],
                         mat[0][1],
@@ -92,7 +91,6 @@ public class Eigen implements AutoCloseable {//TODO: maybe incorporate this up i
                     P.to(ui.tolerance)
             );
         else handle.runKernel("eigenBatch2d", 
-                    azimuth.deepSize(),
                     new PArray2dTo2d[]{
                         mat[0][0],
                         mat[0][1],

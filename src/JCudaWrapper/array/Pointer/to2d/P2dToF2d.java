@@ -107,7 +107,6 @@ public class P2dToF2d extends PArray2dTo2d implements PointToF2d {
 
         try (Dimensions dims = new Dimensions(handle, targetDim().entriesPerLine, targetDim().numLines, entriesPerLine(), linesPerLayer())) {
             handle.runKernel("multiplyScalar", 
-                    deepSize(),
                     new PArray2dTo2d[]{this},
                     dims,
                     P.to(scalar)

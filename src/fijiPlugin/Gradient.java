@@ -38,26 +38,27 @@ public class Gradient implements AutoCloseable {
      */
     public Gradient(Handle handle, MyImagePlus imp, UsrInput ui) {
 
-        try (P2dToF2d pic = ProcessImage.processImages(handle, imp, ui)) {
-                        
-            dim = imp.dim().setGpuDim(handle);
+        try (P2dToF2d pic = ProcessImage.processImages(handle, imp, ui)) {        
             
+            dim = imp.dim().setGpuDim(handle);
+
             x = new P2dToF2d[dim.depth > 1 ? 3 : 2];
 
             PArray2dTo2d[] dataParams = new PArray2dTo2d[x.length + 1];
             dataParams[0] = pic;
-            for (int i = 0; i < x.length; i++) dataParams[i + 1] = x[i] = dim.emptyP2dToF2d(handle);            
+            for (int i = 0; i < x.length; i++) 
+                dataParams[i + 1] = x[i] = dim.emptyP2dToF2d(handle);
             
-                handle.runKernel(
-                        "batchGradients" + x.length + "d", 
-                        dim.size() * x.length, 
-                        dataParams, 
-                        dim, 
-                        P.to(ui.neighborhoodSize.layerRes.orElse(1.0))
-                );
-            
-       }
+            handle.runKernel(
+                    "batchGrad",
+                    dataParams,
+                    dim,
+                    P.to(ui.neighborhoodSize.layerRes.orElse(1.0))
+            );
 
+        }
+        
+//        System.out.println("fijiPlugin.Gradient.<init>()\n" + x[0] + "\n\n\n\n\n\n\n" + x[1] + "\n\n\n\n\n\n\n" + x[2]);
     }
 
     /**
@@ -65,7 +66,9 @@ public class Gradient implements AutoCloseable {
      */
     @Override
     public void close() {
-        for (Array grad : x) grad.close();
+        for (Array grad : x) {
+            grad.close();
+        }
     }
 
     /**

@@ -2,6 +2,7 @@ package JCudaWrapper.resourceManagement;
 
 import JCudaWrapper.kernels.KernelManager;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
+import JCudaWrapper.kernels.ThreadCount;
 import fijiPlugin.Dimensions;
 import jcuda.Pointer;
 import jcuda.driver.CUstream;
@@ -116,8 +117,19 @@ public class Handle implements AutoCloseable {
      * @param dim The dimensions of the data.
      * @param additionalParmaters Pointers to any additional data.
      */
-    public void runKernel(String name, int numThreads, PArray2dTo2d[] arrays, Dimensions dim, Pointer... additionalParmaters){
+    public void runKernel(String name, ThreadCount numThreads, PArray2dTo2d[] arrays, Dimensions dim, Pointer... additionalParmaters){
         km.run(name, this, numThreads, arrays, dim, additionalParmaters);
+    }
+    
+    /**
+     * runs the kernel from the preset file in the KernelManagaer class
+     * @param name The name of the function in the file.
+     * @param arrays All the arrays that will be passed to the kerenel.
+     * @param dim The dimensions of the data.
+     * @param additionalParmaters Pointers to any additional data.
+     */
+    public void runKernel(String name, PArray2dTo2d[] arrays, Dimensions dim, Pointer... additionalParmaters){
+        km.run(name, this, arrays, dim, additionalParmaters);
     }
     
     /**

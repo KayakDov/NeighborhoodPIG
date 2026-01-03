@@ -7,6 +7,7 @@ import JCudaWrapper.array.P;
 import JCudaWrapper.array.Pointer.to2d.PArray2dTo2d;
 import JCudaWrapper.array.Pointer.to2d.PArray2dToD2d;
 import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
+import JCudaWrapper.kernels.ThreadCount;
 import JCudaWrapper.resourceManagement.Handle;
 import jcuda.Pointer;
 
@@ -24,8 +25,7 @@ import jcuda.Pointer;
 public class NeighborhoodProductSums implements AutoCloseable {
 
     private final PArray2dToD2d workSpace1, workSpace2;
-    
-    private final Mapper X, Y, Z;
+    private final NeighborhoodDim nRad;
     private final Handle handle;
     private final Dimensions dim;
 
@@ -43,96 +43,22 @@ public class NeighborhoodProductSums implements AutoCloseable {
 
         this.handle = handle;
         this.dim = dim;
-
-        if(dim.hasDepth()) Z = new Mapper(dim.layerSize() * dim.batchSize, dim.depth, 2, nRad.zR.get()) {
-            @Override
-            public void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, Dimensions dim, Pointer numSteps, Pointer nRad) {
-                handle.runKernel("neighborhoodSumZ", numThreads, arrays, dim, numSteps, nRad);
-            }
-        };
-        else Z = null;
-
-        Y = new Mapper(dim.depth * dim.width * dim.batchSize, dim.height, 1, nRad.xyR){
-            @Override
-            public void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, Dimensions dim, Pointer numSteps, Pointer nRad) {
-                handle.runKernel("neighborhoodSumY", numThreads, arrays, dim, numSteps, nRad);
-            }
-
-        };
-
-        X = new Mapper(dim.depth * dim.height * dim.batchSize, dim.width, 0, nRad.xyR){
-            @Override
-            public void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, Dimensions dim, Pointer numSteps, Pointer nRad) {
-                handle.runKernel("neighborhoodSumX", numThreads, arrays, dim, numSteps, nRad);
-//                        , numThreads, arrays, dim, 
-            }
-
-        };
-
+        this.nRad = nRad;
+        
         workSpace2 = dim.emptyP2dToD2d(handle);
         workSpace1 = dim.emptyP2dToD2d(handle);
 
     }
 
-    /**
-     * A class to manage data for computing neighborhood sums in a specific
-     * dimension.
-     */
-    private abstract class Mapper {
-
-        public final int numSteps, numThreads, dirOrd, nRad;
-
-        /**
-         *
-         * @param numSteps The number of steps to take in the requested
-         * dimension.
-         * @param srcInc The size of each step in the direction.
-         * @param dirOrd The direction. x = 0, y = 1, z = 2.
-         * @param numThreads The number pixels on a face perpendicular to the
-         * direction.
-         */
-        public Mapper(int numThreads, int numSteps, int dirOrd, int nRad) {
-            this.numSteps = numSteps;
-            this.numThreads = numThreads;
-            this.dirOrd = dirOrd;
-            this.nRad = nRad;
-        }
-
-        /**
-         * Maps the neighborhood sums in the given dimension.
-         *
-         * @param n The number of threads.
-         * @param src The source matrix.
-         * @param dst The destination matrix.
-         * @param dir The dimension, 0 for X, 1 for Y, and 2 for Z.
-         * @param ldTo The increment of the the destination matrices.
-         */
-        public void neighborhoodSum(PArray2dToD2d src, PArray2dToD2d dst) {
-
-            nSum(handle,
-                    numThreads,
-                    new PArray2dTo2d[]{src, dst},
-                    dim,
-                    P.to(numSteps),
-                    P.to(nRad)
-            );
-
-        }
-
-        /**
-         * The kernel that summs up the elements in the neighborhood in the
-         * given dimension.
-         *
-         * @param hand
-         * @param numThreads The numvber of threads.
-         * @param arrays An array containing he src and dst.
-         * @param dim The dimesnisons of the data.
-         * @param numSteps The numver of elements the rolling sums will be taken
-         * over.
-         * @param nRad The radius of each neighborhood.
-         */
-        public abstract void nSum(Handle hand, int numThreads, PArray2dTo2d[] arrays, Dimensions dim, Pointer numSteps, Pointer nRad);
-
+    
+    private void nSum(String dir, int effectiveHeight, int effectiveWidth, PArray2dToD2d src, PArray2dToD2d dst, int r){
+        handle.runKernel(
+                "neighborhoodSum" + dir, 
+                new ThreadCount(effectiveHeight, effectiveWidth, dim.batchSize), 
+                new PArray2dTo2d[]{src, dst}, 
+                dim, 
+                P.to(r)
+        );
     }
 
     /**
@@ -148,22 +74,21 @@ public class NeighborhoodProductSums implements AutoCloseable {
      */
     public void set(P2dToF2d a, P2dToF2d b, PArray2dToD2d dst) {
 
-        handle.runKernel("setEBEProduct", 
-                dim.size(),
+        handle.runKernel("setEBEProduct",
                 new PArray2dTo2d[]{workSpace1, a, b},
                 dim
         );
 
-        X.neighborhoodSum(workSpace1, workSpace2);
-
-        if (dim.hasDepth()) {
-            Y.neighborhoodSum(workSpace2, workSpace1);
-
-            Z.neighborhoodSum(workSpace1, dst);
+        nSum("X", dim.height, dim.depth, workSpace1, workSpace2, nRad.xyR);
+        
+        if (dim.hasDepth()) {            
+            nSum("Y", dim.width, dim.depth, workSpace2, workSpace1, nRad.xyR);
+            nSum("Z", dim.height, dim.width, workSpace1, dst, nRad.zR.orElse(nRad.xyR));
 
         } else {
-            Y.neighborhoodSum(workSpace2, dst);
+            nSum("Y", dim.width, dim.depth, workSpace2, dst, nRad.xyR);
         }
+        
     }
 
     /**
