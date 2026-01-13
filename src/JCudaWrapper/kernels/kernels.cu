@@ -254,7 +254,7 @@ extern "C" __global__ void neighborhoodSumX(
 ) {
     GridInd3d ind;
 
-    if (ind.row >= dim[0] || ind.col >= dim[2] || ind.layer >= dim[3]) return; // TODO: sort this out.
+    if (ind.row >= dim[0] || ind.col >= dim[2] || ind.layer >= dim[3]) return;
 
 
     Array4d<const double> a(aData, xyLdA, ldldA, ztLdA);
@@ -280,7 +280,7 @@ extern "C" __global__ void neighborhoodSumY(
     ) {
         GridInd3d ind;
 
-        if (ind.row >= dim[1] || ind.col >= dim[2] || ind.layer >= dim[3]) return; // TODO: sort this out.
+        if (ind.row >= dim[1] || ind.col >= dim[2] || ind.layer >= dim[3]) return;
 
 
         Array4d<const double> a(aData, xyLdA, ldldA, ztLdA);
@@ -306,7 +306,7 @@ extern "C" __global__ void neighborhoodSumZ(
 ) {
     GridInd3d ind;
 
-    if (ind.row >= dim[0] || ind.col >= dim[1] || ind.layer >= dim[3]) return; // TODO: sort this out.
+    if (ind.row >= dim[0] || ind.col >= dim[1] || ind.layer >= dim[3]) return;
 
 
     Array4d<const double> a(aData, xyLdA, ldldA, ztLdA);
@@ -390,14 +390,14 @@ extern "C" __global__ void setEBEProduct(
  * @param scalar          Scalar to multiply each element by.
  */
 extern "C" __global__ void multiplyScalar(
-    float** pointersToLayers, const int* ldLayers, const int ldld, const int ldPtrs,
+    float** data, const int* xyLd, const int ldld, const int ztLd,
     const int* dim,
     const float scalar
 ) {
     GridInd4d ind(dim[1]);
     if (ind >= dim) return;
 
-    Array4d<float> dst(pointersToLayers, ldLayers, ldPtrs, ldld);
+    Array4d<float> dst(data, xyLd, ldld, ztLd);
 
     dst[ind] *= scalar;
 }

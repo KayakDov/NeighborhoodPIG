@@ -293,6 +293,7 @@ public class Launcher implements Runnable {
                         NeighborhoodPIG np = new NeighborhoodPIG(handle, ui.img.subset(i, framesPerIteration), ui)
                         ) {
                 vecImgDepth = processNPIGResults(ui, handle, np);
+                jcuda.runtime.JCuda.cudaDeviceSynchronize();
             }
 
             awaitThreadTermination();

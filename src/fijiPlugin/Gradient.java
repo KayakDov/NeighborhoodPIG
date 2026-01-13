@@ -55,7 +55,6 @@ public class Gradient implements AutoCloseable {
                     dim,
                     P.to(ui.neighborhoodSize.layerRes.orElse(1.0))
             );
-
         }
         
 //        System.out.println("fijiPlugin.Gradient.<init>()\n" + x[0] + "\n\n\n\n\n\n\n" + x[1] + "\n\n\n\n\n\n\n" + x[2]);

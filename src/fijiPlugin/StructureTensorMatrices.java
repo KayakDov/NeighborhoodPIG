@@ -5,6 +5,7 @@ import JCudaWrapper.kernels.KernelManager;
 import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import imageWork.MyImagePlus;
+import java.util.Arrays;
 
 /**
  *
@@ -47,7 +48,7 @@ public class StructureTensorMatrices implements AutoCloseable {
         vectors = new P2dToF2d(downSampled.depth, downSampled.batchSize, downSampled.height * dim.num(), downSampled.width, handle);
                 
         eigen.set(dim.num() - 1, vectors, coherence, azimuth, zenith, downSampled).close();
-        
+             
 //        System.out.println("fijiPlugin.StructureTensorMatrices.<init>()\n" + Test.format(vectors.toString()));
         
     }
