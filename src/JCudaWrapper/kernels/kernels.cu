@@ -10,7 +10,6 @@
  */
 
 
-//TODO: make sure x threads is always width * tensors.
 #include <cuda_runtime.h>
 #include <math.h>
 
@@ -52,6 +51,9 @@ public:
     
 };
 
+/**
+ * When using this indexing, be sure that the columns passes is equal to numFrames X cols.
+ */
 class GridInd4d : public GridInd3d{
 public:
     int frame;
@@ -254,14 +256,12 @@ extern "C" __global__ void neighborhoodSumX(
 ) {
     GridInd3d ind;
 
-    if (ind.row >= dim[0] || ind.col >= dim[2] || ind.layer >= dim[3]) return;
-
+    if (ind.col >= dim[0] || ind.row >= dim[2] || ind.layer >= dim[3]) return;
 
     Array4d<const double> a(aData, xyLdA, ldldA, ztLdA);
     Array4d<double> b(bData, xyLdB, ldldB, ztLdB);
 
-
-    GridInd4d ind0(ind.row, 0, ind.col, ind.layer);
+    GridInd4d ind0(ind.col, 0, ind.row, ind.layer);
 
     Vec<const double> aVec(a, ind0, 1, 0, 0);
     Vec<double> bVec(b, ind0, 1, 0, 0);
@@ -280,14 +280,12 @@ extern "C" __global__ void neighborhoodSumY(
     ) {
         GridInd3d ind;
 
-        if (ind.row >= dim[1] || ind.col >= dim[2] || ind.layer >= dim[3]) return;
-
+        if (ind.col >= dim[1] || ind.row >= dim[2] || ind.layer >= dim[3]) return;
 
         Array4d<const double> a(aData, xyLdA, ldldA, ztLdA);
         Array4d<double> b(bData, xyLdB, ldldB, ztLdB);
 
-
-        GridInd4d ind0(0, ind.row, ind.col, ind.layer);
+        GridInd4d ind0(0, ind.col, ind.row, ind.layer);
 
         Vec<const double> aVec(a, ind0, 0, 1, 0);
         Vec<double> bVec(b, ind0, 0, 1, 0);
@@ -306,14 +304,14 @@ extern "C" __global__ void neighborhoodSumZ(
 ) {
     GridInd3d ind;
 
-    if (ind.row >= dim[0] || ind.col >= dim[1] || ind.layer >= dim[3]) return;
+    if (ind.col >= dim[0] || ind.row >= dim[1] || ind.layer >= dim[3]) return;
 
 
     Array4d<const double> a(aData, xyLdA, ldldA, ztLdA);
     Array4d<double> b(bData, xyLdB, ldldB, ztLdB);
 
 
-    GridInd4d ind0(ind.row, ind.col, 0, ind.layer);
+    GridInd4d ind0(ind.col, ind.row, 0, ind.layer);
 
     Vec<const double> aVec(a, ind0, 0, 0, 1);
     Vec<double> bVec(b, ind0, 0, 0, 1);
@@ -495,6 +493,14 @@ public:
 };
 
 /**
+ * squared
+ */
+template <typename T>
+__device__ T sq(T x) {
+    return x * x;
+}
+
+/**
  * Represents a 3x3 symmetric matrix in column-major format.
  */
 class Matrix3x3 {
@@ -667,7 +673,8 @@ public:
      * Prints the matrix for debugging purposes using a single printf.
      */
     __device__ void print() {
-        printf("\nMatrix:\n%f %f %f\n%f %f %f\n%f %f %f\n",
+        printf("layer %d\nMatrix:\n%f %f %f\n%f %f %f\n%f %f %f\n",
+            idz(),
                mat[0][0], mat[0][1], mat[0][2],
                mat[1][0], mat[1][1], mat[1][2],
                mat[2][0], mat[2][1], mat[2][2]);
@@ -842,7 +849,7 @@ public:
      * @return The squared length of the vector.
      */
     __device__ double lengthSquared() const {
-        return data[0] * data[0] + data[1] * data[1] + data[2] * data[2];
+        return sq(data[0]) + sq(data[1]) + sq(data[2]);
     }
 
     /**
@@ -902,7 +909,7 @@ public:
      * The azimuthal angle of this vector.
      */
     __device__ float azimuth(){
-        if(isnan(data[0]) || data[0]*data[0] + data[1]*data[1] <= tolerance) return nan("");
+        if(isnan(data[0]) || sq(data[0]) + sq(data[1]) <= tolerance) return nan("");
        return fmod(atan2(data[1], data[0]) + M_PI, M_PI);
     }
 
@@ -934,8 +941,8 @@ public:
     }
 
     __device__ double coherence(){
-        if(isnan(data[0])) return 0;
-        return data[0] <=  tolerance ? 0 : (data[1] - data[2]) / (data[1] + data[2]);
+        if(isnan(data[0])) return 0;//TODO: maybe revert to looking at the difference between the 2nd and 3rd eigen value.
+        return data[0] <=  tolerance ? 0 : (sq(data[1] - data[2]) + sq(data[0] - data[2]) + sq(data[1] - data[0])) / sq(data[0] + data[1] + data[2]);
     }
 
 };
@@ -999,7 +1006,7 @@ extern "C" __global__ void eigenBatch3d(
     GridInd4d id(dim[1], downSampleFactorXY, downSampleFactorZ);
 
     if (id >= dim) return;
-    
+
     Array4d<const double> xx(xxData, ldxx, ldldxx, ldPtrxx);
     Array4d<const double> xy(xyData, ldxy, ldldxy, ldPtrxy);
     Array4d<const double> xz(xzData, ldxz, ldldxz, ldPtrxz);
@@ -1025,7 +1032,6 @@ extern "C" __global__ void eigenBatch3d(
     Array4d<float> coherence(coherenceData, ldCoh, ldldCoh, ldPtrCoh);
     coherence[id] = (ortho?-1:1)*(float)eVals.coherence();
 
-
     mat.subtractFromDiag(eVals[eigenInd]);
 
     Vec3 vec(1e-5);
@@ -1042,6 +1048,7 @@ extern "C" __global__ void eigenBatch3d(
 
     Array4d<float> zenith(zenithData, ldZen, ldldZen, ldPtrZen);
     zenith[id] = vec.zenith();
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1167,7 +1174,7 @@ public:
 
 /**
  * @brief CUDA Kernel to compute eigenvalues/vectors of 2x2 matrices with downsampling.
- * thread count should be rows X cols X 1 X frames.  Though this is not the most efficiant runtime, it's easiest to write  TODO: come up with a bell written Array3d that is rows X cols X frames so this method will be more efficient.
+ * thread count should be rows X cols X 1 X frames.  Though this is not the most efficiant runtime, it's easiest to write
  *
  * @param n_ds Total number of *downsampled* elements (pixels * frames).
  * @param xx, xy, yy Input structure tensor components (arrays of pointers).
