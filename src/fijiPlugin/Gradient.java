@@ -38,7 +38,7 @@ public class Gradient implements AutoCloseable {
      */
     public Gradient(Handle handle, MyImagePlus imp, UsrInput ui) {
 
-        try (P2dToF2d pic = ProcessImage.processImages(handle, imp, ui)) {        
+        try (P2dToF2d pic = ProcessImage.processImages(handle, imp, ui)) {
             
             dim = imp.dim().setGpuDim(handle);
 
@@ -57,7 +57,6 @@ public class Gradient implements AutoCloseable {
             );
         }
         
-//        System.out.println("fijiPlugin.Gradient.<init>()\n" + x[0] + "\n\n\n\n\n\n\n" + x[1] + "\n\n\n\n\n\n\n" + x[2]);
     }
 
     /**

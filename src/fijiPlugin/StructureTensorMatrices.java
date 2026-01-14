@@ -6,6 +6,7 @@ import JCudaWrapper.array.Pointer.to2d.P2dToF2d;
 import JCudaWrapper.resourceManagement.Handle;
 import imageWork.MyImagePlus;
 import java.util.Arrays;
+import main.Test;
 
 /**
  *
@@ -28,31 +29,38 @@ public class StructureTensorMatrices implements AutoCloseable {
      */
     public StructureTensorMatrices(Handle handle, MyImagePlus imp, UsrInput ui) {
         try (Gradient grad = new Gradient(handle, imp, ui)) {
-            dim = grad.dim;         
-            
+
+            dim = grad.dim;
+
             eigen = new Eigen(handle, dim, ui);
-            
+
             try (NeighborhoodProductSums nps = new NeighborhoodProductSums(handle, ui.neighborhoodSize, dim)) {
 
-                for (int i = 0; i < dim.num(); i++)
-                    for (int j = i; j < dim.num(); j++)
+                for (int i = 0; i < dim.num(); i++) {
+                    for (int j = i; j < dim.num(); j++) {
                         nps.set(grad.x[i], grad.x[j], eigen.getMatValsAt(i, j));
+                    }
+                }
             }
         }
+
+        int i = 1, j = 1;
+//        System.out.println("fijiPlugin.Gradient.<init>() layer 110\n" + eigen.getMatValsAt(i, j).get(110, 0).getVal(handle).toString());
         
         downSampled = dim.downSample(handle, ui.downSampleFactorXY, ui.downSampleFactorZ.orElse(1));
-        
+
         azimuth = downSampled.emptyP2dToF2d(handle);
         zenith = dim.hasDepth() ? downSampled.emptyP2dToF2d(handle) : null;
         coherence = downSampled.emptyP2dToF2d(handle);
         vectors = new P2dToF2d(downSampled.depth, downSampled.batchSize, downSampled.height * dim.num(), downSampled.width, handle);
-                
-        eigen.set(dim.num() - 1, vectors, coherence, azimuth, zenith, downSampled).close();
-             
-//        System.out.println("fijiPlugin.StructureTensorMatrices.<init>()\n" + Test.format(vectors.toString()));
-        
-    }
 
+        eigen.set(dim.num() - 1, vectors, coherence, azimuth, zenith, downSampled).close();
+
+//        System.out.println("fijiPlugin.StructureTensorMatrices.<init>() downSampled = " + downSampled);
+//        System.out.println("fijiPlugin.Gradient.<init>() layer 56\n" + vectors.get(56, 0).getVal(handle).toString());
+//        System.out.println("fijiPlugin.Gradient.<init>() layer 60\n" + vectors.get(65, 0).getVal(handle).toString());
+//        System.out.println("fijiPlugin.StructureTensorMatrices.<init>()\n" + Test.format(vectors.toString()));
+    }
 
     /**
      * {@inheritDoc}
@@ -62,7 +70,9 @@ public class StructureTensorMatrices implements AutoCloseable {
 
         eigen.close();
         azimuth.close();
-        if (zenith != null) zenith.close();
+        if (zenith != null) {
+            zenith.close();
+        }
         coherence.close();
         vectors.close();
         dim.close();

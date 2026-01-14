@@ -180,10 +180,10 @@ public class FijiPlugin implements PlugIn {
         boolean hasHeatMap = true;
         VF hasVF = VF.None;
         boolean hasCoherence = true;
-        String saveVectors = "false";
-//        int vfSpacingXY = 10;
-//        int vfSpacingZ = 10;
-//        int mag = 15;
+        String saveVectors = "false";//TODO: Save vectors does not seem to work.
+        int vfSpacingXY = 10;
+        int vfSpacingZ = 10;
+        int mag = 15;
 //        boolean overlay = false;
         int downSampleXY = 1;
         int downSampleZ = 1;
