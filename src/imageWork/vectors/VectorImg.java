@@ -80,9 +80,8 @@ public abstract class VectorImg implements Pencil{
         targetSpace = space(dim, spacingXY, spacingZ, vecMag, overlay);
 
         processor = new ImageProcessor[targetSpace.batchSize][targetSpace.depth];
-        for (int t = 0; t < dim.batchSize; t++) {
+        for (int t = 0; t < dim.batchSize; t++) 
             Arrays.setAll(processor[t], z -> initProcessor());
-        }
 
         r = vecMag / 2;
         this.vecs = vecs;
@@ -90,6 +89,8 @@ public abstract class VectorImg implements Pencil{
         this.spacingXY = spacingXY;
         this.spacingZ = spacingZ;
         this.tolerance = tolerance;
+        
+//        System.out.println("imageWork.vectors.VectorImg.<init>()\n" + main.Test.format(intensity.toString()));
     }
 
     /**
@@ -126,8 +127,8 @@ public abstract class VectorImg implements Pencil{
 
                 intensity.get(z, t).getVal(handle).get(handle, currentIntensitySlice);
 
-//                drawLayer(currentIntensitySlice, new VecManager2d(dim).setFrom(vecs, t, z, handle), t, z).run();
-                es.submit(drawLayer(currentIntensitySlice, new VecManager2d(dim).setFrom(vecs, t, z, handle), t, z));
+                new LayerDrawer(new VecManager2d(dim).setFrom(vecs, t, z, handle), currentIntensitySlice, t, z).run();                
+//                es.submit(drawLayer(currentIntensitySlice, new VecManager2d(dim).setFrom(vecs, t, z, handle), t, z));
             }
         }
 
@@ -145,16 +146,27 @@ public abstract class VectorImg implements Pencil{
      * @param z The depth of the layer to be drawn.
      * @return The lambda expression to draw the layer.
      */
-    private Runnable drawLayer(float[] currentIntensitySlice, VecManager2d gridVecs, int t, int z) {
+    private class LayerDrawer implements Runnable{
 
-        return () -> {
+        private final float[] currentIntensitySlice; 
+            private final VecManager2d gridVecs; 
+            private final int t,z;
+        
+        private LayerDrawer(VecManager2d gridVecs, float[] currentIntensitySlice, int t, int z) {
+            this.gridVecs = gridVecs;
+            this.currentIntensitySlice = currentIntensitySlice;
+            this.t = t; this.z = z;
+        }           
+            
+        @Override
+        public void run(){
 
             Interval line = new Interval();
             Disk disk = new Disk();
             Point3d vec = new Point3d(), holder[] = new Point3d[3], loc = new Point3d().setZ(z);
             Arrays.setAll(holder, i -> new Point3d());
 
-            Pencil drawer = this;
+            Pencil drawer = VectorImg.this;
             int[] colorHolder = new int[4];
 
             for (; loc.xI() < dim.width; loc.incX()) {
@@ -168,14 +180,16 @@ public abstract class VectorImg implements Pencil{
 
                         if (coh > tolerance)
                             buildAndDrawVec(line, vec, holder[0], loc, t, drawer, colorHolder);
-                        else if (coh < -tolerance)
-                            disk.set(loc, vec, r).draw(drawer, holder[0], holder[1], holder[2], t);
+//                        else if (coh < -tolerance){
+//                            drawer.setColor(color(vec, colorHolder));
+//                            disk.set(loc, vec, r).draw(drawer, holder[0], holder[1], holder[2], t);
+//                        }
 
                     }
                 }
 
             }
-        };
+        }
     }
 
     /**
@@ -235,7 +249,7 @@ public abstract class VectorImg implements Pencil{
     @Override
     public void setColor(Color color) {
         this.color = new int[]{
-            color.getAlpha(),
+//            color.getAlpha(),
             color.getRed(),
             color.getGreen(),
             color.getBlue()

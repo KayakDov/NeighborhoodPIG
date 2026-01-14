@@ -7,7 +7,6 @@ import fijiPlugin.Dimensions;
 import ij.process.ColorProcessor;
 import ij.process.ImageProcessor;
 import java.awt.Color;
-import java.util.Arrays;
 
 /**
  * Creates color vector fields.
@@ -70,7 +69,6 @@ public class ColorVectorImg extends VectorImg {
             colorGoesHere[0] = color.getRed();
             colorGoesHere[1] = color.getGreen();
             colorGoesHere[2] = color.getBlue();
-            
         }
                 
         return colorGoesHere;

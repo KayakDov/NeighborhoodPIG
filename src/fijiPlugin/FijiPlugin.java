@@ -178,7 +178,7 @@ public class FijiPlugin implements PlugIn {
         int zR = 5;
         double zDist = 1;
         boolean hasHeatMap = true;
-        VF hasVF = VF.None;
+        VF hasVF = VF.Color;
         boolean hasCoherence = true;
         String saveVectors = "false";//TODO: Save vectors does not seem to work.
         int vfSpacingXY = 10;
@@ -199,9 +199,9 @@ public class FijiPlugin implements PlugIn {
             "" + hasVF,
             "" + hasCoherence,
             "" + saveVectors, // This flag would be parsed by UserInput.fromStrings
-//            "" + vfSpacingXY,
-//            "" + vfSpacingZ,
-//            "" + mag,
+            "" + vfSpacingXY,
+            "" + vfSpacingZ,
+            "" + mag,
             //            "" + overlay,
             "" + downSampleXY,
             "" + downSampleZ

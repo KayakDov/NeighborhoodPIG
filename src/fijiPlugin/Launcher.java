@@ -234,9 +234,9 @@ public class Launcher implements Runnable {
         }
         if (ui.vectorField.is())
             present(
-                    !ui.dim.hasDepth() && ui.overlay.orElse(false)
-                    ? new MyImagePlus("Overlaid Nematic Vectors", ui.img.getImageStack(), ui.dim.depth).overlay(vf, Color.GREEN)
-                    : vf.getImagePlus("Nematic Vectors", vecImgDepth),
+                    !ui.dim.hasDepth() && ui.overlay.orElse(false) ? 
+                            new MyImagePlus("Overlaid Nematic Vectors", ui.img.getImageStack(), ui.dim.depth).overlay(vf, Color.GREEN): 
+                            vf.getImagePlus("Nematic Vectors", vecImgDepth),
                     save,
                     "N_PIG_images" + File.separatorChar + "vectors"
             );
