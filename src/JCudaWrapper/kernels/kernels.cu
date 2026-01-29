@@ -59,12 +59,11 @@ public:
     int frame;
     __device__ inline GridInd4d(int row, int col, int layer, int frame): GridInd3d(row, col, layer), frame(frame) {
     }
-    __device__ inline GridInd4d(int width, int downSampleXY = 1, int downSampleZ = 1){
-    	int flatX = idx() * downSampleXY;
+    __device__ inline GridInd4d(const int* dim, int downSampleXY = 1, int downSampleZ = 1){
     	this-> row = idy() * downSampleXY;
-    	this-> col = (flatX % width);
+    	this-> col = (idx() % dim[1]) * downSampleXY;
     	this-> layer = idz() * downSampleZ;
-    	this-> frame = flatX / width;
+    	this-> frame = idx()/dim[1];
     }
 };
 
@@ -175,7 +174,7 @@ extern "C" __global__ void batchGrad(
     const double layerRes
 ) {
 
-    GridInd4d ind(dim[1]);
+    GridInd4d ind(dim);
 
     if (ind >= dim) return;
 
@@ -360,7 +359,7 @@ extern "C" __global__ void setEBEProduct(
 
     const int* dim //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
 ) {
-    GridInd4d ind(dim[1]);
+    GridInd4d ind(dim);
     if (ind >= dim) return;
 
     Array4d<double> dst(dstData, xyLdDst, ldldDst, ztLdDst);
@@ -392,7 +391,7 @@ extern "C" __global__ void multiplyScalar(
     const int* dim,
     const float scalar
 ) {
-    GridInd4d ind(dim[1]);
+    GridInd4d ind(dim);
     if (ind >= dim) return;
 
     Array4d<float> dst(data, xyLd, ldld, ztLd);
@@ -1003,9 +1002,9 @@ extern "C" __global__ void eigenBatch3d(
     const int downSampleFactorXY, const int downSampleFactorZ, int eigenInd,
     const double tolerance
 ) {
-    GridInd4d id(dim[1], downSampleFactorXY, downSampleFactorZ);
+    GridInd4d idSmall(dim), id(dim, downSampleFactorXY, downSampleFactorZ);
 
-    if (id >= dim) return;
+    if (idSmall >= dim) return;
 
     Array4d<const double> xx(xxData, ldxx, ldldxx, ldPtrxx);
     Array4d<const double> xy(xyData, ldxy, ldldxy, ldPtrxy);
@@ -1030,7 +1029,7 @@ extern "C" __global__ void eigenBatch3d(
 	if(ortho) eigenInd = 0;
 
     Array4d<float> coherence(coherenceData, ldCoh, ldldCoh, ldPtrCoh);
-    coherence[id] = (ortho?-1:1)*(float)eVals.coherence();
+    coherence[idSmall] = (ortho?-1:1)*(float)eVals.coherence();
 
     mat.subtractFromDiag(eVals[eigenInd]);
 
@@ -1038,16 +1037,16 @@ extern "C" __global__ void eigenBatch3d(
     vec.setEVec(mat, mat.rowEchelon(), eigenInd);
 
     Array4d<float> eVecs(eVecsData, ldEVec, ldldEVec, ldPtrEVec);
-    GridInd4d eVecInd(id.row * 3, id.col, id.layer, id.frame);
+    GridInd4d eVecInd(idSmall.row * 3, idSmall.col, idSmall.layer, idSmall.frame);
     Vec<float> eVec(eVecs, eVecInd, 0, 1, 0);
 
     for (int i = 0; i < 3; i++) eVec[i] = vec[i];
 
     Array4d<float> azimuthal(azimuthalData, ldAzi, ldldAzi, ldPtrAzi);
-    azimuthal[id] = vec.azimuth();
+    azimuthal[idSmall] = vec.azimuth();
 
     Array4d<float> zenith(zenithData, ldZen, ldldZen, ldPtrZen);
-    zenith[id] = vec.zenith();
+    zenith[idSmall] = vec.zenith();
 
 }
 
@@ -1208,9 +1207,9 @@ extern "C" __global__ void eigenBatch2d(
     const int eigenInd,
     const double tolerance
 ) {
-    GridInd4d id(dim[1], downSampleFactor);
+    GridInd4d id(dim, downSampleFactor), idSmall(dim);
 
-    if (id.row >= dim[0] || id.col >= dim[1] || id.frame >= dim[3]) return; // Check bounds against downsampled size
+    if (idSmall.row >= dim[0] || idSmall.col >= dim[1] || idSmall.frame >= dim[3]) return; // Check bounds against downsampled size
 
     Array4d<const double> xx(xxData, ldxx, ldldxx, ldPtrxx);
     Array4d<const double> xy(xyData, ldxy, ldldxy, ldPtrxy);
@@ -1226,17 +1225,17 @@ extern "C" __global__ void eigenBatch2d(
     eVals.setEVal(mat);
 
     Array4d<float> coherence(coherenceData, ldCoh, ldldCoh, ldPtrCoh);
-    coherence[id] = (float)eVals.coherence();
+    coherence[idSmall] = (float)eVals.coherence();
 
     Vec2 vec(tolerance);
     vec.setEVec(mat, eVals(eigenInd), eigenInd);
     Array4d<float> eVecs(eVecsData, ldEVec, ldldEVec, ldPtrEVec);
-    GridInd4d eVecInd(id.row * 2, id.col, id.layer, id.frame);
+    GridInd4d eVecInd(idSmall.row * 2, idSmall.col, idSmall.layer, idSmall.frame);
     Vec<float> eVec(eVecs, eVecInd, 0, 1, 0);
     for (int i = 0; i < 2; i++) eVec[i] = vec[i];
 
     Array4d<float> angles(angleData, ldAng, ldldAng, ldPtrAng);
-    angles[id] = vec.angle();
+    angles[idSmall] = vec.angle();
 }
 
 

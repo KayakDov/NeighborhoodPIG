@@ -287,13 +287,12 @@ public class Launcher implements Runnable {
 
             long startTime = System.currentTimeMillis();
 
-            for (int i = 0; i < ui.img.getNFrames(); i += framesPerIteration)
-                try (
-                        Handle handle = new Handle(); 
-                        NeighborhoodPIG np = new NeighborhoodPIG(handle, ui.img.subset(i, framesPerIteration), ui)
-                        ) {
-                vecImgDepth = processNPIGResults(ui, handle, np);
-                jcuda.runtime.JCuda.cudaDeviceSynchronize();
+            try(Handle handle = new Handle()){//TODO: There is redundant memor allocation between instances.
+                for (int i = 0; i < ui.img.getNFrames(); i += framesPerIteration)
+                try (NeighborhoodPIG np = new NeighborhoodPIG(handle, ui.img.subset(i, framesPerIteration), ui)) {
+                    vecImgDepth = processNPIGResults(ui, handle, np);
+                    jcuda.runtime.JCuda.cudaDeviceSynchronize();
+                }
             }
 
             awaitThreadTermination();
