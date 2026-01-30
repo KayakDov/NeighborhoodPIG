@@ -50,7 +50,7 @@ public class Gradient implements AutoCloseable {
                 dataParams[i + 1] = x[i] = dim.emptyP2dToF2d(handle);
             
             handle.runKernel(
-                    "batchGrad",
+                    "batchGrad" + x.length + "d",
                     dataParams,
                     dim,
                     P.to(ui.neighborhoodSize.layerRes.orElse(1.0))

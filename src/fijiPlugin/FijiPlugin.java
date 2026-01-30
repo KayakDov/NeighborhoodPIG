@@ -61,12 +61,14 @@ public class FijiPlugin implements PlugIn {
     @Override
     public void run(String string) {
 
-        if (string.length() == 0) {
-            if(UsrDialog.getIJFrontImage().isPresent()) new UsrDialog();            
-            else  IJ.error("Your must select an image.");
-        } else
+        if (string.length() == 0)
+            if (UsrDialog.getIJFrontImage().isPresent())
+                new UsrDialog();
+            else
+                IJ.error("Your must select an image.");
+        else
             new Launcher(UsrInput.fromStrings(string.split(" "), UsrDialog.getIJFrontImage().get()), Launcher.Save.png).run();
-        
+
     }
 
     /**
@@ -74,17 +76,15 @@ public class FijiPlugin implements PlugIn {
      */
     public static void loadImageJ() {
         ImageJ ij = IJ.getInstance();
-        if (ij == null) {
+        if (ij == null)
             ij = new ImageJ(ImageJ.NO_SHOW); // Start ImageJ without showing the main window initially
-        }
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
                 Toolbar toolbar = Toolbar.getInstance();
 
-                if (toolbar != null) {
+                if (toolbar != null)
                     toolbar.setVisible(true);
-                }
             }
         });
     }
@@ -152,7 +152,8 @@ public class FijiPlugin implements PlugIn {
      */
     public static void main(String[] args) {//        loadImageJ();
 
-        if (args.length == 0) args = defaultArgs();        
+        if (args.length == 0)
+            args = defaultArgsWheel();//defaultArgsCyl();
 
         FijiPlugin fp = new FijiPlugin();
 
@@ -161,16 +162,15 @@ public class FijiPlugin implements PlugIn {
         ImagePlus imp = ProcessImage.getImagePlus(args[0], depth);
 
         new Launcher(
-                UsrInput.fromStrings(Arrays.copyOfRange(args, 3, args.length), imp), 
+                UsrInput.fromStrings(Arrays.copyOfRange(args, 3, args.length), imp),
                 Launcher.Save.valueOf(args[2])
         ).run();
 
     }
 
-    private static String[] defaultArgs() {
+    private static String[] defaultArgsCyl() {
 //        String imagePath = "/home/usr/Documents/cells/croppedAndZexpended";
         String imagePath = "images/input/cyl";
-        
 
 //        String imagePath = "images/input/SingleTest/";
         int depth = 150;
@@ -209,4 +209,38 @@ public class FijiPlugin implements PlugIn {
 
     }
 
+    private static String[] defaultArgsWheel() {
+//        String imagePath = "images/input/upDown";
+
+        String imagePath = "images/input/SingleTest/";
+        int depth = 1;
+        int xyR = 3;        
+        boolean hasHeatMap = true;
+        VF hasVF = VF.None;
+        boolean hasCoherence = true;
+        String saveVectors = "false";
+        int vfSpacingXY = 1;
+        int mag = 3;
+        boolean overlay = false;
+        int downSampleXY = vfSpacingXY;
+        
+        return new String[]{
+            imagePath,
+            "" + depth,
+            "png", // Default output format for image-based results
+            "" + xyR,
+            "" + hasHeatMap,
+            "" + hasVF,
+            "" + hasCoherence,
+            "" + saveVectors, // This flag would be parsed by UserInput.fromStrings
+            "" + vfSpacingXY,
+            "" + mag,
+            "" + overlay,
+            "" + downSampleXY
+        };
+
+    }
+
 }
+
+

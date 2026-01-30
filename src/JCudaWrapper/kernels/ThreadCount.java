@@ -47,13 +47,13 @@ public class ThreadCount {
     }
 
     /**
-     * The numver of blocks for the given number of threads.
+     * The number of blocks for the given number of threads.
      *
      * @param numThreads The number of threads.
      * @return The number of blocks.
      */
-    protected int blocksPerGrid(int numThreads) {
-        return ((int) Math.ceil((double) numThreads / threadsPerBlock));
+    protected int blocksPerGrid(int numThreads) {        
+        return numThreads == 1? 1 : ((int) Math.ceil((double) numThreads / threadsPerBlock));
     }
 
     /**
@@ -79,7 +79,7 @@ public class ThreadCount {
      *
      * @return
      */
-    public int zBlocksPerGrid() {
+    public int zBlocksPerGrid() {        
         return blocksPerGrid(z);
     }
 
@@ -107,7 +107,7 @@ public class ThreadCount {
      * @return
      */
     public int zThreadsPerBlock() {
-        return threadsPerBlock > threadsPerBlock3d ? 1 : threadsPerBlock;
+        return z == 1 ? 1 : threadsPerBlock;
     }
 
     @Override

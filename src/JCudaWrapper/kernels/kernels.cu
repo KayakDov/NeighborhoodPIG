@@ -165,7 +165,29 @@ __device__ bool operator >=(const GridInd4d& ind, const int* dim){
 	return !(ind < dim);
 }
 
-extern "C" __global__ void batchGrad(
+extern "C" __global__ void batchGrad2d(
+    const float** mat, const int* xyLdMat, const int ldldMat, const int ztLdMat,
+    float** dX, const int* xyLdX, const int ldldX, const int ztLdX,
+    float** dY, const int* xyLdY, const int ldldY, const int ztLdY,
+    const int* dim //height = 0, width = 1, depth = 2, numTensors = 3, layerSize = 4, tensorSize = 5, batchSize = 6
+) {
+
+    GridInd4d ind(dim);
+
+    if (ind >= dim) return;
+
+    Array4d<const float> src(mat, xyLdMat, ldldMat, ztLdMat);
+
+    Array4d<float> dstX(dX, xyLdX, ldldX, ztLdX);
+    Vec<const float> xVec(src, ind, 1, 0, 0);
+    dstX[ind] = grad(xVec, ind.col, dim[1]);
+
+    Array4d<float> dstY(dY, xyLdY, ldldY, ztLdY);
+    Vec<const float> yVec(src, ind, 0, 1, 0);
+    dstY[ind] = grad(yVec, ind.row, dim[0]);
+}
+
+extern "C" __global__ void batchGrad3d(
     const float** mat, const int* xyLdMat, const int ldldMat, const int ztLdMat,
     float** dX, const int* xyLdX, const int ldldX, const int ztLdX,
     float** dY, const int* xyLdY, const int ldldY, const int ztLdY,
@@ -1203,13 +1225,20 @@ extern "C" __global__ void eigenBatch2d(
 
     const int* dim,
 
-    const int downSampleFactor, // Add downsampling factor
+    const int downSampleFactor,
     const int eigenInd,
     const double tolerance
 ) {
     GridInd4d id(dim, downSampleFactor), idSmall(dim);
 
     if (idSmall.row >= dim[0] || idSmall.col >= dim[1] || idSmall.frame >= dim[3]) return; // Check bounds against downsampled size
+
+    //if (idx() == 0 && idy() == 0 && idz() == 0) {
+      //  printf("--- KERNEL START ---\n");
+      //  printf("Dim: H:%d, W:%d, Z:%d, T:%d | DS: %d\n", dim[0], dim[1], dim[2], dim[3], downSampleFactor);
+      //  printf("LDs: xx:%d, eVec:%d, coh:%d\n", ldxx[0], ldEVec[0], ldCoh[0]);
+   // }
+   // printf("\nFrame %d: [r:%d, c:%d, l:%d]", id.frame, id.row, id.col, id.layer);
 
     Array4d<const double> xx(xxData, ldxx, ldldxx, ldPtrxx);
     Array4d<const double> xy(xyData, ldxy, ldldxy, ldPtrxy);
@@ -1238,97 +1267,3 @@ extern "C" __global__ void eigenBatch2d(
     angles[idSmall] = vec.angle();
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-///////////////////////////////////////////////////garbage/////////////////////////////////////////////////////////////////////
-
-class Indices {
-public:
-    const int idx;       ///< The global flat index.
-    const int tensorInd; ///< The tensorindex (frame), unadjusted for leading indension.
-    const int layerInd;  //< The layer index, unadjusted for leading indension.
-    const int row;
-    const int col;
-
-    __device__ int page(const int ldPtr) const {
-    	return tensorInd * ldPtr + layerInd;
-    }
-    
-    __device__ int word(const int* ld, const int ldld) const {
-        return col * ld[page(ldld)] + row;
-    }
-
-ld, const int ldld, const int ldPtr) const{
-        return src[page(ldPtr)][word(ld, ldld)];
-    }
-    template<typename T>
-    __device__ T& operator()(T** src, const int* ld, const int ldld, const int ldPtr) {
-        return src[page(ldPtr)][word(ld, ldld)];
-    }
-
-    __device__ Indices(int threadID, const int* dim):
-	idx(threadID % dim[6]),
-    	tensorInd((idx % dim[6]) / dim[5]),
-    	layerInd((idx % dim[5]) / dim[4]),
-    	row(idx % dim[0]),
-    	col((idx % dim[4])/ dim[0]){}
-
-     __device__ void print() const {
-     
-        int globalThreadId = idx();
-
-        printf("Thread %d (Global): Indices - idx: %d, tensorInd: %d, layerInd: %d, row: %d, col: %d\n",
-               globalThreadId, idx, tensorInd, layerInd, row, col);
-    }
-    __device__ Indices(const int idx, const int* dim, const int downSampleFactorXY, const int downSampleFactorZ)
-    : idx(idx),
-      layerInd(((idx / dim[4]) % dim[2]) * downSampleFactorZ),
-      tensorInd(idx / dim[5]),
-      row((idx % dim[0])*downSampleFactorXY),
-      col(((idx % dim[4])/dim[0])*downSampleFactorXY) {}
-
-    __device__ Indices(const int inputIdx, const int* dim, const int downSampleFactorXY)
-    : idx(inputIdx),
-      tensorInd(idx / dim[4]),
-      layerInd(0),
-      row((idx % dim[0]) * downSampleFactorXY),
-      col(((idx % dim[4])/dim[0]) * downSampleFactorXY) {}
-};
-*/

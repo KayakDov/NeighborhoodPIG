@@ -43,9 +43,8 @@ public class StructureTensorMatrices implements AutoCloseable {
                 }
             }
         }
-
-        int i = 1, j = 1;
-//        System.out.println("fijiPlugin.Gradient.<init>() layer 110\n" + eigen.getMatValsAt(i, j).get(110, 0).getVal(handle).toString());
+        
+//        System.out.println("fijiPlugin.Gradient.<init>() layer 110\n" + toString());
         
         downSampled = dim.downSample(handle, ui.downSampleFactorXY, ui.downSampleFactorZ.orElse(1));
 
