@@ -1233,13 +1233,6 @@ extern "C" __global__ void eigenBatch2d(
 
     if (idSmall.row >= dim[0] || idSmall.col >= dim[1] || idSmall.frame >= dim[3]) return; // Check bounds against downsampled size
 
-    //if (idx() == 0 && idy() == 0 && idz() == 0) {
-      //  printf("--- KERNEL START ---\n");
-      //  printf("Dim: H:%d, W:%d, Z:%d, T:%d | DS: %d\n", dim[0], dim[1], dim[2], dim[3], downSampleFactor);
-      //  printf("LDs: xx:%d, eVec:%d, coh:%d\n", ldxx[0], ldEVec[0], ldCoh[0]);
-   // }
-   // printf("\nFrame %d: [r:%d, c:%d, l:%d]", id.frame, id.row, id.col, id.layer);
-
     Array4d<const double> xx(xxData, ldxx, ldldxx, ldPtrxx);
     Array4d<const double> xy(xyData, ldxy, ldldxy, ldPtrxy);
     Array4d<const double> yy(yyData, ldyy, ldldyy, ldPtryy);

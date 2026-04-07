@@ -6,24 +6,14 @@ import FijiInput.field.BooleanField;
 import static FijiInput.UsrInput.defaultTolerance;
 import FijiInput.field.RadioButtonsField;
 import FijiInput.field.VF;
-import fijiPlugin.FijiPlugin;
 import fijiPlugin.Launcher;
 import fijiPlugin.NeighborhoodDim; // Assuming NeighborhoodDim is in fijiPlugin package
 import ij.IJ;
 import ij.ImagePlus;
-import ij.ImageStack;
-import ij.Prefs;
 import ij.gui.DialogListener;
 import ij.gui.NonBlockingGenericDialog;
-import ij.process.ByteProcessor;
-import ij.process.ColorProcessor;
 import ij.process.ImageConverter;
-import ij.process.ImageProcessor;
-import imageWork.MyImagePlus;
-import java.awt.AWTEvent;
-import java.awt.Button;
 import java.awt.Point;
-import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Optional;
@@ -48,6 +38,7 @@ public class UsrDialog {
     private final NumericField layerDist;
     private final BooleanField coherence;
     private RadioButtonsField vectorField;
+    private NumericField filter;
     private BooleanField overlay;
     private NumericField spacingXY;
     private NumericField spacingZ;
@@ -95,6 +86,12 @@ public class UsrDialog {
         zR = new NumericField("Neighborhood z radius:", 5, gd, 0,
                 "Radius (pixels) of the cube neighborhood in the Z-direction for 3D stacks.",
                 hf, hasZ);
+        
+        filter = new NumericField("# Smoothing Passes", 1, gd, 0,
+                "Controls the number of smoothing pases over the tensor field. \nIncreasing this value moves from an average (1 pass) to a Gaussian blur (4 passes), resulting in smoother orientation vectors.",
+                hf);
+
+        
         layerDist = new NumericField("Z axis pixel spacing multiplier", 1, gd, 1,
                 "Factor for anisotropic Z-spacing (e.g., 1.5 if Z-distance is 1.5 x XY pixel size).",
                 hf, hasZ);
@@ -106,7 +103,7 @@ public class UsrDialog {
         vectorField = new RadioButtonsField("Vector Field", VF.None, gd,
                 "Select none for no vector field to be displayed. Color, for a colored vector field. And White for a field of white vectors.",
                 hf);
-
+       
         saveToDirField = new DirectoryField("Save Directory:", "", gd,
                 "Select the directory where vector data files (.dat) will be saved. Leave empty if not saving.",
                 hf);
@@ -152,16 +149,6 @@ public class UsrDialog {
                 hf.dispose();
         }
 
-    
-
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////
-//        gd.addDialogListener(dl);
-//
-//        gd.showDialog();
-//
-//        spacingXY.setEnabled(overlay.isEnabled() || spacingXY.isEnabled());
-//        if (gd.wasCanceled()) throw new UserCanceled();        
-//        Prefs.savePreferences();
     }
 
     private void updateFields() {
@@ -199,6 +186,8 @@ public class UsrDialog {
 
             if (enableSpacing() && mag.valD().orElse(1.0) == 0)
                 mag.val(spacingXY.valF().orElse(xyR.valF().orElse(3f)));
+            
+            if(filter.valI().orElse(0) < 0) filter.val(0);
 
         } catch (NumberFormatException nfe) {
         }
@@ -223,6 +212,7 @@ public class UsrDialog {
                 spacingZ.valI(),
                 downSampleXY.valI().get(),
                 downSampleZ.valI(),
+                filter.valI().orElse(1),
                 defaultTolerance
         );
     }

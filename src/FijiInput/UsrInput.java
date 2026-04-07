@@ -76,6 +76,11 @@ public class UsrInput {
      * The tolerance value used in processing.
      */
     public final double tolerance;
+    
+    /**
+     * The number of passes made by neighborhood sum.
+     */
+    public final int filter;
 
     /**
      * 1 in every how many pixels has its structure tensor eiganvector computed
@@ -112,7 +117,7 @@ public class UsrInput {
     public UsrInput(ImagePlus img, NeighborhoodDim neighborhoodSize, boolean heatMap, VF vectorField,
             boolean useCoherence, Optional<Path> saveDatToDir, Optional<Boolean> vfOverlay,
             Optional<Integer> vfMag, Optional<Integer> vfSpacingXY, Optional<Integer> vfSpacingZ,
-            int downSampleFactorXY, Optional<Integer> downSampleFactorZ, double tolerance) {
+            int downSampleFactorXY, Optional<Integer> downSampleFactorZ, int filter, double tolerance) {
         this.neighborhoodSize = neighborhoodSize;
         this.heatMap = heatMap;
         this.vectorField = vectorField;
@@ -125,6 +130,7 @@ public class UsrInput {
         this.spacingXY = vfSpacingXY;
         this.spacingZ = vfSpacingZ;
         this.downSampleFactorZ = downSampleFactorZ;
+        this.filter = filter;
 
         if (!validImage(img))
             IJ.error("There's something wrong with your image.");
@@ -251,6 +257,8 @@ public class UsrInput {
         int downSampleXY = ParseInt.from(si, "down sample xy").get();
 
         Optional<Integer> downSampleZ = ParseInt.from(si, "down sample z", hasZ);
+        
+        int filter = ParseInt.from(si, "filter").get();
 
         System.out.println("--- Finished Parsing User Input ---");
 
@@ -267,6 +275,7 @@ public class UsrInput {
                 vectorFieldSpacingZ, // This is a default value and not parsed from the string array
                 downSampleXY,
                 downSampleZ,
+                filter,
                 defaultTolerance
         );
     }

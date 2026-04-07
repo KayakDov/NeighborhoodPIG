@@ -38,7 +38,7 @@ public class StructureTensorMatrices implements AutoCloseable {
 
                 for (int i = 0; i < dim.num(); i++) {
                     for (int j = i; j < dim.num(); j++) {
-                        nps.set(grad.x[i], grad.x[j], eigen.getMatValsAt(i, j));
+                        nps.set(grad.x[i], grad.x[j], eigen.getMatValsAt(i, j), ui.filter);
                     }
                 }
             }
