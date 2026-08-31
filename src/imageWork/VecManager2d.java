@@ -22,7 +22,7 @@ public class VecManager2d {
      */
     public VecManager2d(Dimensions d) {
         this.dim = d;
-        this.vecs = new float[d.tensorSize() * dim.num()];
+        this.vecs = new float[d.layerSize() * dim.num()];
     }
 
     /**
